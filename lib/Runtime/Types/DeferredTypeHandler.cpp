@@ -34,7 +34,7 @@ namespace Js
             undeferredFunctionType = isCrossSite ? functionProxy->GetCrossSiteUndeferredFunctionType() : functionProxy->GetUndeferredFunctionType();
         }
 
-        if (undeferredFunctionType && !isProto)
+        if (undeferredFunctionType && !isProto && (undeferredFunctionType->GetPrototype() == instance->GetType()->GetPrototype()))
         {
             Assert(undeferredFunctionType->GetIsShared());
             instance->ReplaceType(undeferredFunctionType);
@@ -47,15 +47,13 @@ namespace Js
                 ScriptFunctionType *newType = UnsafeVarTo<ScriptFunction>(instance)->GetScriptFunctionType();
                 if (isCrossSite)
                 {
-                    if (functionProxy->HasParseableInfo())
+                    if (functionProxy->HasParseableInfo() && !functionProxy->GetParseableFunctionInfo()->GetCrossSiteUndeferredFunctionType())
                     {
-                        Assert(!functionProxy->GetParseableFunctionInfo()->GetCrossSiteUndeferredFunctionType());
                         functionProxy->GetParseableFunctionInfo()->SetCrossSiteUndeferredFunctionType(newType);
                     }
                 }
-                else
+                else if (!functionProxy->GetUndeferredFunctionType())
                 {
-                    Assert(!functionProxy->GetUndeferredFunctionType());
                     functionProxy->SetUndeferredFunctionType(newType);
                 }
                 instance->ShareType();

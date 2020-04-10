@@ -150,6 +150,14 @@ namespace Js {
     };
 
     template <typename SizePolicy>
+    struct OpLayoutT_Reg2U
+    {
+        typename SizePolicy::RegSlotType     R0;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::UnsignedType    SlotIndex;
+    };
+
+    template <typename SizePolicy>
     struct OpLayoutT_Reg2B1
     {
         typename SizePolicy::RegSlotType     R0;
@@ -167,12 +175,31 @@ namespace Js {
     };
 
     template <typename SizePolicy>
+    struct OpLayoutT_Reg3U
+    {
+        typename SizePolicy::RegSlotType     R0;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::RegSlotType     R2;
+        typename SizePolicy::UnsignedType    SlotIndex;
+    };
+
+    template <typename SizePolicy>
     struct OpLayoutT_Reg4         // R0 <- R1 op R2 op R3
     {
         typename SizePolicy::RegSlotType     R0;
         typename SizePolicy::RegSlotType     R1;
         typename SizePolicy::RegSlotType     R2;
         typename SizePolicy::RegSlotType     R3;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Reg4U
+    {
+        typename SizePolicy::RegSlotType     R0;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::RegSlotType     R2;
+        typename SizePolicy::RegSlotType     R3;
+        typename SizePolicy::UnsignedType    SlotIndex;
     };
 
     template <typename SizePolicy>
@@ -183,6 +210,17 @@ namespace Js {
         typename SizePolicy::RegSlotType     R2;
         typename SizePolicy::RegSlotType     R3;
         typename SizePolicy::RegSlotType     R4;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_Reg5U
+    {
+        typename SizePolicy::RegSlotType     R0;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::RegSlotType     R2;
+        typename SizePolicy::RegSlotType     R3;
+        typename SizePolicy::RegSlotType     R4;
+        typename SizePolicy::UnsignedType    SlotIndex;
     };
 
     template <typename SizePolicy>
@@ -228,6 +266,15 @@ namespace Js {
     struct OpLayoutT_BrReg2       // if (R1 op R2) goto Offset
     {
         JumpOffset  RelativeJumpOffset;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::RegSlotType     R2;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_BrReg3
+    {
+        JumpOffset  RelativeJumpOffset;
+        typename SizePolicy::RegSlotType     R0;
         typename SizePolicy::RegSlotType     R1;
         typename SizePolicy::RegSlotType     R2;
     };
@@ -319,13 +366,6 @@ namespace Js {
     struct OpLayoutT_CallIExtendedFlagsWithICIndex : public OpLayoutT_CallIExtendedWithICIndex<SizePolicy>
     {
         CallFlags callFlags;
-    };
-
-    template <typename SizePolicy>
-    struct OpLayoutT_Class        // class _ extends Extends { Constructor(...) { ... } }
-    {
-        typename SizePolicy::RegSlotType     Constructor;
-        typename SizePolicy::RegSlotSType    Extends;
     };
 
     template <typename SizePolicy>

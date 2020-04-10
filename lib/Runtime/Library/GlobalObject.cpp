@@ -584,7 +584,7 @@ using namespace Js;
         JavascriptString *argString = VarTo<JavascriptString>(evalArg);
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
-        FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
+        FastEvalMapString key(argString, sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
 
 
         // PropertyString's buffer references to PropertyRecord's inline buffer, if both PropertyString and PropertyRecord are collected

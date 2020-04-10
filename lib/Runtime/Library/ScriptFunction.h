@@ -40,7 +40,7 @@ namespace Js
             Assert(proxy->GetFunctionInfo()->HasComputedName());
         }
         virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
-        virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
+        virtual void SetComputedNameVar(Var computedNameVar) override;
         virtual VTableValue DummyVirtualFunctionToHinderLinkerICF() const;
     };
 
@@ -81,7 +81,7 @@ namespace Js
         inline static BOOL Test(JavascriptFunction *func) { return func->IsScriptFunction(); }
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
         static ScriptFunction * OP_NewScFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj);
-
+        static ScriptFunction * OP_NewClassConstructor(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObject, RecyclableObject * constructorParent);
         static void CopyEntryPointInfoToThreadContextIfNecessary(ProxyEntryPointInfo* oldEntryPointInfo, ProxyEntryPointInfo* newEntryPointInfo);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;

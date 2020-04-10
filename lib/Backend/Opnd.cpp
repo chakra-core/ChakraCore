@@ -2284,7 +2284,19 @@ AddrOpnd::CopyInternal(Func *func)
 ///----------------------------------------------------------------------------
 
 bool
-AddrOpnd::IsEqualInternal(Opnd *opnd)
+AddrOpnd::IsEqualAddr(Opnd *opnd, void *addr)
+{
+    return opnd->IsAddrOpnd() && opnd->AsAddrOpnd()->IsEqualAddr(addr);
+}
+
+bool
+AddrOpnd::IsEqualAddr(void *addr) const
+{
+    return m_address == addr;
+}
+
+bool
+AddrOpnd::IsEqualInternal(Opnd *opnd) const
 {
     Assert(m_kind == OpndKindAddr);
     if (!opnd->IsAddrOpnd())
@@ -2292,7 +2304,7 @@ AddrOpnd::IsEqualInternal(Opnd *opnd)
         return false;
     }
 
-    return m_address == opnd->AsAddrOpnd()->m_address;
+    return IsEqualAddr(opnd->AsAddrOpnd()->m_address);
 }
 
 void

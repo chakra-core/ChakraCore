@@ -1515,7 +1515,9 @@ public:
 public:
     //Note type: OpndKindAddr
     AddrOpnd *              CopyInternal(Func *func);
-    bool                    IsEqualInternal(Opnd *opnd);
+    bool                    IsEqualInternal(Opnd *opnd) const;
+    bool                    IsEqualAddr(void *addr) const;
+    static bool             IsEqualAddr(IR::Opnd * opnd, void * addr);
     void                    FreeInternal(Func * func);
 
     bool                    IsDynamic() const { return addrOpndKind > AddrOpndKindConstantVar; }
