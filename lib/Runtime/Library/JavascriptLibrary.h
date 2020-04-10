@@ -295,6 +295,8 @@ namespace Js
         Field(DynamicTypeHandler *) functionTypeHandlerWithLength;
         Field(DynamicTypeHandler *) functionWithPrototypeAndLengthTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
+        Field(DynamicTypeHandler *) classPrototypeTypeHandler;
+
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
         Field(DynamicType *) externalFunctionWithLengthAndDeferredPrototypeType;
         Field(DynamicType *) wrappedFunctionWithDeferredPrototypeType;
@@ -540,6 +542,8 @@ namespace Js
         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
         static SimpleTypeHandler<3> SharedFunctionWithPrototypeLengthAndNameTypeHandler;
         static SimpleTypeHandler<2> SharedFunctionWithPrototypeAndLengthTypeHandler;
+        static SimpleTypeHandler<2> SharedFunctionWithNonWritablePrototypeAndLengthTypeHandler;
+        static SimpleTypeHandler<3> SharedFunctionWithNonWritablePrototypeLengthAndNameTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
@@ -549,7 +553,10 @@ namespace Js
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithPrototypeLengthAndNameTypeDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithPrototypeAndLengthTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithNonWritablePrototypeAndLengthTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithNonWritablePrototypeLengthAndNameTypeDescriptors[3];
         static SimplePropertyDescriptor const ModuleNamespaceTypeDescriptors[1];
+        static SimplePropertyDescriptor const ClassPrototypePropertyDescriptors[1];
 
     public:
 
@@ -972,6 +979,8 @@ namespace Js
         DynamicTypeHandler* GetDeferredFunctionWithLengthUnsetTypeHandler();
         DynamicTypeHandler * GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
+        DynamicTypeHandler * ClassConstructorTypeHandler();
+        DynamicTypeHandler * AnonymousClassConstructorTypeHandler();
         DynamicTypeHandler * GetDeferredAnonymousFunctionWithLengthTypeHandler();
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
         template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false, bool addLength = isLengthAvailable>
@@ -1046,6 +1055,7 @@ namespace Js
         DynamicObject* CreateGeneratorConstructorPrototypeObject();
         DynamicObject* CreateAsyncGeneratorConstructorPrototypeObject();
         DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor);
+        DynamicObject* CreateClassPrototypeObject(RecyclableObject * protoParent);
         DynamicObject* CreateObject(const bool allowObjectHeaderInlining = false, const PropertyIndex requestedInlineSlotCapacity = 0);
         DynamicObject* CreateObject(DynamicTypeHandler * typeHandler);
         DynamicObject* CreateActivationObject();

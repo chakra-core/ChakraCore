@@ -2242,6 +2242,191 @@ IRBuilder::BuildReg3C(Js::OpCode newOpCode, uint32 offset, Js::RegSlot dstRegSlo
     this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
 }
 
+void
+IRBuilder::BuildReg2U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, uint index)
+{
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+
+    switch (newOpcode)
+    {
+        case Js::OpCode::InitBaseClass:
+        {
+            IR::Opnd * opndProtoParent = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetObjectPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            IR::Opnd * opndCtorParent = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            BuildInitClass(offset, R0, R1, opndProtoParent, opndCtorParent, GetEnvironmentOperand(offset), index);
+            break;
+        }
+
+        default:
+            AssertMsg(false, "Unknown Reg2U op");
+            break;
+    }
+}
+
+template <typename SizePolicy>
+void
+IRBuilder::BuildReg2U(Js::OpCode newOpcode, uint32 offset)
+{
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Reg2U<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->R0);
+        this->DoClosureRegCheck(layout->R1);
+    }
+
+    BuildReg2U(newOpcode, offset, layout->R0, layout->R1, layout->SlotIndex);
+}
+
+void
+IRBuilder::BuildReg3U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2, uint index)
+{
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+
+    switch (newOpcode)
+    {
+        case Js::OpCode::InitInnerBaseClass:
+        {
+            IR::Opnd * opndProtoParent = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetObjectPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            IR::Opnd * opndCtorParent = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            BuildInitClass(offset, R0, R1, opndProtoParent, opndCtorParent, BuildSrcOpnd(R2), index);
+            break;
+        }
+
+        default:
+            AssertMsg(false, "Unknown Reg3U op");
+            break;
+    }
+}
+
+template <typename SizePolicy>
+void
+IRBuilder::BuildReg3U(Js::OpCode newOpcode, uint32 offset)
+{
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Reg3U<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->R0);
+        this->DoClosureRegCheck(layout->R1);
+        this->DoClosureRegCheck(layout->R2);
+    }
+
+    BuildReg3U(newOpcode, offset, layout->R0, layout->R1, layout->R2, layout->SlotIndex);
+}
+
+template <typename SizePolicy>
+void
+IRBuilder::BuildReg4U(Js::OpCode newOpcode, uint32 offset)
+{
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Reg4U<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->R0);
+        this->DoClosureRegCheck(layout->R1);
+        this->DoClosureRegCheck(layout->R2);
+        this->DoClosureRegCheck(layout->R3);
+    }
+
+    BuildReg4U(newOpcode, offset, layout->R0, layout->R1, layout->R2, layout->R3, layout->SlotIndex);
+}
+
+void
+IRBuilder::BuildReg4U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2, Js::RegSlot R3, uint slotIndex)
+{
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+
+    switch (newOpcode)
+    {
+        case Js::OpCode::InitClass:
+        {
+            BuildInitClass(offset, R0, R1, BuildSrcOpnd(R3), BuildSrcOpnd(R2), GetEnvironmentOperand(offset), slotIndex);
+            break;
+        }
+
+        default:
+            AssertMsg(false, "Unknown Reg4U opcode");
+            break;
+    }
+}
+
+template <typename SizePolicy>
+void
+IRBuilder::BuildReg5U(Js::OpCode newOpcode, uint32 offset)
+{
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Reg5U<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->R0);
+        this->DoClosureRegCheck(layout->R1);
+        this->DoClosureRegCheck(layout->R2);
+        this->DoClosureRegCheck(layout->R3);
+        this->DoClosureRegCheck(layout->R4);
+    }
+
+    BuildReg5U(newOpcode, offset, layout->R0, layout->R1, layout->R2, layout->R3, layout->R4, layout->SlotIndex);
+}
+
+void
+IRBuilder::BuildReg5U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2, Js::RegSlot R3, Js::RegSlot R4, uint slotIndex)
+{
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+
+    switch (newOpcode)
+    {
+        case Js::OpCode::InitInnerClass:
+        {
+            BuildInitClass(offset, R0, R1, BuildSrcOpnd(R3), BuildSrcOpnd(R2), BuildSrcOpnd(R4), slotIndex);
+            break;
+        }
+
+        default:
+            AssertMsg(false, "Unknown Reg5U opcode");
+            break;
+    }
+}
+
+void
+IRBuilder::BuildInitClass(uint32 offset, Js::RegSlot regConstructor, Js::RegSlot regProto, IR::Opnd * opndProtoParent, IR::Opnd * opndConstructorParent, IR::Opnd * opndEnvironment, uint index)
+{
+    IR::RegOpnd * opndProto = BuildDstOpnd(regProto);
+    opndProto->SetValueType(ValueType::GetObject(ObjectType::Object));
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::NewClassProto, opndProto, opndProtoParent, m_func);
+    this->AddInstr(instr, offset);
+
+    instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), opndConstructorParent, m_func);
+    this->AddInstr(instr, offset);
+
+    instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), opndProto, instr->GetDst(), m_func);
+    this->AddInstr(instr, offset);
+
+    Js::FunctionInfoPtrPtr infoRef = m_func->GetJITFunctionBody()->GetNestedFuncRef(index);
+    IR::AddrOpnd * functionBodySlotOpnd = IR::AddrOpnd::New((Js::Var)infoRef, IR::AddrOpndKindDynamicMisc, m_func);
+    instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), functionBodySlotOpnd, instr->GetDst(), m_func);
+    this->AddInstr(instr, offset);
+
+    instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), opndEnvironment, instr->GetDst(), m_func);
+    this->AddInstr(instr, offset);
+
+    IR::RegOpnd * opndConstructor = BuildDstOpnd(regConstructor);
+    instr = IR::Instr::New(Js::OpCode::NewClassConstructor, opndConstructor, instr->GetDst(), m_func);
+    this->AddInstr(instr, offset);
+
+    Assert(opndConstructor->m_sym->m_isSingleDef);
+    opndConstructor->m_sym->m_isSafeThis = true;
+    opndConstructor->m_sym->m_isNotNumber = true;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// IRBuilder::BuildReg4
@@ -6684,48 +6869,6 @@ IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot arg
     }
 }
 
-///----------------------------------------------------------------------------
-///
-/// IRBuilder::BuildClass
-///
-///     Build IR instr for an InitClass instruction.
-///
-///----------------------------------------------------------------------------
-
-
-template <typename SizePolicy>
-void
-IRBuilder::BuildClass(Js::OpCode newOpcode, uint32 offset)
-{
-    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
-    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Class<SizePolicy>>();
-
-    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
-    {
-        this->DoClosureRegCheck(layout->Constructor);
-        this->DoClosureRegCheck(layout->Extends);
-    }
-
-    BuildClass(newOpcode, offset, layout->Constructor, layout->Extends);
-}
-
-void
-IRBuilder::BuildClass(Js::OpCode newOpcode, uint32 offset, Js::RegSlot constructor, Js::RegSlot extends)
-{
-    Assert(newOpcode == Js::OpCode::InitClass);
-
-    IR::Instr * insn = IR::Instr::New(newOpcode, m_func);
-    insn->SetSrc1(this->BuildSrcOpnd(constructor));
-
-    if (extends != Js::Constants::NoRegister)
-    {
-        insn->SetSrc2(this->BuildSrcOpnd(extends));
-    }
-
-    this->AddInstr(insn, offset);
-}
-
 
 ///----------------------------------------------------------------------------
 ///
@@ -6795,6 +6938,24 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset)
     }
 
     BuildBrReg2(newOpcode, offset, m_jnReader.GetCurrentOffset() + layout->RelativeJumpOffset, layout->R1, layout->R2);
+}
+
+template <typename SizePolicy>
+void
+IRBuilder::BuildBrReg3(Js::OpCode newOpcode, uint32 offset)
+{
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
+    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrReg3<SizePolicy>>();
+
+    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
+    {
+        this->DoClosureRegCheck(layout->R0);
+        this->DoClosureRegCheck(layout->R1);
+        this->DoClosureRegCheck(layout->R2);
+    }
+
+    BuildBrReg3(newOpcode, offset, m_jnReader.GetCurrentOffset() + layout->RelativeJumpOffset, layout->R0, layout->R1, layout->R2);
 }
 
 template <typename SizePolicy>
@@ -6880,6 +7041,64 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     {
         branchInstr = IR::BranchInstr::New(newOpcode, nullptr, src1Opnd, src2Opnd, m_func);
         this->AddBranchInstr(branchInstr, offset, targetOffset);
+    }
+}
+
+
+void
+IRBuilder::BuildBrReg3(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2)
+{
+    switch (newOpcode)
+    {
+        case Js::OpCode::CheckExtends:
+        {
+            IR::RegOpnd * opndExtends = BuildSrcOpnd(R2);
+            // If extends is Null, assign appropriate values to ctorParent and protoParent and jump to target offset.
+            IR::LabelInstr * labelNotNull = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+            IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BrOnNotNullObj_A, labelNotNull, opndExtends, m_func);
+            this->AddInstr(branchInstr, offset);
+
+            IR::AddrOpnd * opndNullAddr = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetNullAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            IR::RegOpnd * opndProtoParent = BuildDstOpnd(R1);
+            IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, opndProtoParent, opndNullAddr, m_func);
+            opndNullAddr->SetValueType(ValueType::Null);
+            this->AddInstr(instr, offset);
+
+            IR::AddrOpnd * opndFuncProto = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            IR::RegOpnd * opndCtorParent = BuildDstOpnd(R0);
+            instr = IR::Instr::New(Js::OpCode::Ld_A, opndCtorParent, opndFuncProto, m_func);
+            this->AddInstr(instr, offset);
+
+            branchInstr = IR::BranchInstr::New(Js::OpCode::Br, nullptr, m_func);
+            this->AddBranchInstr(branchInstr, offset, targetOffset);
+
+            this->AddInstr(labelNotNull, offset);
+
+            IR::LabelInstr * labelIsCtor = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+            IR::BranchInstr * brIsCtor = IR::BranchInstr::New(Js::OpCode::BrOnConstructor_A, labelIsCtor, opndExtends, m_func);
+            this->AddInstr(brIsCtor, offset);
+
+            instr = IR::Instr::New(Js::OpCode::RuntimeTypeError, m_func);
+            instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(JSERR_ErrorOnNew), TyInt32, m_func, true));
+            this->AddInstr(instr, offset);
+
+            this->AddInstr(labelIsCtor, offset);
+
+            if (R0 == R2 && opndCtorParent->m_sym != opndExtends->m_sym)
+            {
+                // The byte code doesn't contain a Ld_A, since the byte code regs are the same, but they've been renumbered in the JIT,
+                // so we have to assign from one to the other.
+                instr = IR::Instr::New(Js::OpCode::Ld_A, opndCtorParent, opndExtends, m_func);
+                this->AddInstr(instr, offset);
+            }
+
+            break;
+        }
+
+        default:
+            AssertMsg(false, "Unknown BrReg3 opcode");
+            break;
+
     }
 }
 

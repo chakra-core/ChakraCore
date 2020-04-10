@@ -57,6 +57,19 @@ namespace Js
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithNonWritablePrototypeAndLengthTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyNone),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable),
+    };
+
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithNonWritablePrototypeLengthAndNameTypeDescriptors[3] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyNone),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
+    };
+
     SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[1] =
     {
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolToStringTag), PropertyNone)
@@ -73,8 +86,9 @@ namespace Js
     SimpleTypeHandler<3> JavascriptLibrary::SharedFunctionWithPrototypeLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithPrototypeLengthAndNameTypeDescriptors));
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeAndLengthTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithPrototypeAndLengthTypeDescriptors));
     SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors), PropertyTypesHasSpecialProperties);
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithNonWritablePrototypeAndLengthTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithNonWritablePrototypeAndLengthTypeDescriptors));
+    SimpleTypeHandler<3> JavascriptLibrary::SharedFunctionWithNonWritablePrototypeLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithNonWritablePrototypeLengthAndNameTypeDescriptors));
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
-
 
     SimplePropertyDescriptor const JavascriptLibrary::HeapArgumentsPropertyDescriptors[3] =
     {
@@ -87,6 +101,11 @@ namespace Js
     {
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyNone),
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable)
+    };
+
+    SimplePropertyDescriptor const JavascriptLibrary::ClassPrototypePropertyDescriptors[1] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::constructor), PropertyConfigurable | PropertyWritable)
     };
 
     void JavascriptLibrary::Initialize(ScriptContext* scriptContext, GlobalObject * globalObject)
@@ -455,6 +474,14 @@ namespace Js
         // Initialize Array/Argument types
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
+
+        classPrototypeTypeHandler = 
+#if ENABLE_FIXED_FIELDS
+            SimpleDictionaryTypeHandler::NewInitialized
+#else
+            SimpleDictionaryTypeHandler::New
+#endif
+                (scriptContext, ClassPrototypePropertyDescriptors, _countof(ClassPrototypePropertyDescriptors), 0, 0, true, true);
 
         TypePath *const strictHeapArgumentsTypePath = TypePath::New(recycler);
         strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::callee);
@@ -1054,6 +1081,16 @@ namespace Js
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler()
     {
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::ClassConstructorTypeHandler()
+    {
+        return &SharedFunctionWithNonWritablePrototypeLengthAndNameTypeHandler;
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::AnonymousClassConstructorTypeHandler()
+    {
+        return &SharedFunctionWithNonWritablePrototypeAndLengthTypeHandler;
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithLengthTypeHandler(ScriptContext* scriptContext)
@@ -6254,23 +6291,23 @@ namespace Js
 
     ScriptFunction* JavascriptLibrary::CreateScriptFunction(FunctionProxy * proxy)
     {
-        ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
+        ScriptFunctionType * type = proxy->IsClassConstructor() && proxy->GetUndeferredFunctionType() ? proxy->GetUndeferredFunctionType() : proxy->EnsureDeferredPrototypeType();
         FunctionInfo* functionInfo = proxy->GetFunctionInfo();
         if (functionInfo->HasComputedName() || functionInfo->HasHomeObj())
         {
             if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
             {
-                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithHomeObj<ScriptFunction>>, proxy, deferredPrototypeType);
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithHomeObj<ScriptFunction>>, proxy, type);
             }
             else if (functionInfo->HasHomeObj())
             {
-                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithHomeObj<ScriptFunction>, proxy, deferredPrototypeType);
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithHomeObj<ScriptFunction>, proxy, type);
             }
 
             // Has computed Name
-            return RecyclerNewWithInfoBits(this->GetRecycler(), EnumFunctionClass, ScriptFunctionWithComputedName, proxy, deferredPrototypeType);
+            return RecyclerNewWithInfoBits(this->GetRecycler(), EnumFunctionClass, ScriptFunctionWithComputedName, proxy, type);
         }
-        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, ScriptFunction, proxy, deferredPrototypeType);
+        return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, ScriptFunction, proxy, type);
     }
 
     AsmJsScriptFunction* JavascriptLibrary::CreateAsmJsScriptFunction(FunctionProxy * proxy)
@@ -6619,6 +6656,18 @@ namespace Js
         DynamicObject * prototype = DynamicObject::New(this->GetRecycler(), constructorPrototypeObjectType);
         AddMember(prototype, PropertyIds::constructor, constructor);
         return prototype;
+    }
+
+    DynamicObject* JavascriptLibrary::CreateClassPrototypeObject(RecyclableObject * protoParent)
+    {
+        // We can't share types of objects that are prototypes. If we gain the ability to do that, try using a shared type
+        // with a PathTypeHandler for this object. (PathTypeHandler and not SimpleTypeHandler, because it will likely have
+        // user-defined properties on it.) Until then, make a new type for each object and use a SimpleDictionaryTypeHandler.
+        DynamicType * dynamicType = 
+            DynamicType::New(scriptContext, TypeIds_Object, protoParent, nullptr, classPrototypeTypeHandler);
+        dynamicType->SetHasNoEnumerableProperties(true);
+        DynamicObject * proto = DynamicObject::New(this->GetRecycler(), dynamicType);
+        return proto;
     }
 
     DynamicObject* JavascriptLibrary::CreateObject(

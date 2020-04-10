@@ -1488,8 +1488,10 @@ CommonNumber:
 
     bool JavascriptOperators::IsConstructor(_In_ Var instanceVar)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_IsConstructor);
         RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
         return instanceObj && IsConstructor(instanceObj);
+        JIT_HELPER_END(Op_IsConstructor);
     }
 
     BOOL JavascriptOperators::IsConcatSpreadable(Var instanceVar)
@@ -7770,77 +7772,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(ScrObj_OP_IsInst);
     }
 
-    void JavascriptOperators::OP_InitClass(Var constructor, Var extends, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_NewClassProto(Var protoParent, ScriptContext * scriptContext)
     {
-        JIT_HELPER_REENTRANT_HEADER(OP_InitClass);
-        if (JavascriptOperators::GetTypeId(constructor) != Js::TypeId::TypeIds_Function)
-        {
-             JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedFunction, _u("class"));
-        }
-
-        RecyclableObject * ctor = VarTo<RecyclableObject>(constructor);
-
-        if (extends)
-        {
-            switch (JavascriptOperators::GetTypeId(extends))
-            {
-                case Js::TypeId::TypeIds_Null:
-                {
-                    Var ctorProto = JavascriptOperators::GetProperty(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
-                    RecyclableObject * ctorProtoObj = VarTo<RecyclableObject>(ctorProto);
-
-                    ctorProtoObj->SetPrototype(VarTo<RecyclableObject>(extends));
-
-                    ctorProtoObj->EnsureProperty(Js::PropertyIds::constructor);
-                    ctorProtoObj->SetEnumerable(Js::PropertyIds::constructor, FALSE);
-
-                    break;
-                }
-
-                default:
-                {
-                    if (!VarIs<RecyclableObject>(extends))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
-                    }
-                    RecyclableObject * extendsObj = VarTo<RecyclableObject>(extends);
-                    if (!JavascriptOperators::IsConstructor(extendsObj))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
-                    }
-                    if (!extendsObj->HasProperty(Js::PropertyIds::prototype))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidPrototype);
-                    }
-
-                    Var extendsProto = JavascriptOperators::GetPropertyNoCache(extends, extendsObj, Js::PropertyIds::prototype, scriptContext);
-                    uint extendsProtoTypeId = JavascriptOperators::GetTypeId(extendsProto);
-                    if (extendsProtoTypeId <= Js::TypeId::TypeIds_LastJavascriptPrimitiveType && extendsProtoTypeId != Js::TypeId::TypeIds_Null)
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidPrototype);
-                    }
-
-                    Var ctorProto = JavascriptOperators::GetPropertyNoCache(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
-                    RecyclableObject * ctorProtoObj = VarTo<RecyclableObject>(ctorProto);
-
-                    ctorProtoObj->SetPrototype(VarTo<RecyclableObject>(extendsProto));
-
-                    ctorProtoObj->EnsureProperty(Js::PropertyIds::constructor);
-                    ctorProtoObj->SetEnumerable(Js::PropertyIds::constructor, FALSE);
-
-                    Var protoCtor = JavascriptOperators::GetPropertyNoCache(ctorProto, ctorProtoObj, Js::PropertyIds::constructor, scriptContext);
-                    RecyclableObject * protoCtorObj = VarTo<RecyclableObject>(protoCtor);
-                    protoCtorObj->SetPrototype(extendsObj);
-
-                    break;
-                }
-            }
-        }
-
-        Var proto = JavascriptOperators::GetProperty(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
-        JavascriptOperators::OP_SetHomeObj(constructor, proto);
-
-        JIT_HELPER_END(OP_InitClass);
+        JIT_HELPER_NOT_REENTRANT_HEADER(Op_NewClassProto, reentrancylock, scriptContext->GetThreadContext());
+        return scriptContext->GetLibrary()->CreateClassPrototypeObject(VarTo<RecyclableObject>(protoParent));
+        JIT_HELPER_END(Op_NewClassProto);
     }
 
     void JavascriptOperators::OP_LoadUndefinedToElement(Var instance, PropertyId propertyId)
@@ -8629,7 +8565,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     {
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValue);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValue, Op_PatchPutValueWithThisPtr);
-        return PatchPutValueWithThisPtr<IsFromFullJit, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        PatchPutValueWithThisPtr<IsFromFullJit, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
         JIT_HELPER_END(Op_PatchPutValue);
     }
     JIT_HELPER_TEMPLATE(Op_PatchPutValue, Op_PatchPutValuePolymorphic)
@@ -8898,6 +8834,94 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             // Add implicit call flags, to bail out if field copy prop may propagate the wrong value.
             scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
         }
+    }
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueCheckLayout, Op_PatchPutValue);
+
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueCheckLayout, Op_PatchPutValuePolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueWithThisPtrCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrCheckLayout, Op_PatchPutValueWithThisPtr);
+
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueWithThisPtrCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueWithThisPtrCheckLayout, Op_PatchPutValueWithThisPtrPolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueNoLocalFastPathCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueNoLocalFastPathCheckLayout, Op_PatchPutValueNoLocalFastPath);
+
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueNoLocalFastPathCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueNoLocalFastPathCheckLayout, Op_PatchPutValueNoLocalFastPathPolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout, Op_PatchPutValueWithThisPtrNoLocalFastPath);
+
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout, Op_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchInitValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchInitValueCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchInitValueCheckLayout, Op_PatchInitValue);
+
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(object) ? UnsafeVarTo<DynamicObject>(object)->GetTypeHandler() : nullptr;
+        PatchInitValue<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, object, propertyId, newValue);
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(object), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchInitValueCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchInitValueCheckLayout, Op_PatchInitValuePolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchInitValueCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+    template bool JavascriptOperators::PatchInitValueCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+
+    bool JavascriptOperators::LayoutChanged(DynamicObject *const instance, DynamicTypeHandler *const oldTypeHandler)
+    {
+        DynamicTypeHandler * newTypeHandler = instance->GetTypeHandler();
+        return (oldTypeHandler != newTypeHandler &&
+                (oldTypeHandler->GetInlineSlotCapacity() != newTypeHandler->GetInlineSlotCapacity() ||
+                 oldTypeHandler->GetOffsetOfInlineSlots() != newTypeHandler->GetOffsetOfInlineSlots()));
     }
 
     template <bool IsFromFullJit, class TInlineCache>
@@ -11073,8 +11097,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     BOOL JavascriptOperators::IsObjectOrNull(Var instance)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_IsObjectOrNull);
         TypeId typeId = GetTypeId(instance);
         return IsObjectType(typeId) || typeId == TypeIds_Null;
+        JIT_HELPER_END(Op_IsObjectOrNull);
     }
 
     BOOL JavascriptOperators::IsUndefined(_In_ RecyclableObject* instance)

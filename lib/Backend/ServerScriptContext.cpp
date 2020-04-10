@@ -217,6 +217,18 @@ ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
 }
 
 intptr_t
+ServerScriptContext::GetObjectPrototypeAddr() const
+{
+    return m_contextData.objectPrototypeAddr;
+}
+
+intptr_t
+ServerScriptContext::GetFunctionPrototypeAddr() const
+{
+    return m_contextData.functionPrototypeAddr;
+}
+
+intptr_t
 ServerScriptContext::GetNumberAllocatorAddr() const
 {
     return m_contextData.numberAllocatorAddr;

@@ -2981,9 +2981,9 @@ LinearScan::ProcessEHRegionBoundary(IR::Instr * instr)
     }
 
     // Spill everything upon entry to the try region and upon a Leave.
-    IR::Instr* insertionInstr = instr->m_opcode != Js::OpCode::Leave ? instr : instr->m_prev;
     FOREACH_SLIST_ENTRY_EDITING(Lifetime *, lifetime, this->activeLiveranges, iter)
     {
+        IR::Instr* insertionInstr = instr->m_opcode != Js::OpCode::Leave ? instr : instr->m_prev;
         this->activeRegs.Clear(lifetime->reg);
         if (lifetime->IsInt())
         {

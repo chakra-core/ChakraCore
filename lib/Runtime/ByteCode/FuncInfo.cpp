@@ -349,16 +349,19 @@ void FuncInfo::ReleaseReference(ParseNode *pnode)
             }
         }
         // Now release the call target.
-        switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
+        if (!pnode->AsParseNodeCall()->isSuperCall)
         {
-        case knopDot:
-        case knopIndex:
-            this->ReleaseReference(pnode->AsParseNodeCall()->pnodeTarget);
-            this->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+            switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
+            {
+            case knopDot:
+            case knopIndex:
+                this->ReleaseReference(pnode->AsParseNodeCall()->pnodeTarget);
+                this->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+                break;
+            default:
+                this->ReleaseLoad(pnode->AsParseNodeCall()->pnodeTarget);
             break;
-        default:
-            this->ReleaseLoad(pnode->AsParseNodeCall()->pnodeTarget);
-            break;
+            }
         }
         break;
     default:
