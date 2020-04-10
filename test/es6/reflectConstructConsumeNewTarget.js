@@ -41,6 +41,30 @@ var tests = [
 
         assert.throws(function () { Reflect.construct(myDerivedClass, [], undefined ) }, TypeError, "undefined is not a constructor", "'newTarget' is not a constructor");
      }
+  },
+  {
+    name: "Reflect.construct should work with Object constructor",
+    body: function () {
+        var p = {};
+        var a = { __proto__: p };
+
+        new class extends Object {
+          constructor() {
+            super(a);
+            assert.isTrue(a.__proto__ === p);
+          }
+        };
+
+        Reflect.construct(Object, [a]);
+        assert.isTrue(a.__proto__ === p);
+
+        var q = {};
+        function C() {}
+        C.prototype = q;
+        var obj = Reflect.construct(Object, [a], C);
+        assert.isTrue(obj.__proto__ === q);
+        assert.isTrue(a.__proto__ === p);
+    }
   }
 ];
 

@@ -178,4 +178,9 @@
       <compile-flags>-ExtendedErrorStackForTestHost -force:DeferParse</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>errorPrototypetoString.js</files>
+    </default>
+  </test>
 </regress-exe>
