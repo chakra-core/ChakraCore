@@ -79,9 +79,9 @@ namespace Js
 #endif
         if (VarIs<JavascriptProxy>(target))
         {
-            if (VarTo<JavascriptProxy>(target)->IsRevoked())
+            if (UnsafeVarTo<JavascriptProxy>(target)->IsRevoked())
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnRevokedProxy, _u("target"));
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("target"));
             }
         }
 
@@ -92,9 +92,9 @@ namespace Js
         handler = VarTo<DynamicObject>(args[2]);
         if (VarIs<JavascriptProxy>(handler))
         {
-            if (VarTo<JavascriptProxy>(handler)->IsRevoked())
+            if (UnsafeVarTo<JavascriptProxy>(handler)->IsRevoked())
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnRevokedProxy, _u("handler"));
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("handler"));
             }
         }
 
