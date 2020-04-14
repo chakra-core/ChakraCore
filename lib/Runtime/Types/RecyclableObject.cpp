@@ -331,6 +331,12 @@ namespace Js
         return this;
     }
 
+    RecyclableObject* RecyclableObject::GetThisAndUnwrappedInstance(Var* thisVar) const
+    {
+        *thisVar = this->GetLibrary()->GetUndefined();
+        return (RecyclableObject*)this;
+    }
+
     // In order to avoid a branch, every object has an entry point if it gets called like a
     // function - however, if it can't be called like a function, it's set to DefaultEntryPoint
     // which will emit an error.

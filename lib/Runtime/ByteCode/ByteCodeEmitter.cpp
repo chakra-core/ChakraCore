@@ -4262,21 +4262,33 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
                 funcInfo->FindOrAddReferencedPropertyId(propertyId),
                 envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
 
-            Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
-
             AssertOrFailFast(scope->GetIsObject());
-            this->m_writer.SlotI1(Js::OpCode::LdEnvObj, tmpReg,
-                envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
 
-            Js::OpCode op = unwrapWithObj ? Js::OpCode::UnwrapWithObj : Js::OpCode::Ld_A;
-
-            this->m_writer.Reg2(op, instLocation, tmpReg);
-            if (thisLocation != Js::Constants::NoRegister)
+            if (unwrapWithObj)
             {
-                this->m_writer.Reg2(op, thisLocation, tmpReg);
-            }
+                Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
 
-            funcInfo->ReleaseTmpRegister(tmpReg);
+                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, tmpReg,
+                    envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
+
+                this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, tmpReg);
+                if (thisLocation != Js::Constants::NoRegister)
+                {
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, thisLocation, tmpReg);
+                }
+
+                funcInfo->ReleaseTmpRegister(tmpReg);
+            }
+            else
+            {
+                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation,
+                    envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var));
+
+                if (thisLocation != Js::Constants::NoRegister)
+                {
+                    this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
+                }
+            }
         }
         else if (scopeLocation != Js::Constants::NoRegister && scopeLocation == funcInfo->frameObjRegister)
         {
@@ -4288,7 +4300,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
             this->m_writer.Reg1(Js::OpCode::LdLocalObj, instLocation);
             if (thisLocation != Js::Constants::NoRegister)
             {
-                this->m_writer.Reg1(Js::OpCode::LdLocalObj, thisLocation);
+                this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
             }
         }
         else
@@ -4296,11 +4308,21 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
             this->m_writer.BrProperty(Js::OpCode::BrOnNoProperty, nextLabel, scopeLocation,
                 funcInfo->FindOrAddReferencedPropertyId(propertyId));
 
-            Js::OpCode op = unwrapWithObj ? Js::OpCode::UnwrapWithObj : Js::OpCode::Ld_A;
-            this->m_writer.Reg2(op, instLocation, scopeLocation);
-            if (thisLocation != Js::Constants::NoRegister)
+            if (unwrapWithObj)
             {
-                this->m_writer.Reg2(op, thisLocation, scopeLocation);
+                this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, scopeLocation);
+                if (thisLocation != Js::Constants::NoRegister)
+                {
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, thisLocation, scopeLocation);
+                }
+            }
+            else
+            {
+                this->m_writer.Reg2(Js::OpCode::Ld_A, instLocation, scopeLocation);
+                if (thisLocation != Js::Constants::NoRegister)
+                {
+                    this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
+                }
             }
         }
 

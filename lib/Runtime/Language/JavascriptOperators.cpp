@@ -2072,8 +2072,7 @@ CommonNumber:
                 // HasProperty will call UnscopablesWrapperObject's HasProperty which will do the filtering
                 // All we have to do here is unwrap the object hence the api call
 
-                *thisVar = obj->GetThisObjectOrUnWrap();
-                return *thisVar;
+                return obj->GetThisAndUnwrappedInstance(thisVar);
             }
         }
 
