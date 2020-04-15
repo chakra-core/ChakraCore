@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
+
 # Keep CMake from caching static/shared library
 # option. Otherwise, CMake fails to update cached
 # references
@@ -402,18 +404,11 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -D_DEBUG=1 # for PAL
         -DDBG_DUMP=1
     )
-elseif(CMAKE_BUILD_TYPE STREQUAL Test)
+elseif(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
     add_definitions(
         -DENABLE_DEBUG_CONFIG_OPTIONS=1
     )
-    add_compile_options(-g)
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
-
-if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
-    add_compile_options(-O3)
-else()
-    add_compile_options(-O0)
-endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
     add_definitions(
