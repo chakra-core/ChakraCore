@@ -188,22 +188,32 @@ namespace Js
                 false);
         newTypeHandler->SetMayBecomeShared();
 
+#if ENABLE_FIXED_FIELDS
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+        Assert(HasSingletonInstanceOnlyIfNeeded());
+
+        // If instance has a shared type, the type handler change below will induce a type transition, which
+        // guarantees that any existing fast path field stores (which could quietly overwrite a fixed field
+        // on this instance) will be invalidated.  It is safe to mark all fields as fixed.
+        bool const allowFixedFields = DynamicTypeHandler::AreSingletonInstancesNeeded() && instance->HasLockedType();
+#endif
+#endif
+
         DynamicType *existingType = instance->GetDynamicType();
         DynamicType *currentType = DynamicType::New(scriptContext, existingType->GetTypeId(), existingType->GetPrototype(), nullptr, newTypeHandler, false, false);
         PropertyId propertyId = Constants::NoProperty;
         ObjectSlotAttributes attr = ObjectSlotAttr_None;
         for (PropertyIndex i = 0; i < propertyCount; i++)
         {
-            Var value = instance->GetSlot(i);
             propertyId = descriptors[i].Id->GetPropertyId();
             attr = PathTypeHandlerBase::PropertyAttributesToObjectSlotAttributes(descriptors[i].Attributes);
-            Assert(value != nullptr || IsInternalPropertyId(propertyId));
             PropertyIndex index;
             currentType = newTypeHandler->PromoteType<false>(currentType, PathTypeSuccessorKey(propertyId, attr), false, scriptContext, instance, &index);
             newTypeHandler = PathTypeHandlerBase::FromTypeHandler(currentType->GetTypeHandler());
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-            bool markAsFixed = !IsInternalPropertyId(propertyId) &&
+            Var value = instance->GetSlot(i);
+            bool markAsFixed = allowFixedFields && !IsInternalPropertyId(propertyId) && value != nullptr &&
                 (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : false);
             newTypeHandler->InitializePath(instance, i, newTypeHandler->GetPathLength(), scriptContext, [=]() { return markAsFixed; });
 #endif

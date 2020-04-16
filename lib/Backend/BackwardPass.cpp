@@ -6097,7 +6097,7 @@ BackwardPass::InsertTypeTransitionsAtPotentialKills()
                     // This is the sym we're tracking. No aliasing to worry about.
                     return false;
                 }
-                if (propertySymOpnd->IsMono() && data->GetInitialType() != propertySymOpnd->GetType())
+                if (propertySymOpnd->NeedsMonoCheck() && data->GetInitialType() != propertySymOpnd->GetType())
                 {
                     // Type mismatch in a monomorphic case -- no aliasing.
                     return false;
@@ -8432,7 +8432,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                     // We already have one, we don't need a second.
                     instrCopy->Free();
                 }
-                else if (!predInstr->AsBranchInstr()->m_isSwitchBr)
+                else if (predInstr->IsBranchInstr() && !predInstr->AsBranchInstr()->m_isSwitchBr)
                 {
                     // Don't put a bailout in the middle of a switch dispatch sequence.
                     // The bytecode offsets are not in order, and it would lead to incorrect

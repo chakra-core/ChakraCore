@@ -656,8 +656,8 @@ CHAKRA_API
 ///     </para>
 /// </remarks>
 /// <param name="name">
-///     The name of the property ID to get or create. The name may consist of only digits.
-///     The string is expected to be ASCII / utf8 encoded.
+///     The name of the property ID to get or create. The string is expected to be ASCII / utf8 encoded.
+///     The name can be any JavaScript property identifier, including all digits.
 /// </param>
 /// <param name="length">length of the name in bytes</param>
 /// <param name="propertyId">The property ID in this runtime for the given name.</param>

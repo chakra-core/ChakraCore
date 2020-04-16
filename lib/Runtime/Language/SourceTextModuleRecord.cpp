@@ -140,7 +140,7 @@ namespace Js
 
                 Utf8SourceInfo* pResultSourceInfo = nullptr;
                 this->parseTree = scriptContext->ParseScript(parser, sourceText,
-                    sourceLength, srcInfo, &se, &pResultSourceInfo, _u("module"),
+                    sourceLength, srcInfo, &se, &pResultSourceInfo, Constants::ModuleCode,
                     loadScriptFlag, &sourceIndex, nullptr);
                 this->pSourceInfo = pResultSourceInfo;
             }
@@ -939,7 +939,7 @@ namespace Js
         Assert(this->WasDeclarationInitialized());
         Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
 
-        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
+        this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, Constants::ModuleCode);
 
         // Parser uses a temporary guest arena to keep regex patterns alive. We need to release this arena only after we have no further use
         // for the regex pattern objects.
@@ -1105,7 +1105,7 @@ namespace Js
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {
                 ResumeYieldData yieldData(scriptContext->GetLibrary()->GetUndefined(), nullptr);
-                ret = gen->CallGenerator(&yieldData, _u("Module Global"));
+                ret = gen->CallGenerator(&yieldData, Constants::ModuleCode);
                 ret = JavascriptOperators::GetProperty(VarTo<RecyclableObject>(ret), PropertyIds::value, scriptContext);
             }
             END_SAFE_REENTRANT_CALL

@@ -117,7 +117,7 @@ for (let fn of throwingFunctions) {
     try {
         fn.body();
         console.log(`fail: ${fn.msg}`);
-    } catch {
+    } catch (e) {
         console.log("pass");
     }
 }
@@ -126,7 +126,7 @@ for (let fn of nonThrowingFunctions) {
     try {
         fn.body();
         console.log("pass");
-    } catch {
+    } catch (e) {
         console.log(`fail: ${fn.msg}`);
     }
 }

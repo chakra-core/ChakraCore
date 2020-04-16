@@ -540,7 +540,7 @@ namespace Js
         static Var OP_NewPseudoScope(ScriptContext *scriptContext);
         static Var OP_NewBlockScope(ScriptContext *scriptContext);
         static Var OP_CloneBlockScope(BlockActivationObject *blockScope, ScriptContext *scriptContext);
-        static void OP_InitClass(Var constructor, Var extends, ScriptContext * scriptContext);
+        static Var OP_NewClassProto(Var protoParent, ScriptContext * scriptContext);
         static void OP_LoadUndefinedToElement(Var instance, PropertyId propertyId);
         static void OP_LoadUndefinedToElementDynamic(Var instance, PropertyId propertyId, ScriptContext* scriptContext);
         static void OP_LoadUndefinedToElementScoped(FrameDisplay *pScope, PropertyId propertyId, Var defaultInstance, ScriptContext* scriptContext);
@@ -580,6 +580,13 @@ namespace Js
 
         template <bool IsFromFullJit, class TInlineCache> static void PatchInitValue(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
         static void PatchInitValueNoFastPath(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+
+        template <class TInlineCache> static bool PatchPutValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var obj, PropertyId propertyId, Var newValue, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchPutValueWithThisPtrCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var obj, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchPutValueNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchPutValueWithThisPtrNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchInitValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+        static bool LayoutChanged(DynamicObject * instance, DynamicTypeHandler * oldTypeHandler);
 
         template <bool IsFromFullJit, class TInlineCache> static Var PatchGetMethod(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId);
         template <bool IsFromFullJit, class TInlineCache> static Var PatchGetRootMethod(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, DynamicObject* object, PropertyId propertyId);

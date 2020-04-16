@@ -1980,6 +1980,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
 
             ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
+            Assert(bodyScope == nullptr || bodyScope->blockType == PnodeBlockType::Function);
 
             if (bodyScope && ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
             {
@@ -2215,7 +2216,6 @@ void Parser::AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast,
     }
     else
     {
-        //
         Assert(*ppnodeList);
         Assert(**pppnodeLast);
 
@@ -2398,7 +2398,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
 
         if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
         {
-            Error(ERRsyntax);
+            Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(GetScanner()->GetPrevious()));
         }
 
         IdentPtr identifierName = m_token.GetIdentifier(this->GetHashTbl());
@@ -2412,7 +2412,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
             // We have the pattern "IdentifierName as"
             if (!CheckContextualKeyword(wellKnownPropertyPids.as))
             {
-                Error(ERRsyntax);
+                Error(ERRInvalidIdentifier, m_token.GetIdentifier(this->GetHashTbl())->Psz(), identifierName->Psz());
             }
 
             this->GetScanner()->Scan();
@@ -2437,7 +2437,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         {
             // If we are parsing an import statement and this ImportSpecifier clause did not have
             // 'as ImportedBinding' at the end of it, identifierName must be a BindingIdentifier.
-            Error(ERRsyntax);
+            Error(ERRnoIdent);
         }
 
         if (m_token.tk == tkComma)
@@ -2460,7 +2460,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
     }
 
     // Final token in a named import or export clause must be a '}'
-    ChkCurTokNoScan(tkRCurly, ERRsyntax);
+    ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
 }
 
 IdentPtrList* Parser::GetRequestedModulesList()
@@ -2668,12 +2668,12 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         this->GetScanner()->Scan();
         if (!CheckContextualKeyword(wellKnownPropertyPids.as))
         {
-            Error(ERRsyntax);
+            Error(ERRValidIfFollowedBy, _u("import *"), _u("as"));
         }
 
         // Token following 'as' must be a binding identifier.
         this->GetScanner()->Scan();
-        ChkCurTokNoScan(tkID, ERRsyntax);
+        ChkCurTokNoScan(tkID, ERRnoIdent);
 
         if (buildAST)
         {
@@ -2688,7 +2688,7 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         break;
 
     default:
-        Error(ERRsyntax);
+        Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(this->GetScanner()->GetPrevious()));
     }
 
     this->GetScanner()->Scan();
@@ -2708,17 +2708,22 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
     }
 }
 
-bool Parser::IsImportOrExportStatementValidHere()
+void Parser::CheckIfImportOrExportStatementValidHere()
 {
     ParseNodeFnc * curFunc = GetCurrentFunctionNode();
 
-    // Import must be located in the top scope of the module body.
-    return curFunc->nop == knopFncDecl
-        && curFunc->IsModule()
-        && this->m_currentBlockInfo->pnodeBlock == curFunc->pnodeBodyScope
-        && (this->m_grfscr & fscrEvalCode) != fscrEvalCode
-        && this->m_tryCatchOrFinallyDepth == 0
-        && !this->m_disallowImportExportStmt;
+    if (curFunc->nop != knopFncDecl || !curFunc->IsModule())
+    {
+        Error(ERRModuleImportOrExportInScript);
+    }
+
+    if (this->m_currentBlockInfo->pnodeBlock != curFunc->pnodeBodyScope
+        || (this->m_grfscr & fscrEvalCode) == fscrEvalCode
+        || this->m_tryCatchOrFinallyDepth != 0
+        || this->m_disallowImportExportStmt)
+    {
+        Error(ERRInvalidModuleImportOrExport);
+    }
 }
 
 bool Parser::IsTopLevelModuleFunc()
@@ -2774,10 +2779,7 @@ ParseNodePtr Parser::ParseImport()
 
     this->GetScanner()->SeekTo(parsedImport);
 
-    if (!IsImportOrExportStatementValidHere())
-    {
-        Error(ERRInvalidModuleImportOrExport);
-    }
+    CheckIfImportOrExportStatementValidHere();
 
     // We just parsed an import token. Next valid token is *, {, string constant, or binding identifier.
     this->GetScanner()->Scan();
@@ -2833,7 +2835,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
         this->GetScanner()->Scan();
 
         // Token following the 'from' token must be a string constant - the module specifier.
-        ChkCurTokNoScan(tkStrCon, ERRsyntax);
+        ChkCurTokNoScan(tkStrCon, ERRValidIfFollowedBy, _u("'from'"), _u("a module specifier."));
 
         if (buildAST)
         {
@@ -2844,7 +2846,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
     }
     else if (throwIfNotFound)
     {
-        Error(ERRsyntax);
+        Error(ERRMissingFrom);
     }
 
     return moduleSpecifier;
@@ -2997,10 +2999,7 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
     Assert(m_scriptContext->GetConfig()->IsES6ModuleEnabled());
     Assert(m_token.tk == tkEXPORT);
 
-    if (!IsImportOrExportStatementValidHere())
-    {
-        Error(ERRInvalidModuleImportOrExport);
-    }
+    CheckIfImportOrExportStatementValidHere();
 
     ParseNodePtr pnode = nullptr;
     IdentPtr moduleIdentifier = nullptr;
@@ -4992,14 +4991,22 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             {
                 pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
 
-                if (pnodeExpr && pnodeExpr->nop == knopFncDecl)
+                ParseNodeFnc* funcNode = nullptr;
+                if (pnodeExpr)
                 {
-                    ParseNodeFnc* funcNode = pnodeExpr->AsParseNodeFnc();
-                    if (isComputedName)
+                    if (pnodeExpr->nop == knopFncDecl)
+                    {
+                        funcNode = pnodeExpr->AsParseNodeFnc();
+                        funcNode->SetHasHomeObj();
+                    }
+                    else if (pnodeExpr->nop == knopClassDecl)
+                    {
+                        funcNode = pnodeExpr->AsParseNodeClass()->pnodeConstructor;
+                    }
+                    if (funcNode && funcNode->pnodeName == nullptr && isComputedName)
                     {
                         funcNode->SetHasComputedName();
                     }
-                    funcNode->SetHasHomeObj();
                 }
             }
 #if DEBUG
@@ -5397,6 +5404,12 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
     pnodeFnc->SetHasNonThisStmt(pnodeFnc->IsClassConstructor());
+
+    if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
+    {
+        pnodeFnc->SetIsDeclaredInParamScope();
+        this->m_currentScope->SetHasNestedParamFunc();
+    }
 
     if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
     {
@@ -7158,14 +7171,12 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc = CreateAllowDeferNodeForOpT<knopFncDecl>();
     pnodeFnc->SetNested(NULL != m_currentNodeFunc);
     pnodeFnc->SetStrictMode();
-    pnodeFnc->SetDeclaration(TRUE);
     pnodeFnc->SetIsMethod(TRUE);
     pnodeFnc->SetIsClassMember(TRUE);
     pnodeFnc->SetIsClassConstructor(TRUE);
     pnodeFnc->SetIsBaseClassConstructor(!extends);
     pnodeFnc->SetHasNonThisStmt();
     pnodeFnc->SetIsGeneratedDefault(TRUE);
-    pnodeFnc->SetHasComputedName();
     pnodeFnc->SetHasHomeObj();
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
 
@@ -7845,8 +7856,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     ParseNodePtr pnodeExtends = nullptr;
     ParseNodePtr pnodeMembers = nullptr;
     ParseNodePtr *lastMemberNodeRef = nullptr;
-    ParseNodePtr pnodeStaticMembers = nullptr;
-    ParseNodePtr *lastStaticMemberNodeRef = nullptr;
     uint32 nameHintLength = pHintLength ? *pHintLength : 0;
     uint32 nameHintOffset = pShortNameOffset ? *pShortNameOffset : 0;
 
@@ -8063,7 +8072,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
             pnodeConstructor->hintOffset = constructorShortNameHintOffset;
             pnodeConstructor->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
             pnodeConstructor->SetHasNonThisStmt();
-            pnodeConstructor->SetHasComputedName();
             pnodeConstructor->SetHasHomeObj();
         }
         else
@@ -8173,7 +8181,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 pnodeMember->AsParseNodeBin()->pnode2->AsParseNodeFnc()->hintOffset = memberNameOffset;
                 pnodeMember->AsParseNodeBin()->pnode2->AsParseNodeFnc()->pid = memberPid; // Short name
 
-                AddToNodeList(isStatic ? &pnodeStaticMembers : &pnodeMembers, isStatic ? &lastStaticMemberNodeRef : &lastMemberNodeRef, pnodeMember);
+                AddToNodeList(&pnodeMembers, &lastMemberNodeRef, pnodeMember);
             }
         }
     }
@@ -8228,7 +8236,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         pnodeClass->pnodeConstructor = pnodeConstructor;
         pnodeClass->pnodeExtends = pnodeExtends;
         pnodeClass->pnodeMembers = pnodeMembers;
-        pnodeClass->pnodeStaticMembers = pnodeStaticMembers;
         pnodeClass->isDefaultModuleExport = false;
     }
     FinishParseBlock(pnodeBlock);
@@ -8869,8 +8876,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentScope->GetScopeType() == ScopeType_Parameter
-                || (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+            if(m_currentScope->AncestorScopeIsParameter()) // Yield is not allowed within any parameter scope
             {
                 Error(ERRsyntax);
             }
@@ -8878,8 +8884,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else if (nop == knopAwait)
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion() ||
-                m_currentScope->GetScopeType() == ScopeType_Parameter ||
-                (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+                m_currentScope->AncestorScopeIsParameter()) // Await is not allowed within any parameter scope
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
                 // but the scanner is not treating await as a keyword (!this->GetScanner()->AwaitIsKeyword())
@@ -8936,7 +8941,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                      ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                      : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
                 {
-                    Error(JSERR_CantAssignTo);
+                    Error(ERRInvalidAsgTarget);
                 }
                 TrackAssignment<buildAST>(pnodeT, &operandToken);
                 if (buildAST)
@@ -9116,7 +9121,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                  ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                  : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
-                Error(JSERR_CantAssignTo);
+                Error(ERRInvalidAsgTarget);
             }
             TrackAssignment<buildAST>(pnode, &term);
             fCanAssign = FALSE;
@@ -9203,7 +9208,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                  ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                  : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
-                Error(JSERR_CantAssignTo);
+                Error(ERRInvalidAsgTarget);
                 // No recovery necessary since this is a semantic, not structural, error.
             }
         }
@@ -10019,6 +10024,15 @@ ParseNodeCatch * Parser::ParseCatch()
         if (pnodeCatchScope->GetCallsEval() || pnodeCatchScope->GetChildCallsEval())
         {
             GetCurrentBlock()->SetChildCallsEval(true);
+        }
+
+        if (pnodeCatchScope->GetCallsEval())
+        {
+            pnodeBody->AsParseNodeBlock()->SetCallsEval(true);
+        }
+        if (pnodeCatchScope->GetChildCallsEval())
+        {
+            pnodeBody->AsParseNodeBlock()->SetChildCallsEval(true);
         }
 
         if (buildAST)
@@ -14361,7 +14375,6 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
 
         PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeConstructor, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeMembers, indentAmt + INDENT_SIZE);
-        PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeStaticMembers, indentAmt + INDENT_SIZE);
         break;
     case knopStrTemplate:
         Indent(indentAmt);

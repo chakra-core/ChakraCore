@@ -18,7 +18,7 @@ var tests = [
       assert.throws(function () { eval("(function () { 'use strict'; [eval] = []; })();"); }, SyntaxError, "variable name 'eval' defined in array pattern is not valid in strict mode", "Invalid usage of 'eval' in strict mode");
       assert.throws(function () { eval("let a = [a] = [10]"); }, ReferenceError, "A let variable is used in the array pattern in the same statement where it is declared", "Use before declaration");
       assert.throws(function () { eval("let a = {a:a} = {}"); }, ReferenceError, "A let variable is used in object pattern in the same statement where it is declared", "Use before declaration");
-      assert.throws(function () { eval("var a = 1; (delete [a] = [2]);"); }, ReferenceError, "Array literal in unary expression should not be converted to array pattern", "Invalid left-hand side in assignment");
+      assert.throws(function () { eval("var a = 1; (delete [a] = [2]);"); }, SyntaxError, "Array literal in unary expression should not be converted to array pattern", "Invalid left-hand side in assignment.");
       assert.throws(function () { eval("var x, b; for ([x] = [((b) = 1)] of ' ') { }"); }, ReferenceError, "Initializer in for..in is not valid but no assert should be thrown", "Invalid left-hand side in assignment");
       assert.throws(function () { eval("for (let []; ;) { }"); }, SyntaxError, "Native for loop's head has one destructuring pattern without initializer", "Destructuring declarations must have an initializer");
       assert.throws(function () { eval("for (let a = 1, []; ;) { }"); }, SyntaxError, "Native for loop's head has second param as destructuring pattern without initializer", "Destructuring declarations must have an initializer");
@@ -510,7 +510,7 @@ var tests = [
     body: function () {
         assert.throws(function () {
             eval("if (false) { [11] += [1, 2, 3] }");
-        }, ReferenceError, "", "Invalid left-hand side in assignment");
+        }, SyntaxError, "", "Invalid left-hand side in assignment.");
         assert.throws(function () {
             eval("if (false) { [11] = [1, 2, 3] }");
         }, SyntaxError, "", "Destructuring expressions can only have identifier references");

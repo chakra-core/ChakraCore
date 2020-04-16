@@ -1053,9 +1053,13 @@ public:
                 DEFAULT_LAYOUT(Empty);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg3);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3C);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Arg);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ArgNoSrc);
@@ -1067,6 +1071,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg3);
                 DEFAULT_LAYOUT(StartCall);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Profiled2CallI);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(CallI);
@@ -1089,7 +1094,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementPIndexed);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2B1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3B1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Class);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementRootU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementScopedC);

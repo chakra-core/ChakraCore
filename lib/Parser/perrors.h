@@ -96,7 +96,7 @@ LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have n
 
 LSC_ERROR_MSG(1085, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
 
-LSC_ERROR_MSG(1086, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
+LSC_ERROR_MSG(1086, ERRInvalidModuleImportOrExport, "'import' or 'export' can only occur at top level.")
 LSC_ERROR_MSG(1087, ERRInvalidExportName, "Unable to resolve module export name")
 
 LSC_ERROR_MSG(1088, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")
@@ -113,7 +113,10 @@ LSC_ERROR_MSG(1097, ERRExperimental, "Use of disabled experimental feature")
 LSC_ERROR_MSG(1098, ERRDuplicateExport, "Duplicate export of name '%s'")
 LSC_ERROR_MSG(1099, ERRStmtOfWithIsLabelledFunc, "The statement of a 'with' statement cannot be a labelled function.")
 LSC_ERROR_MSG(1100, ERRUndeclaredExportName, "Export of name '%s' which has no local definition.")
-//1100-1199 available for future use
+LSC_ERROR_MSG(1101, ERRModuleImportOrExportInScript, "'import' or 'export' can only be used in module code.")
+LSC_ERROR_MSG(1102, ERRInvalidAsgTarget, "Invalid left-hand side in assignment.")
+LSC_ERROR_MSG(1103, ERRMissingFrom, "Expected 'from' after import or export clause.")
+//1104-1199 available for future use
 
 // Generic errors intended to be re-usable
 LSC_ERROR_MSG(1200, ERRKeywordAfter, "Unexpected keyword '%s' after '%s'")
