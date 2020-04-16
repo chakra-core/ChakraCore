@@ -1429,7 +1429,6 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 #ifdef ENABLE_SCRIPT_DEBUGGING
     bool isInDebugMode = executeFunction->IsInDebugMode();
     AssertMsg(!isInDebugMode, "In diag mode we can get here only when isInDebugMode is true!");
-
     // Adjust bailout offset for debug mode (only scenario when we ignore exception).
     if (isInDebugMode)
     {

@@ -38,13 +38,6 @@ JITTimeWorkItem::IsLoopBody() const
     return Type() == JsLoopBodyWorkItemType;
 }
 
-bool
-JITTimeWorkItem::IsJitInDebugMode() const
-{
-    // TODO (michhol): flags?
-    return Js::Configuration::Global.EnableJitInDebugMode()
-        && m_workItemData->isJitInDebugMode;
-}
 
 intptr_t
 JITTimeWorkItem::GetCallsCountAddress() const
@@ -82,18 +75,6 @@ JITTimeWorkItem::InitializeReader(
 {
     uint startOffset = IsLoopBody() ? GetLoopHeader()->startOffset : 0;
 
-    if (IsJitInDebugMode())
-    {
-        // TODO: OOP JIT, directly use the array rather than making a list
-        m_fullStatementList = Js::FunctionBody::ArenaStatementMapList::New(alloc);
-        CompileAssert(sizeof(StatementMapIDL) == sizeof(Js::FunctionBody::StatementMap));
-
-        StatementMapIDL * fullArr = m_jitBody.GetFullStatementMap();
-        for (uint i = 0; i < m_jitBody.GetFullStatementMapCount(); ++i)
-        {
-            m_fullStatementList->Add((Js::FunctionBody::StatementMap*)&fullArr[i]);
-        }
-    }
 #if DBG
     reader->Create(m_jitBody.GetByteCodeBuffer(), startOffset, m_jitBody.GetByteCodeLength());
     if (!JITManager::GetJITManager()->IsOOPJITEnabled())
