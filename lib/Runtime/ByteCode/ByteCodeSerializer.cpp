@@ -3145,7 +3145,7 @@ public:
             return ByteCodeSerializer::InvalidByteCode;
         }
         current = ReadByte(current, &architecture);
-        if (architecture!=magicArchitecture)
+        if (architecture!=magicArchitecture && !isLibraryCode)
         {
             // This byte cache file was created with against a chakra running under a different architecture. It is incompatible.
             return ByteCodeSerializer::InvalidByteCode;

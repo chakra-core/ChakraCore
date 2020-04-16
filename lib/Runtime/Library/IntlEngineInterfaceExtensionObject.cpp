@@ -124,17 +124,9 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
 #pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
 
 #if DISABLE_JIT
-#if TARGET_64
-#include "InJavascript/Intl.js.nojit.bc.64b.h"
+#include "InJavascript/Intl.js.nojit.bc.h"
 #else
-#include "InJavascript/Intl.js.nojit.bc.32b.h"
-#endif
-#else
-#if TARGET_64
-#include "InJavascript/Intl.js.bc.64b.h"
-#else
-#include "InJavascript/Intl.js.bc.32b.h"
-#endif
+#include "InJavascript/Intl.js.bc.h"
 #endif
 
 #pragma warning(pop)

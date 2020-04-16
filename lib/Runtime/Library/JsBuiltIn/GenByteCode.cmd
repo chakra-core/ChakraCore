@@ -52,11 +52,6 @@ if "%_BinLocation%"=="" (
     set _BinLocation=%_BuildDir%\VcBuild%_suffix%\bin
 )
 
-if not exist %_BinLocation%\x86_debug\%_binary% (
-    echo Error: %_BinLocation%\x86_debug\%_binary% not found, please build sources. Exiting ...
-    exit /b 1
-)
-
 if not exist %_BinLocation%\x64_debug\%_binary% (
     echo Error: %_BinLocation%\x64_debug\%_binary% not found, please build sources. Exiting ...
     exit /b 1
@@ -69,10 +64,8 @@ exit /B %_HASERROR%
 
 :GenerateLibraryBytecodeHeader
 
-echo Generating %1%_suffix%.bc.32b.h
-call :Generate %1 %_BinLocation%\x86_debug %1%_suffix%.bc.32b.h
-echo Generating %1%_suffix%.bc.64b.h
-call :Generate %1 %_BinLocation%\x64_debug %1%_suffix%.bc.64b.h
+echo Generating %1%_suffix%.bc.h
+call :Generate %1 %_BinLocation%\x64_debug %1%_suffix%.bc.h
 exit /B 0
 
 :Generate
