@@ -309,7 +309,6 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
         // See ES 2017 14.5.13 Runtime Semantics: ClassDefinitionEvaluation.
         Visit(pnode->AsParseNodeClass()->pnodeExtends, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeName, byteCodeGenerator, prefix, postfix);
-        Visit(pnode->AsParseNodeClass()->pnodeStaticMembers, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeConstructor, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeMembers, byteCodeGenerator, prefix, postfix);
         EndVisitBlock(pnode->AsParseNodeClass()->pnodeBlock, byteCodeGenerator);
@@ -2499,6 +2498,12 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
         // create the new scope for Function expression only in ES5 mode
         //
         funcExprWithName = true;
+    }
+    else if (pnodeFnc->IsModule())
+    {
+        funcName = Js::Constants::ModuleCode;
+        funcNameLength = Js::Constants::ModuleCodeLength;
+        functionNameOffset = 0;
     }
 
     if (byteCodeGenerator->Trace())

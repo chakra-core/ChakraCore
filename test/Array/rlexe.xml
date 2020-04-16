@@ -774,6 +774,12 @@
       <compile-flags>-JsBuiltIn-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_gh6320.js</files>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
   <!-- TODO improve performance of sort for no-jit builds then re-enable this case for them-->
   <test>
     <default>

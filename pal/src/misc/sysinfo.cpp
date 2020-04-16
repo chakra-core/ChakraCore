@@ -27,9 +27,11 @@ Revision History:
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
-#if HAVE_SYSCTL
+#if HAVE_SYSCONF || defined(__ANDROID__)
+// <unistd.h> already included
+#elif HAVE_SYSCTL
 #include <sys/sysctl.h>
-#elif !HAVE_SYSCONF && !defined(__ANDROID__)
+#else
 #error Either sysctl or sysconf is required for GetSystemInfo.
 #endif
 

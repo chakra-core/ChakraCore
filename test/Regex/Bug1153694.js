@@ -11,7 +11,7 @@ try {
     }
 } catch(e) {
     var desc = e.description;
-    if(desc == "Invalid left-hand side in assignment") 
+    if(desc == "Invalid left-hand side in assignment.") 
     {
         WScript.Echo("Expected " + desc);
     }

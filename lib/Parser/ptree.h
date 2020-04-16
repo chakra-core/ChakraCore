@@ -715,7 +715,6 @@ public:
     ParseNodeBlock * pnodeBlock;
     ParseNodeFnc * pnodeConstructor;
     ParseNodePtr pnodeMembers;
-    ParseNodePtr pnodeStaticMembers;
     ParseNodePtr pnodeExtends;
 
     bool isDefaultModuleExport;

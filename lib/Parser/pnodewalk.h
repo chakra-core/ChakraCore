@@ -407,9 +407,6 @@ private:
         if (!ContinueWalk(result)) return result;
         // Walk all non-static members
         result = WalkList(pnode, pnode->pnodeMembers, context);
-        if (!ContinueWalk(result)) return result;
-        // Walk all static members
-        result = WalkList(pnode, pnode->pnodeStaticMembers, context);
         return result;
     }
 

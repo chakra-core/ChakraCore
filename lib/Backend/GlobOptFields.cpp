@@ -249,7 +249,8 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse
             IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
             Value * baseValue = baseOpnd ? this->currentBlock->globOptData.FindValue(baseOpnd->m_sym) : nullptr;
             ValueInfo * baseValueInfo = baseValue ? baseValue->GetValueInfo() : nullptr;
-            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray())
+            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray() || 
+                (this->IsLoopPrePass() && !this->IsSafeToTransferInPrepass(baseOpnd->m_sym, baseValueInfo)))
             {
                 if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
                 {
@@ -563,7 +564,14 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         }
         break;
 
-    case Js::OpCode::InitClass:
+    case Js::OpCode::NewClassProto:
+        Assert(instr->GetSrc1());
+        if (IR::AddrOpnd::IsEqualAddr(instr->GetSrc1(), (void*)func->GetScriptContextInfo()->GetObjectPrototypeAddr()))
+        {
+            // No extends operand, the proto parent is the Object prototype
+            break;
+        }
+        // Fall through
     case Js::OpCode::InitProto:
     case Js::OpCode::NewScObjectNoCtor:
     case Js::OpCode::NewScObjectNoCtorFull:
@@ -1154,19 +1162,6 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     Assert(opnd->IsTypeCheckSeqCandidate());
     Assert(opnd->HasObjectTypeSym());
 
-    if (opnd->HasTypeMismatch())
-    {
-        if (emitsTypeCheckOut != nullptr)
-        {
-            *emitsTypeCheckOut = false;
-        }
-        if (changesTypeValueOut != nullptr)
-        {
-            *changesTypeValueOut = false;
-        }
-        return false;
-    }
-
     bool isStore = opnd == instr->GetDst();
     bool isTypeDead = opnd->IsTypeDead();
     bool consumeType = makeChanges && !IsLoopPrePass();
@@ -1204,6 +1199,19 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     if (consumeType && valueInfo != nullptr)
     {
         opnd->SetTypeAvailable(true);
+    }
+
+    if (opnd->HasTypeMismatch())
+    {
+        if (emitsTypeCheckOut != nullptr)
+        {
+            *emitsTypeCheckOut = false;
+        }
+        if (changesTypeValueOut != nullptr)
+        {
+            *changesTypeValueOut = false;
+        }
+        return false;
     }
 
     bool doEquivTypeCheck = opnd->HasEquivalentTypeSet() && !opnd->NeedsMonoCheck();

@@ -32,6 +32,14 @@ var tests = [
       }
   },
   {
+    name: "Bug Issue 5678, Spread should not set property descriptors on missing elements of target array",
+    body: function () {
+      var a = [1,,...[3]];
+      assert.isFalse(Reflect.has(a, 1));
+      assert.isUndefined(Object.getOwnPropertyDescriptor(a, 1));
+    }
+  },
+  {
     name: "Testing call with spread args (all should be the same)",
     body: function() {
       var a = [1, 2];
