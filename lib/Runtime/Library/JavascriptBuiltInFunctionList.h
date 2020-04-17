@@ -518,6 +518,8 @@ BUILTIN(AtomicsObject, Wait, EntryWait, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Notify, EntryNotify, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Xor, EntryXor, FunctionInfo::ErrorOnNew)
 
+#ifdef ENABLE_JS_BUILTINS
 BUILTIN(EngineInterfaceObject, CallInstanceFunction, Entry_CallInstanceFunction, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
+#endif
 
 #undef BUILTIN_TEMPLATE

@@ -1371,7 +1371,7 @@ void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd
         // Put the meta arguments that the stack walker expects to find on the stack.
         // As all the argouts are shared among the inlinees, do this only once.
         SetupInlineeFrame(inlinee, currentCallInstr, actualCount, currentCallInstr->GetSrc1());
-        
+
         IR::Instr* inlineeEndInstr = IR::Instr::New(Js::OpCode::InlineeEnd, inlinee);
         inlineeEndInstr->SetByteCodeOffset(inlinee->m_tailInstr->GetPrevRealInstr());
         inlineeEndInstr->SetSrc1(IR::IntConstOpnd::New(actualCount + Js::Constants::InlineeMetaArgCount, TyInt32, inlinee));
@@ -2050,11 +2050,11 @@ Inline::InlineBuiltInFunction(
     IR::Instr *callInstr,
     const FunctionJITTimeInfo * inlineeData,
     Js::OpCode inlineCallOpCode,
-    const FunctionJITTimeInfo * inlinerData, 
-    const StackSym *symCallerThis, 
-    bool* pIsInlined, 
-    uint profileId, 
-    uint recursiveInlineDepth, 
+    const FunctionJITTimeInfo * inlinerData,
+    const StackSym *symCallerThis,
+    bool* pIsInlined,
+    uint profileId,
+    uint recursiveInlineDepth,
     IR::Instr * funcObjCheckInsertInstr)
 {
     Assert(callInstr);
@@ -2854,7 +2854,7 @@ bool Inline::TryGetCallApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_res
     Assert(applyOpnd->IsRegOpnd());
     StackSym* applySym =  applyOpnd->AsRegOpnd()->m_sym->AsStackSym();
     if (!applySym->IsSingleDef() ||
-        !applySym->GetInstrDef()->GetSrc1()->IsSymOpnd() || 
+        !applySym->GetInstrDef()->GetSrc1()->IsSymOpnd() ||
         !applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd())
     {
         *applyLdInstr = nullptr;
@@ -3120,15 +3120,15 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
 
 IR::Instr *
 Inline::InlineCallApplyTarget_Shared(
-    IR::Instr *callInstr, 
-    bool originalCallTargetOpndIsJITOpt, 
-    StackSym* originalCallTargetStackSym, 
+    IR::Instr *callInstr,
+    bool originalCallTargetOpndIsJITOpt,
+    StackSym* originalCallTargetStackSym,
     const FunctionJITTimeInfo *const inlineeData,
-    uint inlineCacheIndex, 
+    uint inlineCacheIndex,
     bool safeThis,
-    bool isApplyTarget, 
-    CallApplyTargetSourceType targetType, 
-    IR::Instr * inlineeDefInstr, 
+    bool isApplyTarget,
+    CallApplyTargetSourceType targetType,
+    IR::Instr * inlineeDefInstr,
     uint recursiveInlineDepth,
     IR::Instr * funcObjCheckInsertInstr)
 {
@@ -3409,7 +3409,9 @@ Inline::InlineCallTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* inline
         }
         case Js::BuiltinFunction::JavascriptFunction_Apply:
         case Js::BuiltinFunction::JavascriptFunction_Call:
+#ifdef ENABLE_JS_BUILTINS
         case Js::BuiltinFunction::EngineInterfaceObject_CallInstanceFunction:
+#endif
             return false;
         }
     }
@@ -3464,7 +3466,7 @@ Inline::AdjustArgoutsForCallTargetInlining(IR::Instr* callInstr, IR::Instr ** pE
                                                    // so that any bailout in the call sequence restores the argouts stack as the interpreter would expect it to be.
 
         StackSym * argSym = argInstr->GetDst()->AsSymOpnd()->GetStackSym();
-        
+
         Assert(argSym->m_offset == (argSym->GetArgSlotNum() - 1) * MachPtr);
         argSym->DecrementArgSlotNum(); // We will be removing implicit "this" argout
         if (argSym->GetArgSlotNum() != 0)
@@ -3632,14 +3634,14 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Functi
             this->topFunc->GetJITFunctionBody()->GetDisplayName(), this->topFunc->GetDebugNumberSet(debugStringBuffer3));
         return nullptr;
     }
-    
+
     useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndJITOpt, originalCallTargetStackSym->m_id);
 
     callInstr->m_opcode = originalCallOpCode;
     callInstr->ReplaceSrc1(functionOpnd);
-        
+
     if (isCallback)
-    {      
+    {
         callInstr->InsertBefore(useCallTargetInstr);
         return useCallTargetInstr;
     }
