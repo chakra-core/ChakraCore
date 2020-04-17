@@ -1101,6 +1101,9 @@ FLAGR(Boolean, SkipSplitOnNoResult, "If the result of Regex split isn't used, sk
 #ifdef TEST_ETW_EVENTS
 FLAGNR(String,  TestEtwDll            , "Path of the TestEtwEventSink DLL", nullptr)
 #endif
+#ifdef ENABLE_TEST_HOOKS
+FLAGNR(Boolean, Generate32BitByteCode, "Make a 64bit build of CC generate 32bit bytecode", false)
+#endif
 
 FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CONFIG_CollectGarbage)
 
