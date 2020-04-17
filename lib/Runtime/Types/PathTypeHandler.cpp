@@ -2062,6 +2062,16 @@ namespace Js
                 {
                     newSetters = this->UpdateSetterSlots(recycler, oldSetters, oldPathSize, newTypePath->GetPathSize());
                 }
+
+#if ENABLE_FIXED_FIELDS
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+                if (PathTypeHandlerBase::FixPropsOnPathTypes())
+                {
+                    Assert(this->HasSingletonInstanceOnlyIfNeeded());
+                    this->GetTypePath()->ClearSingletonInstanceIfSame(instance);
+                }
+#endif
+#endif
             }
             else if (growing)
             {
