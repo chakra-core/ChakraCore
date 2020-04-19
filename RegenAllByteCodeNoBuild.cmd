@@ -10,6 +10,7 @@
 :: every flavor of ChakraCore.dll when there are no relevant changes is a waste of time.
 :: Please ensure that you use buddy builds to validate the results.
 
+:: Note, this script is windows only, on linux or macOS please use tools/xplatRegenByteCode.py
 :: Regenerate all bytecode (without rebuilding each flavor of ch.exe)
 :: ch.exe is used to generate Intl bytecodes.
 :: ch.exe (NoJIT variety) is used to generate NoJIT Intl bytecodes.

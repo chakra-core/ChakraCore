@@ -10140,7 +10140,11 @@ void EmitBinary(Js::OpCode opcode, ParseNode *pnode, ByteCodeGenerator *byteCode
     byteCodeGenerator->EndStatement(pnode);
 }
 
-bool CollectConcat(ParseNode *pnodeAdd, DListCounted<ParseNode *, ArenaAllocator>& concatOpnds, ArenaAllocator *arenaAllocator)
+bool CollectConcat(ParseNode *pnodeAdd, DListCounted<ParseNode *, ArenaAllocator>& concatOpnds, ArenaAllocator *arenaAllocator 
+#ifdef ENABLE_TEST_HOOKS
+    , bool Force32BitByteCode = false
+#endif
+)
 {
     Assert(pnodeAdd->nop == knopAdd);
     Assert(pnodeAdd->CanFlattenConcatExpr());
@@ -10161,7 +10165,18 @@ bool CollectConcat(ParseNode *pnodeAdd, DListCounted<ParseNode *, ArenaAllocator
 
             // Detect if there are any string larger then the append size limit.
             // If there are, we can do concat; otherwise, still use add so we will not lose the AddLeftDead opportunities.
+#ifdef ENABLE_TEST_HOOKS
+            if (Force32BitByteCode)
+            {
+                doConcatString = doConcatString || (pnode->AsParseNodeStr()->pid->Cch() > 4);
+            }
+            else
+            {
+                doConcatString = doConcatString || !Js::CompoundString::ShouldAppendChars(pnode->AsParseNodeStr()->pid->Cch());
+            }
+#else
             doConcatString = doConcatString || !Js::CompoundString::ShouldAppendChars(pnode->AsParseNodeStr()->pid->Cch());
+#endif
         }
         else
         {
@@ -10233,7 +10248,12 @@ void EmitAdd(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *f
         // We should only have a string concat if the feature is on.
         Assert(!PHASE_OFF1(Js::ByteCodeConcatExprOptPhase));
         DListCounted<ParseNode*, ArenaAllocator> concatOpnds(byteCodeGenerator->GetAllocator());
+#ifdef ENABLE_TEST_HOOKS
+        bool doConcatString = CollectConcat(pnode, concatOpnds, byteCodeGenerator->GetAllocator(),
+            byteCodeGenerator->GetScriptContext()->GetConfig()->Force32BitByteCode());
+#else
         bool doConcatString = CollectConcat(pnode, concatOpnds, byteCodeGenerator->GetAllocator());
+#endif
         if (doConcatString)
         {
             uint concatCount = concatOpnds.Count();
