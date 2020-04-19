@@ -109,7 +109,6 @@ elseif(CC_TARGET_OS_OSX)
   endif()
 endif()
 
-
 target_link_libraries (ch
   ${lib_target}
   ${CC_LTO_ENABLED}

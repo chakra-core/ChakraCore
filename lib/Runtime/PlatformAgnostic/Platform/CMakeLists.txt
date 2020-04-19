@@ -41,6 +41,9 @@ if(NOT STATIC_LIBRARY)
   add_library (Chakra.Runtime.PlatformAgnostic.Singular STATIC
     ${PL_SOURCE_FILES}
     )
+  if (EMBED_ICU)
+    add_dependencies(Chakra.Runtime.PlatformAgnostic.Singular ${EMBEDDED_ICU_TARGET})
+  endif()
   target_include_directories (
     Chakra.Runtime.PlatformAgnostic.Singular PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     )

@@ -15,7 +15,24 @@
 #define NTDDI_VERSION NTDDI_WIN10_RS5
 #include <icu.h>
 #pragma pop_macro("NTDDI_VERSION")
-#else
+#else // ifdef WINDOWS10_ICU
+// Normalize ICU_VERSION for non-Kit ICU
+#ifndef ICU_VERSION
+#include "unicode/uvernum.h"
+#define ICU_VERSION U_ICU_VERSION_MAJOR_NUM
+#endif
+
+// Make non-Windows Kit ICU look and act like Windows Kit ICU for better compat
+#define U_SHOW_CPLUSPLUS_API 0
+// ICU 55 (Ubuntu 16.04 system default) has uloc_toUnicodeLocale* marked as draft, which is required for Intl
+#if ICU_VERSION > 56
+#define U_DEFAULT_SHOW_DRAFT 0
+#define U_HIDE_DRAFT_API 1
+#endif
+#define U_HIDE_DEPRECATED_API 1
+#define U_HIDE_OBSOLETE_API 1
+#define U_HIDE_INTERNAL_API 1
+
 #include "unicode/ucal.h"
 #include "unicode/uclean.h"
 #include "unicode/ucol.h"
@@ -27,7 +44,7 @@
 #include "unicode/ustring.h"
 #include "unicode/unorm2.h"
 #include "unicode/upluralrules.h"
-#endif
+#endif // ifdef WINDOWS10_ICU
 
 // Different assertion code is used in ChakraFull that enforces that messages are char literals
 #ifdef _CHAKRACOREBUILD
@@ -87,4 +104,4 @@ namespace PlatformAgnostic
         }
     }
 }
-#endif
+#endif // ifdef HAS_ICU

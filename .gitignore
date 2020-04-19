@@ -77,6 +77,8 @@ install_manifest.txt
 # ICU
 deps/Chakra.ICU/Chakra.ICU.props
 deps/Chakra.ICU/icu
+# CMake External Project
+deps/thirdparty
 
 # VIM
 .*.swo
