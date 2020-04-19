@@ -4411,7 +4411,7 @@ namespace Js
     {
         ScriptContext *scriptContext = this->GetScriptContext();
 #ifdef ENABLE_TEST_HOOKS
-        Var intConst = scriptContext->GetConfig()->Generate32BitByteCode() ?
+        Var intConst = scriptContext->GetConfig()->Force32BitByteCode() ?
             JavascriptNumber::ToVarFor32BitBytecode((int32)val, scriptContext) :
             JavascriptNumber::ToVar((int32)val, scriptContext);
 #else

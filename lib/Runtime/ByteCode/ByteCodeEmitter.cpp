@@ -10142,7 +10142,7 @@ void EmitBinary(Js::OpCode opcode, ParseNode *pnode, ByteCodeGenerator *byteCode
 
 bool CollectConcat(ParseNode *pnodeAdd, DListCounted<ParseNode *, ArenaAllocator>& concatOpnds, ArenaAllocator *arenaAllocator 
 #ifdef ENABLE_TEST_HOOKS
-    , bool generate32BitBytecode = false
+    , bool Force32BitByteCode = false
 #endif
 )
 {
@@ -10166,7 +10166,7 @@ bool CollectConcat(ParseNode *pnodeAdd, DListCounted<ParseNode *, ArenaAllocator
             // Detect if there are any string larger then the append size limit.
             // If there are, we can do concat; otherwise, still use add so we will not lose the AddLeftDead opportunities.
 #ifdef ENABLE_TEST_HOOKS
-            if (generate32BitBytecode)
+            if (Force32BitByteCode)
             {
                 doConcatString = doConcatString || (pnode->AsParseNodeStr()->pid->Cch() > 4);
             }
@@ -10250,7 +10250,7 @@ void EmitAdd(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *f
         DListCounted<ParseNode*, ArenaAllocator> concatOpnds(byteCodeGenerator->GetAllocator());
 #ifdef ENABLE_TEST_HOOKS
         bool doConcatString = CollectConcat(pnode, concatOpnds, byteCodeGenerator->GetAllocator(),
-            byteCodeGenerator->GetScriptContext()->GetConfig()->Generate32BitByteCode());
+            byteCodeGenerator->GetScriptContext()->GetConfig()->Force32BitByteCode());
 #else
         bool doConcatString = CollectConcat(pnode, concatOpnds, byteCodeGenerator->GetAllocator());
 #endif

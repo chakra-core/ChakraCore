@@ -17,10 +17,12 @@
 # ch is used to generate bytecode.
 # ch (NoJIT variety) is used to generate NoJIT bytecodes.
 
-import subprocess, sys, uuid
+import subprocess
+import sys
+import uuid
 
 # Compile ChakraCore both noJit and Jit variants
-def runSub(message, commands, error):
+def run_sub(message, commands, error):
     print(message)
     sub = subprocess.Popen(commands)
     sub.wait()
@@ -28,68 +30,69 @@ def runSub(message, commands, error):
         sys.exit(error)
 
 if len(sys.argv) == 1 or sys.argv[1] != '--skip-build':
-    runSub('Compiling ChakraCore with no Jit',
+    run_sub('Compiling ChakraCore with no Jit',
         ['../build.sh', '--no-jit', '--test-build', '--target-path=../out/noJit', '-j=2'], 
         'No Jit build failed - aborting bytecode generation')
-    runSub('Compiling ChakraCore with Jit',
+    run_sub('Compiling ChakraCore with Jit',
         ['../build.sh', '--test-build', '--target-path=../out', '-j=2'], 
         'Jit build failed - aborting bytecode generation')
 
-#Regenerate the bytecode
-def bytecodeJob(outPath, command, error):
+# Regenerate the bytecode
+def bytecode_job(outPath, command, error):
     header = open(outPath, 'w')
     job = subprocess.Popen(command, stdout=header)
     job.wait()
     if job.returncode != 0:
         sys.exit(error)
 
-#INTL
+# INTL
 print('Generating INTL bytecode')
-bytecodeJob('../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h',
+bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h',
     ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 64bit noJit bytecode')
 
-bytecodeJob('../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h',
-    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-Generate32BitByteCode','../lib/Runtime/Library/InJavascript/Intl.js'],
+bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h',
+    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-Force32BitByteCode','../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 32bit noJit bytecode')
 
-bytecodeJob('../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h',
+bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h',
     ['../out/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 64bit bytecode')
 
-bytecodeJob('../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h',
-    ['../out/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-Generate32BitByteCode','../lib/Runtime/Library/InJavascript/Intl.js'],
+bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h',
+    ['../out/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-Force32BitByteCode','../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 32bit bytecode')
 
-#JsBuiltin
+# JsBuiltin
 print('Generating JsBuiltin Bytecode')
-bytecodeJob('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.nojit.bc.64b.h',
+bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.nojit.bc.64b.h',
     ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate noJit 64bit JsBuiltin Bytecode')
 
-bytecodeJob('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.nojit.bc.32b.h',
-    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-Generate32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
+bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.nojit.bc.32b.h',
+    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-Force32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate noJit 32bit JsBuiltin Bytecode')
 
-bytecodeJob('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.bc.64b.h',
+bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.bc.64b.h',
     ['../out/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate 64bit JsBuiltin Bytecode')
 
-bytecodeJob('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.bc.32b.h',
-    ['../out/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-Generate32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
+bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.bc.32b.h',
+    ['../out/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-Force32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate 32bit JsBuiltin Bytecode')
 
-#Bytecode regeneration complete - create a new GUID for it
+# Bytecode regeneration complete - create a new GUID for it
 print('Generating new GUID for new bytecode')
-guidHeader = open('../lib/Runtime/Bytecode/ByteCodeCacheReleaseFileVersion.h', 'w')
+guid_header = open('../lib/Runtime/Bytecode/ByteCodeCacheReleaseFileVersion.h', 'w')
 guid = str(uuid.uuid4())
 
-outputStr = '''//-------------------------------------------------------------------------------------------------------
+output_str = '''//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
 // This file was generated with tools/xplatRegenByteCode.py
+
 // {%s}
 const GUID byteCodeCacheReleaseFileVersion =
 { 0x%s, 0x%s, 0x%s, {0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s } };
@@ -97,6 +100,6 @@ const GUID byteCodeCacheReleaseFileVersion =
     guid[:8], guid[9:13], guid[14:18], guid[19:21], guid[21:23], guid[24:26],
     guid[26:28], guid[28:30], guid[30:32], guid[32:34], guid[-2:])
 
-guidHeader.write(outputStr)
+guid_header.write(output_str)
 
 print('Bytecode successfully regenerated. Please rebuild ChakraCore to incorporate it.')

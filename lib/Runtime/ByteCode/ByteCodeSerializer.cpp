@@ -489,7 +489,7 @@ public:
             expectedFunctionBodySize.value = 0;
             expectedOpCodeCount.value = 0;
 #ifdef ENABLE_TEST_HOOKS
-            if (scriptContext->GetConfig()->Generate32BitByteCode())
+            if (scriptContext->GetConfig()->Force32BitByteCode())
             {
                 architecture.value = 32;
             }
