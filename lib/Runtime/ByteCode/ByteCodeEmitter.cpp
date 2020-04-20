@@ -8931,12 +8931,23 @@ void EmitStringTemplate(ParseNodeStrTemplate *pnodeStrTemplate, ByteCodeGenerato
             ParseNode* stringNodeList = pnodeStrTemplate->pnodeStringLiterals;
 
             // Emit the first string and load that into the pnode location.
-            Emit(stringNodeList->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
+            // skip loading the string if it is empty
+            ParseNode* firstString = stringNodeList->AsParseNodeBin()->pnode1;
+            bool skippedFirst = false;
+            if (firstString->AsParseNodeStr()->pid->Cch() == 0)
+            {
+                skippedFirst = true;
+            }
+            else
+            {
+                Emit(stringNodeList->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
 
-            Assert(pnodeStrTemplate->location != stringNodeList->AsParseNodeBin()->pnode1->location);
+                Assert(pnodeStrTemplate->location != stringNodeList->AsParseNodeBin()->pnode1->location);
 
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnodeStrTemplate->location, stringNodeList->AsParseNodeBin()->pnode1->location);
-            funcInfo->ReleaseLoc(stringNodeList->AsParseNodeBin()->pnode1);
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnodeStrTemplate->location, stringNodeList->AsParseNodeBin()->pnode1->location);
+                funcInfo->ReleaseLoc(stringNodeList->AsParseNodeBin()->pnode1);
+            }
+
 
             ParseNode* expressionNodeList = pnodeStrTemplate->pnodeSubstitutionExpressions;
             ParseNode* stringNode;
@@ -8968,10 +8979,20 @@ void EmitStringTemplate(ParseNodeStrTemplate *pnodeStrTemplate, ByteCodeGenerato
                 // Emit the expression and append it to the string we're building.
                 Emit(expressionNode, byteCodeGenerator, funcInfo, false);
 
-                Js::RegSlot toStringLocation = funcInfo->AcquireTmpRegister();
-                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Str, toStringLocation, expressionNode->location);
-                byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnodeStrTemplate->location, pnodeStrTemplate->location, toStringLocation);
-                funcInfo->ReleaseTmpRegister(toStringLocation);
+                // if this is the first expression AND the initial string was empty write directly to the pnodeStrTemplate location
+                if (skippedFirst == true)
+                {
+                    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Str, pnodeStrTemplate->location, expressionNode->location);
+                    skippedFirst = false;
+                }
+                else
+                {
+                    Js::RegSlot toStringLocation = funcInfo->AcquireTmpRegister();
+                    byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Str, toStringLocation, expressionNode->location);
+                    byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnodeStrTemplate->location, pnodeStrTemplate->location, toStringLocation);
+                    funcInfo->ReleaseTmpRegister(toStringLocation);
+                }
+
                 funcInfo->ReleaseLoc(expressionNode);
 
                 // Move to the next string in the list - we already got ahead of the expressions in the first string literal above.
@@ -8990,9 +9011,12 @@ void EmitStringTemplate(ParseNodeStrTemplate *pnodeStrTemplate, ByteCodeGenerato
 
                 // Emit the string node following the previous expression and append it to the string.
                 // This is either just some string in the list or it is the last string.
-                Emit(stringNode, byteCodeGenerator, funcInfo, false);
-                byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnodeStrTemplate->location, pnodeStrTemplate->location, stringNode->location);
-                funcInfo->ReleaseLoc(stringNode);
+                if (stringNode->AsParseNodeStr()->pid->Cch() != 0)
+                {
+                    Emit(stringNode, byteCodeGenerator, funcInfo, false);
+                    byteCodeGenerator->Writer()->Reg3(Js::OpCode::Add_A, pnodeStrTemplate->location, pnodeStrTemplate->location, stringNode->location);
+                    funcInfo->ReleaseLoc(stringNode);
+                }
             }
         }
     }
