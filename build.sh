@@ -203,7 +203,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -t | --test-build)
-        BUILD_TYPE="Test"
+        BUILD_TYPE="RelWithDebInfo"
         ;;
 
     -j | --jobs)
@@ -579,7 +579,13 @@ if [[ $HAS_LTTNG == 1 ]]; then
 fi
 
 
-BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE:0}"
+if [[ ${BUILD_TYPE} =~ "RelWithDebInfo" ]]; then
+    BUILD_TYPE_DIR=Test
+else
+    BUILD_TYPE_DIR=${BUILD_TYPE}
+fi
+
+BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE_DIR:0}"
 echo "Build path: ${BUILD_DIRECTORY}"
 
 BUILD_RELATIVE_DIRECTORY=$("$PYTHON2_BINARY" -c "import os.path;print \
