@@ -9,7 +9,7 @@
 
 JsrtContext *JsrtContext::New(JsrtRuntime * runtime)
 {
-    return JsrtContextCore::New(runtime);
+    return static_cast<JsrtContext*> (RecyclerNewFinalized(runtime->GetThreadContext()->EnsureRecycler(), JsrtContextCore, runtime));
 }
 
 /* static */
@@ -46,12 +46,6 @@ JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
 {
     EnsureScriptContext();
     Link();
-}
-
-/* static */
-JsrtContextCore *JsrtContextCore::New(JsrtRuntime * runtime)
-{
-    return RecyclerNewFinalized(runtime->GetThreadContext()->EnsureRecycler(), JsrtContextCore, runtime);
 }
 
 void JsrtContextCore::Dispose(bool isShutdown)

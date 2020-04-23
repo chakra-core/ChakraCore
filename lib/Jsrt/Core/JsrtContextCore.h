@@ -19,7 +19,7 @@ namespace Js
 class JsrtContextCore sealed : public JsrtContext
 {
 public:
-    static JsrtContextCore *New(JsrtRuntime * runtime);
+    JsrtContextCore(JsrtRuntime * runtime);
     virtual void Finalize(bool isShutdown) override;
     virtual void Dispose(bool isShutdown) override;
     ChakraCoreHostScriptContext* GetHostScriptContext() const { return hostContext; }
@@ -27,7 +27,6 @@ public:
     void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 private:
     DEFINE_VTABLE_CTOR(JsrtContextCore, JsrtContext);
-    JsrtContextCore(JsrtRuntime * runtime);
     Js::ScriptContext* EnsureScriptContext();
 
     FieldNoBarrier(ChakraCoreHostScriptContext*) hostContext;
