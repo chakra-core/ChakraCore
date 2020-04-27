@@ -76,7 +76,7 @@ call :Generate %1 %_BinLocation%\x64_debug %1%_suffix%.bc.64b.h
 exit /B 0
 
 :Generate
-%2\%_binary% -GenerateLibraryByteCodeHeader:%3 -Intl %1
+%2\%_binary% -GenerateLibraryByteCodeHeader:%3 -Intl -EnableInternalCommands%1
 if "%errorlevel%" NEQ "0" (
     echo %1: Error generating bytecode file. Ensure %3 writable.
     set _HASERROR=1

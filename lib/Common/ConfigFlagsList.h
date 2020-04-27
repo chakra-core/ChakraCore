@@ -1102,6 +1102,7 @@ FLAGR(Boolean, SkipSplitOnNoResult, "If the result of Regex split isn't used, sk
 FLAGNR(String,  TestEtwDll            , "Path of the TestEtwEventSink DLL", nullptr)
 #endif
 #ifdef ENABLE_TEST_HOOKS
+FLAGNR(Boolean, EnableInternalCommands, "Enable certain internal instructions within JS files - intended for library code only," , false)
 FLAGNR(Boolean, Force32BitByteCode, "Force CC to generate 32bit bytecode intended only for regenerating bytecode headers.", false)
 #endif
 

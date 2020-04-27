@@ -12295,6 +12295,33 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         funcInfo->ReleaseLoc(pnode->AsParseNodeExportDefault()->pnodeExpr);
         pnode = pnode->AsParseNodeExportDefault()->pnodeExpr;
         break;
+#ifdef ENABLE_TEST_HOOKS
+    case knopIntCommand:
+    {
+        byteCodeGenerator->StartStatement(pnode);
+        funcInfo->AcquireLoc(pnode);
+        ParseNodeInternalCommand* command = pnode->AsParseNodeInternalCommand();
+        ParseNode* params = command->params;
+        //ParseNode* param1 = params->AsParseNodeBin()->pnode1;
+        Emit(params, byteCodeGenerator, funcInfo, false);
+
+        switch (command->commandType)
+        {
+            case InternalCommandType::Conv_Num:
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Num, pnode->location, params->location);
+                break;
+            case InternalCommandType::Conv_Obj:
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Obj, pnode->location, params->location);
+                break;
+
+            default:
+                AssertOrFailFast(0);
+        }
+        funcInfo->ReleaseLoc(params);
+        byteCodeGenerator->EndStatement(pnode);
+        break;
+    }
+#endif
     default:
         AssertMsg(0, "emit unhandled pnode op");
         break;

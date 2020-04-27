@@ -173,6 +173,9 @@ TOK_DCL(tkEllipsis      , No, knopNone   ,Spr, knopEllipsis ) // ...
 TOK_DCL(tkLParen        , No, knopNone   , No, knopNone   ) // (
 TOK_DCL(tkLBrack        , No, knopNone   , No, knopNone   ) // [
 TOK_DCL(tkDot           , No, knopNone   , No, knopNone   ) // .
+#ifdef ENABLE_TEST_HOOKS
+TOK_DCL(tkIntCommand    , No, knopNone   , No, knopNone   ) //@@
+#endif 
 
 // String template tokens
 TOK_DCL(tkStrTmplBasic  , No, knopNone   , No, knopNone   ) // `...`

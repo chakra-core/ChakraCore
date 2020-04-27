@@ -536,6 +536,10 @@ private:
         case knopExportDefault:
             return Walk(pnode->AsParseNodeExportDefault()->pnodeExpr, context);
 
+#ifdef ENABLE_TEST_HOOKS
+        case knopIntCommand:
+            return Walk(pnode->AsParseNodeInternalCommand()->params, context);
+#endif
         default:
         {
             uint fnop = ParseNode::Grfnop(pnode->nop);

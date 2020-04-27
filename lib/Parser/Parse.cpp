@@ -128,6 +128,13 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 
     // init PID members
     InitPids();
+
+#ifdef ENABLE_TEST_HOOKS
+    if (scriptContext->GetConfig()->IsInternalCommandsEnabled())
+    {
+        InitInternalCommandPids();
+    }
+#endif
 }
 
 Parser::~Parser(void)
@@ -2626,6 +2633,74 @@ void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportE
     }
 }
 
+#ifdef ENABLE_TEST_HOOKS
+template<bool buildAST>
+ParseNodePtr Parser::ParseInternalCommand()
+{
+    this->GetScanner()->Scan();
+    if (m_token.tk != tkID)
+    {
+        Error(ERRTokenAfter, GetTokenString(m_token.tk), _u("@@"));
+    }
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
+
+    // find the command type
+    InternalCommandType type;
+    IdentPtr id = m_token.GetIdentifier(GetHashTbl());
+
+    if (id == internalCommandPids.Conv_Num)
+    {
+        type = InternalCommandType::Conv_Num;
+    }
+    else if (id == internalCommandPids.Conv_Obj)
+    {
+        type = InternalCommandType::Conv_Obj;
+    }
+    else
+    {
+        Error(ERRTokenAfter, m_token.GetIdentifier(GetHashTbl())->Psz(), _u("@@"));
+    }
+
+    // parse the parameters - currently only accept identifiers
+    this->GetScanner()->Scan();
+    ChkCurTok(tkLParen, ERRnoLparen);
+    ParseNodePtr params = nullptr;
+    ParseNodePtr * lastParam = nullptr;
+    ParseNodePtr currentParam = nullptr;
+
+    for (;;)
+    {
+        currentParam = ParseExpr<buildAST>(0);
+        if (buildAST)
+        {
+            AddToNodeListEscapedUse(&params, &lastParam, currentParam);
+        }
+
+        if (m_token.tk == tkComma)
+        {
+            this->GetScanner()->Scan();
+        }
+        else if (m_token.tk == tkRParen)
+        {
+            this->GetScanner()->Scan();
+            break;
+        }
+        else
+        {
+            Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(this->GetScanner()->GetPrevious()));
+        }
+    }
+
+    ParseNodePtr command = nullptr;
+    if (buildAST)
+    {
+        command = Anew(&m_nodeAllocator, ParseNodeInternalCommand, ichMin, this->GetScanner()->IchLimTok(), type, params);
+    }
+
+    return command;
+}
+#endif
+
 template<bool buildAST>
 void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma)
 {
@@ -3743,6 +3818,16 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             goto LUnknown;
         }
         break;
+
+#ifdef ENABLE_TEST_HOOKS
+    case tkIntCommand:
+        if (!m_scriptContext->GetConfig()->IsInternalCommandsEnabled())
+        {
+            Error(ERRTokenAfter, _u("@@"), GetTokenString(GetScanner()->GetPrevious()));
+        }
+        pnode = ParseInternalCommand<buildAST>();
+        break;
+#endif
 
 #if ENABLE_BACKGROUND_PARSING
     case tkCASE:
@@ -11774,6 +11859,14 @@ void Parser::InitPids()
     wellKnownPropertyPids._superConstructor = this->GetHashTbl()->PidHashNameLen(_u("*superconstructor*"), sizeof("*superconstructor*") - 1);
     wellKnownPropertyPids._importMeta = this->GetHashTbl()->PidHashNameLen(_u("*import.meta*"), sizeof("*import.meta*") - 1);
 }
+
+#ifdef ENABLE_TEST_HOOKS
+void Parser::InitInternalCommandPids()
+{
+    internalCommandPids.Conv_Num = this->GetHashTbl()->PidHashNameLen(_u("Conv_Num"), sizeof("Conv_Num") - 1);
+    internalCommandPids.Conv_Obj = this->GetHashTbl()->PidHashNameLen(_u("Conv_Obj"), sizeof("Conv_Obj") - 1);
+}
+#endif
 
 void Parser::RestoreScopeInfo(Js::ScopeInfo * scopeInfo)
 {

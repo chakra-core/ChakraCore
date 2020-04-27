@@ -263,6 +263,14 @@ ParseNodeModule * ParseNode::AsParseNodeModule()
     return reinterpret_cast<ParseNodeModule*>(this);
 }
 
+#ifdef ENABLE_TEST_HOOKS
+ParseNodeInternalCommand * ParseNode::AsParseNodeInternalCommand()
+{
+    Assert(this->nop == knopIntCommand);
+    return reinterpret_cast<ParseNodeInternalCommand *>(this);
+}
+#endif
+
 IdentPtr ParseNode::name()
 {
     if (this->nop == knopStr)

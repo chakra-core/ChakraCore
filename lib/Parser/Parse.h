@@ -342,6 +342,10 @@ private:
 
     void InitPids();
 
+#ifdef ENABLE_TEST_HOOKS
+    void InitInternalCommandPids();
+#endif
+
     /***********************************************************************
     Members needed just for parsing.
     ***********************************************************************/
@@ -503,6 +507,15 @@ private:
     };
 
     WellKnownPropertyPids wellKnownPropertyPids;
+
+#ifdef ENABLE_TEST_HOOKS
+    struct InternalCommandPids
+    {
+        IdentPtr Conv_Num;
+        IdentPtr Conv_Obj;
+    };
+    InternalCommandPids internalCommandPids;
+#endif
 
     charcount_t m_sourceLim; // The actual number of characters parsed.
 
@@ -974,6 +987,10 @@ private:
         tokens metaParentKeyword,
         charcount_t ichMin,
         _Out_opt_ BOOL* pfCanAssign = nullptr);
+
+#ifdef ENABLE_TEST_HOOKS
+    template<bool buildAST> ParseNodePtr ParseInternalCommand();
+#endif
 
     void CheckIfImportOrExportStatementValidHere();
     bool IsTopLevelModuleFunc();
