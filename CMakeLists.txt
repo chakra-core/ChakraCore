@@ -294,11 +294,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
 
     set(CMAKE_CXX_STANDARD 11)
 
-    # CC WARNING FLAGS
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-        -Wno-implicit-function-declaration"
-    )
-
     # todo: fix general visibility of the interface
     # do not set to `fvisibility=hidden` as it is going to
     # prevent the required interface is being exported
@@ -330,7 +325,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-null-conversion\
         -Wno-return-type\
         -Wno-switch\
-        -Wno-implicit-function-declaration\
         -Wno-int-to-pointer-cast\
         -Wno-tautological-constant-compare\
         -Wno-enum-compare-switch\

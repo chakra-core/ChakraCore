@@ -516,6 +516,8 @@ __forceinline void * _AddressOfReturnAddress()
 {
     return (void*)((char*) __builtin_frame_address(0) + sizeof(void*));
 }
+#else
+extern "C" void * _AddressOfReturnAddress(void);
 #endif
 #else
 #error _AddressOfReturnAddress and _ReturnAddress not defined for this platform
