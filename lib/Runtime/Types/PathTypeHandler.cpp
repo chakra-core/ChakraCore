@@ -2660,26 +2660,36 @@ namespace Js
             return;
         }
 
+        ScriptContext* scriptContext = instance->GetScriptContext();
+        bool useCache = scriptContext == newPrototype->GetScriptContext();
+
+        TypeTransitionMap * oldTypeToPromotedTypeMap = nullptr;
+        bool hasMap = false;
+        if (useCache)
+        {
+            hasMap = newPrototype->GetInternalProperty(newPrototype, Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Js::Var*)&oldTypeToPromotedTypeMap, nullptr, scriptContext);
+        }
+
+        PathTypeHandlerBase *_this = PathTypeHandlerBase::FromTypeHandler(instance->GetTypeHandler());
+        _this->SetPrototypeHelper(instance, newPrototype, hasMap ? oldTypeToPromotedTypeMap : nullptr, useCache, scriptContext);
+    }
+
+    void PathTypeHandlerBase::SetPrototypeHelper(DynamicObject* instance, RecyclableObject* newPrototype, TypeTransitionMap* oldTypeToPromotedTypeMap, bool useCache, ScriptContext *scriptContext)
+    {
         const bool useObjectHeaderInlining = IsObjectHeaderInlined(this->GetOffsetOfInlineSlots());
         uint16 requestedInlineSlotCapacity = this->GetInlineSlotCapacity();
         uint16 roundedInlineSlotCapacity = (useObjectHeaderInlining ?
                                             DynamicTypeHandler::RoundUpObjectHeaderInlinedInlineSlotCapacity(requestedInlineSlotCapacity) :
                                             DynamicTypeHandler::RoundUpInlineSlotCapacity(requestedInlineSlotCapacity));
-        ScriptContext* scriptContext = instance->GetScriptContext();
         DynamicType* cachedDynamicType = nullptr;
         DynamicType* oldType = instance->GetDynamicType();
 
-        bool useCache = instance->GetScriptContext() == newPrototype->GetScriptContext();
-
-        TypeTransitionMap * oldTypeToPromotedTypeMap = nullptr;
 #if DBG
         DynamicType * oldCachedType = nullptr;
         char16 reason[1024];
         swprintf_s(reason, 1024, _u("Cache not populated."));
 #endif
-        if (useCache && newPrototype->GetInternalProperty(newPrototype, Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Js::Var*)&oldTypeToPromotedTypeMap, nullptr, scriptContext)
-            && oldTypeToPromotedTypeMap != nullptr
-            )
+        if (oldTypeToPromotedTypeMap != nullptr)
         {
             AssertOrFailFast((Js::Var)oldTypeToPromotedTypeMap != scriptContext->GetLibrary()->GetUndefined());
             oldTypeToPromotedTypeMap = reinterpret_cast<TypeTransitionMap*>(oldTypeToPromotedTypeMap);
@@ -2747,7 +2757,12 @@ namespace Js
                 newTypeHandler = PathTypeHandlerBase::FromTypeHandler(cachedDynamicType->GetTypeHandler());
                 if (attr == ObjectSlotAttr_Setter)
                 {
-                    newTypeHandler->SetSetterSlot(newTypeHandler->GetTypePath()->LookupInline(propertyId, newTypeHandler->GetPathLength()), (PathTypeSetterSlotIndex)(newTypeHandler->GetPathLength() - 1));
+                    PropertyIndex getterIndex = newTypeHandler->GetTypePath()->LookupInline(propertyId, newTypeHandler->GetPathLength());
+                    Assert(getterIndex != Constants::NoSlot);
+                    if (attributes[getterIndex] & ObjectSlotAttr_Accessor)
+                    {
+                        newTypeHandler->SetSetterSlot(getterIndex, (PathTypeSetterSlotIndex)(newTypeHandler->GetPathLength() - 1));
+                    }
                 }
             }
             Assert(newTypeHandler->GetPathLength() == GetPathLength());
