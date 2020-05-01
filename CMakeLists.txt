@@ -302,9 +302,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -Wno-ignored-attributes\
-        -Wno-deprecated-declarations\
         -Wno-parentheses-equality\
-        -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\
         -Wno-unused-value\
