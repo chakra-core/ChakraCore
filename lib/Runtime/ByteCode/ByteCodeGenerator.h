@@ -405,7 +405,6 @@ public:
     void EndSubexpression(ParseNode* node);
 
     bool IsES6DestructuringEnabled() const;
-    bool IsES6ForLoopSemanticsEnabled() const;
 
     // Debugger methods.
     bool IsInDebugMode() const;

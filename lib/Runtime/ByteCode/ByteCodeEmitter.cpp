@@ -9507,8 +9507,7 @@ void EmitLoop(
         Emit(body, byteCodeGenerator, funcInfo, fReturnValue);
         funcInfo->ReleaseLoc(body);
 
-        if (byteCodeGenerator->IsES6ForLoopSemanticsEnabled() &&
-            forLoopBlock != nullptr)
+        if (forLoopBlock != nullptr)
         {
             CloneEmitBlock(forLoopBlock, byteCodeGenerator, funcInfo);
         }
@@ -9714,10 +9713,7 @@ void EmitForInOfLoopBody(ParseNodeForInOrForOf *loopNode,
         sym->SetNeedDeclaration(false);
     }
 
-    if (byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
-    {
-        BeginEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
-    }
+    BeginEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
 
     EmitAssignment(nullptr, loopNode->pnodeLval, loopNode->itemLocation, byteCodeGenerator, funcInfo);
 
@@ -9729,10 +9725,7 @@ void EmitForInOfLoopBody(ParseNodeForInOrForOf *loopNode,
     Emit(loopNode->pnodeBody, byteCodeGenerator, funcInfo, fReturnValue);
     funcInfo->ReleaseLoc(loopNode->pnodeBody);
 
-    if (byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
-    {
-        EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
-    }
+    EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
 
     funcInfo->ReleaseTmpRegister(loopNode->itemLocation);
     if (loopNode->emitLabels)
@@ -9784,11 +9777,6 @@ void EmitForIn(ParseNodeForInOrForOf *loopNode,
     byteCodeGenerator->Writer()->ExitLoop(loopId);
 
     funcInfo->ReleaseForInLoopLevel(forInLoopLevel);
-
-    if (!byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
-    {
-        EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
-    }
 }
 
 void EmitForInOrForOf(ParseNodeForInOrForOf *loopNode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue)
@@ -9814,8 +9802,7 @@ void EmitForInOrForOf(ParseNodeForInOrForOf *loopNode, ByteCodeGenerator *byteCo
     // (break every time on the loop back edge) and correct display of current statement under debugger.
     // See WinBlue 231880 for details.
     byteCodeGenerator->Writer()->RecordStatementAdjustment(Js::FunctionBody::SAT_All);
-    if (byteCodeGenerator->IsES6ForLoopSemanticsEnabled() &&
-        loopNode->pnodeBlock->HasBlockScopedContent())
+    if (loopNode->pnodeBlock->HasBlockScopedContent())
     {
         byteCodeGenerator->Writer()->RecordForInOrOfCollectionScope();
     }
@@ -9830,26 +9817,17 @@ void EmitForInOrForOf(ParseNodeForInOrForOf *loopNode, ByteCodeGenerator *byteCo
     Emit(loopNode->pnodeObj, byteCodeGenerator, funcInfo, false); // evaluate collection expression
     funcInfo->ReleaseLoc(loopNode->pnodeObj);
 
-    if (byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
+    EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
+    if (loopNode->pnodeBlock->scope != nullptr)
     {
-        EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
-        if (loopNode->pnodeBlock->scope != nullptr)
-        {
-            loopNode->pnodeBlock->scope->ForEachSymbol([](Symbol *sym) {
-                sym->SetIsTrackedForDebugger(false);
-            });
-        }
+        loopNode->pnodeBlock->scope->ForEachSymbol([](Symbol *sym) {
+            sym->SetIsTrackedForDebugger(false);
+        });
     }
 
     if (isForIn)
     {
         EmitForIn(loopNode, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo, fReturnValue);
-
-        if (!byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
-        {
-            EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
-        }
-
         return;
     }
 
@@ -9977,11 +9955,6 @@ void EmitForInOrForOf(ParseNodeForInOrForOf *loopNode, ByteCodeGenerator *byteCo
         byteCodeGenerator,
         funcInfo,
         isForAwaitOf);
-
-    if (!byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
-    {
-        EndEmitBlock(loopNode->pnodeBlock, byteCodeGenerator, funcInfo);
-    }
 }
 
 void EmitArrayLiteral(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
@@ -11647,10 +11620,9 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
             BeginEmitBlock(pnodeFor->pnodeBlock, byteCodeGenerator, funcInfo);
             Emit(pnodeFor->pnodeInit, byteCodeGenerator, funcInfo, false);
             funcInfo->ReleaseLoc(pnodeFor->pnodeInit);
-            if (byteCodeGenerator->IsES6ForLoopSemanticsEnabled())
-            {
-                CloneEmitBlock(pnodeFor->pnodeBlock, byteCodeGenerator, funcInfo);
-            }
+
+            CloneEmitBlock(pnodeFor->pnodeBlock, byteCodeGenerator, funcInfo);
+
             EmitLoop(pnodeFor,
                 pnodeFor->pnodeCond,
                 pnodeFor->pnodeBody,

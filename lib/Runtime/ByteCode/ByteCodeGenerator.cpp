@@ -784,11 +784,6 @@ bool ByteCodeGenerator::IsES6DestructuringEnabled() const
     return scriptContext->GetConfig()->IsES6DestructuringEnabled();
 }
 
-bool ByteCodeGenerator::IsES6ForLoopSemanticsEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6ForLoopSemanticsEnabled();
-}
-
 // ByteCodeGenerator debug mode means we are generating debug mode user-code. Library code is always in non-debug mode.
 bool ByteCodeGenerator::IsInDebugMode() const
 {
