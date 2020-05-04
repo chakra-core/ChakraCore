@@ -10752,30 +10752,28 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         //3.ReturnIfAbrupt(C).
         Var constructor = JavascriptOperators::GetProperty(object, PropertyIds::constructor, scriptContext);
 
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        //4.If C is undefined, return defaultConstructor.
+        if (JavascriptOperators::IsUndefinedObject(constructor))
         {
-            //4.If C is undefined, return defaultConstructor.
-            if (JavascriptOperators::IsUndefinedObject(constructor))
-            {
-                return defaultConstructor;
-            }
-            //5.If Type(C) is not Object, throw a TypeError exception.
-            if (!JavascriptOperators::IsObject(constructor))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[constructor]"));
-            }
-            //6.Let S be Get(C, @@species).
-            //7.ReturnIfAbrupt(S).
-            Var species = nullptr;
-            if (!JavascriptOperators::GetProperty(VarTo<RecyclableObject>(constructor),
-                PropertyIds::_symbolSpecies, &species, scriptContext)
-                || JavascriptOperators::IsUndefinedOrNull(species))
-            {
-                //8.If S is either undefined or null, return defaultConstructor.
-                return defaultConstructor;
-            }
-            constructor = species;
+            return defaultConstructor;
         }
+        //5.If Type(C) is not Object, throw a TypeError exception.
+        if (!JavascriptOperators::IsObject(constructor))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("[constructor]"));
+        }
+        //6.Let S be Get(C, @@species).
+        //7.ReturnIfAbrupt(S).
+        Var species = nullptr;
+        if (!JavascriptOperators::GetProperty(VarTo<RecyclableObject>(constructor),
+            PropertyIds::_symbolSpecies, &species, scriptContext)
+            || JavascriptOperators::IsUndefinedOrNull(species))
+        {
+            //8.If S is either undefined or null, return defaultConstructor.
+            return defaultConstructor;
+        }
+        constructor = species;
+
         //9.If IsConstructor(S) is true, return S.
         RecyclableObject* constructorObj = JavascriptOperators::TryFromVar<RecyclableObject>(constructor);
         if (constructorObj && JavascriptOperators::IsConstructor(constructorObj))
@@ -11541,17 +11539,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     // Helper to fetch @@species from a constructor object
     Var JavascriptOperators::GetSpecies(RecyclableObject* constructor, ScriptContext* scriptContext)
     {
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            Var species = nullptr;
+        Var species = nullptr;
 
-            // Let S be Get(C, @@species)
-            if (JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolSpecies, &species, scriptContext)
-                && !JavascriptOperators::IsUndefinedOrNull(species))
-            {
-                // If S is neither undefined nor null, let C be S
-                return species;
-            }
+        // Let S be Get(C, @@species)
+        if (JavascriptOperators::GetProperty(constructor, PropertyIds::_symbolSpecies, &species, scriptContext)
+            && !JavascriptOperators::IsUndefinedOrNull(species))
+        {
+            // If S is neither undefined nor null, let C be S
+            return species;
         }
 
         return constructor;

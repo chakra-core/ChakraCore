@@ -628,7 +628,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_CollectGarbage          (false)
 
 // ES6 sub-feature gate - to enable-disable ES6 sub-feature when ES6 flag is enabled
-#define DEFAULT_CONFIG_ES6Species              (true)
 #define DEFAULT_CONFIG_ES6Classes              (true)
 #define DEFAULT_CONFIG_ES6DateParseFix         (true)
 #define DEFAULT_CONFIG_ES6DefaultArgs          (true)
@@ -1126,8 +1125,6 @@ FLAGNRC(Boolean, ES6All                    , "Enable all ES6 features, both stab
 FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",                  DEFAULT_CONFIG_ES6All)
 
 // Per ES6 feature/flag
-
-FLAGPR           (Boolean, ES6, ES6Species             , "Enable ES6 '@@species' properties and built-in behaviors" , DEFAULT_CONFIG_ES6Species)
 
 FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
 FLAGPR           (Boolean, ES6, ES6Classes             , "Enable ES6 'class' and 'extends' keywords"                , DEFAULT_CONFIG_ES6Classes)

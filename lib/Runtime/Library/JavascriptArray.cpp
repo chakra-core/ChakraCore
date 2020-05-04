@@ -9595,7 +9595,7 @@ Case0:
             )
         }
         // skip the typed array and "pure" array case, we still need to handle special arrays like es5array, remote array, and proxy of array.
-        else if (pArr == nullptr || scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        else
         {
             JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(obj, length, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         }
@@ -12273,7 +12273,7 @@ Case0:
     RecyclableObject*
     JavascriptArray::ArraySpeciesCreate(Var originalArray, T length, ScriptContext* scriptContext, bool *pIsIntArray, bool *pIsFloatArray, bool *pIsBuiltinArrayCtor)
     {
-        if (originalArray == nullptr || !scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        if (originalArray == nullptr)
         {
             return nullptr;
         }

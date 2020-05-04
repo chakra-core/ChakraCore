@@ -2522,10 +2522,8 @@ namespace Js
         {
             library->AddMember(symbolConstructor, PropertyIds::asyncIterator, library->GetSymbolAsyncIterator(), PropertyNone);
         }
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddMember(symbolConstructor, PropertyIds::species, library->GetSymbolSpecies(), PropertyNone);
-        }
+
+        library->AddMember(symbolConstructor, PropertyIds::species, library->GetSymbolSpecies(), PropertyNone);
 
         if (scriptContext->GetConfig()->IsES6ToPrimitiveEnabled())
         {
@@ -4952,10 +4950,7 @@ namespace Js
 
     void JavascriptLibrary::AddSpeciesAccessorsToLibraryObject(DynamicObject* object, FunctionInfo * getterFunctionInfo)
     {
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            AddAccessorsToLibraryObjectWithName(object, PropertyIds::_symbolSpecies, PropertyIds::_RuntimeFunctionNameId_species, getterFunctionInfo, nullptr);
-        }
+        AddAccessorsToLibraryObjectWithName(object, PropertyIds::_symbolSpecies, PropertyIds::_RuntimeFunctionNameId_species, getterFunctionInfo, nullptr);
     }
 
     RuntimeFunction* JavascriptLibrary::CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
