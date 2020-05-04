@@ -771,7 +771,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_BigDictionaryTypeHandlerThreshold (0xffff)
 #define DEFAULT_CONFIG_ForceStringKeyedSimpleDictionaryTypeHandler (false)
 #define DEFAULT_CONFIG_TypeSnapshotEnumeration (true)
-#define DEFAULT_CONFIG_EnumerationCompat    (false)
 #define DEFAULT_CONFIG_ConcurrentRuntime (false)
 #define DEFAULT_CONFIG_PrimeRecycler     (false)
 #if defined(_WIN32)
@@ -814,8 +813,6 @@ PHASE(All)
 
 #define DEFAULT_CONFIG_InjectPartiallyInitializedInterpreterFrameError (0)
 #define DEFAULT_CONFIG_InjectPartiallyInitializedInterpreterFrameErrorType (0)
-
-#define DEFAULT_CONFIG_InvalidateSolutionContextsForGetStructure (true)
 
 #define DEFAULT_CONFIG_DeferLoadingAvailableSource  (false)
 #ifdef ENABLE_PROJECTION
@@ -1532,7 +1529,6 @@ FLAGR (Number,  AllocPolicyLimit      , "Memory allocation policy limit in MB (d
 #ifdef RUNTIME_DATA_COLLECTION
 FLAGNR(String,  RuntimeDataOutputFile, "Filename to write the dynamic profile info", nullptr)
 #endif
-FLAGNR(Boolean, ReportErrors          , "Enable reporting of syntax errors", false)
 FLAGR (Number,  SpeculationCap        , "How much bytecode we'll speculatively JIT", DEFAULT_CONFIG_SpeculationCap)
 #if DBG_DUMP || defined(BGJIT_STATS) || defined(RECYCLER_STATS)
 FLAGNR(Phases,  Stats                 , "Stats the given phase", )
@@ -1577,7 +1573,6 @@ FLAGNR(Boolean, TrackDispatch         , "Save stack traces of where JavascriptDi
 #endif
 FLAGNR(Boolean, Verbose               , "Dump details", DEFAULT_CONFIG_Verbose)
 FLAGNR(Boolean, UseFullName           , "Enable fully qualified name", DEFAULT_CONFIG_UseFullName)
-FLAGNR(Boolean, UseFunctionIdForTrace , "Use function id instead of function number for trace output", false)
 FLAGNR(Boolean, Utf8                  , "Use UTF8 for file output", false)
 FLAGR (Number,  Version               , "Version in which to run the jscript engine. [one of 1,2,3,4,5,6]. Default is latest for jc/jshost, 1 for IE", 6 )
 #ifdef ENABLE_PROJECTION
@@ -1627,7 +1622,6 @@ FLAGNR(Number,  DeletedPropertyReuseThreshold, "Start reusing deleted property i
 FLAGNR(Boolean, ForceStringKeyedSimpleDictionaryTypeHandler, "Force switch to string keyed version of SimpleDictionaryTypeHandler on first new property added to a SimpleDictionaryTypeHandler", DEFAULT_CONFIG_ForceStringKeyedSimpleDictionaryTypeHandler)
 FLAGNR(Number,  BigDictionaryTypeHandlerThreshold, "Min Slot Capacity required to convert DictionaryTypeHandler to BigDictionaryTypeHandler.(Advisable to give more than 15 - to avoid false positive cases)", DEFAULT_CONFIG_BigDictionaryTypeHandlerThreshold)
 FLAGNR(Boolean, TypeSnapshotEnumeration, "Create a true snapshot of the type of an object before enumeration and enumerate only those properties.", DEFAULT_CONFIG_TypeSnapshotEnumeration)
-FLAGR (Boolean, EnumerationCompat,      "When set in IE10 mode, restores enumeration behavior to RC behavior", DEFAULT_CONFIG_EnumerationCompat)
 FLAGNR(Boolean, IsolatePrototypes, "Should prototypes get unique types not shared with other objects (default: true)?", DEFAULT_CONFIG_IsolatePrototypes)
 FLAGNR(Boolean, ChangeTypeOnProto, "When becoming a prototype should the object switch to a new type (default: true)?", DEFAULT_CONFIG_ChangeTypeOnProto)
 FLAGNR(Boolean, ShareInlineCaches, "Determines whether inline caches are shared between all loads (or all stores) of the same property ID", DEFAULT_CONFIG_ShareInlineCaches)
@@ -1687,12 +1681,6 @@ FLAGNR(Number, ConstructorCacheInvalidationThreshold, "Clear uniquePropertyGuard
 #ifdef IR_VIEWER
 FLAGNR(Boolean, IRViewer, "Enable IRViewer functionality (improved UI for various stages of IR generation)", false)
 #endif /* IR_VIEWER */
-
-FLAGNR(Boolean, InvalidateSolutionContextsForGetStructure, "To reduce memory consumption, in the end of GetStructure call, invalidate script contexts used only for GetStructure -- this would invalidate ones associated with solution files (not top-most references such as helpers.js)", DEFAULT_CONFIG_InvalidateSolutionContextsForGetStructure)
-FLAGNR(Boolean, ES5LangTel, "Print ES5 language telemetry output.", false)
-FLAGNR(Boolean, ES6LangTel, "Print ES6 language telemetry output.", false)
-FLAGNR(Boolean, ESBLangTel, "Print ES built-ins telemetry output.", false)
-FLAGNR(Boolean, DateParseTel, "Print Date.parse telemetry output.", false)
 
 FLAGNR(Number,  GCMemoryThreshold, "Threshold for allocation-based GC initiation (in MB)", 0)
 
