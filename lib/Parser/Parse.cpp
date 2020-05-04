@@ -7005,7 +7005,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
 
                 this->GetScanner()->Scan();
 
-                if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
+                if (m_token.tk == tkAsg)
                 {
                     if (seenRestParameter && m_scriptContext->GetConfig()->IsES6RestEnabled())
                     {
@@ -7373,7 +7373,7 @@ void Parser::CheckStrictFormalParameters()
 
             this->GetScanner()->Scan();
 
-            if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
+            if (m_token.tk == tkAsg)
             {
                 this->GetScanner()->Scan();
                 // We can avoid building the AST since we are just checking the default expression.

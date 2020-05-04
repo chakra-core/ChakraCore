@@ -629,7 +629,6 @@ PHASE(All)
 
 // ES6 sub-feature gate - to enable-disable ES6 sub-feature when ES6 flag is enabled
 #define DEFAULT_CONFIG_ES6DateParseFix         (true)
-#define DEFAULT_CONFIG_ES6DefaultArgs          (true)
 #define DEFAULT_CONFIG_ES6FunctionNameFull     (true)
 #define DEFAULT_CONFIG_ES6Generators           (true)
 #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (true)
@@ -1124,7 +1123,6 @@ FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",
 
 FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
 FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
-FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
 FLAGPR           (Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full function.name"                            , DEFAULT_CONFIG_ES6FunctionNameFull)
 FLAGPR           (Boolean, ES6, ES6Generators          , "Enable ES6 generators"                                    , DEFAULT_CONFIG_ES6Generators)
 FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)"                , DEFAULT_CONFIG_ES7ExponentionOperator)
