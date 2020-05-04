@@ -2865,10 +2865,6 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     {
     case tkCLASS:
     {
-        if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            goto LDefault;
-        }
 
         // Before we parse the class itself we need to know if the class has an identifier name.
         // If it does, we'll treat this class as an ordinary class declaration which will bind
@@ -3343,11 +3339,6 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         ichLim = this->GetScanner()->IchLimTok();
         iecpLim = this->GetScanner()->IecpLimTok();
 
-        if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            goto LUnknown;
-        }
-
         this->GetScanner()->Scan();
 
         pid = ParseSuper<buildAST>(!!fAllowCall);
@@ -3574,7 +3565,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         iecpMin = this->GetScanner()->IecpMinTok();
         this->GetScanner()->Scan();
 
-        if (m_token.tk == tkDot && m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        if (m_token.tk == tkDot)
         {
             pid = ParseMetaProperty<buildAST>(tkNEW, ichMin, &fCanAssign);
 
@@ -3683,14 +3674,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     }
 
     case tkCLASS:
-        if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            pnode = ParseClassDecl<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
-        }
-        else
-        {
-            goto LUnknown;
-        }
+        pnode = ParseClassDecl<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
+
         fCanAssign = FALSE;
         break;
 
@@ -10224,14 +10209,11 @@ LRestart:
         {
             Error(ERRLabelBeforeClassDeclaration);
         }
-        else if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        else
         {
             pnode = ParseClassDecl<buildAST>(TRUE, nullptr, nullptr, nullptr);
         }
-        else
-        {
-            goto LDefaultToken;
-        }
+
         break;
 
     case tkID:
