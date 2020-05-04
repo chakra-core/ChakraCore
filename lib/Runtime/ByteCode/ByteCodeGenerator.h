@@ -404,8 +404,6 @@ public:
     void StartSubexpression(ParseNode* node);
     void EndSubexpression(ParseNode* node);
 
-    bool IsES6DestructuringEnabled() const;
-
     // Debugger methods.
     bool IsInDebugMode() const;
     bool IsInNonDebugMode() const;

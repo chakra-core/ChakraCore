@@ -7197,7 +7197,6 @@ void EmitAssignment(
 
     case knopObjectPattern:
     {
-        Assert(byteCodeGenerator->IsES6DestructuringEnabled());
         // Copy the rhs value to be the result of the assignment if needed.
         if (asgnNode != nullptr)
         {
@@ -7208,7 +7207,6 @@ void EmitAssignment(
 
     case knopArrayPattern:
     {
-        Assert(byteCodeGenerator->IsES6DestructuringEnabled());
         // Copy the rhs value to be the result of the assignment if needed.
         if (asgnNode != nullptr)
         {
@@ -11298,7 +11296,7 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
             EmitAssignment(nullptr, lhs, rhs->location, byteCodeGenerator, funcInfo);
         }
         funcInfo->ReleaseLoc(rhs);
-        if (!(byteCodeGenerator->IsES6DestructuringEnabled() && (lhs->IsPattern())))
+        if (!lhs->IsPattern())
         {
             funcInfo->ReleaseReference(lhs);
         }

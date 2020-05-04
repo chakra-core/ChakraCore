@@ -1018,7 +1018,6 @@ private:
 
     void AppendToList(ParseNodePtr * node, ParseNodePtr nodeToAppend);
 
-    bool IsES6DestructuringEnabled() const;
     bool IsPossiblePatternStart() const { return m_token.tk == tkLCurly || m_token.tk == tkLBrack; }
     bool IsPostFixOperators() const
     {
