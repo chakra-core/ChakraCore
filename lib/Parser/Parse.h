@@ -511,8 +511,10 @@ private:
 #ifdef ENABLE_TEST_HOOKS
     struct InternalCommandPids
     {
-        IdentPtr Conv_Num;
-        IdentPtr Conv_Obj;
+        #define Command(name, params) \
+            IdentPtr name;
+
+        #include "InternalCommands.h"
     };
     InternalCommandPids internalCommandPids;
 #endif

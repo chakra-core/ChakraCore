@@ -446,8 +446,10 @@ public:
 
 typedef enum InternalCommandType
 {
-    Conv_Num,
-    Conv_Obj
+    #define Command(name, params) \
+        name, //params
+
+    #include "InternalCommands.h"
 } InternalCommandType;
 
 class ParseNodeInternalCommand : public ParseNode
@@ -458,6 +460,8 @@ public:
 
     InternalCommandType commandType;
     ParseNodePtr params;
+
+    DISABLE_SELF_CAST(ParseNodeInternalCommand);
 };
 #endif
 

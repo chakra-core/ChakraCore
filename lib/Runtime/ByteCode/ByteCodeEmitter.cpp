@@ -12301,22 +12301,43 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         byteCodeGenerator->StartStatement(pnode);
         funcInfo->AcquireLoc(pnode);
         ParseNodeInternalCommand* command = pnode->AsParseNodeInternalCommand();
-        ParseNode* params = command->params;
-        //ParseNode* param1 = params->AsParseNodeBin()->pnode1;
-        Emit(params, byteCodeGenerator, funcInfo, false);
+
+        Js::OpCode opcode = Js::OpCode::Nop;
+        uint32 expectedParams = 0;
+
+        #define Command(name, params) \
+            case InternalCommandType::##name: \
+                opcode = Js::OpCode::##name; \
+                expectedParams = params; \
+                break;
 
         switch (command->commandType)
         {
-            case InternalCommandType::Conv_Num:
-                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Num, pnode->location, params->location);
-                break;
-            case InternalCommandType::Conv_Obj:
-                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Obj, pnode->location, params->location);
-                break;
-
+            #include "InternalCommands.h"
             default:
                 AssertOrFailFast(0);
         }
+
+        ParseNode* params = command->params;
+        switch (expectedParams)
+        {
+            case 1:
+                Emit(params, byteCodeGenerator, funcInfo, false);
+                byteCodeGenerator->Writer()->Reg2(opcode, pnode->location, params->location);
+                break;
+            case 2:
+            {
+                ParseNode* param1 = params->AsParseNodeBin()->pnode1;
+                ParseNode* param2 = params->AsParseNodeBin()->pnode2;
+                Emit(param1, byteCodeGenerator, funcInfo, false);
+                Emit(param2, byteCodeGenerator, funcInfo, false);
+                byteCodeGenerator->Writer()->Reg3(opcode, pnode->location, param1->location, param2->location);
+                break;
+            }
+            default:
+                AssertOrFailFast(0); //currently only support Internal Commands with 1 or 2 parameters
+        }
+
         funcInfo->ReleaseLoc(params);
         byteCodeGenerator->EndStatement(pnode);
         break;

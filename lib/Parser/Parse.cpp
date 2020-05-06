@@ -2646,17 +2646,18 @@ ParseNodePtr Parser::ParseInternalCommand()
 
     // find the command type
     InternalCommandType type;
+    uint32 expectedParams = 0;
     IdentPtr id = m_token.GetIdentifier(GetHashTbl());
 
-    if (id == internalCommandPids.Conv_Num)
-    {
-        type = InternalCommandType::Conv_Num;
-    }
-    else if (id == internalCommandPids.Conv_Obj)
-    {
-        type = InternalCommandType::Conv_Obj;
-    }
-    else
+    #define Command(name, params) \
+        if (id == internalCommandPids.##name) \
+        { \
+            type = InternalCommandType::##name; \
+            expectedParams = params; \
+        } \
+        else
+
+    #include "InternalCommands.h"
     {
         Error(ERRTokenAfter, m_token.GetIdentifier(GetHashTbl())->Psz(), _u("@@"));
     }
@@ -2670,7 +2671,13 @@ ParseNodePtr Parser::ParseInternalCommand()
 
     for (;;)
     {
-        currentParam = ParseExpr<buildAST>(0);
+        currentParam = ParseExpr<buildAST>(koplCma);
+        if (expectedParams-- == 0)
+        {
+            // throw during parse phase if internal command has too many parameters
+            // as the excess would be ignored upon execution
+            Error(ERRsyntax);
+        }
         if (buildAST)
         {
             AddToNodeListEscapedUse(&params, &lastParam, currentParam);
@@ -2689,6 +2696,13 @@ ParseNodePtr Parser::ParseInternalCommand()
         {
             Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(this->GetScanner()->GetPrevious()));
         }
+    }
+
+    if (expectedParams != 0)
+    {
+        // throw during parse phase if internal command has too few parameters
+        // as could produce undefined behaviour if executed
+        Error(ERRsyntax);
     }
 
     ParseNodePtr command = nullptr;
@@ -11863,8 +11877,10 @@ void Parser::InitPids()
 #ifdef ENABLE_TEST_HOOKS
 void Parser::InitInternalCommandPids()
 {
-    internalCommandPids.Conv_Num = this->GetHashTbl()->PidHashNameLen(_u("Conv_Num"), sizeof("Conv_Num") - 1);
-    internalCommandPids.Conv_Obj = this->GetHashTbl()->PidHashNameLen(_u("Conv_Obj"), sizeof("Conv_Obj") - 1);
+    #define Command(name, params) \
+        internalCommandPids.##name = this->GetHashTbl()->PidHashNameLen(_u(#name), sizeof(#name) - 1);
+
+    #include "InternalCommands.h"
 }
 #endif
 
