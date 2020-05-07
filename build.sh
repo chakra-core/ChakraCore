@@ -406,42 +406,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $USE_LOCAL_ICU == 1 ]]; then
-    LOCAL_ICU_DIR="$CHAKRACORE_DIR/deps/Chakra.ICU/icu"
-    if [[ ! -d $LOCAL_ICU_DIR ]]; then
-        "$PYTHON2_BINARY" "$CHAKRACORE_DIR/tools/icu/configure.py" 63.2 $ALWAYS_YES
-    fi
-
-    # if there is still no directory, then the user declined the license agreement
-    if [[ ! -d $LOCAL_ICU_DIR ]]; then
-        echo "You must accept the ICU license agreement in order to use this configuration"
-        exit 1
-    fi
-
-    LOCAL_ICU_DIST="$LOCAL_ICU_DIR/output"
-
-    if [ ! -d "$LOCAL_ICU_DIST" ]; then
-        set -e
-
-        pushd "$LOCAL_ICU_DIR/source"
-
-        ./configure --with-data-packaging=static\
-                    --prefix="$LOCAL_ICU_DIST"\
-                    --enable-static\
-                    --disable-shared\
-                    --with-library-bits=64\
-                    --disable-icuio\
-                    --disable-layout\
-                    --disable-tests\
-                    --disable-samples\
-                    CXXFLAGS="-fPIC"\
-                    CFLAGS="-fPIC"
-
-        ERROR_EXIT "rm -rf $LOCAL_ICU_DIST"
-        make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC" install
-        ERROR_EXIT "rm -rf $LOCAL_ICU_DIST"
-        popd
-    fi
-    CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$LOCAL_ICU_DIST/include"
+    CMAKE_ICU="-DEMBED_ICU_SH=ON"
 fi
 
 if [[ "$MAKE" == "ninja" ]]; then
