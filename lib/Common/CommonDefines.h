@@ -114,25 +114,6 @@
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 #endif
 
-// Normalize ICU_VERSION for non-Kit ICU
-#if defined(HAS_ICU) && !defined(ICU_VERSION) && !defined(WINDOWS10_ICU)
-#include "unicode/uvernum.h"
-#define ICU_VERSION U_ICU_VERSION_MAJOR_NUM
-#endif
-
-// Make non-Windows Kit ICU look and act like Windows Kit ICU for better compat
-#if defined(HAS_ICU) && !defined(WINDOWS10_ICU)
-#define U_SHOW_CPLUSPLUS_API 0
-// ICU 55 (Ubuntu 16.04 system default) has uloc_toUnicodeLocale* marked as draft, which is required for Intl
-#if ICU_VERSION > 56
-#define U_DEFAULT_SHOW_DRAFT 0
-#define U_HIDE_DRAFT_API 1
-#endif
-#define U_HIDE_DEPRECATED_API 1
-#define U_HIDE_OBSOLETE_API 1
-#define U_HIDE_INTERNAL_API 1
-#endif
-
 // Language features
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support

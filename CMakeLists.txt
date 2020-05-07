@@ -77,6 +77,7 @@ if(ICU_SETTINGS_RESET)
     unset(NO_ICU_SH CACHE)
     unset(LOCAL_ICU_SH CACHE)
     unset(SYSTEM_ICU_SH CACHE)
+    unset(EMBED_ICU_SH CACHE)
 endif()
 
 if(CC_TARGET_OS_ANDROID_SH)
@@ -135,7 +136,47 @@ else()
     set(INTL_ICU 0)
 endif()
 
-if(ICU_INCLUDE_PATH)
+if(EMBED_ICU_SH)
+    set(EMBED_ICU 1)
+    unset(EMBED_ICU_SH CACHE)
+endif()
+
+if(EMBED_ICU AND ICU_INCLUDE_PATH)
+    message(FATAL_ERROR "Embedded ICU and ICU include path cannot be set at the same time")
+endif()
+
+if(EMBED_ICU)
+    # Keep consistent with what ICU download script used to print
+    message("Note: ICU installation and use is subject to it's publisher's licensing terms")
+
+    set(ICU_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/deps/thirdparty/icu)
+    set(ICU_DOWNLOAD_DIR ${ICU_PREFIX}/download)
+    set(ICU_SOURCE_DIR ${ICU_PREFIX}/stage)
+    set(EMBEDDED_ICU_TARGET icu4c)
+    set(ICU_INCLUDE_PATH ${ICU_PREFIX}/include)
+    set(ICU_LIBRARY_PATH ${ICU_PREFIX}/lib)
+    add_definitions(-DHAS_REAL_ICU=1)
+    add_definitions(-DHAS_ICU)
+    add_definitions(-DINTL_ICU=1)
+    set(ICU_LIBRARIES
+        ${ICU_LIBRARY_PATH}/libicuuc.a
+        ${ICU_LIBRARY_PATH}/libicui18n.a
+        ${ICU_LIBRARY_PATH}/libicudata.a
+    )
+
+    include(ExternalProject)
+    ExternalProject_Add(${EMBEDDED_ICU_TARGET}
+        PREFIX ${ICU_PREFIX}
+        DOWNLOAD_DIR ${ICU_DOWNLOAD_DIR}
+        SOURCE_DIR ${ICU_SOURCE_DIR}
+        URL https://github.com/unicode-org/icu/releases/download/release-63-2/icu4c-63_2-src.tgz
+        URL_HASH SHA512=5fa9092efd8d6da6dfc8d498e4026167fda43423eaafc754d1789cf8fd4f6e76377878ebcaa32e14f314836136b764873511a93bfbcc5419b758841cc6df8f32
+        CONFIGURE_COMMAND ${ICU_SOURCE_DIR}/source/configure --prefix=${ICU_PREFIX} --with-data-packaging=static --enable-static --disable-shared --with-library-bits=64 --disable-icuio --disable-layout --disable-tests --disable-samples
+        BUILD_COMMAND make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC"
+        INSTALL_COMMAND make install
+        BYPRODUCTS ${ICU_LIBRARIES}
+    )
+elseif(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
     add_definitions(-DHAS_ICU)
     set(ICU_LIBRARY_PATH "${ICU_INCLUDE_PATH}/../lib/")
