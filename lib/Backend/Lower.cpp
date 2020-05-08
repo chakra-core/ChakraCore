@@ -3143,6 +3143,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerStPropIdArrFromVar(instr);
             break;
 
+        case Js::OpCode::ToInteger:
+            this->LowerUnaryHelperMem(instr, IR::HelperOp_ToInteger);
+            break;
+
+        case Js::OpCode::ToLength:
+            this->LowerUnaryHelperMem(instr, IR::HelperOp_ToLength);
+            break;
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         case Js::OpCode::GeneratorOutputBailInTraceLabel:
 #endif

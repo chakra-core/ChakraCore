@@ -8114,6 +8114,24 @@ GlobOpt::TypeSpecializeIntUnary(
         opcode = Js::OpCode::Ld_I4;
         break;
 
+    case Js::OpCode::ToInteger:
+        newMin = min;
+        newMax = max;
+        opcode = Js::OpCode::Ld_I4;
+        isTransfer = true;
+        break;
+
+    case Js::OpCode::ToLength:
+        if (min >= 0)
+        {
+            newMin = min;
+            newMax = max;
+            opcode = Js::OpCode::Ld_I4;
+            isTransfer = true;
+            break;
+        }
+        return false;
+
     case Js::OpCode::Neg_A:
         if (min <= 0 && max >= 0)
         {

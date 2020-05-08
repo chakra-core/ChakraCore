@@ -6573,6 +6573,8 @@ BackwardPass::TrackBitWiseOrNumberOp(IR::Instr *const instr)
         {
             // Instructions that can cause src values to escape the local scope have already been excluded
 
+        case Js::OpCode::ToInteger:
+        case Js::OpCode::ToLength:
         case Js::OpCode::Conv_Num:
         case Js::OpCode::Div_A:
         case Js::OpCode::Mul_A:
@@ -7003,6 +7005,8 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
         case Js::OpCode::Ld_A:
         case Js::OpCode::Conv_Num:
         case Js::OpCode::ShrU_A:
+        case Js::OpCode::ToInteger:
+        case Js::OpCode::ToLength:
             if(!ignoreIntOverflowCandidate)
             {
                 // Int overflow matters for dst, so int overflow also matters for srcs
