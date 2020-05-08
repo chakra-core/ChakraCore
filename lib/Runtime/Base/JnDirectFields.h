@@ -639,17 +639,10 @@ ENTRY(select)
 
 // JsBuiltIns
 ENTRY(__chakraLibrary)
-ENTRY(alias)
-ENTRY(argumentsCount)
-ENTRY(className)
-ENTRY(forceInline)
 ENTRY(GetIteratorPrototype)
-ENTRY(GetLength)
 ENTRY(InitInternalProperties)
-ENTRY(methodName)
 ENTRY(registerChakraLibraryFunction)
 ENTRY(registerFunction)
-ENTRY(staticMethod)
 ENTRY(arraySpeciesCreate)
 ENTRY(arrayCreateDataPropertyOrThrow)
 ENTRY(Array_values)
@@ -766,7 +759,6 @@ ENTRY2(_newTarget, _u("*new.target*"))
 // Note: Do not add fields for conditionally-compiled PropertyIds into this file.
 //       The bytecode for internal javascript libraries is built on chk but re-used in fre builds.
 //       Having a mismatch in the number of PropertyIds will cause a failure loading bytecode.
-//       See BLUE #467459
 
 #undef ENTRY_INTERNAL_SYMBOL
 #undef ENTRY_SYMBOL

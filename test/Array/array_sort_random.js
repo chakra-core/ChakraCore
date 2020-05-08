@@ -163,9 +163,9 @@ function stressTestSort(iterations, size = 1000)
     }
 }
 
-// test arrays with length < 2048 for insertion sort
-stressTestSort(200, 512);
-// test arrays with length > 2048 for merge sort
-stressTestSort(200, 2050);
+// test arrays with length < 1024 for insertion sort
+stressTestSort(100, 512);
+// test arrays with length > 1024 for merge sort
+stressTestSort(100, 1025);
 
 print("PASS");
