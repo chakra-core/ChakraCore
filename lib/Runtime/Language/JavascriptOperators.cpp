@@ -10510,6 +10510,33 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(Op_ToLength);
     }
 
+    Var JavascriptOperators::OP_GetIterableLength(Var iterable, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetIterableLength);
+
+        if (!VarIs<TypedArrayBase>(iterable))	
+        {	
+            Var varLength = JavascriptOperators::OP_GetLength(iterable, scriptContext);
+            if (TaggedInt::Is(varLength))
+            {
+                return varLength;
+            }
+            return JavascriptNumber::ToVar(JavascriptConversion::ToLength(varLength, scriptContext), scriptContext);
+        }	
+        else	
+        {	
+            TypedArrayBase* typedArrayBase = UnsafeVarTo<TypedArrayBase>(iterable);	
+            if (typedArrayBase->IsDetachedBuffer())	 
+            {	
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);	
+            }	
+
+            return JavascriptNumber::ToVar(typedArrayBase->GetLength(), scriptContext);
+        }	
+
+        JIT_HELPER_END(Op_GetIterableLength);
+    }
+
     Js::Var
     JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction, bool deepCopy)
     {

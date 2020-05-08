@@ -138,6 +138,7 @@ HELPERCALL_MATH(Op_MinInAnArray, Js::JavascriptMath::MinInAnArray, AttrCanThrow)
 
 HELPERCALLCHK(Op_ToInteger, Js::JavascriptOperators::OP_ToInteger, AttrCanThrow)
 HELPERCALLCHK(Op_ToLength, Js::JavascriptOperators::OP_ToLength, AttrCanThrow)
+HELPERCALLCHK(Op_GetIterableLength, Js::JavascriptOperators::OP_GetIterableLength, AttrCanThrow)
 HELPERCALLCHK(Op_ConvString, Js::JavascriptConversion::ToString, AttrCanThrow)
 HELPERCALLCHK(Op_ConvPropertyKey, Js::JavascriptOperators::OP_ToPropertyKey, AttrCanThrow)
 HELPERCALLCHK(Op_CoerseString, Js::JavascriptConversion::CoerseString, AttrCanThrow)

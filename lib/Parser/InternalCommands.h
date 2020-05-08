@@ -10,5 +10,6 @@
 Command(Conv_Obj, 1)
 Command(ToInteger, 1)
 Command(ToLength, 1)
+Command(GetLength, 1)
 
 #undef Command

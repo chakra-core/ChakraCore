@@ -101,6 +101,7 @@ EXDEF2_WMS(A1toA1Mem,               Conv_Prop,                  JavascriptOperat
 EXDEF2_WMS(A1toA1Mem,               NewUnscopablesWrapperObject,JavascriptOperators::ToUnscopablesWrapperObject)
 EXDEF2_WMS(A1toA1Mem,               ToInteger,                  JavascriptOperators::OP_ToInteger)
 EXDEF2_WMS(A1toA1Mem,               ToLength,                   JavascriptOperators::OP_ToLength)
+EXDEF2_WMS(A1toA1Mem,               GetLength,                  JavascriptOperators::OP_GetIterableLength)
   DEF2_WMS(A1toA1Mem,               Conv_Num,                   JavascriptOperators::ToNumber)
   DEF2_WMS(A1toA1Mem,               Incr_A,                     JavascriptMath::Increment)
   DEF2_WMS(A1toA1Mem,               Decr_A,                     JavascriptMath::Decrement)

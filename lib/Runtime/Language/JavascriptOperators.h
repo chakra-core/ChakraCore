@@ -655,6 +655,7 @@ namespace Js
 
         static Var OP_ToInteger(Var value, ScriptContext* scriptContext);
         static Var OP_ToLength(Var value, ScriptContext* scriptContext);
+        static Var OP_GetIterableLength(Var iterable, ScriptContext* scriptContext);
 
         template <typename T>
         static void * JitRecyclerAlloc(DECLSPEC_GUARD_OVERFLOW size_t size, Recycler* recycler)
