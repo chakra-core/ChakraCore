@@ -24093,4 +24093,5 @@ test36();
 test37();
 test38();
 test39();
-WScript.Echo("done");
+
+print("pass");

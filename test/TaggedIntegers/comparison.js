@@ -292,4 +292,4 @@ check_inequality();
 check_greaterless();
 check_greaterlessequals();
 
-WScript.Echo("done");
+print("pass");

@@ -45,4 +45,4 @@ verify(-1 <<31, -2147483648, id++, "\"Testing Signed Left Shift by 31 for negati
 verify((0x7fffffff>>32)|1, 2147483647, id++, "\" Testing whether the shift operation does not change the tagged integer to a normal integer for Or \"");
 verify((0x7fffffff>>32)^0x2, 2147483645, id++, "\"Testing whether the shift operation does not change the tagged integer to a normal integer for xor\"");
 
-WScript.Echo("Done");
+print("pass");
