@@ -31,7 +31,6 @@ namespace Js
         localExportMapByLocalName(nullptr),
         localExportIndexList(nullptr),
         normalizedSpecifier(nullptr),
-        moduleUrl(nullptr),
         errorObject(nullptr),
         hostDefined(nullptr),
         exportedNames(nullptr),
@@ -183,11 +182,8 @@ namespace Js
         {
             if (*exceptionVar == nullptr)
             {
-                const WCHAR * sourceUrl = nullptr;
-                if (this->GetModuleUrl())
-                {
-                  sourceUrl = this->GetModuleUrlSz();
-                }
+                const WCHAR * sourceUrl = this->GetSpecifierSz();
+
                 *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, sourceUrl);
             }
             // Cleanup in case of error.
@@ -947,11 +943,8 @@ namespace Js
 
         if (rootFunction == nullptr)
         {
-            const WCHAR * sourceUrl = nullptr;
-            if (this->GetModuleUrl())
-            {
-                sourceUrl = this->GetModuleUrlSz();
-            }
+            const WCHAR * sourceUrl = this->GetSpecifierSz();
+
             this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, sourceUrl);
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();

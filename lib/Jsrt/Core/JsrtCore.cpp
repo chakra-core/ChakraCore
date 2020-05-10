@@ -21,7 +21,7 @@
 CHAKRA_API
 JsInitializeModuleRecord(
     _In_opt_ JsModuleRecord referencingModule,
-    _In_ JsValueRef normalizedSpecifier,
+    _In_opt_ JsValueRef normalizedSpecifier,
     _Outptr_result_maybenull_ JsModuleRecord* moduleRecord)
 {
     PARAM_NOT_NULL(moduleRecord);
@@ -34,7 +34,7 @@ JsInitializeModuleRecord(
         {
             childModuleRecord->SetIsRootModule();
         }
-        if (normalizedSpecifier != JS_INVALID_REFERENCE)
+        if (normalizedSpecifier != nullptr)
         {
             childModuleRecord->SetSpecifier(normalizedSpecifier);
         }
@@ -85,9 +85,9 @@ JsParseModuleSource(
         {
             const char16 *moduleUrlSz = nullptr;
             size_t moduleUrlLen = 0;
-            if (moduleRecord->GetModuleUrl())
+            if (moduleRecord->GetSpecifier())
             {
-                Js::JavascriptString *moduleUrl = Js::VarTo<Js::JavascriptString>(moduleRecord->GetModuleUrl());
+                Js::JavascriptString *moduleUrl = Js::VarTo<Js::JavascriptString>(moduleRecord->GetSpecifier());
                 moduleUrlSz = moduleUrl->GetSz();
                 moduleUrlLen = moduleUrl->GetLength();
             }
@@ -196,7 +196,7 @@ JsSetModuleHostInfo(
             currentContext->GetHostScriptContext()->SetInitializeImportMetaCallback(reinterpret_cast<InitializeImportMetaCallback>(hostInfo));
             break;
         case JsModuleHostInfo_Url:
-            moduleRecord->SetModuleUrl(hostInfo);
+            moduleRecord->SetSpecifier(hostInfo);
             break;
         default:
             return JsInvalidModuleHostInfoKind;
@@ -246,7 +246,7 @@ JsGetModuleHostInfo(
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetInitializeImportMetaCallback());
             break;
         case JsModuleHostInfo_Url:
-            *hostInfo = reinterpret_cast<void*>(moduleRecord->GetModuleUrl());
+            *hostInfo = reinterpret_cast<void*>(moduleRecord->GetSpecifier());
             break;
         default:
             return JsInvalidModuleHostInfoKind;
