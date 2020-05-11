@@ -26,23 +26,16 @@ JsInitializeModuleRecord(
 {
     PARAM_NOT_NULL(moduleRecord);
 
-    Js::SourceTextModuleRecord* childModuleRecord = nullptr;
+    Js::SourceTextModuleRecord* newModuleRecord = nullptr;
 
     JsErrorCode errorCode = ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        childModuleRecord = Js::SourceTextModuleRecord::Create(scriptContext);
-        if (referencingModule == nullptr)
-        {
-            childModuleRecord->SetIsRootModule();
-        }
-        if (normalizedSpecifier != nullptr)
-        {
-            childModuleRecord->SetSpecifier(normalizedSpecifier);
-        }
+        newModuleRecord = Js::SourceTextModuleRecord::Create(scriptContext);
+        newModuleRecord->SetSpecifier(normalizedSpecifier);
         return JsNoError;
     });
     if (errorCode == JsNoError)
     {
-        *moduleRecord = childModuleRecord;
+        *moduleRecord = newModuleRecord;
     }
     else
     {

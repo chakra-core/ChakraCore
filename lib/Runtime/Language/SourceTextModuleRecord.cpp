@@ -107,6 +107,13 @@ namespace Js
             return E_NOTIMPL;
         }
 
+        // Mark module as root module if it currently has no parents
+        // Note, if there are circular imports it may gain parents later
+        if (parentModuleList == nullptr)
+        {
+            SetIsRootModule();
+        }
+
         // Host indicates that the current module failed to load.
         if (sourceText == nullptr)
         {
@@ -204,8 +211,8 @@ namespace Js
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
-            // Notify host if current module is dynamically-loaded module, or is root module and the host hasn't been notified
-            if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
+            // Notify host if current module is root module and the host hasn't been notified
+            if (isRootModule && !hadNotifyHostReady)
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (ParseSource error)\n"), this->GetSpecifierSz());
                 LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
@@ -367,7 +374,7 @@ namespace Js
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded\n"));
             NotifyParentsAsNeeded();
 
-            if (!WasDeclarationInitialized() && (isRootModule || this->promise != nullptr))
+            if (!WasDeclarationInitialized() && isRootModule)
             {
                 // TODO: move this as a promise call? if parser is called from a different thread
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
@@ -423,7 +430,7 @@ namespace Js
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
-            if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
+            if (isRootModule && !hadNotifyHostReady)
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (OnChildModuleReady)\n"), this->GetSpecifierSz());
                 LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
