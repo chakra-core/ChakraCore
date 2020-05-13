@@ -3,6 +3,15 @@ project (CHAKRACORE)
 
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 
+# Disable expected CMake workflow
+option(CHAKRACORE_BUILD_SH "Use build.sh")
+
+if(NOT CHAKRACORE_BUILD_SH)
+    option(INTL_ICU "Enable Intl" ON)
+    option(EMBED_ICU "Build ICU within ChakraCore build" OFF)
+    set(ICU_INCLUDE_PATH "" CACHE STRING "libicu iclude path")
+endif(NOT CHAKRACORE_BUILD_SH)
+
 # Keep CMake from caching static/shared library
 # option. Otherwise, CMake fails to update cached
 # references
@@ -27,7 +36,7 @@ if(LIBS_ONLY_BUILD_SH)
     set(CC_LIBS_ONLY_BUILD 1)
 endif()
 
-if(CC_USES_SYSTEM_ARCH_SH)
+if(CC_USES_SYSTEM_ARCH_SH OR NOT CHAKRACORE_BUILD_SH)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
         set(CC_TARGETS_AMD64_SH 1)
     elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
@@ -46,7 +55,7 @@ elseif(CC_TARGETS_X86_SH)
     set(CC_TARGETS_X86 1)
     set(CMAKE_SYSTEM_PROCESSOR "i386")
 else()
-    message(FATAL_ERROR "Couldn't detect target processor, try `--arch` argument with build.sh")
+    message(FATAL_ERROR "Unsupported target processor: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
 unset(CC_TARGETS_ARM_SH CACHE)
@@ -128,13 +137,15 @@ if(SYSTEM_ICU_SH)
     unset(SYSTEM_ICU_SH CACHE)
 endif()
 
-if(INTL_ICU_SH)
-    unset(INTL_ICU_SH CACHE)
-    set(INTL_ICU 1)
-else()
-    unset(INTL_ICU_SH CACHE)
-    set(INTL_ICU 0)
-endif()
+if(CHAKRACORE_BUILD_SH)
+    if(INTL_ICU_SH)
+        unset(INTL_ICU_SH CACHE)
+        set(INTL_ICU 1)
+    else()
+        unset(INTL_ICU_SH CACHE)
+        set(INTL_ICU 0)
+    endif()
+endif(CHAKRACORE_BUILD_SH)
 
 if(EMBED_ICU_SH)
     set(EMBED_ICU 1)
@@ -296,7 +307,7 @@ elseif(CC_TARGET_OS_OSX)
       endif()
     endif()
 else()
-    message(FATAL_ERROR "This OS is not supported")
+    message(FATAL_ERROR "Unsupported OS: ${CMAKE_SYSTEM_NAME}")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
@@ -560,3 +571,5 @@ endif()
 add_subdirectory (lib)
 
 add_subdirectory (bin)
+
+add_subdirectory(test)
