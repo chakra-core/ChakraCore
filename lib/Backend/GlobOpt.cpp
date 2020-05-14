@@ -2424,7 +2424,8 @@ void
 GlobOpt::TryReplaceLdLen(IR::Instr *& instr)
 {
     // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld. Otherwise, convert the SymOpnd to a RegOpnd here.
-    if (instr->m_opcode == Js::OpCode::LdLen_A && instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd())
+    // Attempt the same optimisation for GetLength as long as the object is not a typed array
+    if ((instr->m_opcode == Js::OpCode::LdLen_A || instr->m_opcode == Js::OpCode::GetLength) && instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd())
     {
         IR::SymOpnd * opnd = instr->GetSrc1()->AsSymOpnd();
         Sym *sym = opnd->m_sym;
@@ -2442,15 +2443,19 @@ GlobOpt::TryReplaceLdLen(IR::Instr *& instr)
             (CurrentBlockData()->argObjSyms && CurrentBlockData()->IsArgumentsOpnd(newopnd))
             )
         {
-            // We need to properly transfer over the information from the old operand, which is
-            // a SymOpnd, to the new one, which is a RegOpnd. Unfortunately, the types mean the
-            // normal copy methods won't work here, so we're going to directly copy data.
-            newopnd->SetIsJITOptimizedReg(opnd->GetIsJITOptimizedReg());
-            newopnd->SetValueType(objectValueInfo->Type());
-            newopnd->SetIsDead(opnd->GetIsDead());
-            instr->ReplaceSrc1(newopnd);
+            // GetLength Op can't be optimised for typed arrays
+            if (instr->m_opcode == Js::OpCode::LdLen_A || !objectValueInfo->IsLikelyTypedArray())
+            {
+                // We need to properly transfer over the information from the old operand, which is
+                // a SymOpnd, to the new one, which is a RegOpnd. Unfortunately, the types mean the
+                // normal copy methods won't work here, so we're going to directly copy data.
+                newopnd->SetIsJITOptimizedReg(opnd->GetIsJITOptimizedReg());
+                newopnd->SetValueType(objectValueInfo->Type());
+                newopnd->SetIsDead(opnd->GetIsDead());
+                instr->ReplaceSrc1(newopnd);
+            }
         }
-        else
+        else if(instr->m_opcode == Js::OpCode::LdLen_A) // retain the GetLength op when not optimising
         {
             // otherwise, change the instruction to an LdFld here.
             instr->m_opcode = Js::OpCode::LdFld;
@@ -8113,6 +8118,24 @@ GlobOpt::TypeSpecializeIntUnary(
         newMin = newMax = instr->GetSrc1()->AsIntConstOpnd()->AsInt32();
         opcode = Js::OpCode::Ld_I4;
         break;
+
+    case Js::OpCode::ToInteger:
+        newMin = min;
+        newMax = max;
+        opcode = Js::OpCode::Ld_I4;
+        isTransfer = true;
+        break;
+
+    case Js::OpCode::ToLength:
+        if (min >= 0)
+        {
+            newMin = min;
+            newMax = max;
+            opcode = Js::OpCode::Ld_I4;
+            isTransfer = true;
+            break;
+        }
+        return false;
 
     case Js::OpCode::Neg_A:
         if (min <= 0 && max >= 0)

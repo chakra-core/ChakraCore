@@ -12295,6 +12295,54 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         funcInfo->ReleaseLoc(pnode->AsParseNodeExportDefault()->pnodeExpr);
         pnode = pnode->AsParseNodeExportDefault()->pnodeExpr;
         break;
+#ifdef ENABLE_TEST_HOOKS
+    case knopIntCommand:
+    {
+        byteCodeGenerator->StartStatement(pnode);
+        funcInfo->AcquireLoc(pnode);
+        ParseNodeInternalCommand* command = pnode->AsParseNodeInternalCommand();
+
+        Js::OpCode opcode = Js::OpCode::Nop;
+        uint32 expectedParams = 0;
+
+        #define Command(name, params) \
+            case InternalCommandType::##name: \
+                opcode = Js::OpCode::##name; \
+                expectedParams = params; \
+                break;
+
+        switch (command->commandType)
+        {
+            #include "InternalCommands.h"
+            default:
+                AssertOrFailFast(0);
+        }
+
+        ParseNode* params = command->params;
+        switch (expectedParams)
+        {
+            case 1:
+                Emit(params, byteCodeGenerator, funcInfo, false);
+                byteCodeGenerator->Writer()->Reg2(opcode, pnode->location, params->location);
+                break;
+            case 2:
+            {
+                ParseNode* param1 = params->AsParseNodeBin()->pnode1;
+                ParseNode* param2 = params->AsParseNodeBin()->pnode2;
+                Emit(param1, byteCodeGenerator, funcInfo, false);
+                Emit(param2, byteCodeGenerator, funcInfo, false);
+                byteCodeGenerator->Writer()->Reg3(opcode, pnode->location, param1->location, param2->location);
+                break;
+            }
+            default:
+                AssertOrFailFast(0); //currently only support Internal Commands with 1 or 2 parameters
+        }
+
+        funcInfo->ReleaseLoc(params);
+        byteCodeGenerator->EndStatement(pnode);
+        break;
+    }
+#endif
     default:
         AssertMsg(0, "emit unhandled pnode op");
         break;

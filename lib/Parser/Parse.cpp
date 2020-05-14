@@ -128,6 +128,13 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 
     // init PID members
     InitPids();
+
+#ifdef ENABLE_TEST_HOOKS
+    if (scriptContext->GetConfig()->IsInternalCommandsEnabled())
+    {
+        InitInternalCommandPids();
+    }
+#endif
 }
 
 Parser::~Parser(void)
@@ -2626,6 +2633,88 @@ void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportE
     }
 }
 
+#ifdef ENABLE_TEST_HOOKS
+template<bool buildAST>
+ParseNodePtr Parser::ParseInternalCommand()
+{
+    this->GetScanner()->Scan();
+    if (m_token.tk != tkID)
+    {
+        Error(ERRTokenAfter, GetTokenString(m_token.tk), _u("@@"));
+    }
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
+
+    // find the command type
+    InternalCommandType type;
+    uint32 expectedParams = 0;
+    IdentPtr id = m_token.GetIdentifier(GetHashTbl());
+
+    #define Command(name, params) \
+        if (id == internalCommandPids.##name) \
+        { \
+            type = InternalCommandType::##name; \
+            expectedParams = params; \
+        } \
+        else
+
+    #include "InternalCommands.h"
+    {
+        Error(ERRTokenAfter, m_token.GetIdentifier(GetHashTbl())->Psz(), _u("@@"));
+    }
+
+    // parse the parameters - currently only accept identifiers
+    this->GetScanner()->Scan();
+    ChkCurTok(tkLParen, ERRnoLparen);
+    ParseNodePtr params = nullptr;
+    ParseNodePtr * lastParam = nullptr;
+    ParseNodePtr currentParam = nullptr;
+
+    for (;;)
+    {
+        currentParam = ParseExpr<buildAST>(koplCma);
+        if (expectedParams-- == 0)
+        {
+            // throw during parse phase if internal command has too many parameters
+            // as the excess would be ignored upon execution
+            Error(ERRsyntax);
+        }
+        if (buildAST)
+        {
+            AddToNodeListEscapedUse(&params, &lastParam, currentParam);
+        }
+
+        if (m_token.tk == tkComma)
+        {
+            this->GetScanner()->Scan();
+        }
+        else if (m_token.tk == tkRParen)
+        {
+            this->GetScanner()->Scan();
+            break;
+        }
+        else
+        {
+            Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(this->GetScanner()->GetPrevious()));
+        }
+    }
+
+    if (expectedParams != 0)
+    {
+        // throw during parse phase if internal command has too few parameters
+        // as could produce undefined behaviour if executed
+        Error(ERRsyntax);
+    }
+
+    ParseNodePtr command = nullptr;
+    if (buildAST)
+    {
+        command = Anew(&m_nodeAllocator, ParseNodeInternalCommand, ichMin, this->GetScanner()->IchLimTok(), type, params);
+    }
+
+    return command;
+}
+#endif
+
 template<bool buildAST>
 void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma)
 {
@@ -3743,6 +3832,16 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             goto LUnknown;
         }
         break;
+
+#ifdef ENABLE_TEST_HOOKS
+    case tkIntCommand:
+        if (!m_scriptContext->GetConfig()->IsInternalCommandsEnabled())
+        {
+            Error(ERRTokenAfter, _u("@@"), GetTokenString(GetScanner()->GetPrevious()));
+        }
+        pnode = ParseInternalCommand<buildAST>();
+        break;
+#endif
 
 #if ENABLE_BACKGROUND_PARSING
     case tkCASE:
@@ -11774,6 +11873,16 @@ void Parser::InitPids()
     wellKnownPropertyPids._superConstructor = this->GetHashTbl()->PidHashNameLen(_u("*superconstructor*"), sizeof("*superconstructor*") - 1);
     wellKnownPropertyPids._importMeta = this->GetHashTbl()->PidHashNameLen(_u("*import.meta*"), sizeof("*import.meta*") - 1);
 }
+
+#ifdef ENABLE_TEST_HOOKS
+void Parser::InitInternalCommandPids()
+{
+    #define Command(name, params) \
+        internalCommandPids.##name = this->GetHashTbl()->PidHashNameLen(_u(#name), sizeof(#name) - 1);
+
+    #include "InternalCommands.h"
+}
+#endif
 
 void Parser::RestoreScopeInfo(Js::ScopeInfo * scopeInfo)
 {

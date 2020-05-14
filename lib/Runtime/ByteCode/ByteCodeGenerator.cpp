@@ -326,6 +326,13 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
         Visit(pnode->AsParseNodeStrTemplate()->pnodeSubstitutionExpressions, byteCodeGenerator, prefix, postfix);
         break;
     }
+#ifdef ENABLE_TEST_HOOKS
+    case knopIntCommand:
+    {
+        Visit(pnode->AsParseNodeInternalCommand()->params, byteCodeGenerator, prefix, postfix);
+        break;
+    }
+#endif
     case knopExportDefault:
         Visit(pnode->AsParseNodeExportDefault()->pnodeExpr, byteCodeGenerator, prefix, postfix);
         break;

@@ -2195,6 +2195,16 @@ LCommentLineBreak:
             token = this->ScanStringConstant((OLECHAR)ch, &pchT);
             p = pchT;
             break;
+#ifdef ENABLE_TEST_HOOKS
+        case '@':
+            if (this->PeekFirst(p,last) != '@')
+            {
+                goto LDefault;
+            }
+            p++;
+            token = tkIntCommand;
+            break;
+#endif
         }
 
         break;

@@ -85,11 +85,8 @@ namespace Js
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterFunction));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_RegisterChakraLibraryFunction));
 
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetLength));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetIteratorPrototype(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetIteratorPrototype));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_InitInternalProperties(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_InitInternalProperties));
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction));
-    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArraySpeciesCreate(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ArraySpeciesCreate));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow));
 
@@ -406,60 +403,6 @@ FUNCTIONKIND_VALUES(VALUE)
 
         //Don't need to return anything
         return library->GetUndefined();
-    }
-
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(args.Info.Count == 2);
-        return JavascriptNumber::ToVar(JavascriptConversion::ToLength(args.Values[1], scriptContext), scriptContext);
-    }
-
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(args.Info.Count == 2);
-
-        Var value = args.Values[1];
-        if (JavascriptOperators::IsUndefinedOrNull(value))
-        {
-            return TaggedInt::ToVarUnchecked(0);
-        }
-        else if (TaggedInt::Is(value))
-        {
-            return value;
-        }
-
-        return JavascriptNumber::ToVarIntCheck(JavascriptConversion::ToInteger(value, scriptContext), scriptContext);
-    }
-
-    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetLength(RecyclableObject *function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        Assert(callInfo.Count == 2);
-
-        int64 length;
-        Var iterable = args.Values[1];
-
-        TypedArrayBase *typedArrayBase = nullptr;
-        Assert(!JavascriptArray::IsNonES5Array(iterable));
-
-        if (VarIs<TypedArrayBase>(iterable))
-        {
-            typedArrayBase = VarTo<TypedArrayBase>(iterable);
-            if (typedArrayBase->IsDetachedBuffer())
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
-            }
-
-            length = typedArrayBase->GetLength();
-        }
-        else
-        {
-            length = JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(iterable, scriptContext), scriptContext);
-        }
-
-        return JavascriptNumber::ToVar(length, scriptContext);
     }
 
     Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_GetIteratorPrototype(RecyclableObject *function, CallInfo callInfo, ...)

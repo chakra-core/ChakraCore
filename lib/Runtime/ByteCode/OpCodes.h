@@ -334,6 +334,10 @@ MACRO_EXTEND_WMS(       Conv_Str,           Reg2,           OpOpndHasImplicitCal
 // Operation ToPropertyKey(var)
 MACRO_EXTEND_WMS(       Conv_Prop,          Reg2,           OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut)
 
+MACRO_EXTEND_WMS(       ToInteger,          Reg2,           OpSideEffect|OpTempNumberProducing|OpTempNumberTransfer|OpTempObjectSources|OpOpndHasImplicitCall|OpProducesNumber)
+MACRO_EXTEND_WMS(       ToLength,           Reg2,           OpSideEffect|OpTempNumberProducing|OpTempNumberTransfer|OpTempObjectSources|OpOpndHasImplicitCall|OpProducesNumber)
+MACRO_EXTEND_WMS(       GetLength,          Reg2,           OpSideEffect|OpTempNumberProducing|OpTempNumberTransfer|OpTempObjectSources|OpOpndHasImplicitCall|OpProducesNumber)
+
 // Conv_Obj:
 //      OpSideEffect - May throw exception on null/undefined.
 //      Do not call valueOf/toString no implicit call

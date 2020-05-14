@@ -1860,6 +1860,12 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         return;
     }
 
+    case Js::OpCode::ToLength:
+    case Js::OpCode::ToInteger:
+    case Js::OpCode::GetLength:
+        dstOpnd->SetValueType(ValueType::Int.ToLikely());
+        break;
+
     case Js::OpCode::Conv_Str:
         dstOpnd->SetValueType(ValueType::String);
         break;

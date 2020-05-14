@@ -155,7 +155,8 @@ PTNODE(knopObjectPatternMember, "{:} = "   , Nop      , Bin         , fnopBin   
 PTNODE(knopArrayPattern, "[] = "           , Nop      , ArrLit      , fnopUni                , "ArrayAssignmentPattern"        )
 PTNODE(knopParamPattern, "({[]})"          , Nop      , ParamPattern, fnopUni                , "DestructurePattern"            )
 PTNODE(knopExportDefault, "export default" , Nop      , ExportDefault,fnopNone               , "ExportDefault"                 )
-
-
+#ifdef ENABLE_TEST_HOOKS
+PTNODE(knopIntCommand, "intCommand"        , Nop      , None        , fnopNone               , "Internal Command"              )
+#endif
 #undef PTNODE
 #undef OP

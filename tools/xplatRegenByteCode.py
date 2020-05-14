@@ -48,37 +48,37 @@ def bytecode_job(outPath, command, error):
 # INTL
 print('Generating INTL bytecode')
 bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.64b.h',
-    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '../lib/Runtime/Library/InJavascript/Intl.js'],
+    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-EnableInternalCommands', '../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 64bit noJit bytecode')
 
 bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.nojit.bc.32b.h',
-    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-Force32BitByteCode','../lib/Runtime/Library/InJavascript/Intl.js'],
+    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-EnableInternalCommands', '-Force32BitByteCode', '../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 32bit noJit bytecode')
 
 bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.bc.64b.h',
-    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '../lib/Runtime/Library/InJavascript/Intl.js'],
+    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-EnableInternalCommands', '../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 64bit bytecode')
 
 bytecode_job('../lib/Runtime/Library/InJavascript/Intl.js.bc.32b.h',
-    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-Force32BitByteCode','../lib/Runtime/Library/InJavascript/Intl.js'],
+    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-Intl', '-EnableInternalCommands', '-Force32BitByteCode', '../lib/Runtime/Library/InJavascript/Intl.js'],
     'Failed to generate INTL 32bit bytecode')
 
 # JsBuiltin
 print('Generating JsBuiltin Bytecode')
 bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.nojit.bc.64b.h',
-    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
+    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-EnableInternalCommands', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate noJit 64bit JsBuiltin Bytecode')
 
 bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.nojit.bc.32b.h',
-    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-Force32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
+    ['../out/noJit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-EnableInternalCommands', '-Force32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate noJit 32bit JsBuiltin Bytecode')
 
 bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.bc.64b.h',
-    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
+    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-EnableInternalCommands', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate 64bit JsBuiltin Bytecode')
 
 bytecode_job('../lib/Runtime/Library/JsBuiltin/JsBuiltin.js.bc.32b.h',
-    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-Force32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
+    ['../out/Jit/test/ch', '-GenerateLibraryByteCodeHeader', '-JsBuiltIn', '-LdChakraLib', '-EnableInternalCommands', '-Force32BitByteCode', '../lib/Runtime/Library/JsBuiltin/JsBuiltin.js'],
     'Failed to generate 32bit JsBuiltin Bytecode')
 
 # Bytecode regeneration complete - create a new GUID for it

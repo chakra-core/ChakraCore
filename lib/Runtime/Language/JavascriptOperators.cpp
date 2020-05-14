@@ -10471,6 +10471,72 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(NewAsyncFromSyncIterator);
     }
 
+    Var JavascriptOperators::OP_ToInteger(Var value, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_ToInteger);
+        if (TaggedInt::Is(value))
+        {
+            return value;
+        }
+        else if (JavascriptOperators::IsUndefinedOrNull(value))
+        {
+            return TaggedInt::ToVarUnchecked(0);
+        }
+
+        return JavascriptNumber::ToVarIntCheck(JavascriptConversion::ToInteger(value, scriptContext), scriptContext);
+        JIT_HELPER_END(Op_ToInteger);
+    }
+
+    Var JavascriptOperators::OP_ToLength(Var value, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_ToLength);
+        if (TaggedInt::Is(value))
+        {
+            if (TaggedInt::ToInt32(value) > 0)
+            {
+                return value;
+            }
+            else
+            {
+                return TaggedInt::ToVarUnchecked(0);
+            }
+        }
+        else if (JavascriptOperators::IsUndefinedOrNull(value))
+        {
+            return TaggedInt::ToVarUnchecked(0);
+        }
+
+        return JavascriptNumber::ToVar(JavascriptConversion::ToLength(value, scriptContext), scriptContext);
+        JIT_HELPER_END(Op_ToLength);
+    }
+
+    Var JavascriptOperators::OP_GetIterableLength(Var iterable, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetIterableLength);
+
+        if (!VarIs<TypedArrayBase>(iterable))	
+        {	
+            Var varLength = JavascriptOperators::OP_GetLength(iterable, scriptContext);
+            if (TaggedInt::Is(varLength))
+            {
+                return varLength;
+            }
+            return JavascriptNumber::ToVar(JavascriptConversion::ToLength(varLength, scriptContext), scriptContext);
+        }	
+        else	
+        {	
+            TypedArrayBase* typedArrayBase = UnsafeVarTo<TypedArrayBase>(iterable);	
+            if (typedArrayBase->IsDetachedBuffer())	 
+            {	
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);	
+            }	
+
+            return JavascriptNumber::ToVar(typedArrayBase->GetLength(), scriptContext);
+        }	
+
+        JIT_HELPER_END(Op_GetIterableLength);
+    }
+
     Js::Var
     JavascriptOperators::BoxStackInstance(Js::Var instance, ScriptContext * scriptContext, bool allowStackFunction, bool deepCopy)
     {

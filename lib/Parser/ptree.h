@@ -110,6 +110,10 @@ class ParseNodeForInOrForOf;
 class ParseNodeFnc;
 class ParseNodeProg;
 class ParseNodeModule;
+#ifdef ENABLE_TEST_HOOKS
+class ParseNodeInternalCommand;
+#endif
+
 
 class ParseNode
 {
@@ -162,6 +166,10 @@ public:
     ParseNodeFnc * AsParseNodeFnc();
     ParseNodeProg * AsParseNodeProg();
     ParseNodeModule * AsParseNodeModule();
+
+#ifdef ENABLE_TEST_HOOKS
+    ParseNodeInternalCommand * AsParseNodeInternalCommand();
+#endif
 
     static uint Grfnop(int nop)
     {
@@ -433,6 +441,30 @@ public:
 
     DISABLE_SELF_CAST(ParseNodeObjLit);
 };
+
+#ifdef ENABLE_TEST_HOOKS
+
+typedef enum InternalCommandType
+{
+    #define Command(name, params) \
+        name, //params
+
+    #include "InternalCommands.h"
+} InternalCommandType;
+
+class ParseNodeInternalCommand : public ParseNode
+{
+public:
+    ParseNodeInternalCommand(charcount_t ichMin, charcount_t ichLim, InternalCommandType type, ParseNodePtr parameters) :
+        commandType(type), params(parameters), ParseNode(knopIntCommand, ichMin, ichLim) {}
+
+    InternalCommandType commandType;
+    ParseNodePtr params;
+
+    DISABLE_SELF_CAST(ParseNodeInternalCommand);
+};
+#endif
+
 
 class FuncInfo;
 

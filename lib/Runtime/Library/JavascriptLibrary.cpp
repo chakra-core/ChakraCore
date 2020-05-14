@@ -5199,17 +5199,13 @@ namespace Js
     bool JavascriptLibrary::InitializeChakraLibraryObject(DynamicObject * chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = chakraLibraryObject->GetLibrary();
-        typeHandler->Convert(chakraLibraryObject, mode, 8);
+        typeHandler->Convert(chakraLibraryObject, mode, 5);
 
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
         JavascriptFunction * func = nullptr;
 
-        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction, 1);
-        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction, 1);
-        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::GetLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::InitInternalProperties, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_InitInternalProperties, 1);
         library->AddMember(chakraLibraryObject, PropertyIds::isArray, library->isArrayFunction);
-        library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arraySpeciesCreate, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArraySpeciesCreate, 2);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arrayCreateDataPropertyOrThrow, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow, 3);
         func = library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);

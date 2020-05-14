@@ -653,6 +653,10 @@ namespace Js
         static Var OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator);
         static Var OP_NewAsyncFromSyncIterator(Var syncIterator, ScriptContext* scriptContext);
 
+        static Var OP_ToInteger(Var value, ScriptContext* scriptContext);
+        static Var OP_ToLength(Var value, ScriptContext* scriptContext);
+        static Var OP_GetIterableLength(Var iterable, ScriptContext* scriptContext);
+
         template <typename T>
         static void * JitRecyclerAlloc(DECLSPEC_GUARD_OVERFLOW size_t size, Recycler* recycler)
         {
