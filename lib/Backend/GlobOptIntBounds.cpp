@@ -803,7 +803,7 @@ void GlobOpt::TrackIntSpecializedAddSubConstant(
 
                 // Ensure that the sym is live in the landing pad, and that its value has not changed in an unknown way yet
                 Value *const landingPadValue = currentBlock->loop->landingPad->globOptData.FindValue(sym);
-                if(!landingPadValue || srcValueNumber != landingPadValue->GetValueNumber())
+                if(!landingPadValue || srcValueNumber != landingPadValue->GetValueNumber() || currentBlock->loop->symsDefInLoop->Test(sym->m_id))
                 {
                     updateInductionVariableValueNumber = false;
                     break;

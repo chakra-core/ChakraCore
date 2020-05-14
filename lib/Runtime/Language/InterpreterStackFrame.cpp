@@ -314,6 +314,52 @@
 
 #define PROCESS_U1toINNERMemNonVar(name, func) PROCESS_U1toINNERMemNonVar_COMMON(name, func,)
 
+#define PROCESS_XXtoA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg2U, suffix); \
+        SetReg(playout->R0, \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_XXtoA2_FB(name, func) PROCESS_XXtoA2_FB_COMMON(name, func,)
+
+#define PROCESS_A1toA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg3U, suffix); \
+        SetReg(playout->R0, \
+               func((FrameDisplay*)GetNonVarReg(playout->R2), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_A1toA2_FB(name, func) PROCESS_A1toA2_FB_COMMON(name, func,)
+
+#define PROCESS_A2toA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg4U, suffix); \
+        SetReg(playout->R0, \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), \
+               GetReg(playout->R2), GetReg(playout->R3), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_A2toA2_FB(name, func) PROCESS_A2toA2_FB_COMMON(name, func,)
+
+#define PROCESS_A3toA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg5U, suffix); \
+        SetReg(playout->R0, \
+               func((FrameDisplay*)GetNonVarReg(playout->R4), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), \
+               GetReg(playout->R2), GetReg(playout->R3), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_A3toA2_FB(name, func) PROCESS_A3toA2_FB_COMMON(name, func,)
+
 #define PROCESS_XXINNERtoA1MemNonVar_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
@@ -687,6 +733,19 @@
     }
 
 #define PROCESS_BRCMem(name, func) PROCESS_BRCMem_COMMON(name, func,)
+
+#define PROCESS_BR_AtoA2_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, BrReg3, suffix); \
+        if (func(playout->R0, playout->R1, playout->R2)) \
+        { \
+            ip = m_reader.SetCurrentRelativeOffset(ip, playout->RelativeJumpOffset); \
+        } \
+        break; \
+    }
+
+#define PROCESS_BR_AtoA2(name, func) PROCESS_BR_AtoA2_COMMON(name, func,)
 
 #define PROCESS_BRPROP(name, func) \
     case OpCode::name: \
@@ -7818,10 +7877,54 @@ skipThunk:
         return m_reader.SetCurrentRelativeOffset((const byte *)(playout + 1), playout->RelativeJumpOffset);
     }
 
-    template <class T>
-    void InterpreterStackFrame::OP_InitClass(const unaligned OpLayoutT_Class<T> * playout)
+    Var InterpreterStackFrame::OP_InitBaseClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RegSlot protoReg)
     {
-        JavascriptOperators::OP_InitClass(GetReg(playout->Constructor), playout->Extends != Js::Constants::NoRegister ? GetReg(playout->Extends) : NULL, GetScriptContext());
+        RecyclableObject * protoParent = scriptContext->GetLibrary()->GetObjectPrototype();
+        RecyclableObject * constructorParent = scriptContext->GetLibrary()->GetFunctionPrototype();
+
+        return InitClassHelper(environment, infoRef, protoParent, constructorParent, protoReg);
+    }
+
+    bool InterpreterStackFrame::OP_CheckExtends(RegSlot regCtorParent, RegSlot regProtoParent, RegSlot regExtends)
+    {
+        Var extends = GetReg(regExtends);
+        if (JavascriptOperators::IsNull(extends))
+        {
+            SetReg(regProtoParent, scriptContext->GetLibrary()->GetNull());
+            SetReg(regCtorParent, scriptContext->GetLibrary()->GetFunctionPrototype());
+            return true;
+        }
+        if (!JavascriptOperators::IsConstructor(extends))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
+        }            
+        return false;
+    }
+
+    Var InterpreterStackFrame::OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var constructorParent, Var protoParent, RegSlot protoReg)
+    {
+        return InitClassHelper(environment, infoRef, VarTo<RecyclableObject>(protoParent), VarTo<RecyclableObject>(constructorParent), protoReg);
+    }
+
+    Var InterpreterStackFrame::InitClassHelper(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RecyclableObject *protoParent, RecyclableObject *constructorParent, RegSlot protoReg)
+    {
+        Assert(protoParent && JavascriptOperators::IsObjectOrNull(protoParent));
+        Assert(constructorParent && (JavascriptOperators::IsConstructor(constructorParent) || constructorParent == scriptContext->GetLibrary()->GetFunctionPrototype()));
+
+        // Create prototype object with the default class prototype object shape {'constructor': W:T, E:F, C:T} and [[Prototype]] == protoParent
+        DynamicObject * proto = scriptContext->GetLibrary()->CreateClassPrototypeObject(protoParent);
+
+        // Create class constructor object for the constructor function, with default constructor shape:
+        //    {'prototype': W:F, E:F, C:F}, {'length': W:F, E:F, C:T}, {'name': W:F, E:F, C:T}
+        //    [[Prototype]] == constructorParent and [[HomeObject]] == proto
+        // The callee initializes the object and the 3 properties.
+        ScriptFunction * constructor = ScriptFunction::OP_NewClassConstructor(environment, infoRef, proto, constructorParent);
+
+        proto->SetSlot(SetSlotArguments(Constants::NoProperty, 0, constructor));
+        constructor->SetSlot(SetSlotArguments(Constants::NoProperty, 0, proto));
+
+        SetReg(protoReg, proto);
+        return constructor;
     }
 
 #ifdef ENABLE_SCRIPT_DEBUGGING

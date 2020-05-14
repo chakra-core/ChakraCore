@@ -975,7 +975,7 @@ private:
         charcount_t ichMin,
         _Out_opt_ BOOL* pfCanAssign = nullptr);
 
-    bool IsImportOrExportStatementValidHere();
+    void CheckIfImportOrExportStatementValidHere();
     bool IsTopLevelModuleFunc();
 
     template<bool buildAST> ParseNodePtr ParseImport();

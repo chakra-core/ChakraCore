@@ -54,6 +54,9 @@ FLAG_RELEASE(IsESExportNsAsEnabled, ESExportNsAs)
 FLAG_RELEASE(IsESSymbolDescriptionEnabled, ESSymbolDescription)
 FLAG_RELEASE(IsESGlobalThisEnabled, ESGlobalThis)
 FLAG_RELEASE(IsES2018AsyncIterationEnabled, ES2018AsyncIteration)
+#ifdef ENABLE_TEST_HOOKS
+FLAG_RELEASE(Force32BitByteCode, Force32BitByteCode)
+#endif
 #ifdef ENABLE_PROJECTION
 FLAG(AreWinRTDelegatesInterfaces, WinRTDelegateInterfaces)
 FLAG_RELEASE(IsWinRTAdaptiveAppsEnabled, WinRTAdaptiveApps)

@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#include "PlatformAgnostic/ChakraICU.h"
 #include <vector>
 
 #if defined(_X86_) || defined(_M_IX86)

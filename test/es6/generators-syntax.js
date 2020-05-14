@@ -77,9 +77,9 @@ var tests = [
     {
         name: "Invalid use of yield in lvalue positions that are runtime errors",
         body: function () {
-            assert.throws(function () { eval('function* gf() { (yield) = 10; }'); var g = gf(); g.next(); g.next(); }, ReferenceError, "yield cannot be the LHS target of an assignment", "Invalid left-hand side in assignment");
-            assert.throws(function () { eval('function* gf() { ++(yield); }'); var g = gf(); g.next(); g.next(); }, ReferenceError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment");
-            assert.throws(function () { eval('function* gf() { (yield)++; }'); var g = gf(); g.next(); g.next(); }, ReferenceError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment");
+            assert.throws(function () { eval('function* gf() { (yield) = 10; }'); var g = gf(); g.next(); g.next(); }, SyntaxError, "yield cannot be the LHS target of an assignment", "Invalid left-hand side in assignment.");
+            assert.throws(function () { eval('function* gf() { ++(yield); }'); var g = gf(); g.next(); g.next(); }, SyntaxError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment.");
+            assert.throws(function () { eval('function* gf() { (yield)++; }'); var g = gf(); g.next(); g.next(); }, SyntaxError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment.");
         }
     },
     {

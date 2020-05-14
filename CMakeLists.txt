@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
+
+# Disable expected CMake workflow
+option(CHAKRACORE_BUILD_SH "Use build.sh")
+
+if(NOT CHAKRACORE_BUILD_SH)
+    option(INTL_ICU "Enable Intl" ON)
+    option(EMBED_ICU "Build ICU within ChakraCore build" OFF)
+    set(ICU_INCLUDE_PATH "" CACHE STRING "libicu iclude path")
+endif(NOT CHAKRACORE_BUILD_SH)
+
 # Keep CMake from caching static/shared library
 # option. Otherwise, CMake fails to update cached
 # references
@@ -25,7 +36,7 @@ if(LIBS_ONLY_BUILD_SH)
     set(CC_LIBS_ONLY_BUILD 1)
 endif()
 
-if(CC_USES_SYSTEM_ARCH_SH)
+if(CC_USES_SYSTEM_ARCH_SH OR NOT CHAKRACORE_BUILD_SH)
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
         set(CC_TARGETS_AMD64_SH 1)
     elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
@@ -44,7 +55,7 @@ elseif(CC_TARGETS_X86_SH)
     set(CC_TARGETS_X86 1)
     set(CMAKE_SYSTEM_PROCESSOR "i386")
 else()
-    message(FATAL_ERROR "Couldn't detect target processor, try `--arch` argument with build.sh")
+    message(FATAL_ERROR "Unsupported target processor: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
 unset(CC_TARGETS_ARM_SH CACHE)
@@ -75,6 +86,7 @@ if(ICU_SETTINGS_RESET)
     unset(NO_ICU_SH CACHE)
     unset(LOCAL_ICU_SH CACHE)
     unset(SYSTEM_ICU_SH CACHE)
+    unset(EMBED_ICU_SH CACHE)
 endif()
 
 if(CC_TARGET_OS_ANDROID_SH)
@@ -125,15 +137,57 @@ if(SYSTEM_ICU_SH)
     unset(SYSTEM_ICU_SH CACHE)
 endif()
 
-if(INTL_ICU_SH)
-    unset(INTL_ICU_SH CACHE)
-    set(INTL_ICU 1)
-else()
-    unset(INTL_ICU_SH CACHE)
-    set(INTL_ICU 0)
+if(CHAKRACORE_BUILD_SH)
+    if(INTL_ICU_SH)
+        unset(INTL_ICU_SH CACHE)
+        set(INTL_ICU 1)
+    else()
+        unset(INTL_ICU_SH CACHE)
+        set(INTL_ICU 0)
+    endif()
+endif(CHAKRACORE_BUILD_SH)
+
+if(EMBED_ICU_SH)
+    set(EMBED_ICU 1)
+    unset(EMBED_ICU_SH CACHE)
 endif()
 
-if(ICU_INCLUDE_PATH)
+if(EMBED_ICU AND ICU_INCLUDE_PATH)
+    message(FATAL_ERROR "Embedded ICU and ICU include path cannot be set at the same time")
+endif()
+
+if(EMBED_ICU)
+    # Keep consistent with what ICU download script used to print
+    message("Note: ICU installation and use is subject to it's publisher's licensing terms")
+
+    set(ICU_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/deps/thirdparty/icu)
+    set(ICU_DOWNLOAD_DIR ${ICU_PREFIX}/download)
+    set(ICU_SOURCE_DIR ${ICU_PREFIX}/stage)
+    set(EMBEDDED_ICU_TARGET icu4c)
+    set(ICU_INCLUDE_PATH ${ICU_PREFIX}/include)
+    set(ICU_LIBRARY_PATH ${ICU_PREFIX}/lib)
+    add_definitions(-DHAS_REAL_ICU=1)
+    add_definitions(-DHAS_ICU)
+    add_definitions(-DINTL_ICU=1)
+    set(ICU_LIBRARIES
+        ${ICU_LIBRARY_PATH}/libicuuc.a
+        ${ICU_LIBRARY_PATH}/libicui18n.a
+        ${ICU_LIBRARY_PATH}/libicudata.a
+    )
+
+    include(ExternalProject)
+    ExternalProject_Add(${EMBEDDED_ICU_TARGET}
+        PREFIX ${ICU_PREFIX}
+        DOWNLOAD_DIR ${ICU_DOWNLOAD_DIR}
+        SOURCE_DIR ${ICU_SOURCE_DIR}
+        URL https://github.com/unicode-org/icu/releases/download/release-63-2/icu4c-63_2-src.tgz
+        URL_HASH SHA512=5fa9092efd8d6da6dfc8d498e4026167fda43423eaafc754d1789cf8fd4f6e76377878ebcaa32e14f314836136b764873511a93bfbcc5419b758841cc6df8f32
+        CONFIGURE_COMMAND ${ICU_SOURCE_DIR}/source/configure --prefix=${ICU_PREFIX} --with-data-packaging=static --enable-static --disable-shared --with-library-bits=64 --disable-icuio --disable-layout --disable-tests --disable-samples
+        BUILD_COMMAND make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC"
+        INSTALL_COMMAND make install
+        BYPRODUCTS ${ICU_LIBRARIES}
+    )
+elseif(ICU_INCLUDE_PATH)
     add_definitions(-DHAS_REAL_ICU=1)
     add_definitions(-DHAS_ICU)
     set(ICU_LIBRARY_PATH "${ICU_INCLUDE_PATH}/../lib/")
@@ -253,7 +307,7 @@ elseif(CC_TARGET_OS_OSX)
       endif()
     endif()
 else()
-    message(FATAL_ERROR "This OS is not supported")
+    message(FATAL_ERROR "Unsupported OS: ${CMAKE_SYSTEM_NAME}")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
@@ -292,11 +346,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
 
     set(CMAKE_CXX_STANDARD 11)
 
-    # CC WARNING FLAGS
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-        -Wno-implicit-function-declaration"
-    )
-
     # todo: fix general visibility of the interface
     # do not set to `fvisibility=hidden` as it is going to
     # prevent the required interface is being exported
@@ -305,9 +354,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -Wno-ignored-attributes\
-        -Wno-deprecated-declarations\
         -Wno-parentheses-equality\
-        -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\
         -Wno-unused-value\
@@ -328,7 +375,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-null-conversion\
         -Wno-return-type\
         -Wno-switch\
-        -Wno-implicit-function-declaration\
         -Wno-int-to-pointer-cast\
         -Wno-tautological-constant-compare\
         -Wno-enum-compare-switch\
@@ -402,18 +448,11 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
         -D_DEBUG=1 # for PAL
         -DDBG_DUMP=1
     )
-elseif(CMAKE_BUILD_TYPE STREQUAL Test)
+elseif(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
     add_definitions(
         -DENABLE_DEBUG_CONFIG_OPTIONS=1
     )
-    add_compile_options(-g)
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
-
-if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
-    add_compile_options(-O3)
-else()
-    add_compile_options(-O0)
-endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
     add_definitions(
@@ -532,3 +571,5 @@ endif()
 add_subdirectory (lib)
 
 add_subdirectory (bin)
+
+add_subdirectory(test)

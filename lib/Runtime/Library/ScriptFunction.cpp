@@ -26,13 +26,13 @@ using namespace Js;
         return false;
     }
 
-    ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
-        : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
+    ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* type)
+        : ScriptFunctionBase(type, proxy->GetFunctionInfo()),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
         hasInlineCaches(false)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
-        Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
+        Assert(proxy->GetDeferredPrototypeType() == type || proxy->GetUndeferredFunctionType() == type);
         DebugOnly(VerifyEntryPoint());
 
 #if ENABLE_NATIVE_CODEGEN
@@ -97,9 +97,8 @@ using namespace Js;
         pfuncScript->SetEnvironment(environment);
 
         ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
-        if (scFuncType)
+        if (scFuncType && pfuncScript->GetType() == functionProxy->GetDeferredPrototypeType())
         {
-            Assert(pfuncScript->GetType() == functionProxy->GetDeferredPrototypeType());
             pfuncScript->GetTypeHandler()->EnsureObjectReady(pfuncScript);
         }
 
@@ -121,7 +120,9 @@ using namespace Js;
         // After setting homeobject we need to set the name if the object is ready.
         if ((*infoRef)->GetFunctionProxy()->GetUndeferredFunctionType())
         {
-            if (!scriptFunc->IsAnonymousFunction() && !scriptFunc->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction())
+            if (!scriptFunc->IsAnonymousFunction() && 
+                !scriptFunc->GetFunctionInfo()->IsClassConstructor() && 
+                !scriptFunc->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction())
             {
                 JavascriptString * functionName = scriptFunc->GetDisplayNameImpl();
                 scriptFunc->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
@@ -130,6 +131,39 @@ using namespace Js;
 
         return scriptFunc;
         JIT_HELPER_END(ScrFunc_OP_NewScFuncHomeObj);
+    }
+
+    ScriptFunction * ScriptFunction::OP_NewClassConstructor(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj, RecyclableObject *constructorParent)
+    {
+        JIT_HELPER_NOT_REENTRANT_HEADER(ScrFunc_OP_NewClassConstructor, reentrancylock, (*infoRef)->GetFunctionProxy()->GetScriptContext()->GetThreadContext());
+        FunctionProxy * proxy = (*infoRef)->GetFunctionProxy();
+        if (proxy->GetUndeferredFunctionType() == nullptr)
+        {
+            DynamicTypeHandler * typeHandler = proxy->GetIsAnonymousFunction() 
+                ? proxy->GetScriptContext()->GetLibrary()->AnonymousClassConstructorTypeHandler()
+                : proxy->GetScriptContext()->GetLibrary()->ClassConstructorTypeHandler();
+            ScriptFunctionType * newType = ScriptFunctionType::New(proxy, typeHandler, constructorParent, true);
+            proxy->SetUndeferredFunctionType(newType);
+        }
+        ScriptFunction * scriptFunction = OP_NewScFuncHomeObj(environment, infoRef, homeObj);
+        if (scriptFunction->GetPrototype() != constructorParent)
+        {
+            scriptFunction->SetPrototype(constructorParent);
+        }
+
+        Var length = TaggedInt::ToVarUnchecked((*infoRef)->GetFunctionProxy()->EnsureDeserialized()->GetReportedInParamsCount() - 1);
+        scriptFunction->SetSlot(SetSlotArguments(Constants::NoProperty, 1, length));
+
+        if (!scriptFunction->IsAnonymousFunction() && !scriptFunction->GetFunctionInfo()->HasComputedName())
+        {
+            JavascriptString * functionName = nullptr;
+            bool result = scriptFunction->GetFunctionName(&functionName);
+            Assert(result);
+            scriptFunction->SetSlot(SetSlotArguments(Constants::NoProperty, 2, functionName));
+        }
+
+        return scriptFunction;
+        JIT_HELPER_END(ScrFunc_OP_NewClassConstructor);
     }
 
     void ScriptFunction::SetEnvironment(FrameDisplay * environment)
@@ -872,6 +906,64 @@ using namespace Js;
             this->isInstInlineCacheCount = 0;
         }
         SetHasInlineCaches(false);
+    }
+
+    template <> 
+    void FunctionWithComputedName<ScriptFunction>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<AsmJsScriptFunction>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<ScriptFunctionWithInlineCache>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<GeneratorVirtualScriptFunction>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<FunctionWithHomeObj<GeneratorVirtualScriptFunction>>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <>
+    void FunctionWithComputedName<FunctionWithHomeObj<ScriptFunction>>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar; 
+        if (GetFunctionInfo()->IsClassConstructor())
+        {
+            // For class with computed name, we wait until now to set the name property.
+            JavascriptString * functionName = nullptr;
+            bool result = GetFunctionName(&functionName);
+            Assert(result);
+            SetSlot(SetSlotArguments(Constants::NoProperty, 2, functionName));
+        }
+    }
+
+    template <>
+    void FunctionWithComputedName<FunctionWithHomeObj<ScriptFunctionWithInlineCache>>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar; 
+        if (GetFunctionInfo()->IsClassConstructor())
+        {
+            // For class with computed name, we wait until now to set the name property.
+            JavascriptString * functionName = nullptr;
+            bool result = GetFunctionName(&functionName);
+            Assert(result);
+            SetSlot(SetSlotArguments(Constants::NoProperty, 2, functionName));
+        }
     }
 
     template <> VTableValue Js::FunctionWithComputedName<Js::AsmJsScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const

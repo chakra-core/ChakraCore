@@ -4,6 +4,7 @@
 ::-------------------------------------------------------------------------------------------------------
 
 :: Regenerate all bytecode.
+:: Note, this script is windows only, on linux or macOS please use tools/xplatRegenByteCode.py
 :: ch.exe is used to generate Intl bytecodes.
 :: ch.exe (NoJIT variety) is used to generate NoJIT Intl bytecodes.
 :: Each set of bytecode requires an x86_debug and x64_debug binary.

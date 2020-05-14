@@ -2791,6 +2791,7 @@ namespace Js
         if (srcName == Js::Constants::GlobalFunction ||
             srcName == Js::Constants::AnonymousFunction ||
             srcName == Js::Constants::GlobalCode ||
+            srcName == Js::Constants::ModuleCode ||
             srcName == Js::Constants::Anonymous ||
             srcName == Js::Constants::UnknownScriptCode ||
             srcName == Js::Constants::FunctionCode)
@@ -4409,7 +4410,13 @@ namespace Js
     void FunctionBody::RecordIntConstant(RegSlot location, unsigned int val)
     {
         ScriptContext *scriptContext = this->GetScriptContext();
+#ifdef ENABLE_TEST_HOOKS
+        Var intConst = scriptContext->GetConfig()->Force32BitByteCode() ?
+            JavascriptNumber::ToVarFor32BitBytecode((int32)val, scriptContext) :
+            JavascriptNumber::ToVar((int32)val, scriptContext);
+#else
         Var intConst = JavascriptNumber::ToVar((int32)val, scriptContext);
+#endif
         this->RecordConstant(location, intConst);
     }
 

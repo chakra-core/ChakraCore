@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
-// This file was generated with tools\update_bytecode_version.ps1
+// This file was generated with tools/xplatRegenByteCode.py
 
-// {8DD0E3D3-6A6D-4D1F-8EED-D87D6217AB24}
+// {51f0edaa-63a2-4d76-bcac-160b8dd6c2ad}
 const GUID byteCodeCacheReleaseFileVersion =
-{ 0x8DD0E3D3, 0x6A6D, 0x4D1F, { 0x8E, 0xED, 0xD8, 0x7D, 0x62, 0x17, 0xAB, 0x24 } };
+{ 0x51f0edaa, 0x63a2, 0x4d76, {0xbc, 0xac, 0x16, 0x0b, 0x8d, 0xd6, 0xc2, 0xad } };
