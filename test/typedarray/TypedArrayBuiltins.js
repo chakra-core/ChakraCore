@@ -161,6 +161,38 @@ var tests = [
         }
     },
     {
+        name: "TypedArray constructors and .from cache next method when creating array from iterable object",
+        body: function () {
+            let objIterable = {
+                [Symbol.iterator]() {
+                    let i = 0;
+                    return {
+                        next() {
+                            this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                            return { done: i == 3, value: i++ };
+                        }
+                    };
+                }
+            };
+
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](objIterable);
+                assert.areEqual(3, ta.length, "new " + taCtor + "(<iterable object with three elements>) yields an array with length three");
+                assert.areEqual(0, ta[0], "[" + taCtor + "]: first element is zero");
+                assert.areEqual(1, ta[1], "[" + taCtor + "]: second element is one");
+                assert.areEqual(2, ta[2], "[" + taCtor + "]: third element is two");
+            }
+
+            for (let taCtor of TypedArrayCtors) {
+                let ta = this[taCtor].from(objIterable);
+                assert.areEqual(3, ta.length, "new " + taCtor + "(<iterable object with three elements>) yields an array with length three");
+                assert.areEqual(0, ta[0], "[" + taCtor + "]: first element is zero");
+                assert.areEqual(1, ta[1], "[" + taCtor + "]: second element is one");
+                assert.areEqual(2, ta[2], "[" + taCtor + "]: third element is two");
+            }
+        }
+    },
+    {
         name: "TypedArray constructed out of an iterable object",
         body: function () {
             function getIterableObj (array)

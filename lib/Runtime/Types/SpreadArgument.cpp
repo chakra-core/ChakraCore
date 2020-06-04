@@ -70,7 +70,11 @@ namespace Js
         else if (VarIs<RecyclableObject>(iterator))
         {
             Var nextItem;
-            while (JavascriptOperators::IteratorStepAndValue(VarTo<RecyclableObject>(iterator), scriptContext, &nextItem))
+            RecyclableObject* obj = UnsafeVarTo<RecyclableObject>(iterator);
+
+            RecyclableObject* nextFunc = JavascriptOperators::CacheIteratorNext(obj, scriptContext);
+
+            while (JavascriptOperators::IteratorStepAndValue(obj, scriptContext, nextFunc, &nextItem))
             {
                 if (iteratorIndices == nullptr)
                 {

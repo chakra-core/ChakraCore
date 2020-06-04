@@ -96,6 +96,29 @@ var tests = [
     },
 
     {
+        name : "WeakSet constructor caches next method from iterator",
+        body: function () {
+            const keys = [ { }, { }, { } ];
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : keys[iterCount],
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            const ws = new WeakSet(iter);
+
+            assert.isTrue(ws.has(keys[0]), "ws has key keys[0]");
+            assert.isTrue(ws.has(keys[1]), "ws has key keys[1]");
+            assert.isTrue(ws.has(keys[2]), "ws has key keys[2]");
+        }
+    },
+
+    {
         name: "WeakSet constructor throws exceptions for non- and malformed iterable arguments",
         body: function () {
             var iterableNoIteratorMethod = { [Symbol.iterator]: 123 };

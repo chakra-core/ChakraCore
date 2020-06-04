@@ -11119,13 +11119,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
     }
 
-    // IteratorNext as described in ES6.0 (draft 22) Section 7.4.2
-    RecyclableObject* JavascriptOperators::IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value)
+    RecyclableObject* JavascriptOperators::CacheIteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext)
     {
-        Var func = JavascriptOperators::GetPropertyNoCache(iterator, PropertyIds::next, scriptContext);
+        Var nextFunc = JavascriptOperators::GetPropertyNoCache(iterator, PropertyIds::next, scriptContext);
 
         ThreadContext *threadContext = scriptContext->GetThreadContext();
-        if (!JavascriptConversion::IsCallable(func))
+        if (!JavascriptConversion::IsCallable(nextFunc))
         {
             if (!threadContext->RecordImplicitException())
             {
@@ -11133,13 +11132,19 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
+        return VarTo<RecyclableObject>(nextFunc);
+    }
 
-        RecyclableObject* callable = VarTo<RecyclableObject>(func);
-        Var result = threadContext->ExecuteImplicitCall(callable, ImplicitCall_Accessor, [=]() -> Var
+    // IteratorNext as described in ES6.0 (draft 22) Section 7.4.2
+    RecyclableObject* JavascriptOperators::IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, Var value)
+    {
+        ThreadContext *threadContext = scriptContext->GetThreadContext();
+
+        Var result = threadContext->ExecuteImplicitCall(nextFunc, ImplicitCall_Accessor, [=]() -> Var
             {
                 Js::Var args[] = { iterator, value };
                 Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args) + (value == nullptr ? -1 : 0));
-                return JavascriptFunction::CallFunction<true>(callable, callable->GetEntryPoint(), Arguments(callInfo, args));
+                return JavascriptFunction::CallFunction<true>(nextFunc, nextFunc->GetEntryPoint(), Arguments(callInfo, args));
             });
 
         if (!JavascriptOperators::IsObject(result))
@@ -11169,18 +11174,18 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     }
 
     // IteratorStep as described in ES6.0 (draft 22) Section 7.4.5
-    bool JavascriptOperators::IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject** result)
+    bool JavascriptOperators::IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, RecyclableObject** result)
     {
         Assert(result);
 
-        *result = JavascriptOperators::IteratorNext(iterator, scriptContext);
+        *result = JavascriptOperators::IteratorNext(iterator, scriptContext, nextFunc);
         return !JavascriptOperators::IteratorComplete(*result, scriptContext);
     }
 
-    bool JavascriptOperators::IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue)
+    bool JavascriptOperators::IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, Var* resultValue)
     {
         // CONSIDER: Fast-pathing for iterators that are built-ins?
-        RecyclableObject* result = JavascriptOperators::IteratorNext(iterator, scriptContext);
+        RecyclableObject* result = JavascriptOperators::IteratorNext(iterator, scriptContext, nextFunc);
 
         if (!JavascriptOperators::IteratorComplete(result, scriptContext))
         {

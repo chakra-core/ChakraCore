@@ -490,7 +490,8 @@ namespace Js
         static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional = false);
         static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext, bool optional = false);
-        static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value = nullptr);
+        static RecyclableObject* CacheIteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext);
+        static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, Var value = nullptr);
         static void IteratorClose(RecyclableObject* iterator, ScriptContext* scriptContext);
 
         template <typename THandler>
@@ -498,8 +499,8 @@ namespace Js
 
         static bool IteratorComplete(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static Var IteratorValue(RecyclableObject* iterResult, ScriptContext* scriptContext);
-        static bool IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject** result);
-        static bool IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue);
+        static bool IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, RecyclableObject** result);
+        static bool IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, Var* resultValue);
 
         static void TraceUseConstructorCache(const ConstructorCache* ctorCache, const JavascriptFunction* ctor, bool isHit);
         static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const char16* reason);
