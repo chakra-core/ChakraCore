@@ -14,6 +14,7 @@ CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
 #include "StringCache.h"
 #include "Library/JavascriptGenerator.h"
+#include "Library/JavascriptAsyncGenerator.h"
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
@@ -273,6 +274,8 @@ namespace Js
         Field(DynamicType *) symbolTypeDynamic;
         Field(StaticType *) symbolTypeStatic;
         Field(DynamicType *) iteratorResultType;
+        Field(DynamicType *) awaitObjectType;
+        Field(DynamicType *) resumeYieldObjectType;
         Field(DynamicType *) arrayIteratorType;
         Field(DynamicType *) mapIteratorType;
         Field(DynamicType *) setIteratorType;
@@ -753,6 +756,8 @@ namespace Js
         DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
         DynamicType * GetGeneratorConstructorPrototypeObjectType() const { return generatorConstructorPrototypeObjectType; }
         DynamicType * GetAsyncGeneratorConstructorPrototypeObjectType() const { return asyncGeneratorConstructorPrototypeObjectType; }
+        DynamicType * GetResumeYieldObjectType() const { return resumeYieldObjectType; }
+        DynamicType * GetAwaitObjectType() const { return awaitObjectType; }
 
 #ifdef ENABLE_WASM
         JavascriptFunction* GetWebAssemblyQueryResponseFunction() const { return webAssemblyQueryResponseFunction; }
@@ -944,6 +949,7 @@ namespace Js
         JavascriptSymbol* CreateSymbol(const PropertyRecord* propertyRecord);
         JavascriptPromise* CreatePromise();
         JavascriptGenerator* CreateGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype);
+        JavascriptAsyncGenerator* CreateAsyncGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype);
         JavascriptAsyncFromSyncIterator* CreateAsyncFromSyncIterator(RecyclableObject* syncIterator);
         JavascriptFunction* CreateNonProfiledFunction(FunctionInfo * functionInfo);
         template <class MethodType>
@@ -1016,8 +1022,9 @@ namespace Js
         ScriptFunctionWithInlineCache * CreateScriptFunctionWithInlineCache(FunctionProxy* proxy);
         GeneratorVirtualScriptFunction * CreateGeneratorVirtualScriptFunction(FunctionProxy* proxy);
 
-        DynamicType * CreateGeneratorType(RecyclableObject* prototype);
-        DynamicType * CreateAsyncFromSyncIteratorType();
+        DynamicType* CreateGeneratorType(RecyclableObject* prototype);
+        DynamicType* CreateAsyncGeneratorType(RecyclableObject* prototype);
+        DynamicType* CreateAsyncFromSyncIteratorType();
 
 #if 0
         JavascriptNumber* CreateNumber(double value);
@@ -1026,16 +1033,13 @@ namespace Js
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptAsyncGeneratorFunction* CreateAsyncGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
-        AsyncGeneratorNextProcessor* CreateAsyncGeneratorResumeNextReturnProcessorFunction(JavascriptGenerator* generator, bool isReject);
-        AsyncGeneratorNextProcessor* CreateAsyncGeneratorAwaitFunction(JavascriptGenerator* generator, bool isReject);
-        AsyncGeneratorNextProcessor* CreateAsyncGeneratorAwaitYieldFunction(JavascriptGenerator* generator, bool isYieldStar);
+        AsyncGeneratorCallbackFunction* CreateAsyncGeneratorCallbackFunction(JavascriptMethod entryPoint, JavascriptAsyncGenerator* generator);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
+        JavascriptAsyncSpawnStepFunction* CreateAsyncSpawnStepFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, PropertyId nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, Var nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateStdCallExternalFunction(StdCallJavascriptMethod entryPointer, Var name, void *callbackState);
-        JavascriptPromiseAsyncSpawnExecutorFunction* CreatePromiseAsyncSpawnExecutorFunction(JavascriptGenerator* generator, Var target);
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* CreatePromiseAsyncSpawnStepArgumentExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
         JavascriptPromiseCapabilitiesExecutorFunction* CreatePromiseCapabilitiesExecutorFunction(JavascriptMethod entryPoint, JavascriptPromiseCapability* capability);
         JavascriptPromiseResolveOrRejectFunction* CreatePromiseResolveOrRejectFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord);
         JavascriptPromiseReactionTaskFunction* CreatePromiseReactionTaskFunction(JavascriptMethod entryPoint, JavascriptPromiseReaction* reaction, Var argument);
@@ -1091,8 +1095,8 @@ namespace Js
         JavascriptRegExp* CreateRegExp(UnifiedRegex::RegexPattern* pattern);
 
         DynamicObject* CreateIteratorResultObject(Var value, Var done);
-        DynamicObject* CreateIteratorResultObjectValueFalse(Var value);
-        DynamicObject* CreateIteratorResultObjectUndefinedTrue();
+        DynamicObject* CreateIteratorResultObject(Var value, bool done = false);
+        DynamicObject* CreateIteratorResultObjectDone();
 
         RecyclableObject* CreateThrowErrorObject(JavascriptError* error);
 

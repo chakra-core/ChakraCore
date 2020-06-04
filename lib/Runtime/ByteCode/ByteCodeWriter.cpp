@@ -315,7 +315,7 @@ namespace Js
 
     void ByteCodeWriter::CheckLabel(ByteCodeLabel labelID)
     {
-        AssertMsg(labelID < m_labelOffsets->Count(),
+        AssertMsg(labelID >= 0 && labelID < m_labelOffsets->Count(),
             "Label must be previously defined before being marked in the byte-code");
     }
 

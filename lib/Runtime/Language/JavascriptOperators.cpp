@@ -12,6 +12,7 @@
 #include "Library/JavascriptRegularExpression.h"
 #include "Library/ThrowErrorObject.h"
 #include "Library/JavascriptGeneratorFunction.h"
+#include "Library/JavascriptAsyncFunction.h"
 
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
@@ -5578,6 +5579,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             case TypeIds_SetIterator:
             case TypeIds_StringIterator:
             case TypeIds_Generator:
+            case TypeIds_AsyncGenerator:
             case TypeIds_AsyncFromSyncIterator:
             case TypeIds_Promise:
             case TypeIds_Proxy:
@@ -10291,177 +10293,15 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(ImportCall);
     }
 
-    void JavascriptOperators::OP_Await(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
+    Var JavascriptOperators::OP_NewAwaitObject(Var value, ScriptContext* scriptContext)
     {
-        //#await
-        // 1. Let asyncContext be the running execution context.
-        // 2. Let promise be be ? PromiseResolve(%Promise%, << completion.[[Value]] >>).
-        JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
-        // 3. Let stepsFulfilled be the algorithm steps defined in Await Fulfilled Functions.
-        // 4. Let onFulfilled be CreateBuiltinFunction(stepsFulfilled, << [[AsyncContext]] >>).
-        // 5. Set onFulfilled.[[AsyncContext]] to asyncContext.
-        // 6. Let stepsRejected be the algorithm steps defined in Await Rejected Functions.
-        // 7. Let onRejected be CreateBuiltinFunction(stepsRejected, << [[AsyncContext]] >>).
-        // 8. Set onRejected.[[AsyncContext]] to asyncContext.
-        // 9. Perform ! PerformPromiseThen(promise, onFulfilled, onRejected).
-        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
-        JavascriptPromise::PerformPromiseThen(promise, unused, generator->GetAwaitNextFunction(), generator->GetAwaitThrowFunction(), scriptContext);
-        // 10. Remove asyncContext from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.
-        // 11. Set the code evaluation state of asyncContext such that when evaluation is resumed with a Completion completion, the following steps of the algorithm that invoked Await will be performed, with completion available.   
-    }
-
-
-    void JavascriptOperators::OP_AsyncYieldStar(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
-    {
-        JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
-
-        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
-        JavascriptPromise::PerformPromiseThen(promise, unused, generator->EnsureAwaitYieldStarFunction(), generator->GetAwaitThrowFunction(), scriptContext);
-    }
-
-    void JavascriptOperators::OP_AsyncYield(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
-    {
-        JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
-
-        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
-        JavascriptPromise::PerformPromiseThen(promise, unused, generator->GetAwaitYieldFunction(), generator->GetAwaitThrowFunction(), scriptContext);
-    }
-
-    Var JavascriptOperators::OP_AsyncYieldIsReturn(ResumeYieldData* yieldData)
-    {
-        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(AsyncYieldIsReturn);
-        JavascriptLibrary* library = yieldData->generator->GetScriptContext()->GetLibrary();
-
-        return (yieldData->exceptionObj != nullptr && yieldData->exceptionObj->IsGeneratorReturnException()) ?
-            library->GetTrue() : library->GetFalse();
-        JIT_HELPER_END(AsyncYieldIsReturn);
-    }
-
-    Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
-    {
-        JIT_HELPER_REENTRANT_HEADER(ResumeYield);
-        bool isNext = yieldData->exceptionObj == nullptr;
-        bool isThrow = !isNext && !yieldData->exceptionObj->IsGeneratorReturnException();
-
-        if (iterator != nullptr) // yield*
-        {
-            ScriptContext* scriptContext = iterator->GetScriptContext();
-            PropertyId propertyId = isNext ? PropertyIds::next : isThrow ? PropertyIds::throw_ : PropertyIds::return_;
-            Var prop = JavascriptOperators::GetProperty(iterator, propertyId, scriptContext);
-
-            if (!isNext && JavascriptOperators::IsUndefinedOrNull(prop))
-            {
-                if (isThrow)
-                {
-                    // 5.b.iii.2
-                    // NOTE: If iterator does not have a throw method, this throw is going to terminate the yield* loop.
-                    // But first we need to give iterator a chance to clean up.
-
-                    prop = JavascriptOperators::GetProperty(iterator, PropertyIds::return_, scriptContext);
-                    if (!JavascriptOperators::IsUndefinedOrNull(prop))
-                    {
-                        if (!JavascriptConversion::IsCallable(prop))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("return"));
-                        }
-
-                        Var result = nullptr;
-                        RecyclableObject* method = VarTo<RecyclableObject>(prop);
-                        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
-                        {
-                            Var args[] = { iterator, yieldData->data };
-                            CallInfo callInfo(CallFlags_Value, _countof(args));
-                            result = JavascriptFunction::CallFunction<true>(method, method->GetEntryPoint(), Arguments(callInfo, args));
-                        }
-                        END_SAFE_REENTRANT_CALL
-
-                        if (!JavascriptOperators::IsObject(result))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
-                        }
-                    }
-
-                    // 5.b.iii.3
-                    // NOTE: The next step throws a TypeError to indicate that there was a yield* protocol violation:
-                    // iterator does not have a throw method.
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("throw"));
-                }
-
-                // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-                JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, scriptContext);
-            }
-
-            if (!JavascriptConversion::IsCallable(prop))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, isNext ? _u("next") : isThrow ? _u("throw") : _u("return"));
-            }
-
-            RecyclableObject* method = VarTo<RecyclableObject>(prop);
-            Var result = scriptContext->GetThreadContext()->ExecuteImplicitCall(method, Js::ImplicitCall_Accessor, [=]()->Js::Var
-            {
-                Var args[] = { iterator, yieldData->data };
-                CallInfo callInfo(CallFlags_Value, _countof(args));
-                return JavascriptFunction::CallFunction<true>(method, method->GetEntryPoint(), Arguments(callInfo, args));
-            });
-
-            if (yieldData->generator == nullptr && !JavascriptOperators::IsObject(result))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
-            }
-
-            if (isThrow || isNext || yieldData->generator != nullptr)
-            {
-                // 5.b.ii.2
-                // NOTE: Exceptions from the inner iterator throw method are propagated.
-                // Normal completions from an inner throw method are processed similarly to an inner next.
-                return result;
-            }
-
-            RecyclableObject* obj = VarTo<RecyclableObject>(result);
-            Var done = JavascriptOperators::GetProperty(obj, PropertyIds::done, scriptContext);
-            if (done == iterator->GetLibrary()->GetTrue())
-            {
-                Var value = JavascriptOperators::GetProperty(obj, PropertyIds::value, scriptContext);
-                yieldData->exceptionObj->SetThrownObject(value);
-                // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-                JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, scriptContext);
-            }
-            return result;
-        }
-
-        // CONSIDER: Fast path this early out return path in JITed code before helper call to avoid the helper call overhead in the common case e.g. next() calls.
-        if (isNext)
-        {
-            return yieldData->data;
-        }
-
-        if (isThrow)
-        {
-            // Use ThrowExceptionObject() to get debugger support for breaking on throw
-            JavascriptExceptionOperators::ThrowExceptionObject(yieldData->exceptionObj, yieldData->exceptionObj->GetScriptContext(), true);
-        }
-
-        // CONSIDER: Using an exception to carry the return value and force finally code to execute is a bit of a janky
-        // solution since we have to override the value here in the case of yield* expressions.  It works but is there
-        // a more elegant way?
-        //
-        // Instead what if ResumeYield was a "set Dst then optionally branch" opcode, that could also throw? Then we could
-        // avoid using a special exception entirely with byte code something like this:
-        //
-        // ;; Ry is the yieldData
-        //
-        // ResumeYield Rx Ry $returnPathLabel
-        // ... code like normal
-        // $returnPathLabel:
-        // Ld_A R0 Rx
-        // Br $exitFinallyAndReturn
-        //
-        // This would probably give better performance for the common case of calling next() on generators since we wouldn't
-        // have to wrap the call to the generator code in a try catch.
-
-        // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
-        JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, yieldData->exceptionObj->GetScriptContext());
-        JIT_HELPER_END(ResumeYield);
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(NewAwaitObject);
+        auto* awaitObject = DynamicObject::New(
+            scriptContext->GetRecycler(),
+            scriptContext->GetLibrary()->GetAwaitObjectType());
+        awaitObject->SetSlot(SetSlotArguments(Js::PropertyIds::value, 0, value));
+        return awaitObject;
+        JIT_HELPER_END(NewAwaitObject);
     }
 
     Var JavascriptOperators::OP_NewAsyncFromSyncIterator(Var syncIterator, ScriptContext* scriptContext)

@@ -8306,9 +8306,10 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         return false;
     }
 
-    // For generator functions, we don't want to move the BailOutOnNoProfile above
-    // certain instructions such as ResumeYield/ResumeYieldStar/CreateInterpreterStackFrameForGenerator
-    // This indicates the insertion point for the BailOutOnNoProfile in such cases.
+    // For generator functions, we don't want to move the BailOutOnNoProfile
+    // above certain instructions such as GeneratorResumeYield or
+    // CreateInterpreterStackFrameForGenerator. This indicates the insertion
+    // point for the BailOutOnNoProfile in such cases.
     IR::Instr *insertionPointForGenerator = nullptr;
 
     // Don't hoist if we see calls with profile data (recursive calls)
@@ -8390,7 +8391,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // Now try to move this up the flowgraph to the predecessor blocks
     FOREACH_PREDECESSOR_BLOCK(pred, block)
     {
-        // Don't hoist BailOnNoProfile up past blocks containing ResumeYield/ResumeYieldStar
+        // Don't hoist BailOnNoProfile up past blocks containing GeneratorResumeYield
         bool hoistBailToPred = (insertionPointForGenerator == nullptr);
 
         if (block->isLoopHeader && pred->loop == block->loop)

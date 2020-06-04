@@ -1376,7 +1376,7 @@ var tests = [
             assert.areEqual({value: 2, done: true}, g.return(2), "As the return property is missing the yield* just returns as is");
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.throw(new ExpectedException()); }, TypeError, "As the throw property is missing a TypeError is thrown", "The value of the property 'throw' is not a Function object");
+            assert.throws(function () { g.throw(new ExpectedException()); }, TypeError, "As the throw property is missing a TypeError is thrown", "Yielded iterator does not have a 'throw' method");
 
             var iteratorWithNullAsReturn = CreateIterable(simpleNextFunc, null);
             gf = function* () { yield* iteratorWithNullAsReturn; };
@@ -1389,17 +1389,17 @@ var tests = [
             gf = function* () { yield* iteratorWithNullAsThrow; };
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(() => g.throw(), TypeError, "As the throw property is null a TypeError is thrown", "The value of the property 'throw' is not a Function object");
+            assert.throws(() => g.throw(), TypeError, "As the throw property is null a TypeError is thrown", "Yielded iterator does not have a 'throw' method");
             assert.isTrue(returnCalled, "As the throw property is null, .return() is called");
 
             var iteratorWithBadReturnAndThrow = CreateIterable(simpleNextFunc, {}, {});
             gf = function* () { yield* iteratorWithBadReturnAndThrow; }
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.return(100); }, TypeError, "Trying to invoke the return method which is an object not method causes a TypeError", "The value of the property 'return' is not a Function object");
+            assert.throws(function () { g.return(100); }, TypeError, "Trying to invoke the return method which is an object not method causes a TypeError", "Function expected");
             g = gf();
             assert.areEqual({value: 1, done: false}, g.next(), "Get the first yield value from the inner iterator");
-            assert.throws(function () { g.throw(100); }, TypeError, "Trying to invoke the throw method which is an object not method causes a TypeError", "The value of the property 'throw' is not a Function object");
+            assert.throws(function () { g.throw(100); }, TypeError, "Trying to invoke the throw method which is an object not method causes a TypeError", "Function expected");
 
             var iteratorReturningNonObj = CreateIterable(simpleNextFunc, () => { return this.i; }, () => { return this.i; });
             gf = function* () { yield* iteratorReturningNonObj; }
@@ -1711,7 +1711,7 @@ var tests = [
             g1.return = function() { closed = true; return {done: true}; }
             g2 = gf2();
             g2.next();
-            assert.throws(function() { g2['throw'](new ExpectedException()) }, TypeError, "As the throw property is missing a TypeError is thrown", "The value of the property 'throw' is not a Function object");
+            assert.throws(function() { g2['throw'](new ExpectedException()) }, TypeError, "As the throw property is missing a TypeError is thrown", "Yielded iterator does not have a 'throw' method");
             assert.isTrue(closed, "When throw method is not defined on the iterator IteratorClose is called");
 
             g1 = gf1();
