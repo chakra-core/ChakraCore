@@ -3,7 +3,11 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function write(v) { WScript.Echo(v + ""); }
+function check(value, expected) {
+    if (value !== expected) {
+        throw new Error("Test failed");
+    }
+}
 
 function f1() 
 {
@@ -11,22 +15,22 @@ function f1()
 }
 
 f1.apply();
-write("x1 : " + x1);
+check(x1, "hello");
 
 x1 = 0;
 f1.apply(null);
-write("x1 : " + x1);
+check(x1, "hello");
 
 x1 = 0;
 f1.apply(undefined);
-write("x1 : " + x1);
+check(x1, "hello");
 
 var o = new Object();
 
 x1 = 0;
 f1.apply(o);
-write("x1 : " + x1);
-write("o.x1 : " + o.x1);
+check(x1, 0);
+check(o.x1, "hello");
 
 function f2(a)
 {
@@ -35,39 +39,38 @@ function f2(a)
 
 x2 = 0;
 f2.apply();
-write("x2 : " + x2);
+check(x2, undefined);
 
 x2 = 0;
 f2.apply(null);
-write("x2 : " + x2);
+check(x2, undefined);
 
 x2 = 0;
 f2.apply(undefined);
-write("x2 : " + x2);
+check(x2, undefined);
 
 x2 = 0;
 f2.apply(o);
-write("x2 : " + x2);
-write("o.x2 : " + o.x2);
+check(x2, 0);
+check(o.x2, undefined);
 
 x2 = 0;
 f2.apply(null, ["world"]);
-write("x2 : " + x2);
+check(x2, "world");
 
 x2 = 0;
 f2.apply(undefined, ["world"]);
-write("x2 : " + x2);
+check(x2, "world");
 
 x2 = 0;
 f2.apply(o, ["world"]);
-write("x2 : " + x2);
-write("o.x2 : " + o.x2);
+check(x2, 0);
+check(o.x2, "world");
 
 
 function blah()
 {
     this.construct.apply(this, arguments);
-    write("after apply");
     return new Object();
 }
 
@@ -80,8 +83,7 @@ function blah2()
     catch (e)
     {
     }
-    
-    write("after apply");
+
     return new Object();
 }
 
@@ -97,13 +99,13 @@ blah2.prototype.construct = function(x, y)
 }
 
 var o = new blah(1, 2);
-write(o.a);
-write(o.b);
+check(o.a, undefined);
+check(o.b, undefined);
 
 o = new blah2(1, 2);
 
-write(o.a);
-write(o.b);
+check(o.a, undefined);
+check(o.b, undefined);
 
 function f() {}
 
@@ -111,3 +113,5 @@ f.apply({},{});
 f.apply({},{length:null});
 f.apply({},{length:undefined});
 f.apply({},{length:0.5});
+
+print("pass");

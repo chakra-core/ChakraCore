@@ -68,5 +68,4 @@ verify(arr8.length, 3, id++,"\"Testing negative array length property \"")
 
 }
 
-WScript.Echo("Done");
-
+print("pass");

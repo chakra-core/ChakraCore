@@ -577,6 +577,12 @@ bool MustProduceValue(ParseNode *pnode, const Js::ScriptContext *const scriptCon
 {
     // Determine whether the current statement is guaranteed to produce a value.
 
+    if (pnode->IsPatternDeclaration())
+    {
+        // The pattern declaration are as var declaration they don't produce a value.
+        return false;
+    }
+
     if (IsExpressionStatement(pnode, scriptContext))
     {
         // These are trivially true.

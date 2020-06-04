@@ -9,7 +9,6 @@
   <test>
     <default>
       <files>apply.js</files>
-      <baseline>apply.baseline</baseline>
     </default>
   </test>
   <test>
@@ -21,7 +20,6 @@
   <test>
     <default>
       <files>applyArgs.js</files>
-      <baseline>applyArgs.baseline</baseline>
     </default>
   </test>
   <test>
@@ -56,7 +54,7 @@
   <test>
     <default>
       <files>arguments.es5.js</files>
-      <baseline>arguments.es5.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

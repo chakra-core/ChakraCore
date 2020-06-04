@@ -23,14 +23,10 @@
         %(AdditionalIncludeDirectories);
         $(MSBuildThisFileDirectory);
         $(ChakraCoreRootDirectory)Lib\Common;
+        $(ChakraCoreRootDirectory)Lib\Runtime;
         $(ChakraCoreRootDirectory)Bin\ChakraCore;
         $(IntDir);
         %(AdditionalIncludeDirectories);
-      </AdditionalIncludeDirectories>
-      <!-- For ChakraICU.h -->
-      <AdditionalIncludeDirectories Condition="'$(ChakraICU)'!='false'">
-        $(ChakraCoreRootDirectory)lib\Runtime;
-        %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
