@@ -52,11 +52,11 @@ namespace Js
 
         void SetSpecifier(Var specifier) { this->normalizedSpecifier = specifier; }
         Var GetSpecifier() const { return normalizedSpecifier; }
-        const char16 *GetSpecifierSz() const { return VarTo<JavascriptString>(this->normalizedSpecifier)->GetSz(); }
-
-        void SetModuleUrl(Var moduleUrl) { this->moduleUrl = moduleUrl; }
-        Var GetModuleUrl() const { return moduleUrl;}
-        const char16 *GetModuleUrlSz() const { return VarTo<JavascriptString>(this->moduleUrl)->GetSz(); }
+        const char16 *GetSpecifierSz() const
+        {
+            return this->normalizedSpecifier != nullptr ? 
+                VarTo<JavascriptString>(this->normalizedSpecifier)->GetSz() : _u("module"); 
+        }
 
         Var GetErrorObject() const { return errorObject; }
 
@@ -152,7 +152,6 @@ namespace Js
 
         Field(Js::JavascriptFunction*) rootFunction;
         Field(void*) hostDefined;
-        Field(Var) moduleUrl;
         Field(Var) normalizedSpecifier;
         Field(Var) errorObject;
         Field(Field(Var)*) localExportSlots;

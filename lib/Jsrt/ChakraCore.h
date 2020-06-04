@@ -319,17 +319,16 @@ JsCreateEnhancedFunction(
 /// <remarks>
 ///     Bootstrap the module loading process by creating a new module record.
 /// </remarks>
-/// <param name="referencingModule">The parent module of the new module - nullptr for a root module.</param>
-/// <param name="normalizedSpecifier">The normalized specifier for the module.</param>
-/// <param name="moduleRecord">The new module record. The host should not try to call this API twice
-///                            with the same normalizedSpecifier.</param>
+/// <param name="referencingModule">Unused parameter - exists for backwards compatability, supply nullptr</param>
+/// <param name="normalizedSpecifier">The normalized specifier or url for the module - used in script errors, optional.</param>
+/// <param name="moduleRecord">The new module record.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
 JsInitializeModuleRecord(
     _In_opt_ JsModuleRecord referencingModule,
-    _In_ JsValueRef normalizedSpecifier,
+    _In_opt_ JsValueRef normalizedSpecifier,
     _Outptr_result_maybenull_ JsModuleRecord* moduleRecord);
 
 /// <summary>
