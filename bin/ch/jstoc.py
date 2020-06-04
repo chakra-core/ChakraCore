@@ -23,7 +23,7 @@ def convert():
     if os.path.isfile(js_file_name) == False:
         print_usage()
 
-    h_file_name = js_file_name + '.h'
+    h_file_name = os.path.basename(js_file_name) + '.h'
 
     js_file_time = os.path.getmtime(js_file_name)
     h_file_time = 0
