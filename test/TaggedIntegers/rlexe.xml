@@ -8,20 +8,17 @@
   <test>
     <default>
       <files>comparison.js</files>
-      <baseline>comparison.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>addition.js</files>
-      <baseline>addition.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>subtraction.js</files>
-      <baseline>subtraction.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
@@ -33,71 +30,60 @@
   <test>
     <default>
       <files>multiplication.js</files>
-      <baseline>multiplication.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>divide.js</files>
-      <baseline>divide.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>and.js</files>
-      <baseline>and.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>or.js</files>
-      <baseline>or.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>xor.js</files>
-      <baseline>xor.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>not.js</files>
-      <baseline>not.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>negate.js</files>
-      <baseline>negate.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>signedshiftleft.js</files>
-      <baseline>signedshiftleft.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>signedshiftright.js</files>
-      <baseline>signedshiftright.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>unsignedshiftright.js</files>
-      <baseline>unsignedshiftright.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>modulus.js</files>
-      <baseline>modulus.baseline</baseline>
       <tags>Slow</tags>
     </default>
   </test>
@@ -110,13 +96,11 @@
   <test>
     <default>
       <files>not_1.js</files>
-      <baseline>not_1.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>shift_constants.js</files>
-      <baseline>shift_constants.baseline</baseline>
     </default>
   </test>
   <test>
@@ -129,19 +113,16 @@
   <test>
     <default>
       <files>predecrement.js</files>
-      <baseline>predecrement.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>preincrement.js</files>
-      <baseline>preincrement.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>comparison.js</files>
-      <baseline>comparison.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -149,7 +130,6 @@
   <test>
     <default>
       <files>addition.js</files>
-      <baseline>addition.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -157,7 +137,6 @@
   <test>
     <default>
       <files>subtraction.js</files>
-      <baseline>subtraction.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -165,7 +144,6 @@
   <test>
     <default>
       <files>multiplication.js</files>
-      <baseline>multiplication.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -173,7 +151,6 @@
   <test>
     <default>
       <files>divide.js</files>
-      <baseline>divide.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -181,7 +158,6 @@
   <test>
     <default>
       <files>and.js</files>
-      <baseline>and.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -189,7 +165,6 @@
   <test>
     <default>
       <files>or.js</files>
-      <baseline>or.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -197,7 +172,6 @@
   <test>
     <default>
       <files>xor.js</files>
-      <baseline>xor.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -205,7 +179,6 @@
   <test>
     <default>
       <files>not.js</files>
-      <baseline>not.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -213,7 +186,6 @@
   <test>
     <default>
       <files>negate.js</files>
-      <baseline>negate.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -221,7 +193,6 @@
   <test>
     <default>
       <files>signedshiftleft.js</files>
-      <baseline>signedshiftleft.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -229,7 +200,6 @@
   <test>
     <default>
       <files>signedshiftright.js</files>
-      <baseline>signedshiftright.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -237,7 +207,6 @@
   <test>
     <default>
       <files>unsignedshiftright.js</files>
-      <baseline>unsignedshiftright.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -245,7 +214,6 @@
   <test>
     <default>
       <files>modulus.js</files>
-      <baseline>modulus.baseline</baseline>
       <tags>exclude_test,Slow</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -261,7 +229,6 @@
   <test>
     <default>
       <files>arrays.js</files>
-      <baseline>arrays.baseline</baseline>
       <tags>exclude_dynapogo,exclude_serialized,require_backend</tags>
       <compile-flags>-dynamicprofilecache:profile.dpl.arrays.js</compile-flags>
     </default>
@@ -269,7 +236,6 @@
   <test>
     <default>
       <files>arrays.js</files>
-      <baseline>arrays.baseline</baseline>
       <tags>exclude_interpreted,exclude_serialized,require_backend</tags>
       <compile-flags>-dynamicprofileinput:profile.dpl.arrays.js -off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -277,7 +243,6 @@
   <test>
     <default>
       <files>not_1.js</files>
-      <baseline>not_1.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -285,7 +250,6 @@
   <test>
     <default>
       <files>shift_constants.js</files>
-      <baseline>shift_constants.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -301,7 +265,6 @@
   <test>
     <default>
       <files>predecrement.js</files>
-      <baseline>predecrement.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>
@@ -309,7 +272,6 @@
   <test>
     <default>
       <files>preincrement.js</files>
-      <baseline>preincrement.baseline</baseline>
       <tags>exclude_test</tags>
       <compile-flags>-off:constprop -off:copyprop -off:constfold -off:typespec</compile-flags>
     </default>

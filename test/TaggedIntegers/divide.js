@@ -6346,4 +6346,5 @@ test7();
 test8();
 test9();
 test10();
-WScript.Echo("done");
+
+print("pass");
