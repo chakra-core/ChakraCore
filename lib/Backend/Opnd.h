@@ -636,6 +636,7 @@ public:
             // Note that even usesFixedValue cannot live on ObjTypeSpecFldInfo, because we may share a cache between
             // e.g. Object.prototype and new Object(), and only the latter actually uses the fixed value, even though both have it.
             bool usesFixedValue: 1;
+            bool cantChangeType: 1;
 
             union
             {
@@ -1033,6 +1034,16 @@ public:
     {
         Assert(IsTypeCheckSeqCandidate());
         this->typeCheckRequired = value;
+    }
+
+    bool CantChangeType() const
+    {
+        return this->cantChangeType;
+    }
+
+    void SetCantChangeType(bool value)
+    {
+        this->cantChangeType = value;
     }
 
     uint16 GetObjTypeSpecFlags() const
