@@ -1229,7 +1229,7 @@ FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImpo
 FLAGR(Boolean, ESGlobalThis, "Enable globalThis", DEFAULT_CONFIG_ESGlobalThis)
 
 // This flag to be removed once JITing generator functions is stable
-FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", false)
+FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", true)
 
 FLAGNR(Boolean, FastLineColumnCalculation, "Enable fast calculation of line/column numbers from the source.", DEFAULT_CONFIG_FastLineColumnCalculation)
 FLAGR (String,  Filename              , "Jscript source file", nullptr)

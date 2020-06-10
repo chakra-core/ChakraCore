@@ -876,7 +876,6 @@
   <test>
     <default>
       <files>generators-functionality.js</files>
-      <!-- <compile-flags>-ES6Generators -JitES6Generators -ES6Classes -args summary -endargs</compile-flags> -->
       <compile-flags>-ES6Generators -ES6Classes -ES6DefaultArgs -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
     </default>

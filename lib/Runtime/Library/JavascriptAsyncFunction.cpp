@@ -181,7 +181,12 @@ void JavascriptAsyncFunction::AsyncSpawnStep(
     }
     else
     {
+        // TODO support Await objects properly in TTD then can remove second condition here
+#if ENABLE_TTD
+        Assert(JavascriptOperators::GetTypeId(result) == TypeIds_AwaitObject ||  scriptContext->IsTTDReplayModeEnabled());
+#else
         Assert(JavascriptOperators::GetTypeId(result) == TypeIds_AwaitObject);
+#endif
     }
 
 

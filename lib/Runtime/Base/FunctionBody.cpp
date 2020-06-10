@@ -347,7 +347,7 @@ namespace Js
     bool
     FunctionBody::IsGeneratorAndJitIsDisabled() const
     {
-        return this->IsCoroutine() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry() && !this->IsInDebugMode() && !this->IsAsync());
+        return this->IsCoroutine() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry() && !this->IsInDebugMode());
     }
 
     ScriptContext* EntryPointInfo::GetScriptContext()
