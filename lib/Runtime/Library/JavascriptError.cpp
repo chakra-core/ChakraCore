@@ -362,6 +362,14 @@ namespace Js
         pError->SetNotEnumerable(PropertyIds::number);
     }
 
+    void JavascriptError::SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, ...)
+    {
+        va_list argList;
+        va_start(argList, scriptContext);
+        JavascriptError::SetErrorMessage(pError, hr, scriptContext, argList);
+        va_end(argList);
+    }
+
     void JavascriptError::SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList)
     {
         Assert(FAILED(hr));

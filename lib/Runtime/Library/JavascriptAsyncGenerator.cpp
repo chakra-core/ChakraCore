@@ -187,8 +187,9 @@ Var JavascriptAsyncGenerator::EnqueueRequest(
         JavascriptError::SetErrorMessage(
             error,
             JSERR_NeedObjectOfType,
+            scriptContext,
             apiNameForErrorMessage,
-            scriptContext);
+            _u("AsyncGenerator"));
 
         promise->Reject(error, scriptContext);
     }
