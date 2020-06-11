@@ -231,7 +231,7 @@ Var JavascriptGenerator::EntryNext(RecyclableObject* function, CallInfo callInfo
 
     AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.next"));
 
-    if (!VarIs<JavascriptGenerator>(args[0]))
+    if (!VarIs<DynamicObject>(args[0]) || JavascriptOperators::GetTypeId(args[0]) != TypeIds_Generator)
     {
         JavascriptError::ThrowTypeErrorVar(
             scriptContext,
@@ -262,7 +262,7 @@ Var JavascriptGenerator::EntryReturn(RecyclableObject* function, CallInfo callIn
 
     AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.return"));
 
-    if (!VarIs<JavascriptGenerator>(args[0]))
+    if (!VarIs<DynamicObject>(args[0]) || JavascriptOperators::GetTypeId(args[0]) != TypeIds_Generator)
     {
         JavascriptError::ThrowTypeErrorVar(
             scriptContext,
@@ -295,7 +295,7 @@ Var JavascriptGenerator::EntryThrow(RecyclableObject* function, CallInfo callInf
 
     AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.throw"));
 
-    if (!VarIs<JavascriptGenerator>(args[0]))
+    if (!VarIs<DynamicObject>(args[0]) || JavascriptOperators::GetTypeId(args[0]) != TypeIds_Generator)
     {
         JavascriptError::ThrowTypeErrorVar(
             scriptContext,

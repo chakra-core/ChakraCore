@@ -107,6 +107,7 @@ namespace Js
         static void SetErrorMessageProperties(JavascriptError *pError, HRESULT errCode, PCWSTR message, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varName, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList);
+        static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, ...);
         static void SetErrorType(JavascriptError *pError, ErrorTypeEnum errorType);
 
         static bool ThrowCantAssign(PropertyOperationFlags flags, ScriptContext* scriptContext, PropertyId propertyId);
