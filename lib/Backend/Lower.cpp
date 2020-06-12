@@ -7099,48 +7099,14 @@ Lowerer::LowerStFld(
     if (dst->AsSymOpnd()->IsPropertySymOpnd())
     {
         propertySymOpnd = dst->AsPropertySymOpnd();
-        if (stFldInstr->HasBailOutInfo() && !propertySymOpnd->IsTypeCheckSeqCandidate() && propertySymOpnd->TypeCheckRequired())
+        if (stFldInstr->HasBailOutInfo() && !propertySymOpnd->IsTypeCheckSeqCandidate() &&
+                (propertySymOpnd->CantChangeType() || propertySymOpnd->TypeCheckRequired()))
         {
             IR::Instr * instrBailTarget = stFldInstr->ShareBailOut();
             LowerBailTarget(instrBailTarget);
             doCheckLayout = true;
             bailOutInfo = stFldInstr->GetBailOutInfo();
-            switch (helperMethod)
-            {
-                case IR::HelperOp_PatchPutValue:
-                    helperMethod = IR::HelperOp_PatchPutValueCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValuePolymorphic:
-                    helperMethod = IR::HelperOp_PatchPutValuePolymorphicCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValueNoLocalFastPath:
-                    helperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphic:
-                    helperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphicCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValueWithThisPtr:
-                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValueWithThisPtrPolymorphic:
-                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrPolymorphicCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath:
-                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout;
-                    break;
-                case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic:
-                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout;
-                    break;
-                case IR::HelperOp_PatchInitValue:
-                    helperMethod = IR::HelperOp_PatchInitValueCheckLayout;
-                    break;
-                case IR::HelperOp_PatchInitValuePolymorphic:
-                    helperMethod = IR::HelperOp_PatchInitValuePolymorphicCheckLayout;
-                    break;
-                default:
-                    AssertOrFailFast(false);
-                    break;
-            }
+            MapStFldHelper(propertySymOpnd, helperMethod, polymorphicHelperMethod);
         }
     }
 
@@ -7206,6 +7172,115 @@ Lowerer::LowerStFld(
     }
 
     return instrPrev;
+}
+
+void
+Lowerer::MapStFldHelper(IR::PropertySymOpnd * propertySymOpnd, IR::JnHelperMethod &helperMethod, IR::JnHelperMethod &polymorphicHelperMethod)
+{
+    Assert(propertySymOpnd->CantChangeType() || propertySymOpnd->TypeCheckRequired());
+
+    if (propertySymOpnd->CantChangeType())
+    {
+        switch (helperMethod)
+        {
+            case IR::HelperOp_PatchPutValue:
+                helperMethod = IR::HelperOp_PatchPutValueCantChangeType;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValuePolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValuePolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValuePolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValueNoLocalFastPath:
+                helperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathCantChangeType;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtr:
+                helperMethod = IR::HelperOp_PatchPutValueWithThisPtrCantChangeType;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrPolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtrPolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrPolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath:
+                helperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathCantChangeType;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchInitValue:
+                helperMethod = IR::HelperOp_PatchInitValueCantChangeType;
+                polymorphicHelperMethod = IR::HelperOp_PatchInitValuePolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchInitValuePolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchInitValuePolymorphicCantChangeType;
+                break;
+            case IR::HelperOp_PatchPutRootValue:
+            case IR::HelperOp_PatchPutRootValuePolymorphic:
+            case IR::HelperOp_PatchPutRootValueNoLocalFastPath:
+            case IR::HelperOp_PatchPutRootValueNoLocalFastPathPolymorphic:
+                // No helper method change is needed here, because the global object doesn't participate in final type opt, so it can't alias
+                // an object that does.
+                break;
+            default:
+                AssertOrFailFast(false);
+                break;
+        }
+    }
+    else
+    {
+        switch (helperMethod)
+        {
+            case IR::HelperOp_PatchPutValue:
+                helperMethod = IR::HelperOp_PatchPutValueCheckLayout;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValuePolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValuePolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValuePolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValueNoLocalFastPath:
+                helperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathCheckLayout;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtr:
+                helperMethod = IR::HelperOp_PatchPutValueWithThisPtrCheckLayout;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrPolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtrPolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrPolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath:
+                helperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout;
+                polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchInitValue:
+                helperMethod = IR::HelperOp_PatchInitValueCheckLayout;
+                polymorphicHelperMethod = IR::HelperOp_PatchInitValuePolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchInitValuePolymorphic:
+                helperMethod = polymorphicHelperMethod = IR::HelperOp_PatchInitValuePolymorphicCheckLayout;
+                break;
+            case IR::HelperOp_PatchPutRootValue:
+            case IR::HelperOp_PatchPutRootValuePolymorphic:
+            case IR::HelperOp_PatchPutRootValueNoLocalFastPath:
+            case IR::HelperOp_PatchPutRootValueNoLocalFastPathPolymorphic:
+                // No helper method change is needed here, because the global object doesn't participate in final type opt, so it can't alias
+                // an object that does.
+                break;
+            default:
+                AssertOrFailFast(false);
+                break;
+        }
+    }
 }
 
 IR::Instr* Lowerer::GenerateCompleteStFld(IR::Instr* instr, bool emitFastPath, IR::JnHelperMethod monoHelperAfterFastPath, IR::JnHelperMethod polyHelperAfterFastPath,

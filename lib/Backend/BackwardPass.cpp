@@ -949,6 +949,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                         blockSucc->couldRemoveNegZeroBailoutForDef = nullptr;
                     }
                 }
+                this->CombineTypeIDsWithFinalType(block, blockSucc);
             }
 
             if (blockSucc->noImplicitCallUses != nullptr)
@@ -4928,6 +4929,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
 #else
                     block->stackSymToFinalType->Clear(objSym->m_id);
 #endif
+                    this->ClearTypeIDWithFinalType(objSym->m_id, block);
                 }
             }
 
@@ -5404,6 +5406,10 @@ BackwardPass::MayPropertyBeWrittenTo(Js::PropertyId propertyId)
 void
 BackwardPass::ProcessPropertySymOpndUse(IR::PropertySymOpnd * opnd)
 {
+    if (opnd == this->currentInstr->GetDst() && this->HasTypeIDWithFinalType(this->currentBlock))
+    {
+        opnd->SetCantChangeType(true);
+    }
 
     // If this operand doesn't participate in the type check sequence it's a pass-through.
     // We will not set any bits on the operand and we will ignore them when lowering.
@@ -5632,6 +5638,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                         this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                     }
                     bucket->SetMonoGuardType(nullptr);
+                    this->ClearTypeIDWithFinalType(objSym->m_id, block);
                 }
 
                 if (!opnd->IsTypeAvailable())
@@ -5841,6 +5848,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     }
 
     pBucket->SetInitialType(typeWithoutProperty);
+    this->SetTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
 
     if (!PHASE_OFF(Js::ObjTypeSpecStorePhase, this->func))
     {
@@ -5928,6 +5936,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 #else
         block->stackSymToFinalType->Clear(propertySym->m_stackSym->m_id);
 #endif
+        this->ClearTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
     }
 }
 
@@ -6137,6 +6146,40 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
         }
     }
     NEXT_HASHTABLE_ENTRY;
+}
+
+void
+BackwardPass::SetTypeIDWithFinalType(int symID, BasicBlock *block)
+{
+    BVSparse<JitArenaAllocator> *bv = block->EnsureTypeIDsWithFinalType(this->tempAlloc);
+    bv->Set(symID);
+}
+
+void
+BackwardPass::ClearTypeIDWithFinalType(int symID, BasicBlock *block)
+{
+    BVSparse<JitArenaAllocator> *bv = block->typeIDsWithFinalType;
+    if (bv != nullptr)
+    {
+        bv->Clear(symID);
+    }
+}
+
+bool
+BackwardPass::HasTypeIDWithFinalType(BasicBlock *block) const
+{
+    return block->typeIDsWithFinalType != nullptr && !block->typeIDsWithFinalType->IsEmpty();
+}
+
+void
+BackwardPass::CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc)
+{
+    BVSparse<JitArenaAllocator> *bvSucc = blockSucc->typeIDsWithFinalType;
+    if (bvSucc != nullptr && !bvSucc->IsEmpty())
+    {
+        BVSparse<JitArenaAllocator> *bv = block->EnsureTypeIDsWithFinalType(this->tempAlloc);
+        bv->Or(bvSucc);
+    }
 }
 
 bool
