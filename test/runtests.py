@@ -571,10 +571,16 @@ class TestVariant(object):
         if not return_code_only:
             # check output
             if 'baseline' not in test:
-                # output lines must be 'pass' or 'passed' or empty
-                lines = (line.lower() for line in js_output.split(b'\n'))
-                if any(line != b'' and line != b'pass' and line != b'passed'
-                        for line in lines):
+                # output lines must be 'pass' or 'passed' or empty with at least 1 not empty
+                passes = 0
+                for line in js_output.split(b'\n'):
+                    if line !=b'':
+                        low = line.lower()
+                        if low == b'pass' or low == b'passed':
+                            passes = 1
+                        else:
+                            return self._show_failed(**fail_args)
+                if passes == 0:
                     return self._show_failed(**fail_args)
             else:
                 baseline = test.get('baseline')
@@ -584,7 +590,7 @@ class TestVariant(object):
                     with open(baseline, 'rb') as bs_file:
                         baseline_output = bs_file.read()
 
-                    # Cleanup carriage return
+                    # Clean up carriage return
                     # todo: remove carriage return at the end of the line
                     #       or better fix ch to output same on all platforms
                     expected_output = normalize_new_line(baseline_output)

@@ -11645,10 +11645,13 @@ Case0:
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(srcArray, propertyObject, j, &element, scriptContext));
                     if (!gotItem)
                     {
-                        // Copy across missing values as undefined as per 12.2.5.2 SpreadElement : ... AssignmentExpression 5f.
-                        element = scriptContext->GetLibrary()->GetUndefined();
+                        // skip elided elements
+                        dstIndex++;
                     }
-                    dstArray->DirectSetItemAt(dstIndex++, element);
+                    else
+                    {
+                        dstArray->DirectSetItemAt(dstIndex++, element);
+                    }   
                 }
             };
 

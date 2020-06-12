@@ -203,7 +203,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -t | --test-build)
-        BUILD_TYPE="Test"
+        BUILD_TYPE="RelWithDebInfo"
         ;;
 
     -j | --jobs)
@@ -406,42 +406,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $USE_LOCAL_ICU == 1 ]]; then
-    LOCAL_ICU_DIR="$CHAKRACORE_DIR/deps/Chakra.ICU/icu"
-    if [[ ! -d $LOCAL_ICU_DIR ]]; then
-        "$PYTHON2_BINARY" "$CHAKRACORE_DIR/tools/icu/configure.py" 63.2 $ALWAYS_YES
-    fi
-
-    # if there is still no directory, then the user declined the license agreement
-    if [[ ! -d $LOCAL_ICU_DIR ]]; then
-        echo "You must accept the ICU license agreement in order to use this configuration"
-        exit 1
-    fi
-
-    LOCAL_ICU_DIST="$LOCAL_ICU_DIR/output"
-
-    if [ ! -d "$LOCAL_ICU_DIST" ]; then
-        set -e
-
-        pushd "$LOCAL_ICU_DIR/source"
-
-        ./configure --with-data-packaging=static\
-                    --prefix="$LOCAL_ICU_DIST"\
-                    --enable-static\
-                    --disable-shared\
-                    --with-library-bits=64\
-                    --disable-icuio\
-                    --disable-layout\
-                    --disable-tests\
-                    --disable-samples\
-                    CXXFLAGS="-fPIC"\
-                    CFLAGS="-fPIC"
-
-        ERROR_EXIT "rm -rf $LOCAL_ICU_DIST"
-        make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC" install
-        ERROR_EXIT "rm -rf $LOCAL_ICU_DIST"
-        popd
-    fi
-    CMAKE_ICU="-DICU_INCLUDE_PATH_SH=$LOCAL_ICU_DIST/include"
+    CMAKE_ICU="-DEMBED_ICU_SH=ON"
 fi
 
 if [[ "$MAKE" == "ninja" ]]; then
@@ -579,7 +544,13 @@ if [[ $HAS_LTTNG == 1 ]]; then
 fi
 
 
-BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE:0}"
+if [[ ${BUILD_TYPE} =~ "RelWithDebInfo" ]]; then
+    BUILD_TYPE_DIR=Test
+else
+    BUILD_TYPE_DIR=${BUILD_TYPE}
+fi
+
+BUILD_DIRECTORY="${TARGET_PATH}/${BUILD_TYPE_DIR:0}"
 echo "Build path: ${BUILD_DIRECTORY}"
 
 BUILD_RELATIVE_DIRECTORY=$("$PYTHON2_BINARY" -c "import os.path;print \
@@ -637,13 +608,6 @@ if [[ $WB_CHECK || $WB_ANALYZE ]]; then
     fi
 fi
 
-# prepare DbgController.js.h
-CH_DIR="${CHAKRACORE_DIR}/bin/ch"
-"${CH_DIR}/jstoc.py" "${CH_DIR}/DbgController.js" controllerScript
-if [[ $? != 0 ]]; then
-    exit 1
-fi
-
 if [ ! -d "$BUILD_DIRECTORY" ]; then
     SAFE_RUN `mkdir -p $BUILD_DIRECTORY`
 fi
@@ -663,12 +627,13 @@ else
     echo "Compile Target : System Default"
 fi
 
-echo Generating $BUILD_TYPE makefiles
+echo Generating $BUILD_TYPE build
 echo $EXTRA_DEFINES
-cmake $CMAKE_GEN $CC_PREFIX $CMAKE_ICU $LTO $LTTNG $STATIC_LIBRARY $ARCH $TARGET_OS \
-    $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $CMAKE_INTL \
-    $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
-    $VALGRIND $BUILD_RELATIVE_DIRECTORY $CCACHE_NAME
+cmake $CMAKE_GEN -DCHAKRACORE_BUILD_SH=ON $CC_PREFIX $CMAKE_ICU $LTO $LTTNG \
+    $STATIC_LIBRARY $ARCH $TARGET_OS \ $ENABLE_CC_XPLAT_TRACE $EXTRA_DEFINES \
+    -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $CMAKE_INTL \
+    $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS \
+    $LIBS_ONLY_BUILD $VALGRIND $BUILD_RELATIVE_DIRECTORY $CCACHE_NAME
 
 _RET=$?
 if [[ $? == 0 ]]; then

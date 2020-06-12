@@ -363,17 +363,11 @@ namespace TTD
             &NSSnapObjects::DoAddtlValueInstantiation_SnapGeneratorInfo,
             &NSSnapObjects::EmitAddtlInfo_SnapGeneratorInfo,
             &NSSnapObjects::ParseAddtlInfo_SnapGeneratorInfo };
-        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction] = {
-            &NSSnapObjects::DoObjectInflation_SnapJavascriptPromiseAsyncSpawnExecutorFunction,
-            &NSSnapObjects::DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnExecutorFunction,
-            &NSSnapObjects::EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction,
-            &NSSnapObjects::ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction
-        };
-        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction] = {
-            &NSSnapObjects::DoObjectInflation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo,
-            &NSSnapObjects::DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo,
-            &NSSnapObjects::EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo,
-            &NSSnapObjects::ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::JavascriptAsyncSpawnStepFunction] = {
+            &NSSnapObjects::DoObjectInflation_SnapJavascriptAsyncSpawnStepFunctionInfo,
+            &NSSnapObjects::DoAddtlValueInstantiation_SnapJavascriptAsyncSpawnStepFunctionInfo,
+            &NSSnapObjects::EmitAddtlInfo_SnapJavascriptAsyncSpawnStepFunctionInfo,
+            &NSSnapObjects::ParseAddtlInfo_SnapJavascriptAsyncSpawnStepFunctionInfo
         };
 
 

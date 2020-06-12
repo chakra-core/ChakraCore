@@ -699,7 +699,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESDynamicImport         (true)
 #define DEFAULT_CONFIG_ESImportMeta            (true)
 #define DEFAULT_CONFIG_ESExportNsAs            (true)
-#define DEFAULT_CONFIG_ES2018AsyncIteration    (false)
+#define DEFAULT_CONFIG_ES2018AsyncIteration    (true)
 
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
 
@@ -1100,6 +1100,9 @@ FLAGR (Number,  ExpirableCollectionTriggerThreshold, "Threshold at which Expirab
 FLAGR(Boolean, SkipSplitOnNoResult, "If the result of Regex split isn't used, skip executing the regex. (Perf optimization)", DEFAULT_CONFIG_SkipSplitWhenResultIgnored)
 #ifdef TEST_ETW_EVENTS
 FLAGNR(String,  TestEtwDll            , "Path of the TestEtwEventSink DLL", nullptr)
+#endif
+#ifdef ENABLE_TEST_HOOKS
+FLAGNR(Boolean, Force32BitByteCode, "Force CC to generate 32bit bytecode intended only for regenerating bytecode headers.", false)
 #endif
 
 FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CONFIG_CollectGarbage)

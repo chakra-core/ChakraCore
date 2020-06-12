@@ -1628,4 +1628,11 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_gh6325.js</files>
+      <compile-flags>-off:backend -forcejitloopbody</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
 </regress-exe>

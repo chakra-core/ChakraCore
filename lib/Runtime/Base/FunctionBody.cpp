@@ -4410,7 +4410,13 @@ namespace Js
     void FunctionBody::RecordIntConstant(RegSlot location, unsigned int val)
     {
         ScriptContext *scriptContext = this->GetScriptContext();
+#ifdef ENABLE_TEST_HOOKS
+        Var intConst = scriptContext->GetConfig()->Force32BitByteCode() ?
+            JavascriptNumber::ToVarFor32BitBytecode((int32)val, scriptContext) :
+            JavascriptNumber::ToVar((int32)val, scriptContext);
+#else
         Var intConst = JavascriptNumber::ToVar((int32)val, scriptContext);
+#endif
         this->RecordConstant(location, intConst);
     }
 

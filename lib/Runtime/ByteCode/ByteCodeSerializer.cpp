@@ -488,6 +488,12 @@ public:
         {
             expectedFunctionBodySize.value = 0;
             expectedOpCodeCount.value = 0;
+#ifdef ENABLE_TEST_HOOKS
+            if (scriptContext->GetConfig()->Force32BitByteCode())
+            {
+                architecture.value = 32;
+            }
+#endif
         }
 
         // Library bytecode uses its own scheme

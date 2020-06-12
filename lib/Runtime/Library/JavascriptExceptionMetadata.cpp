@@ -105,8 +105,8 @@ namespace Js {
 
         if (nextLine >= cache->GetLineCount())
         {
-            endByteOffset = startByteOffset + functionBody->LengthInBytes();
-            endCharOffset = startCharOffset + functionBody->LengthInChars();
+            endByteOffset = functionBody->LengthInBytes();
+            endCharOffset = functionBody->LengthInChars();
         }
         else
         {

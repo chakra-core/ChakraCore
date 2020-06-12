@@ -529,6 +529,14 @@ var tests = [
         };
         test1();
     }
+  },
+  {
+    name: "OS: 23989602, Destructuring declaration should not produce any value",
+    body: function () {
+        assert.areEqual(undefined, eval("var {x} = {};"));
+        assert.areEqual(undefined, eval("{ var {x} = {}; }"));
+        assert.areEqual(undefined, eval("{ var [] = []; }"));
+    }
   }
 ];
 

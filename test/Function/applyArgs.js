@@ -3,12 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-function write(v) { WScript.Echo(v + ""); }
+var res = []
 
 function test1() 
 {
     [].push.apply(this, arguments);
-    write("passed");
+    res.push(1);
 }
 
 test1();
@@ -16,7 +16,7 @@ test1();
 function test2() 
 {
     ({}).toString.apply(this, arguments);
-    write("passed");
+    res.push(2);
 }
 
 test2();
@@ -28,13 +28,12 @@ function test3()
     function test3_inner() {
         (count3 == 1 ? args : arguments).callee.apply(this, arguments);
     }
-    
+
     if (++count3 == 1)
     {
         return test3_inner();
     }
-    
-    write("passed");
+    res.push(3);
 }
 
 test3();
@@ -43,12 +42,20 @@ function test4()
 {
     return function() {
     try {
-        throw 'zap';
+        throw 4;
     } catch(ex) {
-        WScript.Echo(ex);
+        res.push(4);
         var f = arguments[0]; 
     }
     f.apply(this, arguments);
     }
 }
-test4()(function(){ WScript.Echo('mama'); });
+test4()(function(){ res.push(5); });
+
+for (var i = 0; i < 5; ++i) {
+    if (res[i] !== i + 1) {
+        throw "fail";
+    }
+}
+
+print("pass");

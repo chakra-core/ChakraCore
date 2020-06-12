@@ -23342,4 +23342,5 @@ test35();
 test36();
 test37();
 test38();
-WScript.Echo("done");
+
+print("pass");

@@ -47,6 +47,10 @@ Abstract:
 #include <ctype.h>
 #endif
 
+#if !defined(static_assert)
+#define static_assert _Static_assert
+#endif
+
 #if defined(__APPLE__)
 #ifndef __IOS__
 #include "TargetConditionals.h"

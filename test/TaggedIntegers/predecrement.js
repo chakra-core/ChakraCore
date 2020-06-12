@@ -198,4 +198,5 @@ if(result != check) { fail(test, check, result); } ++test;
 
 }
 test0();
-WScript.Echo("done");
+
+print("pass");

@@ -7333,7 +7333,6 @@ void Parser::ParseExpressionLambdaBody(ParseNodeFnc * pnodeLambda, bool fAllowIn
         // Pushing a statement node with PushStmt<>() normally does this initialization
         // but do it here manually since we know there is no outer statement node.
         pnodeRet->grfnop = 0;
-        pnodeRet->pnodeOuter = nullptr;
 
         pnodeLambda->ichLim = max(pnodeRet->ichLim, lastRParen);
         pnodeLambda->cbLim = this->GetScanner()->IecpLimTokPrevious();
@@ -9751,7 +9750,6 @@ ParseNodeStmt * Parser::ParseTryCatchFinally()
         if (buildAST)
         {
             pnodeTC = CreateNodeForOpT<knopTryCatch>();
-            pnodeT->pnodeOuter = pnodeTC;
             pnodeTC->pnodeTry = pnodeT;
         }
         PushStmt<buildAST>(&stmt, pnodeTC, knopTryCatch, nullptr);
@@ -9786,14 +9784,11 @@ ParseNodeStmt * Parser::ParseTryCatchFinally()
         if (!hasCatch)
         {
             pnodeTF->pnodeTry = pnodeT;
-            pnodeT->pnodeOuter = pnodeTF;
         }
         else
         {
             pnodeTF->pnodeTry = CreateNodeForOpT<knopTry>();
-            pnodeTF->pnodeTry->pnodeOuter = pnodeTF;
             pnodeTF->pnodeTry->pnodeBody = pnodeTC;
-            pnodeTC->pnodeOuter = pnodeTF->pnodeTry;
         }
         pnodeTF->pnodeFinally = pnodeFinally;
     }

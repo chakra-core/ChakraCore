@@ -181,7 +181,7 @@ namespace Js
 
         if (currentIterator->m_nextFunction == nullptr)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         bool ret = false;
@@ -193,7 +193,7 @@ namespace Js
 
         if (!ret)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         Var result;
@@ -214,6 +214,6 @@ namespace Js
             result = value;
         }
 
-        return library->CreateIteratorResultObjectValueFalse(result);
+        return library->CreateIteratorResultObject(result);
     }
 }
