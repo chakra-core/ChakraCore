@@ -1889,7 +1889,12 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     Assert(bailOutKind != IR::BailOutInvalid);
 
     Js::DynamicProfileInfo * profileInfo = executeFunction->HasDynamicProfileInfo() ? executeFunction->GetAnyDynamicProfileInfo() : nullptr;
-    if ((profileInfo && callsCount == 0) ||
+
+    if (executeFunction->IsCoroutine())
+    {
+        rejitReason = RejitReason::Forced;
+    }
+    else if ((profileInfo && callsCount == 0) ||
         PHASE_FORCE(Js::ReJITPhase, executeFunction))
     {
         if ((bailOutKind & (IR::BailOutOnResultConditions | IR::BailOutOnDivSrcConditions)) || bailOutKind == IR::BailOutIntOnly || bailOutKind == IR::BailOnIntMin || bailOutKind == IR::BailOnDivResultNotInt)
