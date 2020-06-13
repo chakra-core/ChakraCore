@@ -9706,9 +9706,11 @@ void EmitGetAsyncIterator(
     // Iterable does not have a Symbol.asyncIterator method: attempt to get a sync
     // iterable and wrap it with an AsyncFromSyncIterator
     writer->MarkLabel(noAsyncIterator);
-    EmitGetIterator(resultReg, iterableReg, byteCodeGenerator, funcInfo);
-    writer->Reg2(Js::OpCode::NewAsyncFromSyncIterator, resultReg, resultReg);
-
+    Js::RegSlot iteratorReg = funcInfo->AcquireTmpRegister();
+    EmitGetIterator(iteratorReg, iterableReg, byteCodeGenerator, funcInfo);
+    writer->Reg2(Js::OpCode::NewAsyncFromSyncIterator, iteratorReg, iteratorReg);
+    writer->Reg2(Js::OpCode::Ld_A_ReuseLoc, resultReg, iteratorReg);    
+    funcInfo->ReleaseTmpRegister(iteratorReg);
     byteCodeGenerator->Writer()->MarkLabel(finished);
 }
 
@@ -10804,9 +10806,18 @@ void EmitYieldStar(
     writer->MarkLabel(noReturnMethod);
 
     if (isAsync)
-        EmitAwait(resumeValueReg, resumeValueReg, byteCodeGenerator, funcInfo);
+    {
+        Js::RegSlot awaitValue = funcInfo->AcquireTmpRegister();
+        writer->Reg2(Js::OpCode::Ld_A, awaitValue, resumeValueReg);
 
-    writer->Reg2(Js::OpCode::Ld_A, yieldStarReg, resumeValueReg);    
+        EmitAwait(awaitValue, awaitValue, byteCodeGenerator, funcInfo);
+        writer->Reg2(Js::OpCode::Ld_A_ReuseLoc, yieldStarReg, awaitValue);
+
+        funcInfo->ReleaseTmpRegister(awaitValue);
+    }
+    else
+        writer->Reg2(Js::OpCode::Ld_A_ReuseLoc, yieldStarReg, resumeValueReg);
+
     writer->Br(finishReturn);
 
     // Throw case: attempt to call throw
