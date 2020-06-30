@@ -109,6 +109,14 @@ namespace Js
         }
     }
 
+    void PropertyValueInfo::UpdatePolymorphicInlineCache(bool isRead)
+    {
+        if (GetPropertyRecordUsageCache())
+        {
+            this->polymorphicInlineCache = isRead ? GetPropertyRecordUsageCache()->GetLdElemInlineCache() : GetPropertyRecordUsageCache()->GetStElemInlineCache();
+        }
+    }
+
 #if DBG || defined(PROFILE_TYPES)
     // Used only by the GlobalObject, because it's typeHandler can't be fully initialized
     // with the globalobject which is currently being created.
