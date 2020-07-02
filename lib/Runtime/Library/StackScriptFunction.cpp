@@ -247,7 +247,6 @@ namespace Js
                         StackScriptFunction * stackFunction = interpreterFrame->GetStackNestedFunction(i);
                         ScriptFunction * boxedFunction = this->BoxStackFunction(stackFunction);
                         Assert(stackFunction->boxedScriptFunction == boxedFunction);
-                        this->UpdateFrameDisplay(stackFunction);
                     }
 
                     if (walker.IsBailedOutFromInlinee())
@@ -265,16 +264,6 @@ namespace Js
                         // Walk native frame that was bailed out as well.
                         // The stack walker is pointing to the native frame already.
                         this->BoxNativeFrame(walker, callerFunctionBody);
-
-                        // We don't need to box this frame, but we may still need to box the scope slot references
-                        // within nested frame displays if the slots they refer to have been boxed.
-                        if (callerFunctionBody->GetNestedCount() != 0)
-                        {
-                            this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
-                            {
-                                this->UpdateFrameDisplay(nestedFunc);
-                            });
-                        }
                     }
                 }
                 else
@@ -314,16 +303,6 @@ namespace Js
 
                         // walk native frame
                         this->BoxNativeFrame(walker, callerFunctionBody);
-
-                        // We don't need to box this frame, but we may still need to box the scope slot references
-                        // within nested frame displays if the slots they refer to have been boxed.
-                        if (callerFunctionBody->GetNestedCount() != 0)
-                        {
-                            this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
-                            {
-                                this->UpdateFrameDisplay(nestedFunc);
-                            });
-                        }
                     }
                 }
             }
@@ -399,17 +378,17 @@ namespace Js
                     {
                         interpreterFrame->SetExecutingStackFunction(boxedCaller);
                     }
-
-                    // We don't need to box this frame, but we may still need to box the scope slot references
-                    // within nested frame displays if the slots they refer to have been boxed.
-                    if (callerFunctionBody->GetNestedCount() != 0)
-                    {
-                        this->ForEachStackNestedFunction(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
-                        {
-                            this->UpdateFrameDisplay(nestedFunc);
-                        });
-                    }
                 }
+            }
+
+            // We don't need to box this frame, but we may still need to box the scope slot references
+            // within nested frame displays if the slots they refer to have been boxed.
+            if (callerFunctionBody->GetNestedCount() != 0)
+            {
+                this->ForEachStackNestedFunction(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
+                {
+                    this->UpdateFrameDisplay(nestedFunc);
+                });
             }
         }
 
