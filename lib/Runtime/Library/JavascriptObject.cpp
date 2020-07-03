@@ -81,7 +81,7 @@ Var JavascriptObject::EntryHasOwnProperty(RecyclableObject* function, CallInfo c
     // no property specified
     if (args.Info.Count == 1)
     {
-        return scriptContext->GetLibrary()->GetUndefined();
+        return scriptContext->GetLibrary()->GetFalse();
     }
 
     const PropertyRecord* propertyRecord;

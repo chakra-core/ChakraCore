@@ -2,10 +2,6 @@
 true
 false
 false
-undefined
-true
-true
-true
 false
 true
 true
@@ -13,10 +9,14 @@ true
 false
 true
 true
+true
+false
+true
+true
 false
 false
 true
-undefined
+false
 true
 false
 true
