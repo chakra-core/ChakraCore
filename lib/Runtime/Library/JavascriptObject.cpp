@@ -78,15 +78,11 @@ Var JavascriptObject::EntryHasOwnProperty(RecyclableObject* function, CallInfo c
         JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.hasOwnProperty"));
     }
 
-    // no property specified
-    if (args.Info.Count == 1)
-    {
-        return scriptContext->GetLibrary()->GetFalse();
-    }
+    Var argument = args.Info.Count == 1 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
 
     const PropertyRecord* propertyRecord;
     PropertyString* propertyString;
-    JavascriptConversion::ToPropertyKey(args[1], scriptContext, &propertyRecord, &propertyString);
+    JavascriptConversion::ToPropertyKey(argument, scriptContext, &propertyRecord, &propertyString);
 
     if (JavascriptOperators::HasOwnProperty(dynamicObject, propertyRecord->GetPropertyId(), scriptContext, propertyString))
     {

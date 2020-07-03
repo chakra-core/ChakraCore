@@ -19,6 +19,7 @@ write(o.hasOwnProperty("x"));
 write(o.hasOwnProperty("y"));
 write(o.hasOwnProperty(""));
 write(o.hasOwnProperty());
+write(o.hasOwnProperty(undefined));
 
 write(a.hasOwnProperty(0));
 write(a.hasOwnProperty(1));
@@ -38,6 +39,7 @@ write(a.hasOwnProperty(""));
 write(a.hasOwnProperty("length"));
 
 write(a.hasOwnProperty());
+write(a.hasOwnProperty(undefined));
 
 write(a.hasOwnProperty(o));
 write(a.hasOwnProperty("o"));
