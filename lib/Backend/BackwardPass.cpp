@@ -8648,20 +8648,7 @@ BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchOrFinallyBloc
 bool
 BackwardPass::CheckWriteThroughSymInRegion(Region* region, StackSym* sym)
 {
-    if (region->GetType() == RegionTypeRoot)
-    {
-        return false;
-    }
-
-    // if the current region is a try region, check in its write-through set,
-    // otherwise (current = catch region) look in the first try ancestor's write-through set
-    Region * selfOrFirstTryAncestor = region->GetSelfOrFirstTryAncestor();
-    if (!selfOrFirstTryAncestor)
-    {
-        return false;
-    }
-    Assert(selfOrFirstTryAncestor->GetType() == RegionTypeTry);
-    return selfOrFirstTryAncestor->writeThroughSymbolsSet && selfOrFirstTryAncestor->writeThroughSymbolsSet->Test(sym->m_id);
+    return region->CheckWriteThroughSym(sym);
 }
 
 #if DBG

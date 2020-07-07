@@ -960,6 +960,8 @@ private:
     void                    KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    EndFieldLifetime(IR::SymOpnd *symOpnd);
     PropertySym *           CopyPropPropertySymObj(IR::SymOpnd *opnd, IR::Instr *instr);
+    void                    OnCopyPropInPrePass(StackSym * copySym, IR::Instr * instr, BasicBlock * block);
+    void                    UpdateUpwardExposedUses(StackSym * sym, IR::Instr * instrLast, BasicBlock * block, JsUtil::Stack<BasicBlock*, JitArenaAllocator, true> *blockStack, BVSparse<JitArenaAllocator>* blocksProcessed);
     static bool             NeedsTypeCheckBailOut(const IR::Instr *instr, IR::PropertySymOpnd *propertySymOpnd, bool isStore, bool* pIsTypeCheckProtected, IR::BailOutKind *pBailOutKind);
     IR::Instr *             PreOptPeep(IR::Instr *instr);
     IR::Instr *             OptPeep(IR::Instr *instr, Value *src1Val, Value *src2Val);

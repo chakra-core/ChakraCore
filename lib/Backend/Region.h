@@ -68,6 +68,7 @@ public:
     Region * GetSelfOrFirstTryAncestor();
     Region * GetFirstAncestorOfNonExceptingFinallyParent();
     Region * GetFirstAncestorOfNonExceptingFinally();
+    bool   CheckWriteThroughSym(StackSym * sym);
 
 private:
     RegionType                      type;
