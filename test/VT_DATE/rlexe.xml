@@ -5,7 +5,7 @@
       <files>getvardate.js</files>
       <baseline>getVarDate.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
+      <tags>exclude_jenkins,slow</tags>
     </default>
   </test>
 </regress-exe>
