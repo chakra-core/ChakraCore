@@ -55,6 +55,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_localClosureSym(nullptr),
     m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
+    m_inlineeFrameDisplaySyms(nullptr),
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
     m_inlineeFrameStartSym(nullptr),
@@ -1122,6 +1123,16 @@ void Func::InitLocalClosureSyms()
                                    this->DoStackFrameDisplay() ? (Js::RegSlot)-1 : regSlot,
                                    this);
     }
+}
+
+void
+Func::AddInlineeFrameDisplaySym(StackSym *inlineeFrameDisplaySym)
+{
+    if (m_inlineeFrameDisplaySyms == nullptr)
+    {
+        m_inlineeFrameDisplaySyms = JitAnew(this->m_alloc, SList<StackSym*>, this->m_alloc);
+    }
+    m_inlineeFrameDisplaySyms->Prepend(inlineeFrameDisplaySym);
 }
 
 bool
