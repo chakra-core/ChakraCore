@@ -251,6 +251,7 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
         block->noImplicitCallJsArrayHeadSegmentSymUses = nullptr;
         block->noImplicitCallArrayLengthSymUses = nullptr;
         block->couldRemoveNegZeroBailoutForDef = nullptr;
+        block->typeIDsWithFinalType = nullptr;
 
         if (block->loop != nullptr)
         {
@@ -486,6 +487,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * slotDeadStoreCandidates = nullptr;
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
     BVSparse<JitArenaAllocator> * couldRemoveNegZeroBailoutForDef = nullptr;
+    BVSparse<JitArenaAllocator> * typeIDsWithFinalType = nullptr;
 #if DBG
     uint byteCodeLocalsCount = func->GetJITFunctionBody()->GetLocalsCount();
     StackSym ** byteCodeRestoreSyms = nullptr;
@@ -935,7 +937,20 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                         blockSucc->couldRemoveNegZeroBailoutForDef = nullptr;
                     }
                 }
-                this->CombineTypeIDsWithFinalType(block, blockSucc);
+
+                if (blockSucc->typeIDsWithFinalType != nullptr)
+                {
+                    if (typeIDsWithFinalType == nullptr)
+                    {
+                        typeIDsWithFinalType = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+                    }
+                    typeIDsWithFinalType->Or(blockSucc->typeIDsWithFinalType);
+                    if (deleteData)
+                    {
+                        JitAdelete(this->tempAlloc, blockSucc->typeIDsWithFinalType);
+                        blockSucc->typeIDsWithFinalType = nullptr;
+                    }
+                }
             }
 
             if (blockSucc->noImplicitCallUses != nullptr)
@@ -1143,6 +1158,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert(block->noImplicitCallJsArrayHeadSegmentSymUses == nullptr);
             Assert(block->noImplicitCallArrayLengthSymUses == nullptr);
             Assert(block->couldRemoveNegZeroBailoutForDef == nullptr);
+            Assert(block->typeIDsWithFinalType == nullptr);
         }
         else
         {
@@ -1198,6 +1214,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     block->noImplicitCallJsArrayHeadSegmentSymUses = noImplicitCallJsArrayHeadSegmentSymUses;
     block->noImplicitCallArrayLengthSymUses = noImplicitCallArrayLengthSymUses;
     block->couldRemoveNegZeroBailoutForDef = couldRemoveNegZeroBailoutForDef;
+    block->typeIDsWithFinalType = typeIDsWithFinalType;
 }
 
 ObjTypeGuardBucket
@@ -1366,6 +1383,11 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
     {
         JitAdelete(this->tempAlloc, block->couldRemoveNegZeroBailoutForDef);
         block->couldRemoveNegZeroBailoutForDef = nullptr;
+    }
+    if (block->typeIDsWithFinalType != nullptr)
+    {
+        JitAdelete(this->tempAlloc, block->typeIDsWithFinalType);
+        block->typeIDsWithFinalType = nullptr;
     }
 }
 
@@ -5963,17 +5985,6 @@ bool
 BackwardPass::HasTypeIDWithFinalType(BasicBlock *block) const
 {
     return block->typeIDsWithFinalType != nullptr && !block->typeIDsWithFinalType->IsEmpty();
-}
-
-void
-BackwardPass::CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc)
-{
-    BVSparse<JitArenaAllocator> *bvSucc = blockSucc->typeIDsWithFinalType;
-    if (bvSucc != nullptr && !bvSucc->IsEmpty())
-    {
-        BVSparse<JitArenaAllocator> *bv = block->EnsureTypeIDsWithFinalType(this->tempAlloc);
-        bv->Or(bvSucc);
-    }
 }
 
 bool

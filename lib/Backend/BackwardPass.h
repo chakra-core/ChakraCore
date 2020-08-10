@@ -152,7 +152,6 @@ private:
     void SetTypeIDWithFinalType(int symId, BasicBlock *block);
     void ClearTypeIDWithFinalType(int symId, BasicBlock *block);
     bool HasTypeIDWithFinalType(BasicBlock *block) const;
-    void CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc);
 
     template<class Fn> void ForEachAddPropertyCacheBucket(Fn fn);
     static ObjTypeGuardBucket MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBucket bucket2);
