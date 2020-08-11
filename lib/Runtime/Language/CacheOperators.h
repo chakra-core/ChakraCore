@@ -18,7 +18,7 @@ namespace Js
             bool IsAccessor,
             bool IsRead,
             bool IncludeTypePropertyCache>
-        static void Cache(const bool isProto, DynamicObject *const objectWithProperty, const bool isRoot, Type *const type, Type *const typeWithoutProperty, const PropertyId propertyId, const PropertyIndex propertyIndex, const bool isInlineSlot, const bool isMissing, const int requiredAuxSlotCapacity, const PropertyValueInfo *const info, ScriptContext *const requestContext);
+        static void Cache(const bool isProto, DynamicObject *const objectWithProperty, const bool isRoot, Type *const type, Type *const typeWithoutProperty, const PropertyId propertyId, const PropertyIndex propertyIndex, const bool isInlineSlot, const bool isMissing, const int requiredAuxSlotCapacity, PropertyValueInfo *const info, ScriptContext *const requestContext);
 
         template<
             bool CheckLocal,

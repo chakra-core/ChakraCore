@@ -6283,7 +6283,7 @@ namespace Js
         Assert(polymorphicInlineCache && polymorphicInlineCache->CanAllocateBigger());
         uint16 polymorphicInlineCacheSize = polymorphicInlineCache->GetSize();
         uint16 newPolymorphicInlineCacheSize = PolymorphicInlineCache::GetNextSize(polymorphicInlineCacheSize);
-        Assert(newPolymorphicInlineCacheSize > polymorphicInlineCacheSize);
+        AssertOrFailFast(newPolymorphicInlineCacheSize > polymorphicInlineCacheSize);
         PolymorphicInlineCache * newPolymorphicInlineCache = CreatePolymorphicInlineCache(index, newPolymorphicInlineCacheSize);
         polymorphicInlineCache->CopyTo(propertyId, m_scriptContext, newPolymorphicInlineCache);
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

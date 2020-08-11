@@ -93,6 +93,7 @@ namespace Js {
             bool allowResizing);
         static void SetCacheInfo(_Out_ PropertyValueInfo* info, _In_ PolymorphicInlineCache *const polymorphicInlineCache, bool allowResizing);
         static void ClearCacheInfo(PropertyValueInfo* info);
+        void UpdatePolymorphicInlineCache(bool isRead);
 
         InlineCache * GetInlineCache() const
         {

@@ -312,7 +312,7 @@ namespace Js
         const bool isInlineSlot,
         const bool isMissing,
         const int requiredAuxSlotCapacity,
-        const PropertyValueInfo *const info,
+        PropertyValueInfo *const info,
         ScriptContext *const requestContext)
     {
         CompileAssert(!IsAccessor || !IncludeTypePropertyCache);
@@ -375,6 +375,9 @@ namespace Js
                  : !PHASE_OFF1(Js::TypePropertyCachePhase)
             );
         bool createTypePropertyCache = false;
+
+        // Side-effects may have changed the cache, so make sure the info has the latest.
+        info->UpdatePolymorphicInlineCache(IsRead);
         PolymorphicInlineCache *polymorphicInlineCache = info->GetPolymorphicInlineCache();
         if(!polymorphicInlineCache && info->GetFunctionBody())
         {
