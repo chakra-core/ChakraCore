@@ -2650,7 +2650,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
 
         // Rewind back to the function token and let the helper handle the parsing.
         this->GetScanner()->SeekTo(parsedFunction);
-        pnode = ParseFncDeclCheckScope<buildAST>(flags);
+        pnode = ParseFncDeclNoCheckScope<buildAST>(flags);
 
         if (buildAST)
         {
@@ -3059,7 +3059,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             {
                 Assert((stub->fncFlags & kFunctionIsLambda) == kFunctionIsLambda);
 
-                pnode = ParseFncDeclCheckScope<true>(fFncLambda);
+                pnode = ParseFncDeclNoCheckScope<true>(fFncLambda);
                 break;
             }
         }
@@ -4874,7 +4874,7 @@ ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool fAllowIn)
 template<bool buildAST>
 ParseNodeFnc * Parser::ParseFncDeclNoCheckScope(ushort flags, SuperRestrictionState::State superRestrictionState, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool fUnaryOrParen, bool fAllowIn)
 {
-    Assert((flags & fFncDeclaration) == 0);
+    Assert((flags & fFncDeclaration) == 0 || m_pstmtCur->GetNop() == knopBlock);
     return ParseFncDeclInternal<buildAST>(flags, pNameHint, needsPIDOnRCurlyScan, fUnaryOrParen, /* noStmtContext */ false, superRestrictionState, fAllowIn);
 }
 
@@ -9654,6 +9654,7 @@ LRestart:
     case tkFUNCTION:
     {
     LFunctionStatement:
+        ParseNodeFnc *pnodeFnc = nullptr;
         if (m_grfscr & fscrDeferredFncExpression)
         {
             // The top-level deferred function body was defined by a function expression whose parsing was deferred. We are now
@@ -9661,25 +9662,27 @@ LRestart:
             // first time we see it.
             m_grfscr &= ~fscrDeferredFncExpression;
             pnode = ParseFncDeclNoCheckScope<buildAST>(isAsyncMethod ? fFncAsync : fFncNoFlgs);
+            pnodeFnc = pnode->AsParseNodeFnc();
         }
         else
         {
             pnode = ParseFncDeclCheckScope<buildAST>(fFncDeclaration | (isAsyncMethod ? fFncAsync : fFncNoFlgs));
+            pnodeFnc = pnode->nop == knopBlock ? pnode->AsParseNodeBlock()->pnodeStmt->AsParseNodeFnc() : pnode->AsParseNodeFnc();
         }
 
         Assert(pnode != nullptr);
-        ParseNodeFnc* pNodeFnc = (ParseNodeFnc*)pnode;
+        Assert(pnodeFnc != nullptr);
         if (labelledStatement)
         {
             if (IsStrictMode())
             {
                 Error(ERRFunctionAfterLabelInStrict);
             }
-            else if (pNodeFnc->IsAsync())
+            else if (pnodeFnc->IsAsync())
             {
                 Error(ERRLabelBeforeAsyncFncDeclaration);
             }
-            else if (pNodeFnc->IsGenerator())
+            else if (pnodeFnc->IsGenerator())
             {
                 Error(ERRLabelBeforeGeneratorDeclaration);
             }
@@ -9687,8 +9690,8 @@ LRestart:
         
         if (isAsyncMethod)
         {
-            pnode->AsParseNodeFnc()->cbMin = iecpMin;
-            pnode->ichMin = ichMin;
+            pnodeFnc->cbMin = iecpMin;
+            pnodeFnc->ichMin = ichMin;
         }
         break;
     }
@@ -11484,7 +11487,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
                 flags |= fFncLambda;
             }
 
-            ParseNode * pnodeFnc = ParseFncDeclCheckScope<true>(flags);
+            ParseNode * pnodeFnc = ParseFncDeclNoCheckScope<true>(flags);
             pnodeProg->pnodeBody = nullptr;
             AddToNodeList(&pnodeProg->pnodeBody, &lastNodeRef, pnodeFnc);
 
