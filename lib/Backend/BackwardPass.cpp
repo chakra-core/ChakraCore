@@ -5601,6 +5601,12 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 
     JITTypeHolder typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
     JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : JITTypeHolder(nullptr);
+    PropertySym *propertySym = opnd->m_sym->AsPropertySym();
+
+    if (!opnd->IsTypeAvailable())
+    {
+        this->ClearTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
+    }
 
     if (typeWithoutProperty == nullptr ||
         typeWithProperty == typeWithoutProperty ||
@@ -5608,7 +5614,6 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     {
         if (!this->IsPrePass() && block->stackSymToFinalType != nullptr && !this->currentInstr->HasBailOutInfo())
         {
-            PropertySym *propertySym = opnd->m_sym->AsPropertySym();
             AddPropertyCacheBucket *pBucket =
                 block->stackSymToFinalType->Get(propertySym->m_stackSym->m_id);
             if (pBucket && pBucket->GetFinalType() != nullptr && pBucket->GetInitialType() != pBucket->GetFinalType())
@@ -5639,7 +5644,6 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     }
 
     // Find or create the type-tracking record for this instance in this block.
-    PropertySym *propertySym = opnd->m_sym->AsPropertySym();
     AddPropertyCacheBucket *pBucket =
         block->stackSymToFinalType->FindOrInsertNew(propertySym->m_stackSym->m_id);
 
@@ -5670,7 +5674,10 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     }
 
     pBucket->SetInitialType(typeWithoutProperty);
-    this->SetTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
+    if (opnd->IsTypeChecked())
+    {
+        this->SetTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
+    }
 
     if (!PHASE_OFF(Js::ObjTypeSpecStorePhase, this->func))
     {
@@ -5758,7 +5765,6 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 #else
         block->stackSymToFinalType->Clear(propertySym->m_stackSym->m_id);
 #endif
-        this->ClearTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
     }
 }
 
