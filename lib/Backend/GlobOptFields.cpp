@@ -1917,6 +1917,11 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
                 symOpnd->m_sym = newProp;
                 symOpnd->SetIsJITOptimizedReg(true);
 
+                if (this->IsLoopPrePass())
+                {
+                    this->OnCopyPropInPrePass(copySym, instr, this->currentBlock);
+                }
+
                 if (symOpnd->IsPropertySymOpnd())
                 {
                     IR::PropertySymOpnd *propertySymOpnd = symOpnd->AsPropertySymOpnd();
@@ -1957,6 +1962,77 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
     }
 
     return propertySym;
+}
+
+void
+GlobOpt::OnCopyPropInPrePass(StackSym * copySym, IR::Instr * instr, BasicBlock * block)
+{
+    // Copy prop in the prepass may make upwardExposedUses out of date. Update it now.
+
+    if (block->upwardExposedUses->Test(copySym->m_id))
+    {
+        // Nothing to do
+        return;
+    }
+
+    // Use a to-do stack to avoid recursion and a bv to avoid repeated work
+    JsUtil::Stack<BasicBlock*, JitArenaAllocator, true> blockStack(this->tempAlloc);
+    BVSparse<JitArenaAllocator> blocksProcessed(this->tempAlloc);
+
+    blocksProcessed.Set(block->GetBlockNum());
+    this->UpdateUpwardExposedUses(copySym, instr, block, &blockStack, &blocksProcessed);
+
+    while (!blockStack.Empty())
+    {
+        block = blockStack.Pop();
+        Assert(blocksProcessed.Test(block->GetBlockNum()));
+        this->UpdateUpwardExposedUses(copySym, block->GetLastInstr(), block, &blockStack, &blocksProcessed);
+    }
+}
+
+void
+GlobOpt::UpdateUpwardExposedUses(StackSym * sym, IR::Instr * instrLast, BasicBlock * block, JsUtil::Stack<BasicBlock*, JitArenaAllocator, true> *blockStack, BVSparse<JitArenaAllocator>* blocksProcessed)
+{
+    Assert(blocksProcessed->Test(block->GetBlockNum()));
+    Assert(!block->upwardExposedUses->Test(sym->m_id));
+
+    // Walk the block backward looking for a def. If the sym is write-through in this block, though,
+    // treat it as upward-exposed regardless of the presence of defs.
+    IR::LabelInstr * instrFirst = block->GetFirstInstr()->AsLabelInstr();
+    Region * region = instrFirst->GetRegion();
+    if (region == nullptr || !region->CheckWriteThroughSym(sym))
+    {
+        FOREACH_INSTR_BACKWARD_IN_RANGE(instr, instrLast, instrFirst)
+        {
+            // If the instr defines the sym, quit without setting upwardExposedUses
+            IR::Opnd * dst = instr->GetDst();
+            if (dst != nullptr && dst->GetStackSym() == sym)
+            {
+                return;
+            }
+            Assert(dst == nullptr || dst->GetStackSym() == nullptr || dst->GetStackSym()->m_id != sym->m_id);
+        }
+        NEXT_INSTR_BACKWARD_IN_RANGE;
+    }
+
+    // The sym is upward exposed at this block. Now update the to-do set with the predecessors.
+
+    Assert(block->GetBlockNum() != 0);
+    block->upwardExposedUses->Set(sym->m_id);
+    FOREACH_PREDECESSOR_BLOCK(blockPred, block)
+    {
+        if (blockPred->upwardExposedUses == nullptr || blockPred->upwardExposedUses->Test(sym->m_id))
+        {
+            // If the bv is null, that means the main pass is done with this block
+            // and so done with its predecessors
+            continue;
+        }
+        if (!blocksProcessed->TestAndSet(blockPred->GetBlockNum()))
+        {
+            blockStack->Push(blockPred);
+        }
+    }
+    NEXT_PREDECESSOR_BLOCK;
 }
 
 void

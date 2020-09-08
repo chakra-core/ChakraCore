@@ -196,7 +196,8 @@ private:
 
     void            EnsureStackFunctionListStackSym();
     void            EnsureZeroLastStackFunctionNext();
-    void            AllocStackClosure();
+    void            AllocStackClosure(StackSym * symInlineeFrameDisplayEnd);
+    void            InitializeInlineeFrameDisplays(StackSym * symInlineeFrameDisplayEnd);
     IR::Instr *     GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnvOpnd);
     void            GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionInfoPtrPtr nestedInfo);
     void            GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddressOpnd,

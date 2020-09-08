@@ -241,6 +241,7 @@ protected:
     OLECHAR ReadRest(OLECHAR ch, EncodedCharPtr &p, EncodedCharPtr last)
     {
         EncodedCharPtr s;
+        utf8::DecodeOptions decodeOptions = m_decodeOptions;
         if (bScan)
         {
             s = p;
@@ -248,8 +249,16 @@ protected:
         OLECHAR result = utf8::DecodeTail(ch, p, last, m_decodeOptions);
         if (bScan)
         {
-            // If we are scanning, update m_cMultiUnits counter.
-            m_cMultiUnits += p - s;
+            if ((decodeOptions & utf8::doSecondSurrogatePair) && (p - s > 2))
+            {
+                // 4 byte utf8 chars equals 2 utf16 chars + 2 multi-unit chars only (refer to case4: in utf8::DecodeTail()).
+                m_cMultiUnits += 2;
+            }
+            else
+            {
+                // If we are scanning, update m_cMultiUnits counter.
+                m_cMultiUnits += p - s;
+            }
         }
         return result;
     }

@@ -13,10 +13,12 @@ namespace Js
         JavascriptFunctionArgIndex_StackNestedFuncListWithNoArg = JavascriptFunctionArgIndex_Frame - Js::Constants::StackNestedFuncListWithNoArg,
         JavascriptFunctionArgIndex_StackFrameDisplayNoArg = JavascriptFunctionArgIndex_Frame - Js::Constants::StackFrameDisplayWithNoArg,
         JavascriptFunctionArgIndex_StackScopeSlotsNoArg = JavascriptFunctionArgIndex_Frame - Js::Constants::StackScopeSlotsWithNoArg,
+        JavascriptFunctionArgIndex_InlineeFrameDisplaysNoArg = JavascriptFunctionArgIndex_Frame - Js::Constants::InlineeFrameDisplaysWithNoArg,
 #endif
         JavascriptFunctionArgIndex_StackNestedFuncList = JavascriptFunctionArgIndex_Frame - Js::Constants::StackNestedFuncList,
         JavascriptFunctionArgIndex_StackFrameDisplay = JavascriptFunctionArgIndex_Frame - Js::Constants::StackFrameDisplay,
         JavascriptFunctionArgIndex_StackScopeSlots = JavascriptFunctionArgIndex_Frame - Js::Constants::StackScopeSlots,
+        JavascriptFunctionArgIndex_InlineeFrameDisplays = JavascriptFunctionArgIndex_Frame - Js::Constants::InlineeFrameDisplays,
         JavascriptFunctionArgIndex_Function        = 0,
         JavascriptFunctionArgIndex_CallInfo        = 1,
         JavascriptFunctionArgIndex_This            = 2, /* (hidden) first script arg */

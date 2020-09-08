@@ -103,3 +103,21 @@ Region::GetFirstAncestorOfNonExceptingFinally()
     return ancestor;
 }
 
+bool
+Region::CheckWriteThroughSym(StackSym * sym)
+{
+    if (this->GetType() == RegionTypeRoot)
+    {
+        return false;
+    }
+
+    // if the current region is a try region, check in its write-through set,
+    // otherwise (current = catch region) look in the first try ancestor's write-through set
+    Region * selfOrFirstTryAncestor = this->GetSelfOrFirstTryAncestor();
+    if (!selfOrFirstTryAncestor)
+    {
+        return false;
+    }
+    Assert(selfOrFirstTryAncestor->GetType() == RegionTypeTry);
+    return selfOrFirstTryAncestor->writeThroughSymbolsSet && selfOrFirstTryAncestor->writeThroughSymbolsSet->Test(sym->m_id);
+}

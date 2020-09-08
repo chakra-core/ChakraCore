@@ -49,9 +49,11 @@ Lowerer::Lower()
     {
         EnsureStackFunctionListStackSym();
     }
+    StackSym * symInlineeFrameDisplayEnd = nullptr;
     if (m_func->DoStackFrameDisplay() && !m_func->IsLoopBody())
     {
-        AllocStackClosure();
+        symInlineeFrameDisplayEnd = StackSym::New(m_func);
+        AllocStackClosure(symInlineeFrameDisplayEnd);
     }
 
     AllocStackForInObjectEnumeratorArray();
@@ -138,6 +140,11 @@ Lowerer::Lower()
     if (m_func->HasAnyStackNestedFunc())
     {
         EnsureZeroLastStackFunctionNext();
+    }
+
+    if (symInlineeFrameDisplayEnd != nullptr)
+    {
+        InitializeInlineeFrameDisplays(symInlineeFrameDisplayEnd);
     }
 
     if (!m_func->IsSimpleJit())
@@ -6755,10 +6762,40 @@ Lowerer::EnsureStackFunctionListStackSym()
 }
 
 void
-Lowerer::AllocStackClosure()
+Lowerer::AllocStackClosure(StackSym * symInlineeFrameDisplayEnd)
 {
     m_func->StackAllocate(m_func->GetLocalFrameDisplaySym(), sizeof(Js::Var));
     m_func->StackAllocate(m_func->GetLocalClosureSym(), sizeof(Js::Var));
+
+    if (m_func->m_inlineeFrameDisplaySyms != nullptr)
+    {
+        FOREACH_SLIST_ENTRY(StackSym*, sym, m_func->m_inlineeFrameDisplaySyms)
+        {
+            m_func->StackAllocate(sym, sizeof(Js::Var));
+        }
+        NEXT_SLIST_ENTRY;
+    }
+    m_func->StackAllocate(symInlineeFrameDisplayEnd, sizeof(Js::Var));
+}
+
+void
+Lowerer::InitializeInlineeFrameDisplays(StackSym * symInlineeFrameDisplayEnd)
+{
+    if (m_func->m_inlineeFrameDisplaySyms != nullptr)
+    {
+        FOREACH_SLIST_ENTRY(StackSym*, sym, m_func->m_inlineeFrameDisplaySyms)
+        {
+            Assert(sym->IsAllocated());
+            InsertMove(IR::SymOpnd::New(sym, TyMachReg, m_func),
+                       IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetNullFrameDisplayAddr(), IR::AddrOpndKindDynamicMisc, m_func),
+                       m_func->GetFunctionEntryInsertionPoint());
+        }
+        NEXT_SLIST_ENTRY;
+    }
+    Assert(symInlineeFrameDisplayEnd->IsAllocated());
+    InsertMove(IR::SymOpnd::New(symInlineeFrameDisplayEnd, TyMachReg, m_func),
+               IR::AddrOpnd::New((void*)0, IR::AddrOpndKindDynamicMisc, m_func),
+               m_func->GetFunctionEntryInsertionPoint());
 }
 
 void
@@ -27112,6 +27149,12 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
     else
     {
         GenerateRecyclerAlloc(IR::HelperAllocMemForFrameDisplay, allocSize, dstOpnd, instr);
+        if (instr->m_func != this->m_func && this->m_func->DoStackFrameDisplay())
+        {
+            StackSym * inlineeFrameDisplaySym = instr->m_func->GetLocalFrameDisplaySym();
+            Assert(inlineeFrameDisplaySym->IsAllocated());
+            InsertMove(IR::SymOpnd::New(inlineeFrameDisplaySym, TyMachReg, m_func), dstOpnd, instr);
+        }
     }
 
     // Copy contents of environment

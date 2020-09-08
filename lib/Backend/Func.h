@@ -441,6 +441,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
 
     StackSym *GetLocalFrameDisplaySym() const { return m_localFrameDisplaySym; }
     void SetLocalFrameDisplaySym(StackSym *sym) { m_localFrameDisplaySym = sym; }
+    void AddInlineeFrameDisplaySym(StackSym *sym);
 
     intptr_t GetJittedLoopIterationsSinceLastBailoutAddress() const;
     void EnsurePinnedTypeRefs();
@@ -678,6 +679,7 @@ public:
     StackSym *          m_paramClosureSym;
     StackSym *          m_localFrameDisplaySym;
     StackSym *          m_bailoutReturnValueSym;
+    SList<StackSym*> *  m_inlineeFrameDisplaySyms;
     StackSym *          m_hasBailedOutSym;
     uint                m_forInLoopMaxDepth;
     uint                m_forInLoopBaseDepth;

@@ -661,6 +661,11 @@ IRBuilder::Build()
                             dstOpnd, m_func),
                         offset);
                 }
+                else if (m_func->GetTopFunc()->DoStackFrameDisplay())
+                {
+                    Assert(m_func->GetLocalFrameDisplaySym() != nullptr);
+                    m_func->GetTopFunc()->AddInlineeFrameDisplaySym(m_func->GetLocalFrameDisplaySym());
+                }
             }
         }
     }

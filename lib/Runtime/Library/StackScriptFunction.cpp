@@ -247,7 +247,6 @@ namespace Js
                         StackScriptFunction * stackFunction = interpreterFrame->GetStackNestedFunction(i);
                         ScriptFunction * boxedFunction = this->BoxStackFunction(stackFunction);
                         Assert(stackFunction->boxedScriptFunction == boxedFunction);
-                        this->UpdateFrameDisplay(stackFunction);
                     }
 
                     if (walker.IsBailedOutFromInlinee())
@@ -265,16 +264,6 @@ namespace Js
                         // Walk native frame that was bailed out as well.
                         // The stack walker is pointing to the native frame already.
                         this->BoxNativeFrame(walker, callerFunctionBody);
-
-                        // We don't need to box this frame, but we may still need to box the scope slot references
-                        // within nested frame displays if the slots they refer to have been boxed.
-                        if (callerFunctionBody->GetNestedCount() != 0)
-                        {
-                            this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
-                            {
-                                this->UpdateFrameDisplay(nestedFunc);
-                            });
-                        }
                     }
                 }
                 else
@@ -314,16 +303,6 @@ namespace Js
 
                         // walk native frame
                         this->BoxNativeFrame(walker, callerFunctionBody);
-
-                        // We don't need to box this frame, but we may still need to box the scope slot references
-                        // within nested frame displays if the slots they refer to have been boxed.
-                        if (callerFunctionBody->GetNestedCount() != 0)
-                        {
-                            this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
-                            {
-                                this->UpdateFrameDisplay(nestedFunc);
-                            });
-                        }
                     }
                 }
             }
@@ -399,17 +378,17 @@ namespace Js
                     {
                         interpreterFrame->SetExecutingStackFunction(boxedCaller);
                     }
-
-                    // We don't need to box this frame, but we may still need to box the scope slot references
-                    // within nested frame displays if the slots they refer to have been boxed.
-                    if (callerFunctionBody->GetNestedCount() != 0)
-                    {
-                        this->ForEachStackNestedFunction(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
-                        {
-                            this->UpdateFrameDisplay(nestedFunc);
-                        });
-                    }
                 }
+            }
+
+            // We don't need to box this frame, but we may still need to box the scope slot references
+            // within nested frame displays if the slots they refer to have been boxed.
+            if (callerFunctionBody->GetNestedCount() != 0)
+            {
+                this->ForEachStackNestedFunction(walker, callerFunctionBody, [&](ScriptFunction *nestedFunc)
+                {
+                    this->UpdateFrameDisplay(nestedFunc);
+                });
             }
         }
 
@@ -436,6 +415,11 @@ namespace Js
             }
         }
 
+        UpdateFrameDisplay(frameDisplay);
+    }
+
+    void StackScriptFunction::BoxState::UpdateFrameDisplay(FrameDisplay *frameDisplay)
+    {
         for (uint i = 0; i < frameDisplay->GetLength(); i++)
         {
             Var* stackScopeSlots = (Var*)frameDisplay->GetItem(i);
@@ -475,6 +459,20 @@ namespace Js
         }
     }
 
+    uintptr_t StackScriptFunction::BoxState::GetInlineeFrameDisplaysIndex(FunctionBody * functionBody)
+    {
+#if _M_IX86 || _M_AMD64
+        if (functionBody->GetInParamsCount() == 0)
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_InlineeFrameDisplaysNoArg;
+        }
+        else
+#endif
+        {
+            return (uintptr_t)JavascriptFunctionArgIndex_InlineeFrameDisplays;
+        }
+    }
+
     FrameDisplay * StackScriptFunction::BoxState::GetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
     {
         uintptr_t frameDisplayIndex = GetNativeFrameDisplayIndex(callerFunctionBody);
@@ -487,6 +485,13 @@ namespace Js
         uintptr_t scopeSlotsIndex = GetNativeScopeSlotsIndex(callerFunctionBody);
         void **argv = walker.GetCurrentArgv();
         return (Var*)argv[scopeSlotsIndex];
+    }
+
+    FrameDisplay * StackScriptFunction::BoxState::GetInlineeFrameDisplaysFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody)
+    {
+        uintptr_t inlineeFrameDisplaysIndex = GetInlineeFrameDisplaysIndex(callerFunctionBody);
+        void **argv = walker.GetCurrentArgv();
+        return (FrameDisplay*)argv[inlineeFrameDisplaysIndex];
     }
 
     void StackScriptFunction::BoxState::SetFrameDisplayFromNativeFrame(JavascriptStackWalker const& walker, FunctionBody * callerFunctionBody, FrameDisplay * frameDisplay)
@@ -541,6 +546,13 @@ namespace Js
                 callerFunctionBody->GetScriptContext()->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             }
         }
+
+        this->ForEachInlineeFrameDisplay(walker, callerFunctionBody, [&](FrameDisplay *frameDisplay)
+        {            
+            // Update all the inlinee frame displays, which are not stack-allocated but may refer to scopes on the stack.
+            // This is only necessary in a native frame that does stack frame displays
+            this->UpdateFrameDisplay(frameDisplay);
+        });
     }
 
     template<class Fn>
@@ -612,6 +624,37 @@ namespace Js
                 curr = *(Js::Var *)(func + 1);
             }
             while (curr != nullptr);
+        }
+    }
+
+    template<class Fn>
+    void StackScriptFunction::BoxState::ForEachInlineeFrameDisplay(
+        JavascriptStackWalker const& walker,
+        FunctionBody *callerFunctionBody,
+        Fn fn)
+    {
+        if (!callerFunctionBody->DoStackFrameDisplay() || walker.GetCurrentInterpreterFrame() != nullptr || walker.IsInlineFrame())
+        {
+            return;
+        }
+
+#ifdef MD_GROW_LOCALS_AREA_UP
+        // Stack closures not supported for layouts like ARM. We shouldn't get here.
+        AssertOrFailFast(0);
+#endif
+
+        void **argv = walker.GetCurrentArgv();
+        FrameDisplay ** curr = (FrameDisplay**)(
+#if _M_IX86 || _M_AMD64
+            callerFunctionBody->GetInParamsCount() == 0?
+            &argv[JavascriptFunctionArgIndex_InlineeFrameDisplaysNoArg]:
+#endif
+            &argv[JavascriptFunctionArgIndex_InlineeFrameDisplays]);
+
+        while (*curr != nullptr)
+        {
+            fn(*curr);
+            curr--; 
         }
     }
 
