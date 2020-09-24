@@ -875,7 +875,7 @@ GlobOpt::CreateOpndForTypeCheckOnly(IR::PropertySymOpnd* opnd, Func* func)
 }
 
 bool
-GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut, bool* changesTypeValueOut)
+GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool* emitsTypeCheckOut, bool* changesTypeValueOut)
 {
     if (!DoFieldRefOpts() || !OpCodeAttr::FastFldInstr(instr->m_opcode))
     {
@@ -888,7 +888,7 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
 
     if (isTypeCheckSeqCandidate)
     {
-        isObjTypeSpecialized = ProcessPropOpInTypeCheckSeq<true>(instr, opnd, block, updateExistingValue, emitsTypeCheckOut, changesTypeValueOut, &isObjTypeChecked);
+        isObjTypeSpecialized = ProcessPropOpInTypeCheckSeq<true>(instr, opnd, block, emitsTypeCheckOut, changesTypeValueOut, &isObjTypeChecked);
     }
 
     if (opnd == instr->GetDst() && this->objectTypeSyms)
@@ -1102,19 +1102,19 @@ GlobOpt::CompareCurrentTypesWithExpectedTypes(JsTypeValueInfo *valueInfo, IR::Pr
 bool
 GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd)
 {
-    return ProcessPropOpInTypeCheckSeq<true>(instr, opnd, this->currentBlock, false);
+    return ProcessPropOpInTypeCheckSeq<true>(instr, opnd, this->currentBlock);
 }
 
 bool GlobOpt::CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd)
 {
     bool emitsTypeCheck;
-    ProcessPropOpInTypeCheckSeq<false>(instr, opnd, this->currentBlock, false, &emitsTypeCheck);
+    ProcessPropOpInTypeCheckSeq<false>(instr, opnd, this->currentBlock, &emitsTypeCheck);
     return emitsTypeCheck;
 }
 
 template<bool makeChanges>
 bool
-GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut, bool* changesTypeValueOut, bool *isTypeCheckedOut)
+GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool* emitsTypeCheckOut, bool* changesTypeValueOut, bool *isTypeCheckedOut)
 {
     // We no longer mark types as dead in the backward pass, so we should never see an instr with a dead type here
     // during the forward pass. For the time being we've retained the logic below to deal with dead types in case
@@ -1193,7 +1193,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             addsProperty = isStore && isSpecialized && opnd->HasInitialType();
             if (produceType)
             {
-                SetObjectTypeFromTypeSym(typeSym, opndType, nullptr, block, updateExistingValue);
+                SetObjectTypeFromTypeSym(typeSym, opndType, nullptr, block);
             }
         }
         else if (valueInfo->GetJsType() != nullptr)
@@ -1227,7 +1227,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 }
                 if (produceType)
                 {
-                    SetObjectTypeFromTypeSym(typeSym, opndType, nullptr, block, updateExistingValue);
+                    SetObjectTypeFromTypeSym(typeSym, opndType, nullptr, block);
                 }
                 isSpecialized = !isTypeDead || !objectMayHaveAcquiredAdditionalProperties;
                 emitsTypeCheck = isSpecialized && objectMayHaveAcquiredAdditionalProperties;
@@ -1376,11 +1376,11 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             {
                 if (opnd->IsMono())
                 {
-                    SetObjectTypeFromTypeSym(typeSym, opnd->GetFirstEquivalentType(), nullptr, block, updateExistingValue);
+                    SetObjectTypeFromTypeSym(typeSym, opnd->GetFirstEquivalentType(), nullptr, block);
                 }
                 else
                 {
-                    SetObjectTypeFromTypeSym(typeSym, nullptr, opndTypeSet, block, updateExistingValue);
+                    SetObjectTypeFromTypeSym(typeSym, nullptr, opndTypeSet, block);
                 }
             }
             isSpecialized = !isTypeDead;
@@ -1421,11 +1421,11 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             {
                 if (opnd->IsMono())
                 {
-                    SetObjectTypeFromTypeSym(typeSym, opnd->GetFirstEquivalentType(), nullptr, block, updateExistingValue);
+                    SetObjectTypeFromTypeSym(typeSym, opnd->GetFirstEquivalentType(), nullptr, block);
                 }
                 else
                 {
-                    SetObjectTypeFromTypeSym(typeSym, nullptr, opndTypeSet, block, updateExistingValue);
+                    SetObjectTypeFromTypeSym(typeSym, nullptr, opndTypeSet, block);
                 }
             }
             isSpecialized = !isTypeDead;
@@ -1788,18 +1788,18 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, Value* value, BasicBlock* b
 }
 
 void
-GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, BasicBlock* block, bool updateExistingValue)
+GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, BasicBlock* block)
 {
     if (block == nullptr)
     {
         block = this->currentBlock;
     }
 
-    SetObjectTypeFromTypeSym(typeSym, type, typeSet, &block->globOptData, updateExistingValue);
+    SetObjectTypeFromTypeSym(typeSym, type, typeSet, &block->globOptData);
 }
 
 void
-GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue)
+GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData)
 {
     Assert(typeSym != nullptr);
 
@@ -1810,25 +1810,10 @@ GlobOpt::SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, J
         blockData = &this->currentBlock->globOptData;
     }
 
-    if (updateExistingValue)
-    {
-        Value* value = blockData->FindValueFromMapDirect(typeSymId);
-
-        // If we're trying to update an existing value, the value better exist. We only do this when updating a generic
-        // value created during loop pre-pass for field hoisting, so we expect the value info to still be blank.
-        Assert(value != nullptr && value->GetValueInfo() != nullptr && value->GetValueInfo()->IsJsType());
-        JsTypeValueInfo* valueInfo = value->GetValueInfo()->AsJsType();
-        Assert(valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr);
-        UpdateObjectTypeValue(value, type, true, typeSet, true);
-    }
-    else
-    {
-        JsTypeValueInfo* valueInfo = JsTypeValueInfo::New(this->alloc, type, typeSet);
-        this->SetSymStoreDirect(valueInfo, typeSym);
-        Value* value = NewValue(valueInfo);
-        blockData->SetValue(value, typeSym);
-    }
-
+    JsTypeValueInfo* valueInfo = JsTypeValueInfo::New(this->alloc, type, typeSet);
+    this->SetSymStoreDirect(valueInfo, typeSym);
+    Value* value = NewValue(valueInfo);
+    blockData->SetValue(value, typeSym);
     blockData->liveFields->Set(typeSymId);
 }
 

@@ -14591,6 +14591,14 @@ GlobOpt::OptIsInvariant(
             allowNonPrimitives = true;
         }
         break;
+
+    case Js::OpCode::CheckFixedFld:
+        if (!instr->GetSrc1()->AsPropertySymOpnd()->NeedsPrimaryTypeCheck())
+        {
+            break;
+        }
+        // Fall through. If the instruction has to do a type check as well as a fixed field check, then we need to check the invariance
+        // of the type symbol.
     case Js::OpCode::CheckObjType:
         // Bug 11712101: If the operand is a field, ensure that its containing object type is invariant
         // before hoisting -- that is, don't hoist a CheckObjType over a DeleteFld on that object.
