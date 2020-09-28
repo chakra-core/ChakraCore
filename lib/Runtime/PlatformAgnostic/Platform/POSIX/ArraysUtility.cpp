@@ -53,8 +53,6 @@ namespace Arrays
         ArrayLocalization arrayLocalization;
         //Append ' ' after separator
         szSeparator[*sepOutSize] = arrayLocalization.GetLocaleSeparator();
-        szSeparator[++(*sepOutSize)] = ' ';
-        szSeparator[++(*sepOutSize)] = '\0';
 
         return true;
     }

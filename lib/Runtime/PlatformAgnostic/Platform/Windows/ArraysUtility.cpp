@@ -11,7 +11,7 @@ namespace PlatformAgnostic
 {
 namespace Arrays
 {
-    // Potential candidate for optimization 
+    // Potential candidate for optimization
     bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutSize, uint32 sepBufSize)
     {
         char16 localeName[LOCALE_NAME_MAX_LENGTH] = { 0 };
@@ -31,16 +31,6 @@ namespace Arrays
             AssertMsg(FALSE, "GetLocaleInfo failed");
             return false;
         }
-        else
-        {
-            // Append ' ' if necessary
-            if (*sepOutSize < 2 || szSeparator[*sepOutSize - 2] != ' ')
-            {
-                szSeparator[*sepOutSize - 1] = ' ';
-                szSeparator[*sepOutSize] = '\0';
-            }
-        }
-
         return true;
     }
 
