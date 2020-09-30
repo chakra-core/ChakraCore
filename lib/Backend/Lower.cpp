@@ -27152,8 +27152,11 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
         if (instr->m_func != this->m_func && this->m_func->DoStackFrameDisplay())
         {
             StackSym * inlineeFrameDisplaySym = instr->m_func->GetLocalFrameDisplaySym();
-            Assert(inlineeFrameDisplaySym->IsAllocated());
-            InsertMove(IR::SymOpnd::New(inlineeFrameDisplaySym, TyMachReg, m_func), dstOpnd, instr);
+            Assert((inlineeFrameDisplaySym && inlineeFrameDisplaySym->IsAllocated()) || this->m_func->IsLoopBody());
+            if (inlineeFrameDisplaySym && inlineeFrameDisplaySym->IsAllocated())
+            {
+                InsertMove(IR::SymOpnd::New(inlineeFrameDisplaySym, TyMachReg, m_func), dstOpnd, instr);
+            }
         }
     }
 
