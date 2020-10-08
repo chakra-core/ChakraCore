@@ -3210,16 +3210,12 @@ Recycler::SweepWeakReference()
             return false;
         }
 
-        if (!weakRef->strongRefHeapBlock->TestObjectMarkedBit(weakRef->strongRef))
+        if (weakRef->strongRef && !weakRef->strongRefHeapBlock->TestObjectMarkedBit(weakRef->strongRef))
         {
-            hasCleanup = true;
             weakRef->strongRef = nullptr;
 
             // Put in a dummy heap block so that we can still do the isPendingConcurrentSweep check first.
             weakRef->strongRefHeapBlock = &CollectedRecyclerWeakRefHeapBlock::Instance;
-
-            // Remove
-            return false;
         }
 
         return true;
