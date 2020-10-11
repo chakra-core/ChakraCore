@@ -326,11 +326,11 @@ var tests = [
                 result = o.toLocaleString();
 
                 // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
-                if (result == "0, 31") {
-                    result = "0.00, 31.00";
+                if (result == "0,31") {
+                    result = "0.00,31.00";
                 }
 
-                assert.areEqual("0.00, 31.00", result, "TypedArray" + helpers.getTypeOf(o) + ".toLocaleString should use length from internal slot.");
+                assert.areEqual("0.00,31.00", result, "TypedArray" + helpers.getTypeOf(o) + ".toLocaleString should use length from internal slot.");
                 return result;
             };
 
