@@ -25,14 +25,17 @@ namespace Arrays
         }
 
         *sepOutSize = GetLocaleInfoEx(localeName, LOCALE_SLIST, szSeparator, sepBufSize);
-
+        
         if (*sepOutSize == 0)
         {
             AssertMsg(FALSE, "GetLocaleInfo failed");
             return false;
         }
-        return true;
-    }
+        else
+        {
+          // We need just the number of regular characters, but Win32 API counts terminating null character as well
+          --(*sepOutSize);
+        }
 
 } // namespace Arrays
 } // namespace PlatformAgnostic
