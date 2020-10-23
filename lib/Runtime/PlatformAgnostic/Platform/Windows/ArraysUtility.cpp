@@ -37,5 +37,8 @@ namespace Arrays
           --(*sepOutSize);
         }
 
+        return true;
+    }
+
 } // namespace Arrays
 } // namespace PlatformAgnostic
