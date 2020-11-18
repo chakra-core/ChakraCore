@@ -15,7 +15,7 @@
         i32.const 0
         get_local $v1
         get_local $v2
-        v8x16.shuffle  0x1c1d1e1f 0x13021101 0x06050403 0x0a0b1415 
+        i8x16.shuffle  0x1f 0x1e 0x1d 0x1c 0x01 0x11 0x02 0x13 0x03 0x04 0x05 0x06 0x15 0x14 0x0b 0x0a
         v128.store offset=0 align=4
     )
 
@@ -28,7 +28,7 @@
         i32.const 0
         get_local $v1
         get_local $v2
-        v8x16.shuffle  0x13121110 0x17161514 0x03020100 0x07060504 
+        i8x16.shuffle  0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x00 0x01 0x02 0x03 0x04 0x05 0x06 0x07
         v128.store align=4
     )
 
@@ -41,7 +41,7 @@
         i32.const 0
         get_local 0
         get_local 1
-        v8x16.shuffle  0x12011100 0x14031302 0x16051504 0x18071706 
+        i8x16.shuffle  0x00 0x11 0x01 0x12 0x02 0x13 0x03 0x14 0x04 0x15 0x05 0x16 0x06 0x17 0x07 0x18
         v128.store align=4
     )
 
@@ -97,13 +97,13 @@
     (func (export "func_i16x8_addsaturate_s") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i16x8.add_saturate_s (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i16x8.add_sat_s (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i16x8_addsaturate_u") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i16x8.add_saturate_u (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i16x8.add_sat_u (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i16x8_sub") (local $v1 v128) (local $v2 v128)
@@ -115,13 +115,13 @@
     (func (export "func_i16x8_subsaturate_s") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i16x8.sub_saturate_s (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i16x8.sub_sat_s (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i16x8_subsaturate_u") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i16x8.sub_saturate_u (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i16x8.sub_sat_u (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i16x8_mul") (local $v1 v128) (local $v2 v128)
@@ -157,13 +157,13 @@
     (func (export "func_i8x16_addsaturate_s") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i8x16.add_saturate_s (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i8x16.add_sat_s (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i8x16_addsaturate_u") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i8x16.add_saturate_u (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i8x16.add_sat_u (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i8x16_sub") (local $v1 v128) (local $v2 v128)
@@ -175,19 +175,13 @@
     (func (export "func_i8x16_subsaturate_s") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i8x16.sub_saturate_s (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i8x16.sub_sat_s (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i8x16_subsaturate_u") (local $v1 v128) (local $v2 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i8x16.sub_saturate_u (get_local $v1) (get_local $v2)))
-    )
-
-    (func (export "func_i8x16_mul") (local $v1 v128) (local $v2 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (set_local $v2 (v128.load offset=0 align=4 (i32.const 16)))
-        (v128.store offset=0 align=4 (i32.const 0) (i8x16.mul (get_local $v1) (get_local $v2)))
+        (v128.store offset=0 align=4 (i32.const 0) (i8x16.sub_sat_u (get_local $v1) (get_local $v2)))
     )
 
     (func (export "func_i8x16_shl") (param $shamt i32) (local $v1 v128) (local $v2 v128)
@@ -298,25 +292,5 @@
     (func (export "func_f64x2_sqrt")  (local $v1 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (v128.store offset=0 align=4 (i32.const 0) (f64x2.sqrt (get_local $v1)))
-    )
-
-    (func (export "func_i64x2_trunc_s")  (local $v1 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (v128.store offset=0 align=4 (i32.const 0) (i64x2.trunc_s/f64x2:sat (get_local $v1)))
-    )
-
-    (func (export "func_i64x2_trunc_u")  (local $v1 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (v128.store offset=0 align=4 (i32.const 0) (i64x2.trunc_u/f64x2:sat (get_local $v1)))
-    )
-
-    (func (export "func_f64x2_convert_s")  (local $v1 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (v128.store offset=0 align=4 (i32.const 0) (f64x2.convert_s/i64x2 (get_local $v1)))
-    )
-
-    (func (export "func_f64x2_convert_u")  (local $v1 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (v128.store offset=0 align=4 (i32.const 0) (f64x2.convert_u/i64x2 (get_local $v1)))
     )
 )
