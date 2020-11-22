@@ -158,9 +158,6 @@ WASM_BINARY_OPCODE(I4Mul, __prefix | 0xb5, V128X3, Simd128_Mul_I4, true, "i32x4.
 
 WASM_UNARY__OPCODE(I2Neg, __prefix | 0xc1, V128_V128, Simd128_Neg_I2, true, "i64x2.neg")
 
-WASM_UNARY__OPCODE(I2AnyTrue, __prefix | 0x85, I_V128, Simd128_AnyTrue_B2, true, "i64x2.any_true")
-WASM_UNARY__OPCODE(I2AllTrue, __prefix | 0x86, I_V128, Simd128_AllTrue_B2, true, "i64x2.all_true")
-
 WASM_BINARY_OPCODE(I2Shl, __prefix | 0xcb, V128_V128_I, Simd128_ShLtByScalar_I2, true, "i64x2.shl")
 WASM_BINARY_OPCODE(I2ShrS, __prefix | 0xcc, V128_V128_I, Simd128_ShRtByScalar_I2, true, "i64x2.shr_s")
 WASM_BINARY_OPCODE(I2ShrU, __prefix | 0xcd, V128_V128_I, Simd128_ShRtByScalar_U2, true, "i64x2.shr_u")
