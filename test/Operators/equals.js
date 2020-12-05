@@ -58,7 +58,7 @@ var all = [ undefined, null,
 
 for (var i=0; i<all.length; ++i) {
     for (var j=0; j<all.length; ++j) {
-        write("a["+i+"]("+all[i]+") == a["+j+"]("+all[j]+") : " + (all[i] == all[j]));
-        write("a["+i+"]("+all[i]+") != a["+j+"]("+all[j]+") : " + (all[i] != all[j]));
+        write("a["+i+"]("+ ((all[i] instanceof Date) ? all[i].toDateString() : all[i]) +") == a["+j+"]("+ ((all[j] instanceof Date) ? all[j].toDateString() : all[j])+") : " + (all[i] == all[j]));
+        write("a["+i+"]("+ ((all[i] instanceof Date) ? all[i].toDateString() : all[i]) +") != a["+j+"]("+ ((all[j] instanceof Date) ? all[j].toDateString() : all[j])+") : " + (all[i] != all[j]));
     }
 }

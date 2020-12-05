@@ -1264,11 +1264,6 @@ namespace Js
     {
     }
 
-    bool Configuration::EnableJitInDebugMode()
-    {
-        return CONFIG_FLAG(EnableJitInDiagMode);
-    }
-
     Configuration        Configuration::Global;
 
 

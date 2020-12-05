@@ -8390,7 +8390,7 @@ Case0:
                 }
                 else
                 {
-                    separator = scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
+                    separator = scriptContext->GetLibrary()->GetCommaDisplayString();
                 }
 
                 for (uint32 i = 1; i < length; i++)
@@ -9595,7 +9595,7 @@ Case0:
             )
         }
         // skip the typed array and "pure" array case, we still need to handle special arrays like es5array, remote array, and proxy of array.
-        else if (pArr == nullptr || scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        else
         {
             JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(obj, length, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         }
@@ -9936,13 +9936,13 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
-        
+
 #ifdef ENABLE_JS_BUILTINS
         Assert(!scriptContext->IsJsBuiltInEnabled());
 #endif
-        
+
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
-        
+
         Assert(!(callInfo.Flags & CallFlags_New));
 
         if (args.Info.Count == 0)
@@ -10005,7 +10005,7 @@ Case0:
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("TypedArray.prototype.reduce"));
                 }
-                else 
+                else
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
                 }
@@ -11645,10 +11645,13 @@ Case0:
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(srcArray, propertyObject, j, &element, scriptContext));
                     if (!gotItem)
                     {
-                        // Copy across missing values as undefined as per 12.2.5.2 SpreadElement : ... AssignmentExpression 5f.
-                        element = scriptContext->GetLibrary()->GetUndefined();
+                        // skip elided elements
+                        dstIndex++;
                     }
-                    dstArray->DirectSetItemAt(dstIndex++, element);
+                    else
+                    {
+                        dstArray->DirectSetItemAt(dstIndex++, element);
+                    }
                 }
             };
 
@@ -12270,7 +12273,7 @@ Case0:
     RecyclableObject*
     JavascriptArray::ArraySpeciesCreate(Var originalArray, T length, ScriptContext* scriptContext, bool *pIsIntArray, bool *pIsFloatArray, bool *pIsBuiltinArrayCtor)
     {
-        if (originalArray == nullptr || !scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        if (originalArray == nullptr)
         {
             return nullptr;
         }

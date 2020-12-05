@@ -212,8 +212,7 @@ namespace Js
         Assert(exceptionObject);
 
         // Note: there also could be plain OutOfMemoryException and StackOverflowException, no special handling for these.
-        if (exceptionObject->IsGeneratorReturnException() ||
-            !exceptionObject->IsDebuggerSkip() ||
+        if (!exceptionObject->IsDebuggerSkip() ||
             exceptionObject == scriptContext->GetThreadContext()->GetPendingOOMErrorObject() ||
             exceptionObject == scriptContext->GetThreadContext()->GetPendingSOErrorObject())
         {

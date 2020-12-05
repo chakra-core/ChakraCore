@@ -213,7 +213,8 @@ namespace Js
         Var nextValue;
         JsUtil::List<Var, ArenaAllocator>* retList = JsUtil::List<Var, ArenaAllocator>::New(alloc);
 
-        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
+        RecyclableObject* nextFunc = JavascriptOperators::CacheIteratorNext(iterator, scriptContext);
+        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, nextFunc, &nextValue))
         {
             retList->Add(nextValue);
         }
@@ -1372,24 +1373,17 @@ namespace Js
         uint32 beginByteOffset = srcByteOffset + begin * BYTES_PER_ELEMENT;
         uint32 newLength = end - begin;
 
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(this, scriptContext);
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, defaultConstructor, scriptContext);
-            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
+        JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(this, scriptContext);
+        RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, defaultConstructor, scriptContext);
+        AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
-            bool isDefaultConstructor = constructor == defaultConstructor;
-            newTypedArray = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
-            {
-                Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
-                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext);
-            }));
-        }
-        else
+        bool isDefaultConstructor = constructor == defaultConstructor;
+        newTypedArray = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
         {
-            newTypedArray = TypedArray<TypeName, clamped, virtualAllocated>::Create(buffer, beginByteOffset, newLength, scriptContext->GetLibrary());
-        }
+            Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
+            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+            return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext);
+        }));
 
         return newTypedArray;
     }

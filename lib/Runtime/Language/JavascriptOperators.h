@@ -15,8 +15,6 @@ class ScriptContextInfo;
 
 namespace Js
 {
-    struct ResumeYieldData;
-
 #define DeclareExceptionPointer(ep)                  \
     EXCEPTION_RECORD        ep##er;                 \
     CONTEXT                 ep##c;                  \
@@ -492,7 +490,8 @@ namespace Js
         static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional = false);
         static RecyclableObject* GetIterator(Var instance, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* GetIterator(RecyclableObject* instance, ScriptContext* scriptContext, bool optional = false);
-        static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, Var value = nullptr);
+        static RecyclableObject* CacheIteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext);
+        static RecyclableObject* IteratorNext(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, Var value = nullptr);
         static void IteratorClose(RecyclableObject* iterator, ScriptContext* scriptContext);
 
         template <typename THandler>
@@ -500,8 +499,8 @@ namespace Js
 
         static bool IteratorComplete(RecyclableObject* iterResult, ScriptContext* scriptContext);
         static Var IteratorValue(RecyclableObject* iterResult, ScriptContext* scriptContext);
-        static bool IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject** result);
-        static bool IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, Var* resultValue);
+        static bool IteratorStep(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, RecyclableObject** result);
+        static bool IteratorStepAndValue(RecyclableObject* iterator, ScriptContext* scriptContext, RecyclableObject* nextFunc, Var* resultValue);
 
         static void TraceUseConstructorCache(const ConstructorCache* ctorCache, const JavascriptFunction* ctor, bool isHit);
         static void TraceUpdateConstructorCache(const ConstructorCache* ctorCache, const FunctionBody* ctorBody, bool updated, const char16* reason);
@@ -581,6 +580,12 @@ namespace Js
         template <bool IsFromFullJit, class TInlineCache> static void PatchInitValue(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
         static void PatchInitValueNoFastPath(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
 
+        template <class TInlineCache> static bool PatchPutValueCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var obj, PropertyId propertyId, Var newValue, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchPutValueWithThisPtrCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var obj, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchPutValueNoLocalFastPathCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchPutValueWithThisPtrNoLocalFastPathCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags = PropertyOperation_None);
+        template <class TInlineCache> static bool PatchInitValueCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+
         template <class TInlineCache> static bool PatchPutValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var obj, PropertyId propertyId, Var newValue, PropertyOperationFlags flags = PropertyOperation_None);
         template <class TInlineCache> static bool PatchPutValueWithThisPtrCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var obj, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags = PropertyOperation_None);
         template <class TInlineCache> static bool PatchPutValueNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags = PropertyOperation_None);
@@ -646,11 +651,7 @@ namespace Js
         static Var OP_LdFuncObjProto(Var aRight, ScriptContext* scriptContext);
         static Var OP_ImportCall(__in JavascriptFunction *function, __in Var specifier, __in ScriptContext* scriptContext);
 
-        static void OP_Await(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext);
-        static void OP_AsyncYieldStar(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext);
-        static void OP_AsyncYield(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext);
-        static Var OP_AsyncYieldIsReturn(ResumeYieldData* yieldData);
-        static Var OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator);
+        static Var OP_NewAwaitObject(Var value, ScriptContext* scriptContext);
         static Var OP_NewAsyncFromSyncIterator(Var syncIterator, ScriptContext* scriptContext);
 
         template <typename T>

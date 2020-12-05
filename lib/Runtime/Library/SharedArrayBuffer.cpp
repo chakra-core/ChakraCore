@@ -174,40 +174,33 @@ namespace Js
 
         SharedArrayBuffer* newBuffer = nullptr;
 
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetSharedArrayBufferConstructor();
+        RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(currentBuffer, defaultConstructor, scriptContext);
+        AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
+
+        bool isDefaultConstructor = constructor == defaultConstructor;
+        Js::Var newVar = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
         {
-            JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetSharedArrayBufferConstructor();
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(currentBuffer, defaultConstructor, scriptContext);
-            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
+            Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newbyteLength, scriptContext) };
+            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+            return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+        });
 
-            bool isDefaultConstructor = constructor == defaultConstructor;
-            Js::Var newVar = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
-            {
-                Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newbyteLength, scriptContext) };
-                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
-            });
-
-            if (!VarIs<SharedArrayBuffer>(newVar))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
-            }
-
-            newBuffer = VarTo<SharedArrayBuffer>(newVar);
-
-            if (newBuffer == currentBuffer)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
-            }
-
-            if (newBuffer->GetByteLength() < newbyteLength)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgumentOutOfRange, _u("SharedArrayBuffer.prototype.slice"));
-            }
+        if (!VarIs<SharedArrayBuffer>(newVar))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }
-        else
+
+        newBuffer = VarTo<SharedArrayBuffer>(newVar);
+
+        if (newBuffer == currentBuffer)
         {
-            newBuffer = library->CreateSharedArrayBuffer(newbyteLength);
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
+        }
+
+        if (newBuffer->GetByteLength() < newbyteLength)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ArgumentOutOfRange, _u("SharedArrayBuffer.prototype.slice"));
         }
 
         Assert(newBuffer);

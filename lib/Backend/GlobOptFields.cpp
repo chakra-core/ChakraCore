@@ -391,6 +391,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
 
     case Js::OpCode::InitSetFld:
     case Js::OpCode::InitGetFld:
+    case Js::OpCode::InitClassMember:
     case Js::OpCode::InitClassMemberGet:
     case Js::OpCode::InitClassMemberSet:
         sym = instr->GetDst()->AsSymOpnd()->m_sym;

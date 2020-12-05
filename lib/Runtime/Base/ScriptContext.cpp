@@ -1066,6 +1066,7 @@ namespace Js
         Output::Print(_u("    SetIterator                    %8d   %8d\n"), typeCount[TypeIds_SetIterator], instanceCount[TypeIds_SetIterator]);
         Output::Print(_u("    StringIterator                 %8d   %8d\n"), typeCount[TypeIds_StringIterator], instanceCount[TypeIds_StringIterator]);
         Output::Print(_u("    Generator                      %8d   %8d\n"), typeCount[TypeIds_Generator], instanceCount[TypeIds_Generator]);
+        Output::Print(_u("    AsyncGenerator                 %8d   %8d\n"), typeCount[TypeIds_AsyncGenerator], instanceCount[TypeIds_AsyncGenerator]);
 #if !DBG
         Output::Print(_u("    ** Instance statistics only available on debug builds...\n"));
 #endif
@@ -3855,21 +3856,6 @@ ExitTempAllocator:
 
         } autoRestore(this->GetThreadContext());
 
-        if (!Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            if (attach)
-            {
-                // Now force nonative, so the job will not be put in jit queue.
-                ForceNoNative();
-            }
-            else
-            {
-                // Take the runtime out of interpreted mode so the JIT
-                // queue can be exercised.
-                this->ForceNative();
-            }
-        }
-
         // Invalidate all the caches.
         this->threadContext->InvalidateAllProtoInlineCaches();
         this->threadContext->InvalidateAllStoreFieldInlineCaches();
@@ -4503,11 +4489,6 @@ ExitTempAllocator:
         if (this->IsScriptContextInSourceRundownOrDebugMode())
         {
             forceNoNative = this->IsInterpreted();
-        }
-        else if (!Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            forceNoNative = true;
-            this->ForceNoNative();
         }
         return forceNoNative;
     }

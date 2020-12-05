@@ -11,6 +11,9 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)EngineInterfaceObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFromSyncIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFunction.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptAsyncGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGeneratorFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
@@ -128,6 +131,9 @@
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
     <ClInclude Include="JavascriptAsyncFromSyncIterator.h" />
+    <ClInclude Include="JavascriptAsyncFuction.h" />
+    <ClInclude Include="JavascriptAsyncGenerator.h" />
+    <ClInclude Include="JavascriptAsyncGeneratorFuction.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
     <ClInclude Include="JavascriptBuiltInFunctions.h" />
     <ClInclude Include="JavascriptExternalFunction.h" />

@@ -106,7 +106,7 @@ namespace Js
         // 5. Let result be IteratorNext(syncIteratorRecord, value).
         try
         {
-            result = JavascriptOperators::IteratorNext(syncIteratorRecord, scriptContext, args.Info.Count > 1 ? args[1] : nullptr);
+            result = JavascriptOperators::IteratorNext(syncIteratorRecord, scriptContext, thisValue->EnsureSyncNextFunction(scriptContext), args.Info.Count > 1 ? args[1] : nullptr);
         }
         catch (const JavascriptException& err)
         {
@@ -308,6 +308,15 @@ namespace Js
 
         // 11. Return ! AsyncFromSyncIteratorContinuation(result, promiseCapability).
         return JavascriptAsyncFromSyncIterator::AsyncFromSyncIteratorContinuation(UnsafeVarTo<RecyclableObject>(result), scriptContext);
+    }
+
+    RecyclableObject* JavascriptAsyncFromSyncIterator::EnsureSyncNextFunction(ScriptContext* scriptContext)
+    {
+        if (syncNextFunction == nullptr)
+        {
+            syncNextFunction = JavascriptOperators::CacheIteratorNext(syncIterator, scriptContext);
+        }
+        return syncNextFunction;
     }
 
     template <> bool VarIsImpl<JavascriptAsyncFromSyncIterator>(RecyclableObject* obj)

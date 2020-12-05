@@ -155,6 +155,11 @@ private:
     void InsertTypeTransitionsAtPotentialKills();
     bool TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const;
 
+    void SetTypeIDWithFinalType(int symId, BasicBlock *block);
+    void ClearTypeIDWithFinalType(int symId, BasicBlock *block);
+    bool HasTypeIDWithFinalType(BasicBlock *block) const;
+    void CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc);
+
     template<class Fn> void ForEachAddPropertyCacheBucket(Fn fn);
     static ObjTypeGuardBucket MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBucket bucket2);
     static ObjWriteGuardBucket MergeWriteGuards(ObjWriteGuardBucket bucket1, ObjWriteGuardBucket bucket2);

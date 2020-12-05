@@ -1388,6 +1388,7 @@ GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * s
             NeedBailOnImplicitCallForCSE(block, isForwardPass) ||
             NeedBailOnImplicitCallWithFieldOpts(block->loop, hasLiveFields) ||
             NeedBailOnImplicitCallForArrayCheckHoist(block, isForwardPass) ||
+            (instr->HasBailOutInfo() && (instr->GetBailOutKind() & IR::BailOutMarkTempObject) != 0) ||
             mayNeedLazyBailOut
         ) &&
         (!instr->HasTypeCheckBailOut() && MayNeedBailOnImplicitCall(instr, src1Val, src2Val)))

@@ -196,6 +196,23 @@ namespace Js
         ScopeInfo * scopeInfo = ScopeInfo::SaveScopeInfo(byteCodeGenerator, currentScope, byteCodeGenerator->GetScriptContext());
         if (scopeInfo != nullptr)
         {
+            if (funcInfo->root->IsDeclaredInParamScope())
+            {
+                FuncInfo* func = byteCodeGenerator->GetEnclosingFuncInfo();
+                Assert(func);
+
+                if (func->IsBodyAndParamScopeMerged())
+                {
+                    Assert(currentScope == func->GetParamScope() && currentScope->GetScopeType() == ScopeType_Parameter);
+                    Assert(scopeInfo->GetScopeType() == ScopeType_Parameter);
+                    Assert(func->GetBodyScope());
+
+                    // If the current function is nested in the param scope of it's enclosing function we may have
+                    // skipped the body scope and in may not be the scope stack but the body scope might still be
+                    // in the frame display and we will need to account for it. See ByteCodeGenerateor::FindScopeForSym.
+                    scopeInfo->mustInstantiate = func->GetBodyScope()->GetMustInstantiate();
+                }
+            }
             funcInfo->byteCodeFunction->SetScopeInfo(scopeInfo);
         }
     }

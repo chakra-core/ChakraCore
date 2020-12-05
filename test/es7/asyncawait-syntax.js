@@ -46,15 +46,6 @@ var tests = [
         }
     },
     {
-        name: "Async keyword as generator",
-        body: function () {
-            assert.throws(function () { eval("async function* badFunction() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in a statement", "Use of disabled experimental feature");
-            assert.throws(function () { eval("var badVariable = async function*() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in an expression", "Use of disabled experimental feature");
-            assert.throws(function () { eval("var o { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a object literal member", "Expected ';'");
-            assert.throws(function () { eval("class C { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a class member", "Use of disabled experimental feature");
-        }
-    },
-    {
         name: "Async classes",
         body: function () {
             assert.throws(function () { eval("class A { async constructor() {} }"); }, SyntaxError, "'async' keyword is not allowed with a constructor", "Syntax error");

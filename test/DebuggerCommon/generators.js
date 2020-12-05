@@ -111,6 +111,7 @@ g = gf3(); /**bp:
 
                 stack();resume('step_into');
                 stack();resume('step_into');
+                stack();resume('step_into');
 
                 stack();
             **/

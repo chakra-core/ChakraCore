@@ -3297,6 +3297,16 @@ BasicBlock::CreateLoopTopBailOutInfo(GlobOpt * globOpt)
     return bailOutInfo;
 }
 
+BVSparse<JitArenaAllocator> *
+BasicBlock::EnsureTypeIDsWithFinalType(JitArenaAllocator *alloc)
+{
+    if (typeIDsWithFinalType == nullptr)
+    {
+         typeIDsWithFinalType = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    }
+    return typeIDsWithFinalType;
+}
+
 IR::Instr *
 FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
 {

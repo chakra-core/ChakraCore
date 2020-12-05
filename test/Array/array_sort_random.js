@@ -68,7 +68,7 @@ function testRandomIntSort(size)
 
     for (let i = 1; i < size; ++i)
     {
-        if ("" + sorted[i-1] > "" + sorted[i])
+        if (`${sorted[i-1]}` > `${sorted[i]}`)
         {
             print (`Unsorted: ${unsorted}`);
             print (`Sorted: ${sorted}`);
@@ -168,4 +168,4 @@ stressTestSort(200, 512);
 // test arrays with length > 2048 for merge sort
 stressTestSort(200, 2050);
 
-WScript.Echo("PASS");
+print("PASS");

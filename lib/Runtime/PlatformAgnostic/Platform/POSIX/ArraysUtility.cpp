@@ -51,11 +51,8 @@ namespace Arrays
     bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutSize, uint32 sepBufSize)
     {
         ArrayLocalization arrayLocalization;
-        //Append ' ' after separator
         szSeparator[*sepOutSize] = arrayLocalization.GetLocaleSeparator();
-        szSeparator[++(*sepOutSize)] = ' ';
         szSeparator[++(*sepOutSize)] = '\0';
-
         return true;
     }
 

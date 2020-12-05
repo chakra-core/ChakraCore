@@ -12167,7 +12167,17 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
             const FloatConstType floatValue = valueInfo->AsFloatConstant()->FloatValue();
             if(toType == TyInt32)
             {
-                Assert(lossy);
+                // In some loop scenarios, a sym can be specialized to int32 on loop entry
+                // during the prepass and then subsequentely specialized to float within
+                // the loop, leading to an attempted lossy conversion from float64 to int32
+                // on the backedge. For these cases, disable aggressive int type specialization
+                // and try again.
+                if (!lossy)
+                {
+                    AssertOrFailFast(DoAggressiveIntTypeSpec());
+                    throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
+                }
+
                 constOpnd =
                     IR::IntConstOpnd::New(
                         Js::JavascriptMath::ToInt32(floatValue),

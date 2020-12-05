@@ -31,7 +31,6 @@ namespace Js
         localExportMapByLocalName(nullptr),
         localExportIndexList(nullptr),
         normalizedSpecifier(nullptr),
-        moduleUrl(nullptr),
         errorObject(nullptr),
         hostDefined(nullptr),
         exportedNames(nullptr),
@@ -106,6 +105,13 @@ namespace Js
             JavascriptError::SetErrorMessageProperties(pError, hr, _u("ES6Module not supported"), scriptContext);
             *exceptionVar = pError;
             return E_NOTIMPL;
+        }
+
+        // Mark module as root module if it currently has no parents
+        // Note, if there are circular imports it may gain parents later
+        if (parentModuleList == nullptr)
+        {
+            SetIsRootModule();
         }
 
         // Host indicates that the current module failed to load.
@@ -183,11 +189,8 @@ namespace Js
         {
             if (*exceptionVar == nullptr)
             {
-                const WCHAR * sourceUrl = nullptr;
-                if (this->GetModuleUrl())
-                {
-                  sourceUrl = this->GetModuleUrlSz();
-                }
+                const WCHAR * sourceUrl = this->GetSpecifierSz();
+
                 *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, sourceUrl);
             }
             // Cleanup in case of error.
@@ -208,8 +211,8 @@ namespace Js
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
-            // Notify host if current module is dynamically-loaded module, or is root module and the host hasn't been notified
-            if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
+            // Notify host if current module is root module and the host hasn't been notified
+            if (isRootModule && !hadNotifyHostReady)
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (ParseSource error)\n"), this->GetSpecifierSz());
                 LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
@@ -371,7 +374,7 @@ namespace Js
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded\n"));
             NotifyParentsAsNeeded();
 
-            if (!WasDeclarationInitialized() && (isRootModule || this->promise != nullptr))
+            if (!WasDeclarationInitialized() && isRootModule)
             {
                 // TODO: move this as a promise call? if parser is called from a different thread
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
@@ -427,7 +430,7 @@ namespace Js
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
-            if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
+            if (isRootModule && !hadNotifyHostReady)
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (OnChildModuleReady)\n"), this->GetSpecifierSz());
                 LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
@@ -947,11 +950,8 @@ namespace Js
 
         if (rootFunction == nullptr)
         {
-            const WCHAR * sourceUrl = nullptr;
-            if (this->GetModuleUrl())
-            {
-                sourceUrl = this->GetModuleUrlSz();
-            }
+            const WCHAR * sourceUrl = this->GetSpecifierSz();
+
             this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, sourceUrl);
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();
@@ -1104,8 +1104,7 @@ namespace Js
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {
-                ResumeYieldData yieldData(scriptContext->GetLibrary()->GetUndefined(), nullptr);
-                ret = gen->CallGenerator(&yieldData, Constants::ModuleCode);
+                ret = gen->CallGenerator(scriptContext->GetLibrary()->GetUndefined(), ResumeYieldKind::Normal);
                 ret = JavascriptOperators::GetProperty(VarTo<RecyclableObject>(ret), PropertyIds::value, scriptContext);
             }
             END_SAFE_REENTRANT_CALL

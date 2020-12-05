@@ -386,20 +386,17 @@ namespace Js
         }
 
         Var newTarget = nullptr;
-        if (scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        if (args.Info.Count > 3)
         {
-            if (args.Info.Count > 3)
+            newTarget = args[3];
+            if (!JavascriptOperators::IsConstructor(newTarget))
             {
-                newTarget = args[3];
-                if (!JavascriptOperators::IsConstructor(newTarget))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedConstructor, _u("newTarget"));
-                }
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedConstructor, _u("newTarget"));
             }
-            else
-            {
-                newTarget = target;
-            }
+        }
+        else
+        {
+            newTarget = target;
         }
 
         RecyclableObject* thisArg = VarTo<RecyclableObject>(undefinedValue);
