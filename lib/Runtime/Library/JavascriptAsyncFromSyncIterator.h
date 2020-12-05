@@ -13,6 +13,7 @@ namespace Js
             DynamicObject(type), syncIterator(syncIterator) { }
 
         RecyclableObject* GetSyncIterator() { return this->syncIterator; }
+        RecyclableObject* JavascriptAsyncFromSyncIterator::EnsureSyncNextFunction(ScriptContext* scriptContext);
 
         static Var AsyncFromSyncIteratorContinuation(RecyclableObject* result, ScriptContext* scriptContext);
         static Var EntryAsyncFromSyncIteratorNext(RecyclableObject* function, CallInfo callInfo, ...);
@@ -32,6 +33,7 @@ namespace Js
 
     private:
         Field(RecyclableObject*) syncIterator;
+        Field(RecyclableObject*) syncNextFunction;
     protected:
         DEFINE_VTABLE_CTOR(JavascriptAsyncFromSyncIterator, DynamicObject);
     };

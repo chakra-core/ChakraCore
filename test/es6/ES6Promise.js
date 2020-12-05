@@ -292,6 +292,54 @@ var tests = [
         }
     },
     {
+        name: "Promise.all uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.all(bar);
+            assert.areEqual(3, calledNext, "Promise.all should use the iterator protocol, and next should be cached");
+        }
+    },
+    {
+        name: "Promise.allSettled uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.allSettled(bar);
+            assert.areEqual(3, calledNext, "Promise.allSettled should use the iterator protocol, and next should be cached");
+        }
+    },
+    {
+        name: "Promise.race uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.race(bar);
+            assert.areEqual(3, calledNext, "Promise.race should use the iterator protocol, and next should be cached");
+        }
+    },
+    {
         name: "Executor function passed to Promise constructor via NewPromiseCapability",
         body: function () {
             let isCalled = false;

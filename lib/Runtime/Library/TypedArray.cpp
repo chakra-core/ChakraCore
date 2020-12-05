@@ -213,7 +213,8 @@ namespace Js
         Var nextValue;
         JsUtil::List<Var, ArenaAllocator>* retList = JsUtil::List<Var, ArenaAllocator>::New(alloc);
 
-        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
+        RecyclableObject* nextFunc = JavascriptOperators::CacheIteratorNext(iterator, scriptContext);
+        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, nextFunc, &nextValue))
         {
             retList->Add(nextValue);
         }
