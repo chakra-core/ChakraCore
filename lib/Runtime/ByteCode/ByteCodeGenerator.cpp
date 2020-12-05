@@ -786,16 +786,6 @@ bool ByteCodeGenerator::IsSuper(ParseNode* pnode)
     return pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper;
 }
 
-bool ByteCodeGenerator::IsES6DestructuringEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6DestructuringEnabled();
-}
-
-bool ByteCodeGenerator::IsES6ForLoopSemanticsEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6ForLoopSemanticsEnabled();
-}
-
 // ByteCodeGenerator debug mode means we are generating debug mode user-code. Library code is always in non-debug mode.
 bool ByteCodeGenerator::IsInDebugMode() const
 {
@@ -4814,7 +4804,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 CheckMaybeEscapedUse(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator);
             }
 
-            if (byteCodeGenerator->IsES6DestructuringEnabled() && (pnode->AsParseNodeBin()->pnode1->nop == knopArrayPattern || pnode->AsParseNodeBin()->pnode1->nop == knopObjectPattern))
+            if ((pnode->AsParseNodeBin()->pnode1->nop == knopArrayPattern || pnode->AsParseNodeBin()->pnode1->nop == knopObjectPattern))
             {
                 // Destructured arrays may have default values and need undefined.
                 byteCodeGenerator->AssignUndefinedConstRegister();

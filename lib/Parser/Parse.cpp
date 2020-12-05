@@ -27,11 +27,6 @@ const uint ParseNode::mpnopgrfnop[knopLim] =
 #include "ptlist.h"
 };
 
-bool Parser::IsES6DestructuringEnabled() const
-{
-    return m_scriptContext->GetConfig()->IsES6DestructuringEnabled();
-}
-
 struct BlockInfoStack
 {
     StmtNest pstmt;
@@ -1355,7 +1350,7 @@ Symbol* Parser::AddDeclForPid(ParseNodeVar * pnodeVar, IdentPtr pid, SymbolType 
             case knopLetDecl:
             case knopConstDecl:
                 // Destructuring made possible to have the formals to be the let bind. But that shouldn't throw the error.
-                if (errorOnRedecl && (!IsES6DestructuringEnabled() || sym->GetSymbolType() != STFormal))
+                if (errorOnRedecl && (sym->GetSymbolType() != STFormal))
                 {
                     Error(ERRRedeclaration);
                 }
@@ -2865,10 +2860,6 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     {
     case tkCLASS:
     {
-        if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            goto LDefault;
-        }
 
         // Before we parse the class itself we need to know if the class has an identifier name.
         // If it does, we'll treat this class as an ordinary class declaration which will bind
@@ -3343,11 +3334,6 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         ichLim = this->GetScanner()->IchLimTok();
         iecpLim = this->GetScanner()->IecpLimTok();
 
-        if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            goto LUnknown;
-        }
-
         this->GetScanner()->Scan();
 
         pid = ParseSuper<buildAST>(!!fAllowCall);
@@ -3574,7 +3560,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         iecpMin = this->GetScanner()->IecpMinTok();
         this->GetScanner()->Scan();
 
-        if (m_token.tk == tkDot && m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        if (m_token.tk == tkDot)
         {
             pid = ParseMetaProperty<buildAST>(tkNEW, ichMin, &fCanAssign);
 
@@ -3620,7 +3606,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             this->m_funcInArrayDepth = 0;
         }
         ChkCurTok(tkRBrack, ERRnoRbrack);
-        if (IsES6DestructuringEnabled() && pfLikelyPattern != nullptr && !IsPostFixOperators())
+        if (pfLikelyPattern != nullptr && !IsPostFixOperators())
         {
             *pfLikelyPattern = TRUE;
         }
@@ -3640,7 +3626,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             pnode->ichLim = this->GetScanner()->IchLimTok();
         }
         ChkCurTok(tkRCurly, ERRnoRcurly);
-        if (IsES6DestructuringEnabled() && pfLikelyPattern != nullptr && !IsPostFixOperators())
+        if (pfLikelyPattern != nullptr && !IsPostFixOperators())
         {
             *pfLikelyPattern = TRUE;
         }
@@ -3683,14 +3669,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     }
 
     case tkCLASS:
-        if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            pnode = ParseClassDecl<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
-        }
-        else
-        {
-            goto LUnknown;
-        }
+        pnode = ParseClassDecl<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
+
         fCanAssign = FALSE;
         break;
 
@@ -4723,7 +4703,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
     bool seenRest = false;
 
     // we get declaration tkLCurly - when the possible object pattern found under the expression.
-    bool isObjectPattern = (declarationType == tkVAR || declarationType == tkLET || declarationType == tkCONST || declarationType == tkLCurly) && IsES6DestructuringEnabled();
+    bool isObjectPattern = (declarationType == tkVAR || declarationType == tkLET || declarationType == tkCONST || declarationType == tkLCurly);
 
     // Check for an empty list
     if (tkRCurly == m_token.tk)
@@ -6898,7 +6878,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
             
             if (m_token.tk != tkID)
             {
-                if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
+                if (IsPossiblePatternStart())
                 {
                     // Mark that the function has a non simple parameter list before parsing the pattern since the pattern can have function definitions.
                     this->GetCurrentFunctionNode()->SetHasNonSimpleParameterList();
@@ -7025,7 +7005,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
 
                 this->GetScanner()->Scan();
 
-                if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
+                if (m_token.tk == tkAsg)
                 {
                     if (seenRestParameter && m_scriptContext->GetConfig()->IsES6RestEnabled())
                     {
@@ -7392,7 +7372,7 @@ void Parser::CheckStrictFormalParameters()
 
             this->GetScanner()->Scan();
 
-            if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
+            if (m_token.tk == tkAsg)
             {
                 this->GetScanner()->Scan();
                 // We can avoid building the AST since we are just checking the default expression.
@@ -9039,7 +9019,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     else
     {
         ichMin = this->GetScanner()->IchMinTok();
-        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex, plastRParen);
+        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, &fLikelyPattern, &fIsDotOrIndex, plastRParen);
         if (pfLikelyPattern != nullptr)
         {
             *pfLikelyPattern = !!fLikelyPattern;
@@ -9583,7 +9563,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
 
     for (;;)
     {
-        if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
+        if (IsPossiblePatternStart())
         {
             pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk, nativeForOk);
             if (pnodeThis != nullptr)
@@ -9884,7 +9864,7 @@ ParseNodeCatch * Parser::ParseCatch()
             this->GetScanner()->Scan(); //catch(
             if (tkID != m_token.tk)
             {
-                isPattern = IsES6DestructuringEnabled() && IsPossiblePatternStart();
+                isPattern = IsPossiblePatternStart();
                 if (!isPattern)
                 {
                     IdentifierExpectedError(m_token);
@@ -10219,14 +10199,11 @@ LRestart:
         {
             Error(ERRLabelBeforeClassDeclaration);
         }
-        else if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        else
         {
             pnode = ParseClassDecl<buildAST>(TRUE, nullptr, nullptr, nullptr);
         }
-        else
-        {
-            goto LDefaultToken;
-        }
+
         break;
 
     case tkID:
@@ -10396,7 +10373,7 @@ LRestart:
                 this->GetScanner()->Capture(&startExprOrIdentifier);
             }
             bool fLikelyPattern = false;
-            if (IsES6DestructuringEnabled() && (beforeToken == tkLBrack || beforeToken == tkLCurly))
+            if (beforeToken == tkLBrack || beforeToken == tkLCurly)
             {
                 pnodeT = ParseExpr<buildAST>(koplNo,
                     &fCanAssign,

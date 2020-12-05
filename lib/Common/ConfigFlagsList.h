@@ -514,7 +514,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_ForceOldDateAPI      (false)
 #define DEFAULT_CONFIG_Loop                 (1)
 #define DEFAULT_CONFIG_ForceDiagnosticsMode (false)
-#define DEFAULT_CONFIG_EnableJitInDiagMode  (true)
 #define DEFAULT_CONFIG_UseFullName          (true)
 #define DEFAULT_CONFIG_EnableContinueAfterExceptionWrappersForHelpers  (true)
 #define DEFAULT_CONFIG_EnableContinueAfterExceptionWrappersForBuiltIns  (true)
@@ -629,12 +628,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_CollectGarbage          (false)
 
 // ES6 sub-feature gate - to enable-disable ES6 sub-feature when ES6 flag is enabled
-#define DEFAULT_CONFIG_ES6Species              (true)
-#define DEFAULT_CONFIG_ES6Classes              (true)
 #define DEFAULT_CONFIG_ES6DateParseFix         (true)
-#define DEFAULT_CONFIG_ES6DefaultArgs          (true)
-#define DEFAULT_CONFIG_ES6Destructuring        (true)
-#define DEFAULT_CONFIG_ES6ForLoopSemantics     (true)
 #define DEFAULT_CONFIG_ES6FunctionNameFull     (true)
 #define DEFAULT_CONFIG_ES6Generators           (true)
 #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (true)
@@ -648,7 +642,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Object               (true)
 #define DEFAULT_CONFIG_ES6Number               (true)
 #define DEFAULT_CONFIG_ES6ObjectLiterals       (true)
-#define DEFAULT_CONFIG_ES6Promise              (true)
 #define DEFAULT_CONFIG_ES6Proxy                (true)
 #define DEFAULT_CONFIG_ES6Rest                 (true)
 #define DEFAULT_CONFIG_ES6Spread               (true)
@@ -772,7 +765,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_BigDictionaryTypeHandlerThreshold (0xffff)
 #define DEFAULT_CONFIG_ForceStringKeyedSimpleDictionaryTypeHandler (false)
 #define DEFAULT_CONFIG_TypeSnapshotEnumeration (true)
-#define DEFAULT_CONFIG_EnumerationCompat    (false)
 #define DEFAULT_CONFIG_ConcurrentRuntime (false)
 #define DEFAULT_CONFIG_PrimeRecycler     (false)
 #if defined(_WIN32)
@@ -815,8 +807,6 @@ PHASE(All)
 
 #define DEFAULT_CONFIG_InjectPartiallyInitializedInterpreterFrameError (0)
 #define DEFAULT_CONFIG_InjectPartiallyInitializedInterpreterFrameErrorType (0)
-
-#define DEFAULT_CONFIG_InvalidateSolutionContextsForGetStructure (true)
 
 #define DEFAULT_CONFIG_DeferLoadingAvailableSource  (false)
 #ifdef ENABLE_PROJECTION
@@ -1131,14 +1121,8 @@ FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",
 
 // Per ES6 feature/flag
 
-FLAGPR           (Boolean, ES6, ES6Species             , "Enable ES6 '@@species' properties and built-in behaviors" , DEFAULT_CONFIG_ES6Species)
-
 FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
-FLAGPR           (Boolean, ES6, ES6Classes             , "Enable ES6 'class' and 'extends' keywords"                , DEFAULT_CONFIG_ES6Classes)
 FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
-FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
-FLAGPR           (Boolean, ES6, ES6Destructuring       , "Enable ES6 Destructuring"                                 , DEFAULT_CONFIG_ES6Destructuring)
-FLAGPR           (Boolean, ES6, ES6ForLoopSemantics    , "Enable ES6 for loop per iteration bindings"               , DEFAULT_CONFIG_ES6ForLoopSemantics)
 FLAGPR           (Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full function.name"                            , DEFAULT_CONFIG_ES6FunctionNameFull)
 FLAGPR           (Boolean, ES6, ES6Generators          , "Enable ES6 generators"                                    , DEFAULT_CONFIG_ES6Generators)
 FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)"                , DEFAULT_CONFIG_ES7ExponentionOperator)
@@ -1157,7 +1141,6 @@ FLAGPR           (Boolean, ES6, ES6Module              , "Enable ES6 Modules"   
 FLAGPR           (Boolean, ES6, ES6Object              , "Enable ES6 Object extensions"                             , DEFAULT_CONFIG_ES6Object)
 FLAGPR           (Boolean, ES6, ES6Number              , "Enable ES6 Number extensions"                             , DEFAULT_CONFIG_ES6Number)
 FLAGPR           (Boolean, ES6, ES6ObjectLiterals      , "Enable ES6 Object literal extensions"                     , DEFAULT_CONFIG_ES6ObjectLiterals)
-FLAGPR           (Boolean, ES6, ES6Promise             , "Enable ES6 Promise feature"                               , DEFAULT_CONFIG_ES6Promise)
 FLAGPR           (Boolean, ES6, ES6Proxy               , "Enable ES6 Proxy feature"                                 , DEFAULT_CONFIG_ES6Proxy)
 FLAGPR           (Boolean, ES6, ES6Rest                , "Enable ES6 Rest parameters"                               , DEFAULT_CONFIG_ES6Rest)
 FLAGPR           (Boolean, ES6, ES6Spread              , "Enable ES6 Spread support"                                , DEFAULT_CONFIG_ES6Spread)
@@ -1251,7 +1234,6 @@ FLAGNR(Boolean, ForceGetWriteWatchOOM , "Force GetWriteWatch to go into OOM code
 FLAGNR(Boolean, ForcePostLowerGlobOptInstrString, "Force tracking of globopt instr string post lower", DEFAULT_CONFIG_ForcePostLowerGlobOptInstrString)
 FLAGNR(Boolean, ForceSplitScope       , "All functions will have unmerged body and param scopes", DEFAULT_CONFIG_ForceSplitScope)
 FLAGNR(Boolean, EnumerateSpecialPropertiesInDebugger, "Enable enumeration of special debug properties", DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger)
-FLAGNR(Boolean, EnableJitInDiagMode   , "Enable Fast F12 (only applicable with ForceDiagnosticsMode or while under debugger)", DEFAULT_CONFIG_EnableJitInDiagMode)
 FLAGNR(Boolean, EnableContinueAfterExceptionWrappersForHelpers, "Enable wrapper over helper methods in debugger, Fast F12 only", DEFAULT_CONFIG_EnableContinueAfterExceptionWrappersForHelpers)
 FLAGNR(Boolean, EnableContinueAfterExceptionWrappersForBuiltIns, "Enable wrapper over library calls in debugger, Fast F12 only", DEFAULT_CONFIG_EnableContinueAfterExceptionWrappersForBuiltIns)
 FLAGNR(Boolean, EnableFunctionSourceReportForHeapEnum, "During HeapEnum, whether to report function source info (url/row/col)", DEFAULT_CONFIG_EnableFunctionSourceReportForHeapEnum)
@@ -1534,7 +1516,6 @@ FLAGR (Number,  AllocPolicyLimit      , "Memory allocation policy limit in MB (d
 #ifdef RUNTIME_DATA_COLLECTION
 FLAGNR(String,  RuntimeDataOutputFile, "Filename to write the dynamic profile info", nullptr)
 #endif
-FLAGNR(Boolean, ReportErrors          , "Enable reporting of syntax errors", false)
 FLAGR (Number,  SpeculationCap        , "How much bytecode we'll speculatively JIT", DEFAULT_CONFIG_SpeculationCap)
 #if DBG_DUMP || defined(BGJIT_STATS) || defined(RECYCLER_STATS)
 FLAGNR(Phases,  Stats                 , "Stats the given phase", )
@@ -1579,7 +1560,6 @@ FLAGNR(Boolean, TrackDispatch         , "Save stack traces of where JavascriptDi
 #endif
 FLAGNR(Boolean, Verbose               , "Dump details", DEFAULT_CONFIG_Verbose)
 FLAGNR(Boolean, UseFullName           , "Enable fully qualified name", DEFAULT_CONFIG_UseFullName)
-FLAGNR(Boolean, UseFunctionIdForTrace , "Use function id instead of function number for trace output", false)
 FLAGNR(Boolean, Utf8                  , "Use UTF8 for file output", false)
 FLAGR (Number,  Version               , "Version in which to run the jscript engine. [one of 1,2,3,4,5,6]. Default is latest for jc/jshost, 1 for IE", 6 )
 #ifdef ENABLE_PROJECTION
@@ -1629,7 +1609,6 @@ FLAGNR(Number,  DeletedPropertyReuseThreshold, "Start reusing deleted property i
 FLAGNR(Boolean, ForceStringKeyedSimpleDictionaryTypeHandler, "Force switch to string keyed version of SimpleDictionaryTypeHandler on first new property added to a SimpleDictionaryTypeHandler", DEFAULT_CONFIG_ForceStringKeyedSimpleDictionaryTypeHandler)
 FLAGNR(Number,  BigDictionaryTypeHandlerThreshold, "Min Slot Capacity required to convert DictionaryTypeHandler to BigDictionaryTypeHandler.(Advisable to give more than 15 - to avoid false positive cases)", DEFAULT_CONFIG_BigDictionaryTypeHandlerThreshold)
 FLAGNR(Boolean, TypeSnapshotEnumeration, "Create a true snapshot of the type of an object before enumeration and enumerate only those properties.", DEFAULT_CONFIG_TypeSnapshotEnumeration)
-FLAGR (Boolean, EnumerationCompat,      "When set in IE10 mode, restores enumeration behavior to RC behavior", DEFAULT_CONFIG_EnumerationCompat)
 FLAGNR(Boolean, IsolatePrototypes, "Should prototypes get unique types not shared with other objects (default: true)?", DEFAULT_CONFIG_IsolatePrototypes)
 FLAGNR(Boolean, ChangeTypeOnProto, "When becoming a prototype should the object switch to a new type (default: true)?", DEFAULT_CONFIG_ChangeTypeOnProto)
 FLAGNR(Boolean, ShareInlineCaches, "Determines whether inline caches are shared between all loads (or all stores) of the same property ID", DEFAULT_CONFIG_ShareInlineCaches)
@@ -1689,12 +1668,6 @@ FLAGNR(Number, ConstructorCacheInvalidationThreshold, "Clear uniquePropertyGuard
 #ifdef IR_VIEWER
 FLAGNR(Boolean, IRViewer, "Enable IRViewer functionality (improved UI for various stages of IR generation)", false)
 #endif /* IR_VIEWER */
-
-FLAGNR(Boolean, InvalidateSolutionContextsForGetStructure, "To reduce memory consumption, in the end of GetStructure call, invalidate script contexts used only for GetStructure -- this would invalidate ones associated with solution files (not top-most references such as helpers.js)", DEFAULT_CONFIG_InvalidateSolutionContextsForGetStructure)
-FLAGNR(Boolean, ES5LangTel, "Print ES5 language telemetry output.", false)
-FLAGNR(Boolean, ES6LangTel, "Print ES6 language telemetry output.", false)
-FLAGNR(Boolean, ESBLangTel, "Print ES built-ins telemetry output.", false)
-FLAGNR(Boolean, DateParseTel, "Print Date.parse telemetry output.", false)
 
 FLAGNR(Number,  GCMemoryThreshold, "Threshold for allocation-based GC initiation (in MB)", 0)
 

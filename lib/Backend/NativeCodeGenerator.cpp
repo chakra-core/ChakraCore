@@ -160,11 +160,7 @@ void NativeCodeGenerator::Close()
     // Close FreeLoopBodyJobManager first, as it depends on NativeCodeGenerator to be open before it's removed
     this->freeLoopBodyManager.Close();
 
-    // Remove only if it is not updated in the debug mode (and which goes to interpreter mode).
-    if (!hasUpdatedQForDebugMode || Js::Configuration::Global.EnableJitInDebugMode())
-    {
-        Processor()->RemoveManager(this);
-    }
+    Processor()->RemoveManager(this);
 
     this->isClosed = true;
 
@@ -2014,10 +2010,7 @@ NativeCodeGenerator::UpdateQueueForDebugMode()
 
     this->hasUpdatedQForDebugMode = true;
 
-    if (Js::Configuration::Global.EnableJitInDebugMode())
-    {
-        Processor()->AddManager(this);
-    }
+    Processor()->AddManager(this);
 }
 
 void
@@ -3248,12 +3241,6 @@ NativeCodeGenerator::EnterScriptStart()
     }
 
     if (this->IsClosed())
-    {
-        return;
-    }
-
-    // Don't need to do anything if we're in debug mode
-    if (this->scriptContext->IsScriptContextInDebugMode() && !Js::Configuration::Global.EnableJitInDebugMode())
     {
         return;
     }

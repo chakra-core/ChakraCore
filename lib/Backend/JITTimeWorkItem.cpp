@@ -41,9 +41,7 @@ JITTimeWorkItem::IsLoopBody() const
 bool
 JITTimeWorkItem::IsJitInDebugMode() const
 {
-    // TODO (michhol): flags?
-    return Js::Configuration::Global.EnableJitInDebugMode()
-        && m_workItemData->isJitInDebugMode;
+    return m_workItemData->isJitInDebugMode;
 }
 
 intptr_t

@@ -423,12 +423,9 @@ namespace Js
         }
 #endif
 
-        if(scriptContext->GetConfig()->IsES6PromiseEnabled())
-        {
-            promisePrototype = DynamicObject::New(recycler,
-                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializePromisePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
-        }
+        promisePrototype = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+            DeferredTypeHandler<InitializePromisePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
         if(scriptContext->GetConfig()->IsES6GeneratorsEnabled())
         {
@@ -614,10 +611,7 @@ namespace Js
             proxyType = DynamicType::New(scriptContext, TypeIds_Proxy, GetNull(), nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
         }
 
-        if (config->IsES6PromiseEnabled())
-        {
-            promiseType = DynamicType::New(scriptContext, TypeIds_Promise, promisePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
-        }
+        promiseType = DynamicType::New(scriptContext, TypeIds_Promise, promisePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
         if (config->IsES6ModuleEnabled())
         {
@@ -1440,14 +1434,12 @@ namespace Js
         __proto__setterFunction = CreateNonProfiledFunction(&ObjectPrototypeObject::EntryInfo::__proto__setter);
         __proto__setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
-        if (scriptContext->GetConfig()->IsES6PromiseEnabled())
-        {
-            identityFunction = CreateNonProfiledFunction(&JavascriptPromise::EntryInfo::Identity);
-            identityFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
-            throwerFunction = CreateNonProfiledFunction(&JavascriptPromise::EntryInfo::Thrower);
-            throwerFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
-        }
+        identityFunction = CreateNonProfiledFunction(&JavascriptPromise::EntryInfo::Identity);
+        identityFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
+
+        throwerFunction = CreateNonProfiledFunction(&JavascriptPromise::EntryInfo::Thrower);
+        throwerFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
         booleanTrue = RecyclerNew(recycler, JavascriptBoolean, true, booleanTypeStatic);
         booleanFalse = RecyclerNew(recycler, JavascriptBoolean, false, booleanTypeStatic);
@@ -1565,12 +1557,9 @@ namespace Js
             AddMember(globalObject, PropertyIds::Reflect, reflectObject);
         }
 
-        if (scriptContext->GetConfig()->IsES6PromiseEnabled())
-        {
-            promiseConstructor = CreateBuiltinConstructor(&JavascriptPromise::EntryInfo::NewInstance,
-                DeferredTypeHandler<InitializePromiseConstructor>::GetDefaultInstance());
-            AddFunction(globalObject, PropertyIds::Promise, promiseConstructor);
-        }
+        promiseConstructor = CreateBuiltinConstructor(&JavascriptPromise::EntryInfo::NewInstance,
+            DeferredTypeHandler<InitializePromiseConstructor>::GetDefaultInstance());
+        AddFunction(globalObject, PropertyIds::Promise, promiseConstructor);
 
         dateConstructor = CreateBuiltinConstructor(&JavascriptDate::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeDateConstructor>::GetDefaultInstance());
@@ -2567,10 +2556,8 @@ namespace Js
         {
             library->AddMember(symbolConstructor, PropertyIds::asyncIterator, library->GetSymbolAsyncIterator(), PropertyNone);
         }
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            library->AddMember(symbolConstructor, PropertyIds::species, library->GetSymbolSpecies(), PropertyNone);
-        }
+
+        library->AddMember(symbolConstructor, PropertyIds::species, library->GetSymbolSpecies(), PropertyNone);
 
         if (scriptContext->GetConfig()->IsES6ToPrimitiveEnabled())
         {
@@ -4999,10 +4986,7 @@ namespace Js
 
     void JavascriptLibrary::AddSpeciesAccessorsToLibraryObject(DynamicObject* object, FunctionInfo * getterFunctionInfo)
     {
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            AddAccessorsToLibraryObjectWithName(object, PropertyIds::_symbolSpecies, PropertyIds::_RuntimeFunctionNameId_species, getterFunctionInfo, nullptr);
-        }
+        AddAccessorsToLibraryObjectWithName(object, PropertyIds::_symbolSpecies, PropertyIds::_RuntimeFunctionNameId_species, getterFunctionInfo, nullptr);
     }
 
     RuntimeFunction* JavascriptLibrary::CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
@@ -6581,8 +6565,6 @@ namespace Js
 
     JavascriptPromiseCapabilitiesExecutorFunction* JavascriptLibrary::CreatePromiseCapabilitiesExecutorFunction(JavascriptMethod entryPoint, JavascriptPromiseCapability* capability)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::CapabilitiesExecutorFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseCapabilitiesExecutorFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseCapabilitiesExecutorFunction, type, functionInfo, capability);
@@ -6594,8 +6576,6 @@ namespace Js
 
     JavascriptPromiseResolveOrRejectFunction* JavascriptLibrary::CreatePromiseResolveOrRejectFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::ResolveOrRejectFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseResolveOrRejectFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseResolveOrRejectFunction, type, functionInfo, promise, isReject, alreadyResolvedRecord);
@@ -6607,8 +6587,6 @@ namespace Js
 
     JavascriptPromiseReactionTaskFunction* JavascriptLibrary::CreatePromiseReactionTaskFunction(JavascriptMethod entryPoint, JavascriptPromiseReaction* reaction, Var argument)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint, FunctionInfo::Attributes::ErrorOnNew);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
@@ -6617,8 +6595,6 @@ namespace Js
 
     JavascriptPromiseResolveThenableTaskFunction* JavascriptLibrary::CreatePromiseResolveThenableTaskFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, RecyclableObject* thenable, RecyclableObject* thenFunction)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint, FunctionInfo::Attributes::ErrorOnNew);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
@@ -6627,8 +6603,6 @@ namespace Js
 
     JavascriptPromiseAllResolveElementFunction* JavascriptLibrary::CreatePromiseAllResolveElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllResolveElementFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseAllResolveElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllResolveElementFunction, type, functionInfo, index, values, capabilities, remainingElements);
@@ -6640,8 +6614,6 @@ namespace Js
 
     JavascriptPromiseAllSettledResolveOrRejectElementFunction* JavascriptLibrary::CreatePromiseAllSettledResolveOrRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper, bool isRejecting)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllSettledResolveOrRejectElementFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseAllSettledResolveOrRejectElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllSettledResolveOrRejectElementFunction, type, functionInfo, index, values, capabilities, remainingElements, alreadyCalledWrapper, isRejecting);
@@ -6653,8 +6625,6 @@ namespace Js
 
     JavascriptPromiseThenFinallyFunction* JavascriptLibrary::CreatePromiseThenFinallyFunction(JavascriptMethod entryPoint, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint, FunctionInfo::Attributes::ErrorOnNew);
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
 
@@ -6666,8 +6636,6 @@ namespace Js
 
     JavascriptPromiseThunkFinallyFunction* JavascriptLibrary::CreatePromiseThunkFinallyFunction(JavascriptMethod entryPoint, Var value, bool shouldThrow)
     {
-        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint, FunctionInfo::Attributes::ErrorOnNew);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
@@ -7462,10 +7430,7 @@ namespace Js
 
         ScriptConfiguration const& config = *(scriptContext->GetConfig());
 
-        if (config.IsES6PromiseEnabled())
-        {
-            REGISTER_OBJECT(Promise);
-        }
+        REGISTER_OBJECT(Promise);
 
         if (config.IsES6ProxyEnabled())
         {

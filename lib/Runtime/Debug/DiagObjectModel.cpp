@@ -3172,7 +3172,6 @@ namespace Js
                 if (pResolvedObject->obj == nullptr)
                 {
                     // Temp workaround till the arguments (In jit code) work is ready.
-                    Assert(Js::Configuration::Global.EnableJitInDebugMode());
                     pResolvedObject->obj = pMembersList->Item(i)->aVar;
                 }
                 else if (pResolvedObject->obj != pMembersList->Item(i)->aVar)

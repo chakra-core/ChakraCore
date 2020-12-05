@@ -238,26 +238,6 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
         }
     }
 
-    // EnumerationCompat
-    // This setting allows disabling a couple of changes to enumeration:
-    //     - A change that causes deleted property indexes to be reused for new properties, thereby changing the order in which
-    //       properties are enumerated
-    //     - A change that creates a true snapshot of the type just before enumeration, and enumerating only those properties. A
-    //       property that was deleted before enumeration and is added back during enumeration will not be enumerated.
-    // Values:
-    //     0 - Default
-    //     1 - Compatibility mode for enumeration order (disable changes described above)
-    // This FCK does not apply to WWAs. WWAs should use the RC compat mode to disable these changes.
-    dwValue = 0;
-    dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnumerationCompat"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
-    {
-        if (dwValue == 1)
-        {
-            Js::Configuration::Global.flags.EnumerationCompat = true;
-        }
-    }
-
 #ifdef ENABLE_PROJECTION
     // FailFastIfDisconnectedDelegate
     // This setting allows enabling fail fast if the delegate invoked is disconnected
