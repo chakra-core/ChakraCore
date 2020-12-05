@@ -279,6 +279,28 @@ var tests = [
         }
     },
     {
+        name: "Array.from caches next method from iterator",
+        body: function() {
+            var iterator_val = 0;
+
+            var objectWithIterator = {
+                [Symbol.iterator]: function() {
+                    return {
+                        next: function () {
+                            this.next = undefined;
+                            return {
+                                done: iterator_val == 5,
+                                value: iterator_val++
+                            };
+                        }
+                    };
+                }
+            };
+
+            assert.areEqual([0,1,2,3,4], Array.from(objectWithIterator), "Array.from with iterator that removes next method");
+        }
+    },
+    {
         name: "Array.from behavior with badly formed iterator objects",
         body: function() {
             var objectWithIteratorThatIsNotAFunction = { [Symbol.iterator]: 'a string' };

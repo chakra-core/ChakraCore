@@ -6,14 +6,6 @@
 (module
   (import "dummy" "memory" (memory 1))
 
-    (func (export "i16x8_anytrue") (result i32)
-        (i64x2.any_true (v128.load offset=0 align=4 (i32.const 0)))
-    )
-
-    (func (export "i16x8_alltrue") (result i32)
-        (i64x2.all_true (v128.load offset=0 align=4 (i32.const 0)))
-    )
-
     (func (export "func_i64x2_extractlane_0") (local $v1 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (i64.store offset=0 (i32.const 8) (i64x2.extract_lane 0 (get_local $v1)))
@@ -57,16 +49,6 @@
     (func (export "func_i64x2_neg") (local $v1 v128)
         (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
         (v128.store offset=0 align=4 (i32.const 0) (i64x2.neg (get_local $v1)))
-    )
-
-    (func (export "func_i64x2_anytrue") (local $v1 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (i32.store offset=0 (i32.const 0) (i64x2.any_true (get_local $v1)))
-    )
-
-    (func (export "func_i64x2_alltrue") (local $v1 v128)
-        (set_local $v1 (v128.load offset=0 align=4 (i32.const 0)))
-        (i32.store offset=0 (i32.const 0) (i64x2.all_true (get_local $v1)))
     )
 
     (func (export "func_i64x2_shl") (param $shamt i32) (local $v1 v128)

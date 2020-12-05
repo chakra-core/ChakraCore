@@ -8390,7 +8390,7 @@ Case0:
                 }
                 else
                 {
-                    separator = scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
+                    separator = scriptContext->GetLibrary()->GetCommaDisplayString();
                 }
 
                 for (uint32 i = 1; i < length; i++)
@@ -9936,13 +9936,13 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
-        
+
 #ifdef ENABLE_JS_BUILTINS
         Assert(!scriptContext->IsJsBuiltInEnabled());
 #endif
-        
+
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
-        
+
         Assert(!(callInfo.Flags & CallFlags_New));
 
         if (args.Info.Count == 0)
@@ -10005,7 +10005,7 @@ Case0:
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("TypedArray.prototype.reduce"));
                 }
-                else 
+                else
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
                 }
@@ -11651,7 +11651,7 @@ Case0:
                     else
                     {
                         dstArray->DirectSetItemAt(dstIndex++, element);
-                    }   
+                    }
                 }
             };
 

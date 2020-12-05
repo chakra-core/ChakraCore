@@ -553,8 +553,6 @@ private:
         if (buildAST)
         {
             pnode->grfnop = 0;
-            pnode->pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
-
             pStmt->pnodeStmt = pnode;
         }
         else

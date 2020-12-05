@@ -36,7 +36,7 @@ namespace Js
 
         if (string == nullptr)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         charcount_t length = string->GetLength();
@@ -47,7 +47,7 @@ namespace Js
             // Nulling out the m_string field is important so that the iterator
             // does not keep the string alive after iteration is completed.
             iterator->m_string = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         char16 chFirst = string->GetItem(index);
@@ -66,6 +66,6 @@ namespace Js
             iterator->m_nextIndex += 2;
         }
 
-        return library->CreateIteratorResultObjectValueFalse(result);
+        return library->CreateIteratorResultObject(result);
     }
 } // namespace Js

@@ -65,7 +65,8 @@ namespace Js
         JavascriptExceptionObject *exception = nullptr;
         try
         {
-            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextItem))
+            RecyclableObject* nextFunc = JavascriptOperators::CacheIteratorNext(iterator, scriptContext);
+            while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, nextFunc, &nextItem))
             {
                 shouldCallReturn = true;
                 handler(nextItem);

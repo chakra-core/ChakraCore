@@ -95,6 +95,29 @@ var tests = [
     },
 
     {
+        name : "WeakMap constructor caches next method from iterator",
+        body: function () {
+            const keys = [ { }, { }, { } ];
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : [keys[iterCount], iterCount],
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            const wm = new WeakMap(iter);
+
+            assert.areEqual(0, wm.get(keys[0]), "wm has key keys[0]");
+            assert.areEqual(1, wm.get(keys[1]), "wm has key keys[1]");
+            assert.areEqual(2, wm.get(keys[2]), "wm has key keys[2]");
+        }
+    },
+
+    {
         name: "WeakMap constructor throws exceptions for non- and malformed iterable arguments",
         body: function () {
             var iterableNoIteratorMethod = { [Symbol.iterator]: 123 };

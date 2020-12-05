@@ -110,6 +110,28 @@ var tests = [
     },
 
     {
+        name : "Set constructor caches next method from iterator",
+        body: function () {
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : iterCount,
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            s = new Set(iter);
+            assert.areEqual(3, s.size, "s is initialized with three entries");
+            assert.isTrue(s.has(0), "s has value '0'");
+            assert.isTrue(s.has(1), "s has value '1'");
+            assert.isTrue(s.has(2), "s has value '2'");
+        }
+    },
+
+    {
         name: "Set constructor throws exceptions for non- and malformed iterable arguments",
         body: function () {
             var iterableNoIteratorMethod = { [Symbol.iterator]: 123 };

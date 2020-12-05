@@ -129,6 +129,28 @@ var tests = [
     },
 
     {
+        name : "Map constructor caches next method from iterator",
+        body: function () {
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : [iterCount, iterCount],
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            m = new Map(iter);
+            assert.areEqual(3, m.size, "m is initialized with three entries");
+            assert.areEqual(0, m.get(0), "m has key '0' mapping to value 0");
+            assert.areEqual(1, m.get(1), "m has key '1' mapping to value 1");
+            assert.areEqual(2, m.get(2), "m has key '2' mapping to value 2");
+        }
+    },
+
+    {
         name: "APIs throw TypeError where specified",
         body: function () {
             function MyMapImposter() { }
