@@ -11,7 +11,7 @@
       <files>jx2.js</files>
       <baseline>jx2.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
+      <tags>exclude_jenkins,slow</tags>
     </default>
   </test>
   <test>

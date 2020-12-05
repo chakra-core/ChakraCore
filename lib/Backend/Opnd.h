@@ -638,6 +638,7 @@ public:
             bool usesFixedValue: 1;
             bool auxSlotPtrSymAvailable:1;
             bool producesAuxSlotPtr:1;
+            bool cantChangeType: 1;
 
             union
             {
@@ -1057,6 +1058,16 @@ public:
     {
         Assert(IsTypeCheckSeqCandidate());
         this->typeCheckRequired = value;
+    }
+
+    bool CantChangeType() const
+    {
+        return this->cantChangeType;
+    }
+
+    void SetCantChangeType(bool value)
+    {
+        this->cantChangeType = value;
     }
 
     uint16 GetObjTypeSpecFlags() const

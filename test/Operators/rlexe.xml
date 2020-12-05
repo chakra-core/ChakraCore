@@ -60,8 +60,6 @@
     <default>
       <files>equals.js</files>
       <baseline>equals.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
     </default>
   </test>
   <test>

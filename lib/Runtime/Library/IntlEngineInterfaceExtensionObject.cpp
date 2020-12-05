@@ -632,6 +632,9 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
 #endif // defined(NTBUILD)
 #endif // else !INTL_WINGLOB
 
+        // Add a reference to the built-in Intl object that can be referenced from the init code in Intl.js.
+        library->AddMember(intlNativeInterfaces, Js::PropertyIds::Intl, library->GetIntlObject());
+
         intlNativeInterfaces->SetHasNoEnumerableProperties(true);
 
         return true;

@@ -346,6 +346,8 @@ public:
     bool IsLandingPad();
     BailOutInfo * CreateLoopTopBailOutInfo(GlobOpt * globOpt);
 
+    BVSparse<JitArenaAllocator> *EnsureTypeIDsWithFinalType(JitArenaAllocator *alloc);
+
     // GlobOpt Stuff
 public:
     bool         PathDepBranchFolding(GlobOpt* globOptState);
@@ -401,6 +403,7 @@ public:
     HashTable<AddPropertyCacheBucket> *     stackSymToFinalType;
     HashTable<ObjTypeGuardBucket> *         stackSymToGuardedProperties; // Dead store pass only
     HashTable<ObjWriteGuardBucket> *        stackSymToWriteGuardsMap; // Backward pass only
+    BVSparse<JitArenaAllocator> *           typeIDsWithFinalType;
     BVSparse<JitArenaAllocator> *           noImplicitCallUses;
     BVSparse<JitArenaAllocator> *           noImplicitCallNoMissingValuesUses;
     BVSparse<JitArenaAllocator> *           noImplicitCallNativeArrayUses;
@@ -446,6 +449,7 @@ private:
         stackSymToFinalType(nullptr),
         stackSymToGuardedProperties(nullptr),
         stackSymToWriteGuardsMap(nullptr),
+        typeIDsWithFinalType(nullptr),
         noImplicitCallUses(nullptr),
         noImplicitCallNoMissingValuesUses(nullptr),
         noImplicitCallNativeArrayUses(nullptr),

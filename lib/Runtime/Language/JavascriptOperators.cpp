@@ -8839,6 +8839,86 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     }
 
     template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueCantChangeType);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueCantChangeType, Op_PatchPutValue);
+
+        Type * oldType = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetType() : nullptr;
+        PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        return (oldType != nullptr && oldType != UnsafeVarTo<DynamicObject>(instance)->GetType());
+
+        JIT_HELPER_END(Op_PatchPutValueCantChangeType);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueCantChangeType, Op_PatchPutValuePolymorphicCantChangeType);
+    template bool JavascriptOperators::PatchPutValueCantChangeType<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueCantChangeType<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueWithThisPtrCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrCantChangeType);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrCantChangeType, Op_PatchPutValueWithThisPtr);
+
+        Type * oldType = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetType() : nullptr;
+        PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
+        return (oldType != nullptr && oldType != UnsafeVarTo<DynamicObject>(instance)->GetType());
+
+        JIT_HELPER_END(Op_PatchPutValueWithThisPtrCantChangeType);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueWithThisPtrCantChangeType, Op_PatchPutValueWithThisPtrPolymorphicCantChangeType);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrCantChangeType<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrCantChangeType<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueNoLocalFastPathCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueNoLocalFastPathCantChangeType);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueNoLocalFastPathCantChangeType, Op_PatchPutValueNoLocalFastPath);
+
+        Type * oldType = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetType() : nullptr;
+        PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        return (oldType != nullptr && oldType != UnsafeVarTo<DynamicObject>(instance)->GetType());
+
+        JIT_HELPER_END(Op_PatchPutValueNoLocalFastPathCantChangeType);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueNoLocalFastPathCantChangeType, Op_PatchPutValueNoLocalFastPathPolymorphicCantChangeType);
+    template bool JavascriptOperators::PatchPutValueNoLocalFastPathCantChangeType<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueNoLocalFastPathCantChangeType<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrNoLocalFastPathCantChangeType);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrNoLocalFastPathCantChangeType, Op_PatchPutValueWithThisPtrNoLocalFastPath);
+
+        Type * oldType = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetType() : nullptr;
+        PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
+        return (oldType != nullptr && oldType != UnsafeVarTo<DynamicObject>(instance)->GetType());
+
+        JIT_HELPER_END(Op_PatchPutValueWithThisPtrNoLocalFastPathCantChangeType);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueWithThisPtrNoLocalFastPathCantChangeType, Op_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCantChangeType);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCantChangeType<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCantChangeType<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchInitValueCantChangeType(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchInitValueCantChangeType);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchInitValueCantChangeType, Op_PatchInitValue);
+
+        Type * oldType = VarIs<DynamicObject>(object) ? UnsafeVarTo<DynamicObject>(object)->GetType() : nullptr;
+        PatchInitValue<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, object, propertyId, newValue);
+        return (oldType != nullptr && oldType != UnsafeVarTo<DynamicObject>(object)->GetType());
+
+        JIT_HELPER_END(Op_PatchInitValueCantChangeType);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchInitValueCantChangeType, Op_PatchInitValuePolymorphicCantChangeType);
+    template bool JavascriptOperators::PatchInitValueCantChangeType<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+    template bool JavascriptOperators::PatchInitValueCantChangeType<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+
+    template <class TInlineCache>
     inline bool JavascriptOperators::PatchPutValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
     {
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueCheckLayout);

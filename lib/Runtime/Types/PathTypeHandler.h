@@ -196,6 +196,7 @@ namespace Js
         void VerifyInlineSlotCapacityIsLocked(bool startFromRoot);
         PathTypeHandlerBase *DeoptimizeObjectHeaderInlining(JavascriptLibrary *const library);
         virtual void SetPrototype(DynamicObject* instance, RecyclableObject* newPrototype) override;
+        void SetPrototypeHelper(DynamicObject* instance, RecyclableObject* newPrototype, TypeTransitionMap* oldTypeToPromotedTypeMap, bool useCache, ScriptContext *scriptContext);
 
         virtual void SetIsPrototype(DynamicObject* instance) override;
 

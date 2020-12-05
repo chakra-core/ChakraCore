@@ -11,7 +11,7 @@ namespace PlatformAgnostic
 {
 namespace Arrays
 {
-    // Potential candidate for optimization 
+    // Potential candidate for optimization
     bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutSize, uint32 sepBufSize)
     {
         char16 localeName[LOCALE_NAME_MAX_LENGTH] = { 0 };
@@ -25,7 +25,7 @@ namespace Arrays
         }
 
         *sepOutSize = GetLocaleInfoEx(localeName, LOCALE_SLIST, szSeparator, sepBufSize);
-
+        
         if (*sepOutSize == 0)
         {
             AssertMsg(FALSE, "GetLocaleInfo failed");
@@ -33,12 +33,8 @@ namespace Arrays
         }
         else
         {
-            // Append ' ' if necessary
-            if (*sepOutSize < 2 || szSeparator[*sepOutSize - 2] != ' ')
-            {
-                szSeparator[*sepOutSize - 1] = ' ';
-                szSeparator[*sepOutSize] = '\0';
-            }
+          // We need just the number of regular characters, but Win32 API counts terminating null character as well
+          --(*sepOutSize);
         }
 
         return true;

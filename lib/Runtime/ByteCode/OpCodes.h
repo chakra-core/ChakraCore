@@ -531,8 +531,8 @@ MACRO_WMS(              StArrSegItem_CI4,       ElementUnsigned1,      OpSideEff
 MACRO(                  StArrSegItem_A,         Auxiliary,      OpSideEffect)
 MACRO_WMS(              DeleteElemI_A,          ElementI,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove from instance's indirect element / field, checked
 MACRO_WMS(              DeleteElemIStrict_A,    ElementI,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove from instance's indirect element / field, checked
-MACRO_EXTEND_WMS(       InitSetFld,             ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Set in Object Literal Syntax {set prop(args){}};
-MACRO_EXTEND_WMS(       InitGetFld,             ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpFastFldInstr|OpPostOpDbgBailOut)   // Get in Object Literal Syntax {get prop(){}};
+MACRO_EXTEND_WMS(       InitSetFld,             ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Set in Object Literal Syntax {set prop(args){}};
+MACRO_EXTEND_WMS(       InitGetFld,             ElementC,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Get in Object Literal Syntax {get prop(){}};
 MACRO_EXTEND_WMS(       InitSetElemI,           ElementI,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Set in Object Literal Syntax {set [expr](args){}};
 MACRO_EXTEND_WMS(       InitGetElemI,           ElementI,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Get in Object Literal Syntax {get [expr](args){}};
 MACRO_EXTEND_WMS(       InitComputedProperty,   ElementI,       OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Data property in Object Literal Syntax { [expr] : expr};
