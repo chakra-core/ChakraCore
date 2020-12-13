@@ -18,7 +18,7 @@ namespace TTD
             TTDAssert(!obj->IsExternal(), "We are not prepared for custom external objects yet");
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
-            sobj->SnapObjectTag = obj->GetSnapTag_TTD();
+            sobj->SnapObjectTag = obj->GetTypeId() == Js::TypeId::TypeIds_AwaitObject ? SnapObjectType::SnapAwaitObject : obj->GetSnapTag_TTD();
 
             TTD_WELLKNOWN_TOKEN lookupToken = isWellKnown ? obj->GetScriptContext()->TTDWellKnownInfo->ResolvePathForKnownObject(obj) : TTD_INVALID_WELLKNOWN_TOKEN;
             sobj->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(lookupToken);
@@ -39,7 +39,10 @@ namespace TTD
                 NSSnapObjects::StdPropertyExtract_DynamicType(sobj, static_cast<Js::DynamicObject*>(obj), alloc);
             }
 
-            obj->ExtractSnapObjectDataInto(sobj, alloc);
+            if (sobj->SnapObjectTag != SnapObjectType::SnapAwaitObject)
+            {
+                obj->ExtractSnapObjectDataInto(sobj, alloc);
+            }
         }
 
         void StdPropertyExtract_StaticType(SnapObject* snpObject, Js::RecyclableObject* obj)
@@ -680,6 +683,21 @@ namespace TTD
             }
         }
 #endif
+
+        Js::RecyclableObject* DoObjectInflation_SnapAwaitObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
+            if(rcObj != nullptr)
+            {
+                return rcObj;
+            }
+            else
+            {
+                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+
+                return Js::DynamicObject::New(ctx->GetRecycler(), ctx->GetLibrary()->GetAwaitObjectType());
+            }
+        }
 
         Js::RecyclableObject* DoObjectInflation_SnapDynamicObject(const SnapObject* snpObject, InflateMap* inflator)
         {

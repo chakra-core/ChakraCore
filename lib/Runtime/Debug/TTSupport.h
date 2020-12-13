@@ -255,6 +255,7 @@ namespace TTD
             SnapGeneratorVirtualScriptFunction,
             SnapAsyncFunction,
             SnapGenerator,
+            SnapAwaitObject,
             JavascriptAsyncSpawnExecutorFunction,
             JavascriptAsyncSpawnStepFunction,
 
