@@ -49,10 +49,6 @@ public:
     static Var EntryImports(RecyclableObject* function, CallInfo callInfo, ...);
     static Var EntryCustomSections(RecyclableObject* function, CallInfo callInfo, ...);
 
-    static bool Is(Var aValue);
-    static WebAssemblyModule * FromVar(Var aValue);
-    static WebAssemblyModule * UnsafeFromVar(Var aValue);
-
     static WebAssemblyModule * CreateModule(
         ScriptContext* scriptContext,
         class WebAssemblySource* src);
@@ -204,6 +200,11 @@ private:
 
     FieldNoBarrier(ArenaAllocator*) m_alloc;
 };
+
+template <> inline bool VarIsImpl<WebAssemblyModule>(RecyclableObject* obj)
+{
+    return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyModule;
+}
 
 } // namespace Js
 #endif

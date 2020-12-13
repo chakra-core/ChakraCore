@@ -30,6 +30,7 @@
       "level_0_identifier_0": "string level0"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
@@ -47,6 +48,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
@@ -70,6 +72,7 @@
       "verify": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"

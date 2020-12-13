@@ -46,6 +46,7 @@ namespace Js
         DictionaryTypeHandlerBase(Recycler* recycler);
         DictionaryTypeHandlerBase(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         DictionaryTypeHandlerBase(DictionaryTypeHandlerBase* typeHandler);
+        DictionaryTypeHandlerBase(Recycler* recycler, DictionaryTypeHandlerBase * typeHandler);
         DEFINE_VTABLE_CTOR_NO_REGISTER(DictionaryTypeHandlerBase, DynamicTypeHandler);
 
         // Create a new type handler for a future DynamicObject. This is for public usage. "initialCapacity" indicates desired slotCapacity, subject to alignment round up.
@@ -61,6 +62,8 @@ namespace Js
 
         // Create a new type handler for a future DynamicObject. This is for public usage. "initialCapacity" indicates desired slotCapacity, subject to alignment round up.
         static DictionaryTypeHandlerBase* New(Recycler * recycler, int initialCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
+
+        virtual DynamicTypeHandler * Clone(Recycler * recycler);
 
         BOOL IsBigDictionaryTypeHandler();
 

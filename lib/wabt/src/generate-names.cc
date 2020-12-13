@@ -79,19 +79,25 @@ class NameGenerator : public ExprVisitor::DelegateNop {
                                   Index index,
                                   std::string* out_str);
 
-  void GenerateAndBindLocalNames(BindingHash* bindings, const char* prefix);
+  void GenerateAndBindLocalNames(Func* func);
+
+  template <typename T>
+  Result VisitAll(const std::vector<T*>& items,
+                  Result (NameGenerator::*func)(Index, T*));
+
   Result VisitFunc(Index func_index, Func* func);
   Result VisitGlobal(Index global_index, Global* global);
   Result VisitFuncType(Index func_type_index, FuncType* func_type);
   Result VisitTable(Index table_index, Table* table);
   Result VisitMemory(Index memory_index, Memory* memory);
   Result VisitExcept(Index except_index, Exception* except);
+  Result VisitDataSegment(Index data_segment_index, DataSegment* data_segment);
+  Result VisitElemSegment(Index elem_segment_index, ElemSegment* elem_segment);
   Result VisitImport(Import* import);
   Result VisitExport(Export* export_);
 
   Module* module_ = nullptr;
   ExprVisitor visitor_;
-  std::vector<std::string> index_to_name_;
   Index label_count_ = 0;
 
   Index num_func_imports_ = 0;
@@ -179,17 +185,20 @@ void NameGenerator::MaybeUseAndBindName(BindingHash* bindings,
   }
 }
 
-void NameGenerator::GenerateAndBindLocalNames(BindingHash* bindings,
-                                              const char* prefix) {
-  for (size_t i = 0; i < index_to_name_.size(); ++i) {
-    const std::string& old_name = index_to_name_[i];
+void NameGenerator::GenerateAndBindLocalNames(Func* func) {
+  std::vector<std::string> index_to_name;
+  MakeTypeBindingReverseMapping(func->GetNumParamsAndLocals(), func->bindings,
+                                &index_to_name);
+  for (size_t i = 0; i < index_to_name.size(); ++i) {
+    const std::string& old_name = index_to_name[i];
     if (!old_name.empty()) {
       continue;
     }
 
+    const char* prefix = i < func->GetNumParams() ? "$p" : "$l";
     std::string new_name;
-    GenerateAndBindName(bindings, prefix, i, &new_name);
-    index_to_name_[i] = new_name;
+    GenerateAndBindName(&func->bindings, prefix, i, &new_name);
+    index_to_name[i] = new_name;
   }
 }
 
@@ -216,14 +225,7 @@ Result NameGenerator::BeginIfExceptExpr(IfExceptExpr* expr) {
 Result NameGenerator::VisitFunc(Index func_index, Func* func) {
   MaybeGenerateAndBindName(&module_->func_bindings, "$f", func_index,
                            &func->name);
-
-  MakeTypeBindingReverseMapping(func->decl.sig.param_types.size(),
-                                func->param_bindings, &index_to_name_);
-  GenerateAndBindLocalNames(&func->param_bindings, "$p");
-
-  MakeTypeBindingReverseMapping(func->local_types.size(), func->local_bindings,
-                                &index_to_name_);
-  GenerateAndBindLocalNames(&func->local_bindings, "$l");
+  GenerateAndBindLocalNames(func);
 
   label_count_ = 0;
   CHECK_RESULT(visitor_.VisitFunc(func));
@@ -258,6 +260,20 @@ Result NameGenerator::VisitMemory(Index memory_index, Memory* memory) {
 Result NameGenerator::VisitExcept(Index except_index, Exception* except) {
   MaybeGenerateAndBindName(&module_->except_bindings, "$e", except_index,
                            &except->name);
+  return Result::Ok;
+}
+
+Result NameGenerator::VisitDataSegment(Index data_segment_index,
+                                       DataSegment* data_segment) {
+  MaybeGenerateAndBindName(&module_->data_segment_bindings, "$d",
+                           data_segment_index, &data_segment->name);
+  return Result::Ok;
+}
+
+Result NameGenerator::VisitElemSegment(Index elem_segment_index,
+                                       ElemSegment* elem_segment) {
+  MaybeGenerateAndBindName(&module_->elem_segment_bindings, "$e",
+                           elem_segment_index, &elem_segment->name);
   return Result::Ok;
 }
 
@@ -372,27 +388,34 @@ Result NameGenerator::VisitExport(Export* export_) {
   return Result::Ok;
 }
 
+template <typename T>
+Result NameGenerator::VisitAll(const std::vector<T*>& items,
+                               Result (NameGenerator::*func)(Index, T*)) {
+  for (Index i = 0; i < items.size(); ++i) {
+    CHECK_RESULT((this->*func)(i, items[i]));
+  }
+  return Result::Ok;
+}
+
 Result NameGenerator::VisitModule(Module* module) {
   module_ = module;
   // Visit imports and exports first to give better names, derived from the
   // import/export name.
-  for (Index i = 0; i < module->imports.size(); ++i)
-    CHECK_RESULT(VisitImport(module->imports[i]));
-  for (Index i = 0; i < module->exports.size(); ++i)
-    CHECK_RESULT(VisitExport(module->exports[i]));
+  for (auto* import : module->imports) {
+    CHECK_RESULT(VisitImport(import));
+  }
+  for (auto* export_ : module->exports) {
+    CHECK_RESULT(VisitExport(export_));
+  }
 
-  for (Index i = 0; i < module->globals.size(); ++i)
-    CHECK_RESULT(VisitGlobal(i, module->globals[i]));
-  for (Index i = 0; i < module->func_types.size(); ++i)
-    CHECK_RESULT(VisitFuncType(i, module->func_types[i]));
-  for (Index i = 0; i < module->funcs.size(); ++i)
-    CHECK_RESULT(VisitFunc(i, module->funcs[i]));
-  for (Index i = 0; i < module->tables.size(); ++i)
-    CHECK_RESULT(VisitTable(i, module->tables[i]));
-  for (Index i = 0; i < module->memories.size(); ++i)
-    CHECK_RESULT(VisitMemory(i, module->memories[i]));
-  for (Index i = 0; i < module->excepts.size(); ++i)
-    CHECK_RESULT(VisitExcept(i, module->excepts[i]));
+  VisitAll(module->globals, &NameGenerator::VisitGlobal);
+  VisitAll(module->func_types, &NameGenerator::VisitFuncType);
+  VisitAll(module->funcs, &NameGenerator::VisitFunc);
+  VisitAll(module->tables, &NameGenerator::VisitTable);
+  VisitAll(module->memories, &NameGenerator::VisitMemory);
+  VisitAll(module->excepts, &NameGenerator::VisitExcept);
+  VisitAll(module->data_segments, &NameGenerator::VisitDataSegment);
+  VisitAll(module->elem_segments, &NameGenerator::VisitElemSegment);
   module_ = nullptr;
   return Result::Ok;
 }

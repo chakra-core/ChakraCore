@@ -52,7 +52,7 @@ private:
     IR::IndirOpnd * baseOwnerIndir = nullptr;
     IR::RegOpnd * baseOpnd = nullptr;
     IR::Opnd * indexOpnd = nullptr;
-    IR::RegOpnd * originalIndexOpnd = nullptr;
+    IR::Opnd * originalIndexOpnd = nullptr;
     bool isProfilableLdElem = false;
     bool isProfilableStElem = false;
     bool isLoad = false;

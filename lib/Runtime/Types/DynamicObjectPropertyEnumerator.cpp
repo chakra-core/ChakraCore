@@ -73,7 +73,7 @@ namespace Js
             Assert(data != nullptr);
             Assert(data->scriptContext == this->scriptContext); // The cache data script context should be the same as request context
 
-            if (data->enumNonEnumerable == GetEnumNonEnumerable())
+            if (data->enumNonEnumerable == GetEnumNonEnumerable() && data->enumSymbols == GetEnumSymbols())
             {
                 Initialize(type, data, data->propertyCount);
                 return true;
@@ -99,7 +99,7 @@ namespace Js
             return false;
         }
 
-        // Reload the type after EnsureObjecteReady
+        // Reload the type after EnsureObjectReady
         type = object->GetDynamicType();
         if (!type->PrepareForTypeSnapshotEnumeration())
         {
@@ -198,7 +198,7 @@ namespace Js
 
             if (propertyStringName)
             {
-                PropertyString* propertyString = PropertyString::TryFromVar(propertyStringName);
+                PropertyString* propertyString = JavascriptOperators::TryFromVar<PropertyString>(propertyStringName);
                 if (propertyString != nullptr)
                 {
                     Assert(enumeratedCount < this->initialPropertyCount);

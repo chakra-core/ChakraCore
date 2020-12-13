@@ -1,0 +1,17 @@
+Harness Status: OK
+Found 15 tests: Pass = 15
+Pass Missing arguments  
+Pass Branding  
+Pass Basic  
+Pass Reached maximum  
+Pass Exceeded maximum  
+Pass Out-of-range argument: undefined  
+Pass Out-of-range argument: NaN  
+Pass Out-of-range argument: Infinity  
+Pass Out-of-range argument: -Infinity  
+Pass Out-of-range argument: -1  
+Pass Out-of-range argument: 4294967296  
+Pass Out-of-range argument: 68719476736  
+Pass Out-of-range argument: "0x100000000"  
+Pass Out-of-range argument: object "[object Object]"  
+Pass Stray argument  

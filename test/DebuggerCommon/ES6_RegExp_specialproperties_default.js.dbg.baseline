@@ -2,7 +2,7 @@
   {
     "evaluate": {
       "r": {
-        "#__proto__": "RegExp ",
+        "#__proto__": "Object {...}",
         "lastIndex": "number 0",
         "global": "boolean false",
         "multiline": "boolean false",

@@ -21,7 +21,6 @@
 
 #include "config.h"
 
-#include "src/error-handler.h"
 #include "src/lexer-source.h"
 #include "src/wast-parser.h"
 
@@ -84,7 +83,6 @@ namespace wabt {
 
 WastLexer::WastLexer(std::unique_ptr<LexerSource> source, string_view filename)
     : source_(std::move(source)),
-      line_finder_(source_->Clone()),
       filename_(filename),
       line_(1),
       comment_nesting_(0),
@@ -449,8 +447,15 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "unreachable"         { RETURN_OPCODE0(Unreachable); }
       <i> "memory.size"         { RETURN_OPCODE0(MemorySize); }
       <i> "memory.grow"         { RETURN_OPCODE0(MemoryGrow); }
+      <i> "memory.init"         { RETURN_OPCODE0(MemoryInit); }
+      <i> "memory.drop"         { RETURN_OPCODE0(MemoryDrop); }
+      <i> "memory.copy"         { RETURN_OPCODE0(MemoryCopy); }
+      <i> "memory.fill"         { RETURN_OPCODE0(MemoryFill); }
       <i> "current_memory"      { RETURN_OPCODE0(MemorySize); }
       <i> "grow_memory"         { RETURN_OPCODE0(MemoryGrow); }
+      <i> "table.init"         { RETURN_OPCODE0(TableInit); }
+      <i> "table.drop"         { RETURN_OPCODE0(TableDrop); }
+      <i> "table.copy"         { RETURN_OPCODE0(TableCopy); }
 
       <i> "i32.atomic.wait"     { RETURN_OPCODE(AtomicWait, I32AtomicWait); }
       <i> "i64.atomic.wait"     { RETURN_OPCODE(AtomicWait, I64AtomicWait); }
@@ -658,6 +663,8 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "i32x4.trunc_u/f32x4:sat" { RETURN_OPCODE(Unary, I32X4TruncUF32X4Sat); }
       <i> "i64x2.trunc_s/f64x2:sat" { RETURN_OPCODE(Unary, I64X2TruncSF64X2Sat); }
       <i> "i64x2.trunc_u/f64x2:sat" { RETURN_OPCODE(Unary, I64X2TruncUF64X2Sat); }
+      <i> "return_call"           { RETURN_OPCODE0(ReturnCall); }
+      <i> "return_call_indirect"  { RETURN_OPCODE0(ReturnCallIndirect); }
 
       <i> "type"                { RETURN(Type); }
       <i> "func"                { RETURN(Func); }
@@ -677,6 +684,7 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "import"              { RETURN(Import); }
       <i> "export"              { RETURN(Export); }
       <i> "except"              { RETURN(Except); }
+      <i> "passive"             { RETURN(Passive); }
       <i> "register"            { RETURN(Register); }
       <i> "invoke"              { RETURN(Invoke); }
       <i> "get"                 { RETURN(Get); }

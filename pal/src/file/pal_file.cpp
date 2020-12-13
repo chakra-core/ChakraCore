@@ -242,8 +242,8 @@ InternalCanonicalizeRealPath
     exist, this is a straight thunk through to realpath(). On other
     systems, we remove the last path component, then call realpath().
 
-    cch is the size of lpBuffer and has to be atleast PATH_MAX (since 
-    realpath() requires the buffer to be atleast PATH_MAX).
+    cch is the size of lpBuffer and has to be at least PATH_MAX (since 
+    realpath() requires the buffer to be at least PATH_MAX).
 --*/
 PAL_ERROR
 CorUnix::InternalCanonicalizeRealPath(LPCSTR lpUnixPath, LPSTR lpBuffer, DWORD cch)
@@ -484,7 +484,7 @@ CorUnix::InternalCreateFile(
 
     const char* szNonfilePrefix = "\\\\.\\";
     LPSTR lpFullUnixPath = NULL;
-    DWORD cchFullUnixPath = PATH_MAX+1; // InternalCanonicalizeRealPath requires this to be atleast PATH_MAX
+    DWORD cchFullUnixPath = PATH_MAX+1; // InternalCanonicalizeRealPath requires this to be at least PATH_MAX
 
     /* for dwShareMode only three flags are accepted */
     if ( dwShareMode & ~(FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE) )
@@ -715,7 +715,7 @@ CorUnix::InternalCreateFile(
     // the PAL, other PALs will ignore these locks.  In order to support a basic level of cross
     // process locking, we'll use advisory locks.  FILE_SHARE_NONE implies a exclusive lock on the
     // file and all other modes use a shared lock.  While this is not as granular as Windows,
-    // you can atleast implement a lock file using this.
+    // you can at least implement a lock file using this.
     lock_mode = (dwShareMode == 0 /* FILE_SHARE_NONE */) ? LOCK_EX : LOCK_SH;
 
     if(flock(filed, lock_mode | LOCK_NB) != 0) 
@@ -1177,7 +1177,7 @@ DeleteFileA(
     int length;
     PathCharString lpUnixFileNamePS;
     LPSTR lpFullUnixFileName = NULL;
-    DWORD cchFullUnixFileName = MAX_LONGPATH+1;// InternalCanonicalizeRealPath requires this to be atleast PATH_MAX
+    DWORD cchFullUnixFileName = MAX_LONGPATH+1;// InternalCanonicalizeRealPath requires this to be at least PATH_MAX
 
     PERF_ENTRY(DeleteFileA);
     ENTRY("DeleteFileA(lpFileName=%p (%s))\n", lpFileName?lpFileName:"NULL", lpFileName?lpFileName:"NULL");

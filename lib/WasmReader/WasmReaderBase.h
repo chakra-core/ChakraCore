@@ -14,7 +14,7 @@ namespace Wasm
         virtual bool IsCurrentFunctionCompleted() const = 0;
         virtual WasmOp ReadExpr() = 0;
         virtual void FunctionEnd() = 0;
-        virtual const uint32 EstimateCurrentFunctionBytecodeSize() const = 0;
+        virtual uint32 EstimateCurrentFunctionBytecodeSize() const = 0;
         WasmNode m_currentNode;
     };
 } // namespace Wasm

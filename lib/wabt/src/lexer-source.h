@@ -35,6 +35,7 @@ class LexerSource {
   virtual Result Tell(Offset* out_offset) = 0;
   virtual size_t Fill(void* dest, size_t size) = 0;
   virtual Result ReadRange(OffsetRange, std::vector<char>* out_data) = 0;
+  virtual Result Seek(Offset) = 0;
 
   WABT_DISALLOW_COPY_AND_ASSIGN(LexerSource);
 };
@@ -50,9 +51,7 @@ class LexerSourceFile : public LexerSource {
   Result Tell(Offset* out_offset) override;
   size_t Fill(void* dest, size_t size) override;
   Result ReadRange(OffsetRange, std::vector<char>* out_data) override;
-
- private:
-  Result Seek(Offset offset);
+  Result Seek(Offset offset) override;
 
   std::string filename_;
   FILE* file_;
@@ -66,6 +65,7 @@ class LexerSourceBuffer : public LexerSource {
   Result Tell(Offset* out_offset) override;
   size_t Fill(void* dest, size_t size) override;
   Result ReadRange(OffsetRange, std::vector<char>* out_data) override;
+  Result Seek(Offset offset) override;
 
  private:
   const void* data_;

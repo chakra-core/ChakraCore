@@ -15,26 +15,6 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_SetIterator);
     }
 
-    bool JavascriptSetIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_SetIterator;
-    }
-
-    JavascriptSetIterator* JavascriptSetIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSetIterator'");
-
-        return static_cast<JavascriptSetIterator *>(aValue);
-    }
-
-    JavascriptSetIterator* JavascriptSetIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSetIterator'");
-
-        return static_cast<JavascriptSetIterator *>(aValue);
-    }
-
     Var JavascriptSetIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -47,19 +27,19 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptSetIterator::Is(thisObj))
+        if (!VarIs<JavascriptSetIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSetIterator, _u("Set Iterator.prototype.next"));
         }
 
-        JavascriptSetIterator* iterator = JavascriptSetIterator::FromVar(thisObj);
+        JavascriptSetIterator* iterator = VarTo<JavascriptSetIterator>(thisObj);
         JavascriptSet* set = iterator->m_set;
         auto& setIterator = iterator->m_setIterator;
 
         if (set == nullptr || !setIterator.Next())
         {
             iterator->m_set = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         auto value = setIterator.Current();
@@ -78,6 +58,6 @@ namespace Js
             result = value;
         }
 
-        return library->CreateIteratorResultObjectValueFalse(result);
+        return library->CreateIteratorResultObject(result);
     }
 } //namespace Js

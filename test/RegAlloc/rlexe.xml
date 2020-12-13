@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+   <test>
+    <default>
+      <files>RegAllocBug_0.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test> 
+</regress-exe>

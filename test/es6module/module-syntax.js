@@ -115,6 +115,10 @@ var tests = [
             testModuleScript(`do export default null
                                 while (false);`, 'Syntax error export in while', true);
             testModuleScript('function () { export default null; }', 'Syntax error export in function', true);
+            testModuleScript('export {foo}', 'Syntax error undefined export', true);
+            testModuleScript('export {Array}', 'Syntax error exporting a global name with no local definition', true);
+            testModuleScript('var x; export { x \\u0061s y }', 'Syntax error if as keyword has unicode escape', true);
+            testModuleScript('export { x } \\u0066rom "module";', 'Syntax error if as keyword has unicode escape', true);
         }
     },
     {
@@ -162,6 +166,7 @@ var tests = [
             testModuleScript(`do import { default } from "module"
                                 while (false);`, 'Syntax error export in while', true);
             testModuleScript('function () { import { default } from "module"; }', 'Syntax error export in function', true);
+            testModuleScript('import { default \\u0061s y } from "module";', 'Syntax error if as keyword has unicode escape', true);
         }
     },
     {

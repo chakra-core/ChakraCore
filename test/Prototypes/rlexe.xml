@@ -46,4 +46,9 @@
       <files>shadow2.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>NoPrototypeForMethod.js</files>
+    </default>
+  </test>
 </regress-exe>

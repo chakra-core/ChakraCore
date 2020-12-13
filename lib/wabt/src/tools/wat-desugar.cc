@@ -24,7 +24,7 @@
 
 #include "src/apply-names.h"
 #include "src/common.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
 #include "src/feature.h"
 #include "src/generate-names.h"
 #include "src/ir.h"
@@ -66,6 +66,10 @@ static void ParseOptions(int argc, char** argv) {
                    []() { s_debug_parsing = true; });
   parser.AddOption('f', "fold-exprs", "Write folded expressions where possible",
                    []() { s_write_wat_options.fold_exprs = true; });
+  parser.AddOption("inline-exports", "Write all exports inline",
+                   []() { s_write_wat_options.inline_export = true; });
+  parser.AddOption("inline-imports", "Write all imports inline",
+                   []() { s_write_wat_options.inline_import = true; });
   s_features.AddOptions(&parser);
   parser.AddOption(
       "generate-names",
@@ -86,11 +90,13 @@ int ProgramMain(int argc, char** argv) {
     WABT_FATAL("unable to read %s\n", s_infile);
   }
 
-  ErrorHandlerFile error_handler(Location::Type::Text);
+  Errors errors;
   std::unique_ptr<Script> script;
   WastParseOptions parse_wast_options(s_features);
-  Result result = ParseWastScript(lexer.get(), &script, &error_handler,
-                                  &parse_wast_options);
+  Result result =
+      ParseWastScript(lexer.get(), &script, &errors, &parse_wast_options);
+  auto line_finder = lexer->MakeLineFinder();
+  FormatErrorsToFile(errors, Location::Type::Text);
 
   if (Succeeded(result)) {
     Module* module = script->GetFirstModule();
@@ -108,7 +114,7 @@ int ProgramMain(int argc, char** argv) {
 
     if (Succeeded(result)) {
       FileStream stream(s_outfile ? FileStream(s_outfile) : FileStream(stdout));
-      result = WriteWat(&stream, module, &s_write_wat_options);
+      result = WriteWat(&stream, module, s_write_wat_options);
     }
   }
 

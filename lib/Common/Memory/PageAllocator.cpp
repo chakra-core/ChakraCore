@@ -343,8 +343,6 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
     }
     Assert(!IsFull());
 
-#pragma prefast(push)
-#pragma prefast(suppress:__WARNING_LOOP_INDEX_UNDERFLOW, "Prefast about overflow when multiplying index.")
     uint index = this->GetNextBitInFreePagesBitVector(0);
     while (index != -1)
     {
@@ -393,12 +391,9 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
         }
         index = this->GetNextBitInFreePagesBitVector(index + 1);
     }
-#pragma prefast(pop)
     return nullptr;
 }
 
-#pragma prefast(push)
-#pragma prefast(suppress:__WARNING_LOOP_INDEX_UNDERFLOW, "Prefast about overflow when multiplying index.")
 template<typename TVirtualAlloc>
 template<typename T, bool notPageAligned>
 char *
@@ -473,7 +468,6 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
 
     return nullptr;
 }
-#pragma prefast(pop)
 
 template<typename T>
 void
@@ -2671,7 +2665,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 
     /*Verify if we always pass the PAGE_TARGETS_NO_UPDATE flag, if the protect flag is EXECUTE*/
 #if defined(_CONTROL_FLOW_GUARD)
-    if (AutoSystemInfo::Data.IsCFGEnabled() &&
+    if (GlobalSecurityPolicy::IsCFGEnabled() &&
         (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) &&
         ((dwVirtualProtectFlags & PAGE_TARGETS_NO_UPDATE) == 0))
     {

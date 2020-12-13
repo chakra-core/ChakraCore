@@ -70,7 +70,7 @@ static void common_signal_handler(PEXCEPTION_POINTERS pointers, int code,
 
 static void inject_activation_handler(int code, siginfo_t *siginfo, void *context);
 
-static void handle_signal(int signal_id, SIGFUNC sigfunc, struct sigaction *previousAction);
+static void handle_signal(int signal_id, SIGFUNC sigfunc, struct sigaction *previousAction, int additionalFlags = 0);
 static void restore_signal(int signal_id, struct sigaction *previousAction);
 
 /* internal data declarations *********************************************/
@@ -117,7 +117,7 @@ BOOL SEHInitializeSignals()
     handle_signal(SIGTRAP, sigtrap_handler, &g_previous_sigtrap);
     handle_signal(SIGFPE, sigfpe_handler, &g_previous_sigfpe);
     handle_signal(SIGBUS, sigbus_handler, &g_previous_sigbus);
-    handle_signal(SIGSEGV, sigsegv_handler, &g_previous_sigsegv);
+    handle_signal(SIGSEGV, sigsegv_handler, &g_previous_sigsegv, SA_ONSTACK);
 
     handle_signal(INJECT_ACTIVATION_SIGNAL, inject_activation_handler, NULL);
 
@@ -576,11 +576,11 @@ Parameters :
 
 note : if sigfunc is NULL, the default signal handler is restored
 --*/
-void handle_signal(int signal_id, SIGFUNC sigfunc, struct sigaction *previousAction)
+void handle_signal(int signal_id, SIGFUNC sigfunc, struct sigaction *previousAction, int additionalFlags)
 {
     struct sigaction newAction;
 
-    newAction.sa_flags = SA_RESTART;
+    newAction.sa_flags = SA_RESTART | additionalFlags;
 #if HAVE_SIGINFO_T
     newAction.sa_handler = NULL;
     newAction.sa_sigaction = sigfunc;

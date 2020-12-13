@@ -58,9 +58,10 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "a1": "number 10",
       "foo": "function <large string>",
-      "sub_expression_step_over": "function <large string>",
-      "a1": "number 10"
+      "sub_expression_step_over": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -80,9 +81,10 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "a1": "number 10",
       "foo": "function <large string>",
-      "sub_expression_step_over": "function <large string>",
-      "a1": "number 10"
+      "sub_expression_step_over": "function <large string>"
     }
   }
 ]

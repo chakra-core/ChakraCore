@@ -36,6 +36,8 @@
         }
       }
     },
-    "globals": {}
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   }
 ]

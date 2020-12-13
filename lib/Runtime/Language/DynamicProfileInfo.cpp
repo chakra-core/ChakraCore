@@ -61,6 +61,7 @@ namespace Js
         Allocation batch[] =
         {
             { (uint)offsetof(DynamicProfileInfo, callSiteInfo), functionBody->GetProfiledCallSiteCount() * sizeof(CallSiteInfo) },
+            { (uint)offsetof(DynamicProfileInfo, callApplyTargetInfo), functionBody->GetProfiledCallApplyCallSiteCount() * sizeof(CallSiteInfo) },
             { (uint)offsetof(DynamicProfileInfo, ldLenInfo), functionBody->GetProfiledLdLenCount() * sizeof(LdLenInfo) },
             { (uint)offsetof(DynamicProfileInfo, ldElemInfo), functionBody->GetProfiledLdElemCount() * sizeof(LdElemInfo) },
             { (uint)offsetof(DynamicProfileInfo, stElemInfo), functionBody->GetProfiledStElemCount() * sizeof(StElemInfo) },
@@ -154,6 +155,11 @@ namespace Js
         {
             callSiteInfo[i].returnType = ValueType::Uninitialized;
             callSiteInfo[i].u.functionData.sourceId = NoSourceId;
+        }
+        for (ProfileId i = 0; i < functionBody->GetProfiledCallApplyCallSiteCount(); ++i)
+        {
+            callApplyTargetInfo[i].returnType = ValueType::Uninitialized;
+            callApplyTargetInfo[i].u.functionData.sourceId = NoSourceId;
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledLdLenCount(); ++i)
         {
@@ -387,7 +393,7 @@ namespace Js
             return true;
         };
 
-        FunctionInfo* calleeFunctionInfo = callee->GetTypeId() == TypeIds_Function ? JavascriptFunction::FromVar(callee)->GetFunctionInfo() : nullptr;
+        FunctionInfo* calleeFunctionInfo = callee->GetTypeId() == TypeIds_Function ? VarTo<JavascriptFunction>(callee)->GetFunctionInfo() : nullptr;
         if (calleeFunctionInfo == nullptr)
         {
             return false;
@@ -434,12 +440,12 @@ namespace Js
             return;
         }
 
-        if (arg != nullptr && RecyclableObject::Is(arg) && JavascriptFunction::Is(arg))
+        if (arg != nullptr && VarIs<RecyclableObject>(arg) && VarIs<JavascriptFunction>(arg))
         {
             CallbackInfo * callbackInfo = EnsureCallbackInfo(functionBody, callSiteId);
             if (callbackInfo->sourceId == NoSourceId)
             {
-                JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
+                JavascriptFunction * callback = UnsafeVarTo<JavascriptFunction>(arg);
                 GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &callbackInfo->sourceId, &callbackInfo->functionId);
                 callbackInfo->argNumber = argNum;
             }
@@ -453,7 +459,7 @@ namespace Js
                 {
                     Js::SourceId sourceId;
                     Js::LocalFunctionId functionId;
-                    JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
+                    JavascriptFunction * callback = UnsafeVarTo<JavascriptFunction>(arg);
                     GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &sourceId, &functionId);
 
                     if (sourceId != callbackInfo->sourceId || functionId != callbackInfo->functionId)
@@ -760,6 +766,38 @@ namespace Js
         }
 
         return;
+    }
+    void DynamicProfileInfo::RecordCallApplyTargetInfo(FunctionBody* functionBody, ProfileId callApplyCallSiteNum, FunctionInfo * targetFunctionInfo, JavascriptFunction* targetFunction)
+    {
+        AutoCriticalSection cs(&this->callSiteInfoCS);
+
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from
+        // different script context
+        Assert(!DynamicProfileInfo::NeedProfileInfoList() || this->persistsAcrossScriptContexts || this->functionBody == functionBody);
+#endif
+        Assert(callApplyCallSiteNum < functionBody->GetProfiledCallApplyCallSiteCount());
+        Js::SourceId oldSourceId = callApplyTargetInfo[callApplyCallSiteNum].u.functionData.sourceId;
+        Js::LocalFunctionId oldFunctionId = callApplyTargetInfo[callApplyCallSiteNum].u.functionData.functionId;
+        if (oldSourceId == InvalidSourceId)
+        {
+            return;
+        }
+
+        Js::SourceId sourceId;
+        Js::LocalFunctionId functionId;
+        GetSourceAndFunctionId(functionBody, targetFunctionInfo, targetFunction, &sourceId, &functionId);
+
+        if (oldSourceId == NoSourceId)
+        {
+            callApplyTargetInfo[callApplyCallSiteNum].u.functionData.sourceId = sourceId;
+            callApplyTargetInfo[callApplyCallSiteNum].u.functionData.functionId = functionId;
+            callApplyTargetInfo[callApplyCallSiteNum].dontInline = false;
+        }
+        else if (oldSourceId != sourceId || oldFunctionId != functionId)
+        {
+            callApplyTargetInfo[callApplyCallSiteNum].isPolymorphic = true;
+        }
     }
 
     bool DynamicProfileInfo::IsPolymorphicCallSite(Js::LocalFunctionId curFunctionId, Js::SourceId curSourceId, Js::LocalFunctionId oldFunctionId, Js::SourceId oldSourceId)
@@ -1124,6 +1162,34 @@ namespace Js
         return GetFunctionInfo(functionBody, callbackInfo->sourceId, callbackInfo->functionId);
     }
 
+    FunctionInfo * DynamicProfileInfo::GetCallApplyTargetInfo(FunctionBody * functionBody, ProfileId callSiteId)
+    {
+        Assert(functionBody != nullptr);
+        Js::ProfileId callSiteCount = functionBody->GetProfiledCallSiteCount();
+        Assert(callSiteId < callSiteCount);
+        Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
+
+        if (functionBody->GetCallSiteToCallApplyCallSiteArray())
+        {
+            Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
+            if (callApplyCallSiteId == Js::Constants::NoProfileId)
+            {
+                return nullptr;
+            } 
+            
+            Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+            
+            if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
+            {
+                return nullptr;
+            }
+
+            return GetFunctionInfo(functionBody, callApplyTargetInfo[callApplyCallSiteId].u.functionData.sourceId, callApplyTargetInfo[callApplyCallSiteId].u.functionData.functionId);
+        }
+
+        return nullptr;
+    }
+
     uint DynamicProfileInfo::GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId)
     {
         Assert(functionBody);
@@ -1399,6 +1465,7 @@ namespace Js
             this->dynamicProfileFunctionInfo = RecyclerNewStructLeaf(recycler, DynamicProfileFunctionInfo);
         }
         this->dynamicProfileFunctionInfo->callSiteInfoCount = functionBody->GetProfiledCallSiteCount();
+        this->dynamicProfileFunctionInfo->callApplyTargetInfoCount = functionBody->GetProfiledCallApplyCallSiteCount();
         this->dynamicProfileFunctionInfo->paramInfoCount = functionBody->GetProfiledInParamsCount();
         this->dynamicProfileFunctionInfo->divCount = functionBody->GetProfiledDivOrRemCount();
         this->dynamicProfileFunctionInfo->switchCount = functionBody->GetProfiledSwitchCount();
@@ -1452,6 +1519,7 @@ namespace Js
             || this->dynamicProfileFunctionInfo->fldInfoCount != functionBody->GetProfiledFldCount()
             || this->dynamicProfileFunctionInfo->slotInfoCount != functionBody->GetProfiledSlotCount()
             || this->dynamicProfileFunctionInfo->callSiteInfoCount != functionBody->GetProfiledCallSiteCount()
+            || this->dynamicProfileFunctionInfo->callApplyTargetInfoCount != functionBody->GetProfiledCallApplyCallSiteCount()
             || this->dynamicProfileFunctionInfo->returnTypeInfoCount != functionBody->GetProfiledReturnTypeCount()
             || this->dynamicProfileFunctionInfo->loopCount != functionBody->GetLoopCount()
             || this->dynamicProfileFunctionInfo->switchCount != functionBody->GetProfiledSwitchCount()
@@ -2113,6 +2181,8 @@ namespace Js
             || !writer->WriteArray(this->slotInfo, functionBody->GetProfiledSlotCount())
             || !writer->Write(functionBody->GetProfiledCallSiteCount())
             || !writer->WriteArray(this->callSiteInfo, functionBody->GetProfiledCallSiteCount())
+            || !writer->Write(functionBody->GetProfiledCallApplyCallSiteCount())
+            || !writer->WriteArray(this->callApplyTargetInfo, functionBody->GetProfiledCallApplyCallSiteCount())
             || !writer->Write(functionBody->GetProfiledDivOrRemCount())
             || !writer->WriteArray(this->divideTypeInfo, functionBody->GetProfiledDivOrRemCount())
             || !writer->Write(functionBody->GetProfiledSwitchCount())
@@ -2142,6 +2212,7 @@ namespace Js
         ProfileId arrayCallSiteCount = 0;
         ProfileId slotInfoCount = 0;
         ProfileId callSiteInfoCount = 0;
+        ProfileId callApplyTargetInfoCount = 0;
         ProfileId returnTypeInfoCount = 0;
         ProfileId divCount = 0;
         ProfileId switchCount = 0;
@@ -2155,6 +2226,7 @@ namespace Js
         FldInfo * fldInfo = nullptr;
         ValueType * slotInfo = nullptr;
         CallSiteInfo * callSiteInfo = nullptr;
+        CallSiteInfo * callApplyTargetInfo = nullptr;
         ValueType * divTypeInfo = nullptr;
         ValueType * switchTypeInfo = nullptr;
         ValueType * returnTypeInfo = nullptr;
@@ -2291,6 +2363,23 @@ namespace Js
                 }
             }
 
+            if (!reader->Read(&callApplyTargetInfoCount))
+            {
+                goto Error;
+            }
+
+            if (callApplyTargetInfoCount != 0)
+            {
+                // CallSiteInfo contains pointer "polymorphicCallSiteInfo", but
+                // we explicitly save that pointer in FunctionBody. Safe to
+                // allocate CallSiteInfo[] as Leaf here.
+                callApplyTargetInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callApplyTargetInfoCount);
+                if (!reader->ReadArray(callApplyTargetInfo, callApplyTargetInfoCount))
+                {
+                    goto Error;
+                }
+            }
+
             if (!reader->Read(&divCount))
             {
                 goto Error;
@@ -2373,6 +2462,7 @@ namespace Js
             dynamicProfileFunctionInfo->fldInfoCount = fldInfoCount;
             dynamicProfileFunctionInfo->slotInfoCount = slotInfoCount;
             dynamicProfileFunctionInfo->callSiteInfoCount = callSiteInfoCount;
+            dynamicProfileFunctionInfo->callApplyTargetInfoCount = callApplyTargetInfoCount;
             dynamicProfileFunctionInfo->divCount = divCount;
             dynamicProfileFunctionInfo->switchCount = switchCount;
             dynamicProfileFunctionInfo->returnTypeInfoCount = returnTypeInfoCount;
@@ -2388,6 +2478,7 @@ namespace Js
             dynamicProfileInfo->fldInfo = fldInfo;
             dynamicProfileInfo->slotInfo = slotInfo;
             dynamicProfileInfo->callSiteInfo = callSiteInfo;
+            dynamicProfileInfo->callApplyTargetInfo = callApplyTargetInfo;
             dynamicProfileInfo->divideTypeInfo = divTypeInfo;
             dynamicProfileInfo->switchTypeInfo = switchTypeInfo;
             dynamicProfileInfo->returnTypeInfo = returnTypeInfo;
@@ -2451,8 +2542,9 @@ namespace Js
         if (sz)
         {
             charcount_t len = static_cast<charcount_t>(wcslen(sz));
-            utf8char_t * tempBuffer = HeapNewArray(utf8char_t, len * 3);
-            size_t cbNeeded = utf8::EncodeInto(tempBuffer, sz, len);
+            const size_t cbTempBuffer = UInt32Math::Mul<3>(len);
+            utf8char_t * tempBuffer = HeapNewArray(utf8char_t, cbTempBuffer);
+            const size_t cbNeeded = utf8::EncodeInto<utf8::Utf8EncodingKind::Cesu8>(tempBuffer, cbTempBuffer, sz, len);
             fwrite(&cbNeeded, sizeof(cbNeeded), 1, file);
             fwrite(tempBuffer, sizeof(utf8char_t), cbNeeded, file);
             HeapDeleteArray(len * 3, tempBuffer);
@@ -2812,7 +2904,13 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
         kind ^= BailOutMarkTempObject;
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
+    ++offset;
 
+    if (kind & LazyBailOut)
+    {
+        kind ^= LazyBailOut;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
     ++offset;
     // BailOutKindBits
 

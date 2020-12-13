@@ -51,20 +51,23 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_cloner(nullptr),
     m_cloneMap(nullptr),
     m_loopParamSym(nullptr),
-    m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
     m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
     m_inlineeFrameStartSym(nullptr),
+    inlineeStart(nullptr),
     m_regsUsed(0),
     m_fg(nullptr),
     m_labelCount(0),
     m_argSlotsForFunctionsCalled(0),
     m_hasCalls(false),
     m_hasInlineArgsOpt(false),
+    m_hasInlineOverheadRemoved(false),
     m_canDoInlineArgsOpt(true),
+    unoptimizableArgumentsObjReference(0),
+    unoptimizableArgumentsObjReferenceInInlinees(0),
     m_doFastPaths(false),
     hasBailout(false),
     firstIRTemp(0),
@@ -92,6 +95,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasArgLenAndConstOpt(false),
     hasImplicitParamLoad(false),
     hasThrow(false),
     hasNonSimpleParams(false),
@@ -106,6 +110,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     loopCount(0),
     callSiteIdInParentFunc(callSiteIdInParentFunc),
     isGetterSetter(isGetterSetter),
+    cachedInlineeFrameInfo(nullptr),
     frameInfo(nullptr),
     isTJLoopBody(false),
     m_nativeCodeDataSym(nullptr),
@@ -134,23 +139,25 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , vtableMap(nullptr)
 #endif
     , m_yieldOffsetResumeLabelList(nullptr)
-    , m_bailOutNoSaveLabel(nullptr)
+    , m_bailOutForElidedYieldInsertionPoint(nullptr)
     , constantAddressRegOpnd(alloc)
     , lastConstantAddressRegLoadInstr(nullptr)
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
-    , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
     , stackArgWithFormalsTracker(nullptr)
     , m_forInLoopBaseDepth(0)
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+    , m_forInEnumeratorForGeneratorSym(nullptr)
 #if LOWER_SPLIT_INT64
     , m_int64SymPairMap(nullptr)
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     , m_lowerer(nullptr)
 #endif
+    , m_lazyBailOutRecordSlot(nullptr)
+    , hasLazyBailOut(false)
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
@@ -301,8 +308,10 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT)
 {
     bool rejit;
+    int rejitCounter = 0;
     do
     {
+        Assert(rejitCounter < 25);
         Func func(alloc, workItem, threadContextInfo,
             scriptContextInfo, outputData, epInfo, runtimeInfo,
             polymorphicInlineCacheInfo, codeGenAllocators, 
@@ -334,6 +343,8 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             case RejitReason::DisableStackArgOpt:
                 outputData->disableStackArgOpt = TRUE;
                 break;
+            case RejitReason::DisableStackArgLenAndConstOpt:
+                break;
             case RejitReason::DisableSwitchOptExpectingInteger:
             case RejitReason::DisableSwitchOptExpectingString:
                 outputData->disableSwitchOpt = TRUE;
@@ -344,6 +355,12 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
                 break;
             case RejitReason::TrackIntOverflowDisabled:
                 outputData->disableTrackCompoundedIntOverflow = TRUE;
+                break;
+            case RejitReason::MemOpDisabled:
+                outputData->disableMemOp = TRUE;
+                break;
+            case RejitReason::FailedEquivalentTypeCheck:
+                // No disable flag. The thrower of the re-jit exception must guarantee that objtypespec is disabled where appropriate.
                 break;
             default:
                 Assume(UNREACHED);
@@ -360,6 +377,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             }
 
             rejit = true;
+            rejitCounter++;
         }
         // Either the entry point has a reference to the number now, or we failed to code gen and we
         // don't need to numbers, we can flush the completed page now.
@@ -853,13 +871,6 @@ Func::AjustLocalVarSlotOffset()
 #endif
 
 bool
-Func::DoGlobOptsForGeneratorFunc() const
-{
-    // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
-    return !GetJITFunctionBody()->IsCoroutine();
-}
-
-bool
 Func::DoSimpleJitDynamicProfile() const
 {
     return IsSimpleJit() && !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, GetTopFunc()) && !CONFIG_FLAG(NewSimpleJit);
@@ -1019,29 +1030,6 @@ Func::GetLocalsPointer() const
 
 #endif
 
-void Func::AddSlotArrayCheck(IR::SymOpnd *fieldOpnd)
-{
-    if (PHASE_OFF(Js::ClosureRangeCheckPhase, this))
-    {
-        return;
-    }
-
-    Assert(IsTopFunc());
-    if (this->slotArrayCheckTable == nullptr)
-    {
-        this->slotArrayCheckTable = SlotArrayCheckTable::New(m_alloc, 4);
-    }
-
-    PropertySym *propertySym = fieldOpnd->m_sym->AsPropertySym();
-    uint32 slot = propertySym->m_propertyId;
-    uint32 *pSlotId = this->slotArrayCheckTable->FindOrInsert(slot, propertySym->m_stackSym->m_id);
-
-    if (pSlotId && (*pSlotId == (uint32)-1 || *pSlotId < slot))
-    {
-        *pSlotId = propertySym->m_propertyId;
-    }
-}
-
 void Func::AddFrameDisplayCheck(IR::SymOpnd *fieldOpnd, uint32 slotId)
 {
     if (PHASE_OFF(Js::ClosureRangeCheckPhase, this))
@@ -1122,6 +1110,12 @@ bool
 Func::IsTrackCompoundedIntOverflowDisabled() const
 {
     return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled()) || m_output.IsTrackCompoundedIntOverflowDisabled();
+}
+
+bool
+Func::IsMemOpDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsMemOpDisabled()) || m_output.IsMemOpDisabled();
 }
 
 bool
@@ -1219,6 +1213,17 @@ Func::NumberInstrs()
     NEXT_INSTR_IN_FUNC;
 }
 
+#if DBG
+BVSparse<JitArenaAllocator>* Func::GetByteCodeOffsetUses(uint offset) const
+{
+    InstrByteCodeRegisterUses uses;
+    if (byteCodeRegisterUses->TryGetValue(offset, &uses))
+    {
+        return uses.bv;
+    }
+    return nullptr;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Func::IsInPhase
@@ -1226,7 +1231,6 @@ Func::NumberInstrs()
 /// Determines whether the function is currently in the provided phase
 ///
 ///----------------------------------------------------------------------------
-#if DBG
 bool
 Func::IsInPhase(Js::Phase tag)
 {
@@ -1326,6 +1330,10 @@ Func::EndPhase(Js::Phase tag, bool dump)
     {
         Assert(!this->isPostLower);
         this->isPostLower = true;
+#if !defined(_M_ARM) && !defined(_M_ARM64) // Need to verify ARM is clean.
+        DbCheckPostLower dbCheck(this);
+        dbCheck.CheckNestedHelperCalls();
+#endif
     }
     else if (tag == Js::RegAllocPhase)
     {
@@ -1357,6 +1365,30 @@ Func::EndPhase(Js::Phase tag, bool dump)
     }
     this->m_alloc->MergeDelayFreeList();
 #endif
+}
+
+StackSym *
+Func::EnsureBailoutReturnValueSym()
+{
+    if (m_bailoutReturnValueSym == nullptr)
+    {
+        m_bailoutReturnValueSym = StackSym::New(TyVar, this);
+        StackAllocate(m_bailoutReturnValueSym, sizeof(Js::Var));
+    }
+
+    return m_bailoutReturnValueSym;
+}
+
+StackSym *
+Func::EnsureHasBailedOutSym()
+{
+    if (m_hasBailedOutSym == nullptr)
+    {
+        m_hasBailedOutSym = StackSym::New(TyUint32, this);
+        StackAllocate(m_hasBailedOutSym, MachRegInt);
+    }
+
+    return m_hasBailedOutSym;
 }
 
 StackSym *
@@ -1500,6 +1532,12 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
     }
 
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
+}
+
+void
+Func::ClearObjTypeSpecFldInfo(const uint index)
+{
+    GetWorkItem()->GetJITTimeInfo()->ClearObjTypeSpecFldInfo(index);
 }
 
 ObjTypeSpecFldInfo*
@@ -1663,14 +1701,14 @@ Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, JITTimeConstructorCac
 
 JITTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
 {
-    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
+    AssertOrFailFast(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(this->constructorCaches != nullptr);
     return this->constructorCaches[profiledCallSiteId];
 }
 
 void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, JITTimeConstructorCache* constructorCache)
 {
-    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
+    AssertOrFailFast(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(constructorCache != nullptr);
     Assert(this->constructorCaches != nullptr);
     Assert(this->constructorCaches[profiledCallSiteId] == nullptr);
@@ -2047,6 +2085,60 @@ Func::GetForInEnumeratorArrayOffset() const
     Assert(this->m_forInLoopBaseDepth + this->GetJITFunctionBody()->GetForInLoopDepth() <= topFunc->m_forInLoopMaxDepth);
     return topFunc->m_forInEnumeratorArrayOffset
         + this->m_forInLoopBaseDepth * sizeof(Js::ForInObjectEnumerator);
+}
+
+void
+Func::SetHasLazyBailOut()
+{
+    this->hasLazyBailOut = true;
+}
+
+bool
+Func::HasLazyBailOut() const
+{
+    AssertMsg(
+        this->isPostRegAlloc,
+        "We don't know whether a function has lazy bailout until after RegAlloc"
+    );
+    return this->hasLazyBailOut;
+}
+
+void
+Func::EnsureLazyBailOutRecordSlot()
+{
+    if (this->m_lazyBailOutRecordSlot == nullptr)
+    {
+        this->m_lazyBailOutRecordSlot = StackSym::New(TyMachPtr, this);
+        this->StackAllocate(this->m_lazyBailOutRecordSlot, MachPtr);
+    }
+}
+
+StackSym *
+Func::GetLazyBailOutRecordSlot() const
+{
+    Assert(this->m_lazyBailOutRecordSlot != nullptr);
+    return this->m_lazyBailOutRecordSlot;
+}
+
+bool
+Func::ShouldDoLazyBailOut() const
+{
+#if defined(_M_X64)
+    if (!PHASE_ON1(Js::LazyBailoutPhase) ||
+        this->GetJITFunctionBody()->IsAsmJsMode() || // don't have bailouts in asm.js
+        this->HasTry() ||                            // lazy bailout in function with try/catch not supported for now
+                                                     // `EHBailoutPatchUp` set a `hasBailedOut` bit to rethrow the exception in the interpreter
+                                                     // if the instruction has ANY bailout. In the future, to implement lazy bailout with try/catch,
+                                                     // we would need to change how this bit is generated.
+        this->IsLoopBody())                          // don't do lazy bailout on jit'd loop body either
+    {
+        return false;
+    }
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 #if DBG_DUMP

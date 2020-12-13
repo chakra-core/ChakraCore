@@ -1,12 +1,14 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "y": "number 2",
       "a": "Array [1,2]"
     },
     "locals": {
       "y": "number 2",
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "a": {
         "#__proto__": "Array []",
@@ -19,12 +21,14 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "y": "number 2",
       "a": "Array [1,2]"
     },
     "locals": {
       "y": "number 2",
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "a": {
         "#__proto__": "Array []",

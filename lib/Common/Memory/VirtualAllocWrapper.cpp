@@ -17,7 +17,7 @@ LPVOID VirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount, DWORD
         return nullptr;
     }
     size_t dwSize = pageCount * AutoSystemInfo::PageSize;
-    
+
     LPVOID address = nullptr;
 
 #if defined(ENABLE_JIT_CLAMP)
@@ -38,12 +38,12 @@ LPVOID VirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount, DWORD
 
 #if defined(_CONTROL_FLOW_GUARD)
     DWORD oldProtectFlags = 0;
-    if (AutoSystemInfo::Data.IsCFGEnabled() && isCustomHeapAllocation)
+    if (GlobalSecurityPolicy::IsCFGEnabled() && isCustomHeapAllocation)
     {
         //We do the allocation in two steps - CFG Bitmap in kernel will be created only on allocation with EXECUTE flag.
         //We again call VirtualProtect to set to the requested protectFlags.
         DWORD allocProtectFlags = 0;
-        if (AutoSystemInfo::Data.IsCFGEnabled())
+        if (GlobalSecurityPolicy::IsCFGEnabled())
         {
             allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
         }
@@ -245,7 +245,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 #endif // _M_IX86
 #endif
 
-    if (AutoSystemInfo::Data.IsCFGEnabled() && supportPreReservedRegion)
+    if (GlobalSecurityPolicy::IsCFGEnabled() && supportPreReservedRegion)
     {
         startAddress = VirtualAlloc(NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n"), preReservedStartAddress);
@@ -270,7 +270,6 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 *   -   Returns an Allocated memory region within this preReserved region with the specified protectFlags.
 *   -   Tracks the committed pages
 */
-
 LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount,  DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
 {
     if (pageCount > AutoSystemInfo::MaxPageCount)
@@ -278,7 +277,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
         return nullptr;
     }
     size_t dwSize = pageCount * AutoSystemInfo::PageSize;
-    
+
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
 
     Assert(dwSize != 0);
@@ -321,7 +320,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
             //Check if the region is not already in MEM_COMMIT state.
             MEMORY_BASIC_INFORMATION memBasicInfo;
             size_t bytes = VirtualQuery(addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
-            if (bytes == 0) 
+            if (bytes == 0)
             {
                 MemoryOperationLastError::RecordLastError();
             }
@@ -360,19 +359,12 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
 #endif
 
 #if defined(_CONTROL_FLOW_GUARD)
-            if (AutoSystemInfo::Data.IsCFGEnabled())
+            if (GlobalSecurityPolicy::IsCFGEnabled())
             {
                 DWORD oldProtect = 0;
                 DWORD allocProtectFlags = 0;
 
-                if (AutoSystemInfo::Data.IsCFGEnabled())
-                {
-                    allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
-                }
-                else
-                {
-                    allocProtectFlags = PAGE_EXECUTE_READWRITE;
-                }
+                allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
 
                 allocatedAddress = (char *)VirtualAlloc(addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
                 if (allocatedAddress != nullptr)

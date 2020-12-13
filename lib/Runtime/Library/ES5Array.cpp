@@ -13,23 +13,6 @@ namespace Js
     {
     }
 
-    bool ES5Array::Is(Var instance)
-    {
-        return JavascriptOperators::GetTypeId(instance) == TypeIds_ES5Array;
-    }
-
-    ES5Array* ES5Array::FromVar(Var instance)
-    {
-        AssertOrFailFast(Is(instance));
-        return static_cast<ES5Array*>(instance);
-    }
-
-    ES5Array* ES5Array::UnsafeFromVar(Var instance)
-    {
-        Assert(Is(instance));
-        return static_cast<ES5Array*>(instance);
-    }
-
     DynamicType* ES5Array::DuplicateType()
     {
         return RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArrayType, this->GetDynamicType());
@@ -148,6 +131,10 @@ namespace Js
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthAssignIncorrect);
             }
+
+            // Conversion can change the type (e.g. from String), invalidating assumptions made by the JIT
+            scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
+
             return newLen;
         }
     }

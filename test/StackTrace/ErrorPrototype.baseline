@@ -15,20 +15,10 @@ Error: Prototype has new Error()
    at Global code (ErrorPrototype.js:62:1)
 
 Prototype is Error.prototype
-Error: Prototype is Error.prototype
-   at testErrorStack (ErrorPrototype.js:21:9)
-   at testErrorPrototype (ErrorPrototype.js:34:5)
-   at testErrorPrototypeChain (ErrorPrototype.js:41:5)
-   at runtest (ErrorPrototype.js:47:5)
-   at Global code (ErrorPrototype.js:62:1)
+undefined
 
 Prototype has Error.prototype
-Error: Prototype has Error.prototype
-   at testErrorStack (ErrorPrototype.js:21:9)
-   at testErrorPrototype (ErrorPrototype.js:34:5)
-   at testErrorPrototypeChain (ErrorPrototype.js:42:5)
-   at runtest (ErrorPrototype.js:47:5)
-   at Global code (ErrorPrototype.js:62:1)
+undefined
 
 Prototype is new RangeError()
 RangeError: Prototype is new RangeError()
@@ -47,20 +37,10 @@ RangeError: Prototype has new RangeError()
    at Global code (ErrorPrototype.js:62:1)
 
 Prototype is RangeError.prototype
-RangeError: Prototype is RangeError.prototype
-   at testErrorStack (ErrorPrototype.js:21:9)
-   at testErrorPrototype (ErrorPrototype.js:34:5)
-   at testErrorPrototypeChain (ErrorPrototype.js:41:5)
-   at runtest (ErrorPrototype.js:49:5)
-   at Global code (ErrorPrototype.js:62:1)
+undefined
 
 Prototype has RangeError.prototype
-RangeError: Prototype has RangeError.prototype
-   at testErrorStack (ErrorPrototype.js:21:9)
-   at testErrorPrototype (ErrorPrototype.js:34:5)
-   at testErrorPrototypeChain (ErrorPrototype.js:42:5)
-   at runtest (ErrorPrototype.js:49:5)
-   at Global code (ErrorPrototype.js:62:1)
+undefined
 
 Prototype is 123
 undefined

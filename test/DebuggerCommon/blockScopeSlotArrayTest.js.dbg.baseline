@@ -1,8 +1,9 @@
 [
   {
     "this": {
-      "test": "function <large string>",
-      "g": "function <large string>"
+      "Symbol.toStringTag": "string global",
+      "g": "function <large string>",
+      "test": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -14,8 +15,9 @@
       "a": "number 1"
     },
     "globals": {
-      "test": "function <large string>",
-      "g": "function <large string>"
+      "Symbol.toStringTag": "string global",
+      "g": "function <large string>",
+      "test": "function <large string>"
     }
   }
 ]

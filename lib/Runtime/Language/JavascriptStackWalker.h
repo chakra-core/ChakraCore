@@ -57,7 +57,7 @@ namespace Js
         ForInObjectEnumerator * GetForInObjectEnumeratorArrayAtOffset(int offset) const;
 
         static JavascriptCallStackLayout *FromFramePointer(void *const framePointer);
-        static void* const ToFramePointer(JavascriptCallStackLayout* callstackLayout);
+        static void* ToFramePointer(JavascriptCallStackLayout* callstackLayout);
     private:
         JavascriptCallStackLayout() : callInfo(0) {};
     };
@@ -137,12 +137,12 @@ namespace Js
         };
 
     public:
-        InlinedFrame *const     GetFrameAtIndex(signed index) const;
+        InlinedFrame *GetFrameAtIndex(signed index) const;
 
     private:
         void Initialize(int32 frameCount, __in_ecount(frameCount) InlinedFrame **frames, Js::ScriptFunction *parent);
         void MoveNext();
-        InlinedFrame *const GetCurrentFrame() const;
+        InlinedFrame *GetCurrentFrame() const;
 
         Js::ScriptFunction *parentFunction;
         InlinedFrame          **frames;
@@ -217,7 +217,7 @@ namespace Js
         void SetCurrentFunction(JavascriptFunction *  function);
         CallInfo GetCallInfo(bool includeInlinedFrames = true) const;
         CallInfo GetCallInfoFromPhysicalFrame() const;
-        bool GetThis(Var *pThis, int moduleId) const;
+        void GetThis(Var *pThis, int moduleId) const;
         Js::Var * GetJavascriptArgs(bool boxArgsAndDeepCopy) const;
         void **GetCurrentArgv() const;
 
@@ -237,15 +237,15 @@ namespace Js
         void ClearCachedInternalFrameInfo();
         void SetCachedInternalFrameInfo(InternalFrameType frameType, JavascriptFunction* function, bool hasInlinedFramesOnStack, bool prevIntFrameIsFromBailout);
         InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
-        void WalkAndClearInlineeFrameCallInfoOnException(void *tryCatchFrameAddr);
+        void WalkAndClearInlineeFrameCallInfoOnException(void *tryHandlerAddrOfReturnAddr);
 #endif
         bool IsCurrentPhysicalFrameForLoopBody() const;
 
         // noinline, we want to use own stack frame.
         static _NOINLINE BOOL GetCaller(_Out_opt_ JavascriptFunction** ppFunc, ScriptContext* scriptContext);
         static _NOINLINE BOOL GetCaller(_Out_opt_ JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext);
-        static _NOINLINE bool GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
-        static _NOINLINE bool GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
+        static _NOINLINE void GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
+        static _NOINLINE void GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
 
         static bool IsDisplayCaller(JavascriptFunction* func);
         bool GetDisplayCaller(_Out_opt_ JavascriptFunction ** ppFunc);
@@ -303,6 +303,11 @@ namespace Js
         void* GetInstructionPointer() const
         {
             return this->currentFrame.GetInstructionPointer();
+        }
+
+        void* GetFramePointer() const
+        {
+            return this->currentFrame.GetFrame();
         }
 
         bool GetCurrentFrameFromBailout() const

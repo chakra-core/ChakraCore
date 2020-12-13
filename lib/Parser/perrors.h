@@ -88,7 +88,7 @@ LSC_ERROR_MSG( 1077, ERRDestructNotInit, "Destructuring declarations cannot have
 LSC_ERROR_MSG(1079, ERRInvalidNewTarget, "Invalid use of the 'new.target' keyword")
 LSC_ERROR_MSG(1080, ERRForInNoInitAllowed, "for-in loop head declarations cannot have an initializer")
 LSC_ERROR_MSG(1081, ERRForOfNoInitAllowed, "for-of loop head declarations cannot have an initializer")
-LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Cannot apply strict mode on functions with non-simple parameter list")
+LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Illegal 'use strict' directive in function with non-simple parameter list")
 
 LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context")
 
@@ -96,7 +96,7 @@ LSC_ERROR_MSG(1084, ERRGetterMustHaveNoParameters, "Getter functions must have n
 
 LSC_ERROR_MSG(1085, ERRInvalidUseofExponentiationOperator, "Invalid unary operator on the left hand side of exponentiation (**) operator")
 
-LSC_ERROR_MSG(1086, ERRInvalidModuleImportOrExport, "Module import or export statement unexpected here")
+LSC_ERROR_MSG(1086, ERRInvalidModuleImportOrExport, "'import' or 'export' can only occur at top level.")
 LSC_ERROR_MSG(1087, ERRInvalidExportName, "Unable to resolve module export name")
 
 LSC_ERROR_MSG(1088, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")
@@ -109,3 +109,18 @@ LSC_ERROR_MSG(1093, ERRLabelBeforeClassDeclaration, "Labels not allowed before c
 LSC_ERROR_MSG(1094, ERRLabelFollowedByEOF, "Unexpected end of script after a label.")
 LSC_ERROR_MSG(1095, ERRFunctionAfterLabelInStrict, "Function declarations not allowed after a label in strict mode.")
 LSC_ERROR_MSG(1096, ERRAwaitAsLabelInAsync, "Use of 'await' as label in async function is not allowed.")
+LSC_ERROR_MSG(1097, ERRExperimental, "Use of disabled experimental feature")
+LSC_ERROR_MSG(1098, ERRDuplicateExport, "Duplicate export of name '%s'")
+LSC_ERROR_MSG(1099, ERRStmtOfWithIsLabelledFunc, "The statement of a 'with' statement cannot be a labelled function.")
+LSC_ERROR_MSG(1100, ERRUndeclaredExportName, "Export of name '%s' which has no local definition.")
+LSC_ERROR_MSG(1101, ERRModuleImportOrExportInScript, "'import' or 'export' can only be used in module code.")
+LSC_ERROR_MSG(1102, ERRInvalidAsgTarget, "Invalid left-hand side in assignment.")
+LSC_ERROR_MSG(1103, ERRMissingFrom, "Expected 'from' after import or export clause.")
+//1104-1199 available for future use
+
+// Generic errors intended to be re-usable
+LSC_ERROR_MSG(1200, ERRKeywordAfter, "Unexpected keyword '%s' after '%s'")
+LSC_ERROR_MSG(1201, ERRTokenAfter, "Unexpected token '%s' after '%s'")
+LSC_ERROR_MSG(1202, ERRIdentifierAfter, "Unexpected identifier '%s' after '%s'")
+LSC_ERROR_MSG(1203, ERRInvalidIdentifier, "Unexpected invalid identifier '%s' after '%s'")
+LSC_ERROR_MSG(1205, ERRValidIfFollowedBy, "%s is only valid if followed by %s")

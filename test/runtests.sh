@@ -14,7 +14,22 @@ popd > /dev/null
 build_type=
 binary_path=
 release_build=0
-test_variant=$1
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --iculib=*)
+        ICU4C_LIBRARY_PATH=$1
+        ICU4C_LIBRARY_PATH="${ICU4C_LIBRARY_PATH:9}"
+        export ICU4C_LIBRARY_PATH
+        ;;
+
+    *)
+        test_variant=$1
+        ;;
+    esac
+
+    shift
+done
 
 if [[ -f "$test_path/../out/Debug/ch" ]]; then
     echo "Warning: Debug build was found"

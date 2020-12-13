@@ -90,10 +90,10 @@ namespace Js
             }
             if (rethrownObject)
             {
-                if (JavascriptError::Is(rethrownObject))
+                if (VarIs<JavascriptError>(rethrownObject))
                 {
 
-                    JavascriptError* jsErrorObject = JavascriptError::FromVar(rethrownObject);
+                    JavascriptError* jsErrorObject = VarTo<JavascriptError>(rethrownObject);
                     if (jsErrorObject->GetScriptContext() != requestingScriptContext )
                     {
                         Assert(requestingScriptContext->GetHostScriptContext());
@@ -109,7 +109,7 @@ namespace Js
                 }
                 else
                 {
-                    if (RecyclableObject::Is(rethrownObject))
+                    if (VarIs<RecyclableObject>(rethrownObject))
                     {
                         if (CrossSite::NeedMarshalVar(rethrownObject, requestingScriptContext))
                         {

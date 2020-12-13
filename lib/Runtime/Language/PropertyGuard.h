@@ -44,8 +44,8 @@ public:
         Assert(this->value != GuardValue::Invalidated && this->value != GuardValue::Invalidated_DuringSweep);
     }
 
-    inline static size_t const GetSizeOfValue() { return sizeof(((PropertyGuard*)0)->value); }
-    inline static size_t const GetOffsetOfValue() { return offsetof(PropertyGuard, value); }
+    inline static size_t GetSizeOfValue() { return sizeof(((PropertyGuard*)0)->value); }
+    inline static size_t GetOffsetOfValue() { return offsetof(PropertyGuard, value); }
 
     intptr_t GetValue() const { return this->value; }
     bool IsValid()

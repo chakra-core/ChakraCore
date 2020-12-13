@@ -24,7 +24,7 @@
       <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
       <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.nojit.bc.32b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
-      <tags>exclude_jshost,exclude_x64,require_disable_jit,exclude_lite,exclude_forceserialized</tags>
+      <tags>exclude_jshost,exclude_x64,require_disable_jit,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -33,7 +33,7 @@
       <files>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js</files>
       <baseline>../../lib/Runtime/Library/JsBuiltIn/JsBuiltIn.js.nojit.bc.64b.h</baseline>
       <compile-flags>-GenerateLibraryByteCodeHeader -JsBuiltIn -LdChakraLib</compile-flags>
-      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_lite,exclude_forceserialized</tags>
+      <tags>exclude_jshost,exclude_x86,require_disable_jit,exclude_forceserialized</tags>
       <eol-normalization />
     </default>
   </test>
@@ -116,6 +116,18 @@
     <default>
       <files>nullByte-string.js</files>
       <baseline>nullByte-string.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>MayHaveSideEffectOnNodeSO.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>KeepContextInSuper.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

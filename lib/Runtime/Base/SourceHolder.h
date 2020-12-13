@@ -24,12 +24,13 @@ namespace Js
         virtual hash_t GetHashCode() = 0;
         virtual bool IsEmpty() = 0;
         virtual bool IsDeferrable() = 0;
+        virtual void Unload() = 0;
     };
 
-    class SimpleSourceHolder sealed : public ISourceHolder
+    class SimpleSourceHolder : public ISourceHolder
     {
         friend class ISourceHolder;
-    private:
+    protected:
         Field(LPCUTF8) source;
         Field(size_t) byteLength;
         Field(bool) isEmpty;
@@ -88,9 +89,28 @@ namespace Js
         {
         }
 
+        virtual void Unload() override { }
+
         virtual bool IsDeferrable() override
         {
             return CONFIG_FLAG(DeferLoadingAvailableSource);
         }
+    };
+
+    class HeapSourceHolder : public SimpleSourceHolder
+    {
+    public:
+        HeapSourceHolder(LPCUTF8 source, size_t byteLength, BYTE* originalSourceBuffer):
+            SimpleSourceHolder(source, byteLength),
+            shouldFreeSource(true),
+            originalSourceBuffer(originalSourceBuffer)
+        { }
+
+        virtual void Unload() override;
+        virtual void Dispose(bool isShutdown) override;
+
+    private:
+        bool shouldFreeSource;
+        BYTE* originalSourceBuffer;
     };
 }

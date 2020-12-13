@@ -1,0 +1,82 @@
+{
+  "folders": [
+    "chakra",
+    "chakra_generated",
+    "testsuite/core",
+    "testsuite/js-api",
+    "features",
+  ],
+  "features": [{
+    "flags": ["-wasmfastarray-"],
+    "rltags": ["exclude_x86"],
+    "files": [
+      "testsuite/core/address.wast",
+      "testsuite/core/float_memory.wast",
+      "testsuite/core/memory.wast",
+      "testsuite/core/memory_trap.wast",
+      "testsuite/core/resizing.wast",
+      "testsuite/core/traps.wast",
+    ]
+  }, {
+    "flags": ["-wasmMathExFilter"],
+    "files": [
+      "testsuite/core/int_exprs.wast",
+      "testsuite/core/i32.wast",
+      "testsuite/core/i64.wast",
+      "chakra_generated/chakra_i32.wast",
+      "chakra_generated/chakra_i64.wast",
+      "testsuite/core/traps.wast",
+    ]
+  }, {
+    "required": true,
+    "flags": ["-WasmSignExtends"],
+    "folders": [
+      "features/extends"
+    ],
+    "files": [
+      "chakra_generated/chakra_extends_i32.wast",
+      "chakra_generated/chakra_extends_i64.wast",
+    ]
+  }, {
+    "required": true,
+    "flags": ["-WasmNontrapping"],
+    "folders": [
+      "features/nontrapping"
+    ]
+  }, {
+    "required": true,
+    "flags": ["-WasmThreads", "-ESSharedArrayBuffer"],
+    "folders": [
+      "features/threads"
+    ],
+    "files": [
+      "chakra/chakra_atomic_load.wast",
+      "chakra/chakra_atomic_store.wast",
+    ]
+  }, {
+    "flags": ["-WasmThreads", "-ESSharedArrayBuffer", "-WasmSharedArrayVirtualBuffer-", "-WasmFastArray-"],
+    "folders": [
+      "features/threads"
+    ],
+    "files": [
+      "chakra/chakra_atomic_load.wast",
+      "chakra/chakra_atomic_store.wast",
+    ]
+  }],
+  "excludes": [
+    // Names not supported yet
+    "testsuite/core/names.wast",
+    // Limits testing is too slow and is mostly a duplicate of tests/wasm/limts.js
+    "testsuite/js-api/limits.js",
+
+    // Harness files, no tests in there
+    "testsuite/js-api/assertions.js",
+    "testsuite/js-api/bad-imports.js",
+    "testsuite/js-api/instanceTestFactory.js",
+    "testsuite/js-api/wasm-constants.js",
+    "testsuite/js-api/wasm-module-builder.js",
+    "testsuite/js-api/table/assertions.js",
+  ],
+  "xplat-excludes": [
+  ]
+}

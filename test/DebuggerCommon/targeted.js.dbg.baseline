@@ -39,6 +39,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 0",
       "g": {
         "#__proto__": "function <large string>",
@@ -130,6 +131,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 0",
       "g": {
         "#__proto__": "function <large string>",
@@ -206,6 +208,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 1",
       "g": {
         "#__proto__": "function <large string>",
@@ -297,6 +300,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 1",
       "g": {
         "#__proto__": "function <large string>",
@@ -373,6 +377,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 2",
       "g": {
         "#__proto__": "function <large string>",
@@ -464,6 +469,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 2",
       "g": {
         "#__proto__": "function <large string>",
@@ -540,6 +546,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 3",
       "g": {
         "#__proto__": "function <large string>",
@@ -631,6 +638,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 3",
       "g": {
         "#__proto__": "function <large string>",
@@ -707,6 +715,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 4",
       "g": {
         "#__proto__": "function <large string>",
@@ -798,6 +807,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 4",
       "g": {
         "#__proto__": "function <large string>",
@@ -836,6 +846,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
@@ -854,6 +865,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
@@ -864,6 +876,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",
@@ -882,6 +895,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "i": "number 5",
       "g": "function <large string>",
       "f": "function <large string>",

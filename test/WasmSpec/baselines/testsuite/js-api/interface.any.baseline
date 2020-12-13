@@ -1,0 +1,74 @@
+Harness Status: OK
+Found 72 tests: Pass = 54 Fail = 18
+Pass WebAssembly: property descriptor  
+Pass WebAssembly: calling  
+Pass WebAssembly: constructing  
+Pass WebAssembly.Module: property descriptor  
+Pass WebAssembly.Module: prototype  
+Pass WebAssembly.Module: prototype.constructor  
+Pass WebAssembly.Instance: property descriptor  
+Pass WebAssembly.Instance: prototype  
+Pass WebAssembly.Instance: prototype.constructor  
+Pass WebAssembly.Memory: property descriptor  
+Pass WebAssembly.Memory: prototype  
+Pass WebAssembly.Memory: prototype.constructor  
+Pass WebAssembly.Table: property descriptor  
+Pass WebAssembly.Table: prototype  
+Pass WebAssembly.Table: prototype.constructor  
+Fail WebAssembly.Global: property descriptor  assert_false: enumerable expected false got true
+Pass WebAssembly.Global: prototype  
+Pass WebAssembly.Global: prototype.constructor  
+Pass WebAssembly.CompileError: property descriptor  
+Pass WebAssembly.CompileError: prototype  
+Pass WebAssembly.CompileError: prototype.constructor  
+Pass WebAssembly.LinkError: property descriptor  
+Pass WebAssembly.LinkError: prototype  
+Pass WebAssembly.LinkError: prototype.constructor  
+Pass WebAssembly.RuntimeError: property descriptor  
+Pass WebAssembly.RuntimeError: prototype  
+Pass WebAssembly.RuntimeError: prototype.constructor  
+Fail WebAssembly.validate  assert_true: enumerable expected true got false
+Pass WebAssembly.validate: name  
+Pass WebAssembly.validate: length  
+Fail WebAssembly.compile  assert_true: enumerable expected true got false
+Pass WebAssembly.compile: name  
+Pass WebAssembly.compile: length  
+Fail WebAssembly.instantiate  assert_true: enumerable expected true got false
+Pass WebAssembly.instantiate: name  
+Pass WebAssembly.instantiate: length  
+Fail WebAssembly.Module.exports  assert_true: enumerable expected true got false
+Pass WebAssembly.Module.exports: name  
+Pass WebAssembly.Module.exports: length  
+Fail WebAssembly.Module.imports  assert_true: enumerable expected true got false
+Pass WebAssembly.Module.imports: name  
+Pass WebAssembly.Module.imports: length  
+Fail WebAssembly.Module.customSections  assert_true: enumerable expected true got false
+Pass WebAssembly.Module.customSections: name  
+Pass WebAssembly.Module.customSections: length  
+Fail WebAssembly.Instance.exports  assert_true: enumerable expected true got false
+Pass WebAssembly.Instance.exports: getter  
+Pass WebAssembly.Instance.exports: setter  
+Fail WebAssembly.Memory.grow  assert_true: enumerable expected true got false
+Pass WebAssembly.Memory.grow: name  
+Pass WebAssembly.Memory.grow: length  
+Fail WebAssembly.Memory.buffer  assert_true: enumerable expected true got false
+Pass WebAssembly.Memory.buffer: getter  
+Pass WebAssembly.Memory.buffer: setter  
+Fail WebAssembly.Table.grow  assert_true: enumerable expected true got false
+Pass WebAssembly.Table.grow: name  
+Pass WebAssembly.Table.grow: length  
+Fail WebAssembly.Table.get  assert_true: enumerable expected true got false
+Pass WebAssembly.Table.get: name  
+Pass WebAssembly.Table.get: length  
+Fail WebAssembly.Table.set  assert_true: enumerable expected true got false
+Pass WebAssembly.Table.set: name  
+Pass WebAssembly.Table.set: length  
+Fail WebAssembly.Table.length  assert_true: enumerable expected true got false
+Pass WebAssembly.Table.length: getter  
+Pass WebAssembly.Table.length: setter  
+Fail WebAssembly.Global.valueOf  assert_equals: expected "object" but got "undefined"
+Pass WebAssembly.Global.valueOf: name  
+Pass WebAssembly.Global.valueOf: length  
+Fail WebAssembly.Global.value  assert_equals: expected "object" but got "undefined"
+Fail WebAssembly.Global.value: getter  assert_equals: expected "object" but got "undefined"
+Fail WebAssembly.Global.value: setter  assert_equals: expected "object" but got "undefined"

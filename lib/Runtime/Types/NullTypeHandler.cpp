@@ -318,7 +318,7 @@ namespace Js
 
     DynamicTypeHandler* NullTypeHandlerBase::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ?
+        return JavascriptArray::IsNonES5Array(instance) ?
             ConvertToES5ArrayType(instance) : ConvertToDictionaryType(instance);
     }
 
@@ -342,6 +342,12 @@ namespace Js
 
     template<bool IsPrototypeTemplate>
     NullTypeHandler<IsPrototypeTemplate> * NullTypeHandler<IsPrototypeTemplate>::GetDefaultInstance() { return &defaultInstance; }
+
+    template<bool IsPrototypeTemplate>
+    DynamicTypeHandler * NullTypeHandler<IsPrototypeTemplate>::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, NullTypeHandler, this);
+    }
 
 #if DBG_DUMP
     template<bool IsPrototypeTemplate>

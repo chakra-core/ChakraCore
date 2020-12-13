@@ -23,7 +23,7 @@
   <test>
     <default>
       <files>NumberFormat.js</files>
-      <tags>Intl,exclude_drt</tags>
+      <tags>Intl,exclude_drt,exclude_icu62AndAboveTestFailures</tags>
     </default>
   </test>
   <test>
@@ -37,7 +37,7 @@
     <default>
       <files>GetCanonicalLocales.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Intl</tags>
+      <tags>Intl,exclude_icu62AndAboveTestFailures</tags>
     </default>
   </test>
   <test>

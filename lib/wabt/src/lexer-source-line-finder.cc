@@ -28,6 +28,7 @@ LexerSourceLineFinder::LexerSourceLineFinder(
       next_line_start_(0),
       last_cr_(false),
       eof_(false) {
+  source_->Seek(0);
   // Line 0 should not be used; but it makes indexing simpler.
   line_ranges_.emplace_back(0, 0);
 }

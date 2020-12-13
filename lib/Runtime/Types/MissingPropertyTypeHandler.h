@@ -18,6 +18,7 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR_NO_REGISTER(MissingPropertyTypeHandler, DynamicTypeHandler);
 
+        virtual DynamicTypeHandler * Clone(Recycler * recycler);
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
         virtual int GetPropertyCount() override { return 0; }

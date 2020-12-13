@@ -101,6 +101,17 @@ Js::FunctionInfo * InliningDecider::GetCallSiteCallbackInfo(Js::FunctionBody *co
     return profileData->GetCallbackInfo(inliner, profiledCallSiteId);
 }
 
+Js::FunctionInfo * InliningDecider::GetCallApplyTargetInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId)
+{
+    Assert(inliner != nullptr);
+    Assert(profiledCallSiteId < inliner->GetProfiledCallSiteCount());
+
+    Js::DynamicProfileInfo * profileData = inliner->GetAnyDynamicProfileInfo();
+    Assert(profileData != nullptr);
+
+    return profileData->GetCallApplyTargetInfo(inliner, profiledCallSiteId);
+}
+
 uint16 InliningDecider::GetConstantArgInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId)
 {
     Assert(inliner);
@@ -145,6 +156,16 @@ Js::FunctionInfo * InliningDecider::InlineCallback(Js::FunctionBody *const inlin
         return Inline(inliner, functionInfo, false, false, true, GetConstantArgInfo(inliner, profiledCallSiteId), profiledCallSiteId, recursiveInlineDepth, true);
     }
     return nullptr;
+}
+
+Js::FunctionInfo * InliningDecider::InlineCallApplyTarget(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth)
+{
+    Js::FunctionInfo * functionInfo = GetCallApplyTargetInfo(inliner, profiledCallSiteId);
+    if (functionInfo)
+    {
+        return Inline(inliner, functionInfo, false, false, false, GetConstantArgInfo(inliner, profiledCallSiteId), profiledCallSiteId, recursiveInlineDepth, true);
+    }
+    return functionInfo;
 }
 
 uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId,
@@ -491,7 +512,6 @@ bool InliningDecider::GetBuiltInInfoCommon(
     case Js::JavascriptBuiltInFunction::JavascriptArray_Splice:
 
     case Js::JavascriptBuiltInFunction::JavascriptString_Link:
-    case Js::JavascriptBuiltInFunction::JavascriptString_LocaleCompare:
         goto CallDirectCommon;
 
     case Js::JavascriptBuiltInFunction::JavascriptArray_Join:
@@ -553,6 +573,9 @@ bool InliningDecider::GetBuiltInInfoCommon(
         break;
     case Js::JavascriptBuiltInFunction::JavascriptFunction_Call:
         *inlineCandidateOpCode = Js::OpCode::InlineFunctionCall;
+        break;
+    case Js::JavascriptBuiltInFunction::EngineInterfaceObject_CallInstanceFunction:
+        *inlineCandidateOpCode = Js::OpCode::InlineCallInstanceFunction;
         break;
 
     // The following are not currently inlined, but are tracked for their return type

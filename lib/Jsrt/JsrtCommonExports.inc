@@ -104,30 +104,75 @@
     JsIdle
     JsSetPromiseContinuationCallback
 #ifndef NTBUILD
+    JsAllocRawData
+    JsCloneObject
+    JsConnectJITProcess
+    JsCopyPropertyId
+    JsCopyString
+    JsCopyStringOneByte
+    JsCopyStringUtf16
+    JsCreateCustomExternalObject
+    JsCreateExternalObjectWithPrototype
+    JsCreatePromise
+    JsCreateTracedExternalObject
+    JsCreatePropertyId
+    JsCreatePropertyString
     JsCreateString
     JsCreateStringUtf16
-    JsCopyString
-    JsCopyStringUtf16
-    JsParse
-    JsRun
-    JsSerialize
-    JsParseSerialized
-    JsRunSerialized
-    JsCreatePropertyId
-    JsCopyPropertyId
-    JsCreatePromise
     JsCreateWeakReference
-    JsGetWeakReferenceValue
+    JsDetachArrayBuffer
+    JsGetArrayBufferExtraInfo
+    JsEnableOOPJIT
+    JsExternalizeArrayBuffer
     JsGetAndClearExceptionWithMetadata
-    JsHasOwnProperty
-    JsCopyStringOneByte
+    JsGetArrayBufferFreeFunction
+    JsGetArrayEntriesFunction
+    JsGetArrayForEachFunction
+    JsGetArrayKeysFunction
+    JsGetArrayValuesFunction
     JsGetDataViewInfo
-    JsCreateExternalObjectWithPrototype
+    JsGetErrorPrototype
+    JsGetIteratorPrototype
+    JsGetPropertyIdSymbolIterator
+    JsGetWeakReferenceValue
+    JsGetEmbedderData
+    JsSetEmbedderData
+    JsHasOwnProperty
+    JsHasOwnItem
+    JsIsCallable
+    JsIsConstructor
+    JsObjectDefineProperty
+    JsObjectDefinePropertyFull
+    JsObjectDeleteProperty
+    JsObjectGetOwnPropertyDescriptor
     JsObjectGetProperty
+    JsObjectHasOwnProperty
     JsObjectHasProperty
     JsObjectSetProperty
-    JsObjectDeleteProperty
-    JsObjectHasOwnProperty
-    JsObjectGetOwnPropertyDescriptor
-    JsObjectDefineProperty
+    JsParse
+    JsParseSerialized
+    JsPrivateDeleteProperty
+    JsPrivateGetProperty
+    JsPrivateHasProperty
+    JsPrivateSetProperty
+    JsRun
+    JsRunSerialized
+    JsSerialize
+    JsSetArrayBufferExtraInfo
+    JsSetRuntimeBeforeSweepCallback
+    JsSetRuntimeDomWrapperTracingCallbacks
+    JsTraceExternalReference
+    JsVarDeserializer
+    JsVarDeserializerFree
+    JsVarDeserializerReadBytes
+    JsVarDeserializerReadRawBytes
+    JsVarDeserializerReadValue
+    JsVarDeserializerSetTransferableVars
+    JsVarSerializer
+    JsVarSerializerDetachArrayBuffer
+    JsVarSerializerFree
+    JsVarSerializerReleaseData
+    JsVarSerializerSetTransferableVars
+    JsVarSerializerWriteRawBytes
+    JsVarSerializerWriteValue
 #endif

@@ -977,7 +977,7 @@
       <compile-flags>-testtrace:asmjs -args 14000 -endargs -EnableFatalErrorOnOOM-</compile-flags>
       <!-- todo:: On unix platforms there is more stack available,
            so we need to find the right limit to test in order to not timeout -->
-      <tags>exclude_dynapogo,exclude_mac</tags>
+      <tags>exclude_dynapogo,exclude_mac,slow</tags>
     </default>
   </test>
   <test>
@@ -989,10 +989,24 @@
   </test>
   <test>
     <default>
+      <files>notBinaryPropertyDefinition.js</files>
+      <baseline>notBinaryPropertyDefinition.baseline</baseline>
+      <compile-flags>-ES2018ObjectRestSpread -testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>constbrbug.js</files>
       <baseline>constbrbug.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:0</compile-flags>
       <tags>exclude_drt</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>useasmbug.js</files>
+      <baseline>useasmbug.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
     </default>
   </test>
   <test>

@@ -2,8 +2,13 @@
 <regress-exe>
   <test>
     <default>
+      <files>LabelFuncAsWithStmt.js</files>
+      <baseline>LabelFuncAsWithStmt.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>apply.js</files>
-      <baseline>apply.baseline</baseline>
     </default>
   </test>
   <test>
@@ -15,7 +20,6 @@
   <test>
     <default>
       <files>applyArgs.js</files>
-      <baseline>applyArgs.baseline</baseline>
     </default>
   </test>
   <test>
@@ -50,7 +54,7 @@
   <test>
     <default>
       <files>arguments.es5.js</files>
-      <baseline>arguments.es5.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -82,6 +86,12 @@
   <test>
     <default>
       <files>builtinFuncHasOwnPropCallerArguments.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>funcAndboundFuncLength.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
@@ -212,6 +222,11 @@
       <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>deferredWith2.baseline</baseline>
       <tags>exclude_test</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>deleteProperty.js</files>
     </default>
   </test>
   <test>
@@ -426,6 +441,19 @@
       <files>StackArgs_MaxInterpret.js</files>
       <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
       <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>stackArgsLenConstOpt.js</files>
+      <compile-flags>-mic:1 -off:simpleJit -testtrace:StackArgLenConstOpt</compile-flags>
+      <tags>exclude_dynapogo,exclude_nonative,require_backend,exclude_forceserialized,exclude_arm64</tags>
+      <baseline>stackArgsLenConstOpt.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>stackArgsWithInlineeBailOut.js</files>
     </default>
   </test>
   <test>

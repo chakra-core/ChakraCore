@@ -78,6 +78,7 @@
       "foo": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f1": "function <large string>"
     }
   }

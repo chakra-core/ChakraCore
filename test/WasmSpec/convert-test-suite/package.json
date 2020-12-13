@@ -11,6 +11,7 @@
   "dependencies": {
     "bluebird": "^3.5.0",
     "fs-extra": "^0.30.0",
+    "json5": "^2.1.0",
     "sexpr-plus": "^7.0.0",
     "slash": "^1.0.0",
     "yargs": "^4.7.1"

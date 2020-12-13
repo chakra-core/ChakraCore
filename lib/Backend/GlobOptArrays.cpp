@@ -151,6 +151,16 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
                 return false;
             }
 
+            if (instr->GetSrc1()->IsAddrOpnd())
+            {
+                const Js::Var val = instr->GetSrc1()->AsAddrOpnd()->m_address;
+                if (Js::TaggedInt::Is(val))
+                {
+                    originalIndexOpnd = instr->UnlinkSrc1();
+                    instr->SetSrc1(IR::IntConstOpnd::New(Js::TaggedInt::ToInt32(val), TyInt32, instr->m_func));
+                }
+            }
+
             if (!instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->IsIntConstOpnd())
             {
                 return false;
@@ -199,7 +209,7 @@ void GlobOpt::ArraySrcOpt::TypeSpecIndex()
         {
             // If the optimization is unable to eliminate the bounds checks, we need to restore the original var sym.
             Assert(originalIndexOpnd == nullptr);
-            originalIndexOpnd = instr->GetSrc1()->Copy(func)->AsRegOpnd();
+            originalIndexOpnd = instr->GetSrc1()->Copy(func);
             globOpt->ToTypeSpecIndex(instr, instr->GetSrc1()->AsRegOpnd(), nullptr);
         }
     }
@@ -320,7 +330,8 @@ void GlobOpt::ArraySrcOpt::CheckVirtualArrayBounds()
                 {
                     Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
                         instr->m_opcode == Js::OpCode::InlineArrayPop ||
-                        instr->m_opcode == Js::OpCode::LdLen_A);
+                        instr->m_opcode == Js::OpCode::LdLen_A ||
+                        instr->m_opcode == Js::OpCode::IsIn);
                 }
 
                 eliminatedLowerBoundCheck = true;
@@ -497,6 +508,13 @@ void GlobOpt::ArraySrcOpt::CheckLoops()
         if (doArrayChecks)
         {
             hoistChecksOutOfLoop = loop;
+
+            // If BailOnNotObject isn't hoisted, the value may still be tagged in the landing pad
+            if (baseValueInLoopLandingPad->GetValueInfo()->Type().CanBeTaggedValue())
+            {
+                baseValueType = baseValueType.SetCanBeTaggedValue(true);
+                baseOpnd->SetValueType(baseValueType);
+            }
         }
 
         if (isLikelyJsArray && loopKills.KillsArrayHeadSegments())
@@ -897,22 +915,12 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
                 Assert(!indexIntSym || indexIntSym->GetType() == TyInt32 || indexIntSym->GetType() == TyUint32);
             }
 
-            // The info in the landing pad may be better than the info in the current block due to changes made to
-            // the index sym inside the loop. Check if the bound check we intend to hoist is unnecessary in the
-            // landing pad.
-            if (!ValueInfo::IsLessThanOrEqualTo(
-                nullptr,
-                0,
-                0,
-                hoistInfo.IndexValue(),
-                hoistInfo.IndexConstantBounds().LowerBound(),
-                hoistInfo.IndexConstantBounds().UpperBound(),
-                hoistInfo.Offset()))
+            if (hoistInfo.IndexSym())
             {
-                Assert(hoistInfo.IndexSym());
                 Assert(hoistInfo.Loop()->bailOutInfo);
                 globOpt->EnsureBailTarget(hoistInfo.Loop());
 
+                bool needsMagnitudeAdjustment = false;
                 if (hoistInfo.LoopCount())
                 {
                     // Generate the loop count and loop count based bound that will be used for the bound check
@@ -920,23 +928,29 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
                     {
                         globOpt->GenerateLoopCount(hoistInfo.Loop(), hoistInfo.LoopCount());
                     }
+                    needsMagnitudeAdjustment = (hoistInfo.MaxMagnitudeChange() > 0)
+                        ? (hoistInfo.IndexOffset() < hoistInfo.MaxMagnitudeChange())
+                        : (hoistInfo.IndexOffset() > hoistInfo.MaxMagnitudeChange());
+
                     globOpt->GenerateSecondaryInductionVariableBound(
                         hoistInfo.Loop(),
                         indexVarSym->GetInt32EquivSym(nullptr),
                         hoistInfo.LoopCount(),
                         hoistInfo.MaxMagnitudeChange(),
+                        needsMagnitudeAdjustment,
                         hoistInfo.IndexSym());
                 }
 
                 IR::Opnd* lowerBound = IR::IntConstOpnd::New(0, TyInt32, instr->m_func, true);
                 IR::Opnd* upperBound = IR::RegOpnd::New(indexIntSym, TyInt32, instr->m_func);
+                int offset = needsMagnitudeAdjustment ? (hoistInfo.IndexOffset() - hoistInfo.Offset()) : hoistInfo.Offset();
                 upperBound->SetIsJITOptimizedReg(true);
 
                 // 0 <= indexSym + offset (src1 <= src2 + dst)
                 IR::Instr *const boundCheck = globOpt->CreateBoundsCheckInstr(
                     lowerBound,
                     upperBound,
-                    hoistInfo.Offset(),
+                    offset,
                     hoistInfo.IsLoopCountBasedBound()
                     ? IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck
                     : IR::BailOutOnFailedHoistedBoundCheck,
@@ -1156,106 +1170,101 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
                 Assert(!indexIntSym || indexIntSym->GetType() == TyInt32 || indexIntSym->GetType() == TyUint32);
             }
 
-            // The info in the landing pad may be better than the info in the current block due to changes made to the
-            // index sym inside the loop. Check if the bound check we intend to hoist is unnecessary in the landing pad.
-            if (!ValueInfo::IsLessThanOrEqualTo(
-                hoistInfo.IndexValue(),
-                hoistInfo.IndexConstantBounds().LowerBound(),
-                hoistInfo.IndexConstantBounds().UpperBound(),
-                hoistInfo.HeadSegmentLengthValue(),
-                hoistInfo.HeadSegmentLengthConstantBounds().LowerBound(),
-                hoistInfo.HeadSegmentLengthConstantBounds().UpperBound(),
-                hoistInfo.Offset()))
+            Assert(hoistInfo.Loop()->bailOutInfo);
+            globOpt->EnsureBailTarget(hoistInfo.Loop());
+
+                bool needsMagnitudeAdjustment = false;
+            if (hoistInfo.LoopCount())
             {
-                Assert(hoistInfo.Loop()->bailOutInfo);
-                globOpt->EnsureBailTarget(hoistInfo.Loop());
-
-                if (hoistInfo.LoopCount())
+                // Generate the loop count and loop count based bound that will be used for the bound check
+                if (!hoistInfo.LoopCount()->HasBeenGenerated())
                 {
-                    // Generate the loop count and loop count based bound that will be used for the bound check
-                    if (!hoistInfo.LoopCount()->HasBeenGenerated())
-                    {
-                        globOpt->GenerateLoopCount(hoistInfo.Loop(), hoistInfo.LoopCount());
-                    }
-                    globOpt->GenerateSecondaryInductionVariableBound(
-                        hoistInfo.Loop(),
-                        indexVarSym->GetInt32EquivSym(nullptr),
-                        hoistInfo.LoopCount(),
-                        hoistInfo.MaxMagnitudeChange(),
-                        hoistInfo.IndexSym());
+                    globOpt->GenerateLoopCount(hoistInfo.Loop(), hoistInfo.LoopCount());
                 }
+                    needsMagnitudeAdjustment = (hoistInfo.MaxMagnitudeChange() > 0)
+                        ? (hoistInfo.IndexOffset() < hoistInfo.MaxMagnitudeChange())
+                        : (hoistInfo.IndexOffset() > hoistInfo.MaxMagnitudeChange());
+                globOpt->GenerateSecondaryInductionVariableBound(
+                    hoistInfo.Loop(),
+                    indexVarSym->GetInt32EquivSym(nullptr),
+                    hoistInfo.LoopCount(),
+                    hoistInfo.MaxMagnitudeChange(),
+                        needsMagnitudeAdjustment,
+                    hoistInfo.IndexSym());
+            }
 
-                IR::Opnd* lowerBound = indexIntSym
-                    ? static_cast<IR::Opnd *>(IR::RegOpnd::New(indexIntSym, TyInt32, instr->m_func))
-                    : IR::IntConstOpnd::New(
-                        hoistInfo.IndexConstantBounds().LowerBound(),
-                        TyInt32,
-                        instr->m_func);
+            IR::Opnd* lowerBound = indexIntSym
+                ? static_cast<IR::Opnd *>(IR::RegOpnd::New(indexIntSym, TyInt32, instr->m_func))
+                : IR::IntConstOpnd::New(
+                    hoistInfo.IndexConstantBounds().LowerBound(),
+                    TyInt32,
+                    instr->m_func);
 
-                lowerBound->SetIsJITOptimizedReg(true);
-                IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
-                upperBound->SetIsJITOptimizedReg(true);
+            lowerBound->SetIsJITOptimizedReg(true);
+            IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
+            upperBound->SetIsJITOptimizedReg(true);
 
-                // indexSym <= headSegmentLength + offset (src1 <= src2 + dst)
-                IR::Instr *const boundCheck = globOpt->CreateBoundsCheckInstr(
-                    lowerBound,
-                    upperBound,
-                    hoistInfo.Offset(),
-                    hoistInfo.IsLoopCountBasedBound()
-                    ? IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck
-                    : IR::BailOutOnFailedHoistedBoundCheck,
-                    hoistInfo.Loop()->bailOutInfo,
-                    hoistInfo.Loop()->bailOutInfo->bailOutFunc);
+                int offset = needsMagnitudeAdjustment ? (hoistInfo.IndexOffset() + hoistInfo.Offset()) : hoistInfo.Offset();
 
-                InsertInstrInLandingPad(boundCheck, hoistInfo.Loop());
+            // indexSym <= headSegmentLength + offset (src1 <= src2 + dst)
+            IR::Instr *const boundCheck = globOpt->CreateBoundsCheckInstr(
+                lowerBound,
+                upperBound,
+                    offset,
+                hoistInfo.IsLoopCountBasedBound()
+                ? IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck
+                : IR::BailOutOnFailedHoistedBoundCheck,
+                hoistInfo.Loop()->bailOutInfo,
+                hoistInfo.Loop()->bailOutInfo->bailOutFunc);
 
-                if (indexIntSym)
-                {
-                    TRACE_PHASE_INSTR(
-                        Js::Phase::BoundCheckHoistPhase,
-                        instr,
-                        _u("Hoisting array upper bound check out of loop %u to landing pad block %u, as (s%u <= s%u + %d)\n"),
-                        hoistInfo.Loop()->GetLoopNumber(),
-                        landingPad->GetBlockNum(),
-                        hoistInfo.IndexSym()->m_id,
-                        headSegmentLengthSym->m_id,
-                        hoistInfo.Offset());
-                }
-                else
-                {
-                    TRACE_PHASE_INSTR(
-                        Js::Phase::BoundCheckHoistPhase,
-                        instr,
-                        _u("Hoisting array upper bound check out of loop %u to landing pad block %u, as (%d <= s%u + %d)\n"),
-                        hoistInfo.Loop()->GetLoopNumber(),
-                        landingPad->GetBlockNum(),
-                        hoistInfo.IndexConstantBounds().LowerBound(),
-                        headSegmentLengthSym->m_id,
-                        hoistInfo.Offset());
-                }
+            InsertInstrInLandingPad(boundCheck, hoistInfo.Loop());
 
-                TESTTRACE_PHASE_INSTR(
+            if (indexIntSym)
+            {
+                TRACE_PHASE_INSTR(
                     Js::Phase::BoundCheckHoistPhase,
                     instr,
-                    _u("Hoisting array upper bound check out of loop\n"));
+                    _u("Hoisting array upper bound check out of loop %u to landing pad block %u, as (s%u <= s%u + %d)\n"),
+                    hoistInfo.Loop()->GetLoopNumber(),
+                    landingPad->GetBlockNum(),
+                    hoistInfo.IndexSym()->m_id,
+                    headSegmentLengthSym->m_id,
+                        offset);
+            }
+            else
+            {
+                TRACE_PHASE_INSTR(
+                    Js::Phase::BoundCheckHoistPhase,
+                    instr,
+                    _u("Hoisting array upper bound check out of loop %u to landing pad block %u, as (%d <= s%u + %d)\n"),
+                    hoistInfo.Loop()->GetLoopNumber(),
+                    landingPad->GetBlockNum(),
+                    hoistInfo.IndexConstantBounds().LowerBound(),
+                    headSegmentLengthSym->m_id,
+                        offset);
+            }
 
-                // Record the bound check instruction as available
-                const IntBoundCheck boundCheckInfo(
-                    hoistInfo.IndexValue() ? hoistInfo.IndexValueNumber() : ZeroValueNumber,
-                    hoistInfo.HeadSegmentLengthValue()->GetValueNumber(),
-                    boundCheck,
-                    landingPad);
-                {
-                    const bool added = globOpt->CurrentBlockData()->availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
-                    Assert(added || failedToUpdateCompatibleUpperBoundCheck);
-                }
-                for (InvariantBlockBackwardIterator it(globOpt, globOpt->currentBlock, landingPad, nullptr);
-                    it.IsValid();
-                    it.MoveNext())
-                {
-                    const bool added = it.Block()->globOptData.availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
-                    Assert(added || failedToUpdateCompatibleUpperBoundCheck);
-                }
+            TESTTRACE_PHASE_INSTR(
+                Js::Phase::BoundCheckHoistPhase,
+                instr,
+                _u("Hoisting array upper bound check out of loop\n"));
+
+            // Record the bound check instruction as available
+            const IntBoundCheck boundCheckInfo(
+                hoistInfo.IndexValue() ? hoistInfo.IndexValueNumber() : ZeroValueNumber,
+                hoistInfo.HeadSegmentLengthValue()->GetValueNumber(),
+                boundCheck,
+                landingPad);
+            {
+                const bool added = globOpt->CurrentBlockData()->availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
+                Assert(added || failedToUpdateCompatibleUpperBoundCheck);
+            }
+            for (InvariantBlockBackwardIterator it(globOpt, globOpt->currentBlock, landingPad, nullptr);
+                it.IsValid();
+                it.MoveNext())
+            {
+                const bool added = it.Block()->globOptData.availableIntBoundChecks->AddNew(boundCheckInfo) >= 0;
+                Assert(added || failedToUpdateCompatibleUpperBoundCheck);
             }
         }
 
@@ -1712,9 +1721,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
 
     baseOpnd->SetValueType(baseValueType);
 
-    if (!baseValueType.IsLikelyAnyOptimizedArray() ||
-        !globOpt->DoArrayCheckHoist(baseValueType, globOpt->currentBlock->loop, instr) ||
-        (baseOwnerIndir && !globOpt->ShouldExpectConventionalArrayIndexValue(baseOwnerIndir)))
+    if (!baseValueType.IsLikelyAnyOptimizedArray())
     {
         return;
     }
@@ -1726,6 +1733,16 @@ void GlobOpt::ArraySrcOpt::Optimize()
     if (!isLikelyJsArray && instr->m_opcode == Js::OpCode::LdMethodElem)
     {
         // Fast path is not generated in this case since the subsequent call will throw
+        return;
+    }
+
+    if (!globOpt->DoArrayCheckHoist(baseValueType, globOpt->currentBlock->loop, instr) ||
+        (baseOwnerIndir && !globOpt->ShouldExpectConventionalArrayIndexValue(baseOwnerIndir)))
+    {
+        if (!globOpt->IsLoopPrePass() && baseValueType.IsAnyOptimizedArray())
+        {
+            globOpt->ProcessNoImplicitCallArrayUses(baseOpnd, nullptr, instr, isLikelyJsArray, isLoad || isStore || instr->m_opcode == Js::OpCode::IsIn);
+        }
         return;
     }
 
@@ -1744,7 +1761,14 @@ void GlobOpt::ArraySrcOpt::Optimize()
     {
         if (newBaseValueType != baseValueType)
         {
-            UpdateValue(nullptr, nullptr, nullptr);
+            if (globOpt->IsSafeToTransferInPrePass(baseOpnd, baseValue))
+            {
+                UpdateValue(nullptr, nullptr, nullptr);
+            }
+            else if (isLikelyJsArray && globOpt->IsOperationThatLikelyKillsJsArraysWithNoMissingValues(instr) && baseValueInfo->HasNoMissingValues())
+            {
+                globOpt->ChangeValueType(nullptr, baseValue, baseValueInfo->Type().SetHasNoMissingValues(false), true);
+            }
         }
 
         // For javascript arrays and objects with javascript arrays:
@@ -1930,32 +1954,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
         baseArrayOpnd = nullptr;
     }
 
-    if (isLikelyJsArray)
-    {
-        // Insert an instruction to indicate to the dead-store pass that implicit calls need to be kept disabled until this
-        // instruction. Operations other than LdElem, StElem and IsIn don't benefit much from arrays having no missing values,
-        // so no need to ensure that the array still has no missing values. For a particular array, if none of the accesses
-        // benefit much from the no-missing-values information, it may be beneficial to avoid checking for no missing
-        // values, especially in the case for a single array access, where the cost of the check could be relatively
-        // significant. An StElem has to do additional checks in the common path if the array may have missing values, and
-        // a StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
-        // on the array more precise, so it still benefits a little from the no-missing-values info.
-        globOpt->CaptureNoImplicitCallUses(baseOpnd, isLoad || isStore || instr->m_opcode == Js::OpCode::IsIn);
-    }
-    else if (baseArrayOpnd && baseArrayOpnd->HeadSegmentLengthSym())
-    {
-        // A typed array's array buffer may be transferred to a web worker as part of an implicit call, in which case the typed
-        // array's length is set to zero. Insert an instruction to indicate to the dead-store pass that implicit calls need to
-        // be disabled until this instruction.
-        IR::RegOpnd *const headSegmentLengthOpnd =
-            IR::RegOpnd::New(
-                baseArrayOpnd->HeadSegmentLengthSym(),
-                baseArrayOpnd->HeadSegmentLengthSym()->GetType(),
-                instr->m_func);
-
-        const IR::AutoReuseOpnd autoReuseHeadSegmentLengthOpnd(headSegmentLengthOpnd, instr->m_func);
-        globOpt->CaptureNoImplicitCallUses(headSegmentLengthOpnd, false);
-    }
+    globOpt->ProcessNoImplicitCallArrayUses(baseOpnd, baseArrayOpnd, instr, isLikelyJsArray, isLoad || isStore || instr->m_opcode == Js::OpCode::IsIn);
 
     const auto OnEliminated = [&](const Js::Phase phase, const char *const eliminatedLoad)
     {
@@ -1997,6 +1996,8 @@ void GlobOpt::ArraySrcOpt::Optimize()
         {
             TRACE_TESTTRACE_PHASE_INSTR(Js::Phase::BoundCheckEliminationPhase, instr, _u("Eliminating IsIn\n"));
 
+            globOpt->CaptureByteCodeSymUses(instr);
+
             instr->m_opcode = Js::OpCode::Ld_A;
 
             IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, func, true);
@@ -2025,7 +2026,8 @@ void GlobOpt::ArraySrcOpt::Optimize()
         const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
         Assert(
             !(bailOutKind & ~IR::BailOutKindBits) ||
-            (bailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp);
+            (bailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp ||
+            (bailOutKind & ~IR::BailOutKindBits) == IR::LazyBailOut);
         instr->SetBailOutKind(bailOutKind & IR::BailOutKindBits | IR::BailOutOnArrayAccessHelperCall);
     }
     else

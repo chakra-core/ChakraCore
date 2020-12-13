@@ -2997,7 +2997,7 @@ namespace CorUnix
 
     Unregisters a process object currently monitored by the worker thread
     (typically called if the wait timed out before the process exited, or
-    if the wait was a normal (i.e. non wait-all) wait that involved othter
+    if the wait was a normal (i.e. non wait-all) wait that involved other
     objects, and another object has been signaled).
     --*/
     PAL_ERROR CPalSynchronizationManager::UnRegisterProcessForMonitoring(

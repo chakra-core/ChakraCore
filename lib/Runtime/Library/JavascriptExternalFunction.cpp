@@ -58,7 +58,7 @@ namespace Js
 
     bool __cdecl JavascriptExternalFunction::DeferredLengthInitializer(DynamicObject * instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        Js::JavascriptLibrary::InitializeFunction<true>(instance, typeHandler, mode);
+        Js::JavascriptLibrary::InitializeFunction<true, true, true, true>(instance, typeHandler, mode);
 
         JavascriptExternalFunction* object = static_cast<JavascriptExternalFunction*>(instance);
 
@@ -138,13 +138,13 @@ namespace Js
 #if FLOATVAR
         case TypeIds_Number:
 #endif // FLOATVAR
-            Assert(!Js::RecyclableObject::Is(thisVar));
+            Assert(!Js::VarIs<Js::RecyclableObject>(thisVar));
             break;
         default:
             {
-                Assert(Js::RecyclableObject::Is(thisVar));
+                Assert(Js::VarIs<Js::RecyclableObject>(thisVar));
 
-                ScriptContext* scriptContextThisVar = Js::RecyclableObject::FromVar(thisVar)->GetScriptContext();
+                ScriptContext* scriptContextThisVar = Js::VarTo<Js::RecyclableObject>(thisVar)->GetScriptContext();
                 // We need to verify "this" pointer is active as well. The problem is that DOM prototype functions are
                 // the same across multiple frames, and caller can do function.call(closedthis)
                 Assert(!scriptContext->GetThreadContext()->IsDisableImplicitException());
@@ -314,24 +314,6 @@ namespace Js
         END_LEAVE_SCRIPT(scriptContext);
 #endif
 
-        bool marshallingMayBeNeeded = false;
-        if (result != nullptr)
-        {
-            marshallingMayBeNeeded = Js::RecyclableObject::Is(result);
-            if (marshallingMayBeNeeded)
-            {
-            Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
-
-            // For JSRT, we could get result marshalled in different context.
-            bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
-                marshallingMayBeNeeded = obj->GetScriptContext() != scriptContext;
-                if (!isJSRT && marshallingMayBeNeeded)
-            {
-                Js::Throw::InternalError();
-            }
-        }
-        }
-
         if (scriptContext->HasRecordedException())
         {
             bool considerPassingToDebugger = false;
@@ -354,7 +336,7 @@ namespace Js
         {
             result = scriptContext->GetLibrary()->GetUndefined();
         }
-        else if (marshallingMayBeNeeded)
+        else
         {
             result = CrossSite::MarshalVar(scriptContext, result);
         }

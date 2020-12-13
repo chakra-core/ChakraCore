@@ -46,7 +46,11 @@ using namespace CorUnix;
 SET_DEFAULT_DEBUG_CHANNEL(VIRTUAL);
 
 CRITICAL_SECTION virtual_critsec PAL_GLOBAL;
-CRITICAL_SECTION virtual_realloc PAL_GLOBAL;
+
+#ifdef DEBUG
+Volatile<int> attempt1 = 0;
+Volatile<int> attempt2 = 0;
+#endif
 
 #if MMAP_IGNORES_HINT
 typedef struct FREE_BLOCK {
@@ -124,7 +128,6 @@ VIRTUALInitialize( void )
     TRACE( "Initializing the Virtual Critical Sections. \n" );
 
     InternalInitializeCriticalSection(&virtual_critsec);
-    InternalInitializeCriticalSection(&virtual_realloc);
 
     pVirtualMemory = NULL;
     pVirtualMemoryLastFound = NULL;
@@ -861,6 +864,101 @@ static BOOL VIRTUALStoreAllocationInfo(
     }
 done:
     TRACE( "Exiting StoreAllocationInformation. \n" );
+    return bRetVal;
+}
+
+/****
+ *  VIRTUALUpdateAllocationInfo()
+ *
+ *      Updates the allocation information in the linked list for an existing region.
+ *      NOTE: The caller must own the critical section virtual_critsec.
+ */
+static BOOL VIRTUALUpdateAllocationInfo(
+    IN PCMI pExistingEntry,         /* Existing entry in the virtual memory regions list that we are currently managing. */
+    IN UINT_PTR startBoundary,      /* The new starting address of the region. */
+    IN SIZE_T memSize)              /* The new size of the region. */
+{
+    BOOL bRetVal = TRUE;
+    SIZE_T nBufferSize = 0;
+
+    if ((memSize & VIRTUAL_PAGE_MASK) != 0)
+    {
+        ERROR("The memory size was not in multiples of the page size. \n");
+        bRetVal = FALSE;
+        goto done;
+    }
+
+    if (!pExistingEntry)
+    {
+        ERROR("Existing region not provided.\n");
+        bRetVal = FALSE;
+        goto done;
+    }
+
+    pExistingEntry->startBoundary = startBoundary;
+    pExistingEntry->memSize = memSize;
+
+    nBufferSize = memSize / VIRTUAL_PAGE_SIZE / CHAR_BIT;
+    if ((memSize / VIRTUAL_PAGE_SIZE) % CHAR_BIT != 0)
+    {
+        nBufferSize++;
+    }
+
+    // Cleaup previous structures as we will need to reinitialize these using the new size of the region.
+    {
+#if MMAP_DOESNOT_ALLOW_REMAP
+        if (pExistingEntry->pDirtyPages) InternalFree(pExistingEntry->pDirtyPages);
+        pExistingEntry->pDirtyPages = NULL;
+#endif //  MMAP_DOESNOT_ALLOW_REMAP
+
+        if (pExistingEntry->pProtectionState) InternalFree(pExistingEntry->pProtectionState);
+        pExistingEntry->pProtectionState = NULL;
+
+        if (pExistingEntry->pAllocState) InternalFree(pExistingEntry->pAllocState);
+        pExistingEntry->pAllocState = NULL;
+    }
+
+    pExistingEntry->pAllocState = (BYTE*)InternalMalloc(nBufferSize);
+    pExistingEntry->pProtectionState = (BYTE*)InternalMalloc((memSize / VIRTUAL_PAGE_SIZE));
+#if MMAP_DOESNOT_ALLOW_REMAP
+    pExistingEntry->pDirtyPages = (BYTE*)InternalMalloc(nBufferSize);
+#endif //  MMAP_DOESNOT_ALLOW_REMAP
+
+    if (pExistingEntry->pAllocState && pExistingEntry->pProtectionState
+#if MMAP_DOESNOT_ALLOW_REMAP
+        && pExistingEntry->pDirtyPages
+#endif // MMAP_DOESNOT_ALLOW_REMAP
+        )
+    {
+        /* Set the intial allocation state, and initial allocation protection. */
+#if MMAP_DOESNOT_ALLOW_REMAP
+        memset(pExistingEntry->pDirtyPages, 0, nBufferSize);
+#endif // pExistingEntry
+        VIRTUALSetAllocState(MEM_RESERVE, 0, nBufferSize * CHAR_BIT, pExistingEntry);
+        memset(pExistingEntry->pProtectionState,
+            VIRTUALConvertWinFlags(pExistingEntry->accessProtection),
+            memSize / VIRTUAL_PAGE_SIZE);
+    }
+    else
+    {
+        ERROR("Unable to allocate memory for the structure.\n");
+        bRetVal = FALSE;
+
+#if MMAP_DOESNOT_ALLOW_REMAP
+        if (pExistingEntry->pDirtyPages) InternalFree(pExistingEntry->pDirtyPages);
+        pExistingEntry->pDirtyPages = NULL;
+#endif //
+
+        if (pExistingEntry->pProtectionState) InternalFree(pExistingEntry->pProtectionState);
+        pExistingEntry->pProtectionState = NULL;
+
+        if (pExistingEntry->pAllocState) InternalFree(pExistingEntry->pAllocState);
+        pExistingEntry->pAllocState = NULL;
+
+        goto done;
+    }
+
+done:
     return bRetVal;
 }
 
@@ -1695,6 +1793,128 @@ done:
     return pRetVal;
 }
 
+/*++
+Function:
+  VirtualFreeEnclosing_ This method tries to free memory enclosing a 64K aligned region an already RESERVED larger region.
+  This is to be used specifically when we attempt to get a 64K aligned address on new VirtualAlloc allocations.
+
+--*/
+BOOL
+VirtualFreeEnclosing_(
+    IN LPVOID lpRegionStartAddress,         /* Starting address of the original region. */
+    IN SIZE_T dwSize,                       /* Size of the requested region i.e. the intended size of the VirtualAlloc call.*/
+    IN SIZE_T dwAlignmentSize,              /* The intended alignment of the returned address. This is also the size of the extra memory reserved i.e. 64KB in our case whenw e try a 64K alignment. */
+    IN LPVOID lpActualAlignedStartAddress)  /* Actual starting address that will be returned for the new allocation. */
+{
+    BOOL bRetVal = TRUE;
+
+#ifdef DEBUG
+    _ASSERTE(lpActualAlignedStartAddress >= lpRegionStartAddress);
+    _ASSERTE(lpActualAlignedStartAddress < (char*)lpRegionStartAddress + dwSize + dwAlignmentSize);
+#endif
+
+    char * beforeRegionStart = (char *) lpRegionStartAddress;
+    size_t beforeRegionSize = (char *) lpActualAlignedStartAddress - beforeRegionStart;
+    char * afterRegionStart = (char *) lpActualAlignedStartAddress + dwSize;
+    size_t afterRegionSize = dwAlignmentSize - beforeRegionSize;
+
+    bool beforeRegionFreed = false;
+    bool afterRegionFreed = (afterRegionSize == 0);
+
+#ifdef DEBUG
+    _ASSERTE(dwSize + dwAlignmentSize == beforeRegionSize + dwSize + afterRegionSize);
+
+    SIZE_T alignmentDiff = ((ULONG_PTR)lpRegionStartAddress % dwAlignmentSize);
+    size_t beforeRegionSize2 = dwAlignmentSize - alignmentDiff;
+    _ASSERTE(beforeRegionSize == beforeRegionSize2);
+#endif
+
+    CPalThread *pthrCurrent;
+    pthrCurrent = InternalGetCurrentThread();
+
+    if (dwSize == 0)
+    {
+        ERROR("dwSize must be non-zero when releasing enclosing memory region.\n");
+        pthrCurrent->SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
+
+    PCMI pMemoryToBeReleased =
+        VIRTUALFindRegionInformation((UINT_PTR)lpRegionStartAddress);
+
+    if (!pMemoryToBeReleased)
+    {
+        ERROR("lpRegionStartAddress must be the base address returned by VirtualAlloc.\n");
+        pthrCurrent->SetLastError(ERROR_INVALID_ADDRESS);
+        bRetVal = FALSE;
+        goto VirtualFreeEnclosingExit;
+    }
+
+    TRACE("Releasing the following memory %d to %d.\n", beforeRegionStart, beforeRegionSize);
+
+#if (MMAP_IGNORES_HINT && !MMAP_DOESNOT_ALLOW_REMAP)
+    if (mmap((void *)beforeRegionStart, beforeRegionSize, PROT_NONE, MAP_FIXED | MAP_PRIVATE, gBackingFile,
+        (char *)beforeRegionStart - (char *)gBackingBaseAddress) != MAP_FAILED)
+#else   // MMAP_IGNORES_HINT && !MMAP_DOESNOT_ALLOW_REMAP
+    if (munmap((LPVOID)beforeRegionStart, beforeRegionSize) == 0)
+#endif  // MMAP_IGNORES_HINT && !MMAP_DOESNOT_ALLOW_REMAP
+    {
+        beforeRegionFreed = true;
+    }
+    else
+    {
+#if MMAP_IGNORES_HINT
+        ASSERT("Unable to remap the memory onto the backing file; "
+            "error is %d.\n", errno);
+#else   // MMAP_IGNORES_HINT
+        ASSERT("Unable to unmap the memory, munmap() returned "
+            "an abnormal value.\n");
+#endif  // MMAP_IGNORES_HINT
+        pthrCurrent->SetLastError(ERROR_INTERNAL_ERROR);
+        bRetVal = FALSE;
+        goto VirtualFreeEnclosingExit;
+    }
+
+    if (!afterRegionFreed)
+    {
+        TRACE("Releasing the following memory %d to %d.\n", afterRegionStart, afterRegionSize);
+#if (MMAP_IGNORES_HINT && !MMAP_DOESNOT_ALLOW_REMAP)
+        if (mmap((void *)afterRegionStart, afterRegionSize, PROT_NONE, MAP_FIXED | MAP_PRIVATE, gBackingFile,
+            (char *)afterRegionStart - (char *)gBackingBaseAddress) != MAP_FAILED)
+#else   // MMAP_IGNORES_HINT && !MMAP_DOESNOT_ALLOW_REMAP
+        if (munmap((LPVOID)afterRegionStart, afterRegionSize) == 0)
+#endif  // MMAP_IGNORES_HINT && !MMAP_DOESNOT_ALLOW_REMAP
+        {
+            afterRegionFreed = true;
+        }
+        else
+        {
+#if MMAP_IGNORES_HINT
+            ASSERT("Unable to remap the memory onto the backing file; "
+                "error is %d.\n", errno);
+#else   // MMAP_IGNORES_HINT
+            ASSERT("Unable to unmap the memory, munmap() returned "
+                "an abnormal value.\n");
+#endif  // MMAP_IGNORES_HINT
+            pthrCurrent->SetLastError(ERROR_INTERNAL_ERROR);
+            bRetVal = FALSE;
+            goto VirtualFreeEnclosingExit;
+        }
+    }
+
+    if (beforeRegionFreed && afterRegionFreed)
+    {
+        bRetVal = VIRTUALUpdateAllocationInfo(pMemoryToBeReleased, (UINT_PTR)lpActualAlignedStartAddress, dwSize);
+        goto VirtualFreeEnclosingExit;
+    }
+
+VirtualFreeEnclosingExit:
+    InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
+    return bRetVal;
+}
+
 #define KB64 (64 * 1024)
 #define MB64 (KB64 * 1024)
 
@@ -1717,7 +1937,10 @@ VirtualAlloc(
     if (reserve || commit)
     {
         char *address = (char*) VirtualAlloc_(nullptr, dwSize, MEM_RESERVE, flProtect);
-        if (!address) return nullptr;
+        if (!address)
+        {
+            return nullptr;
+        }
 
         if (reserve)
         {
@@ -1725,33 +1948,45 @@ VirtualAlloc(
         }
 
         SIZE_T diff = ((ULONG_PTR)address % KB64);
-        if ( diff != 0 )
+        if (diff != 0)
         {
+            // Free the previously allocated address as it's not 64K aligned.
             VirtualFree(address, 0, MEM_RELEASE);
-            char *addr64 = address + (KB64 - diff);
 
-            // try reserving from the same address space
-            address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
-
+            // looks like ``pushed new address + dwSize`` is not available
+            // try on a bigger surface
+            address = (char*)VirtualAlloc_(nullptr, dwSize + KB64, MEM_RESERVE, flProtect);
             if (!address)
-            {   // looks like ``pushed new address + dwSize`` is not available
-                // try on a bigger surface
-                address = (char*) VirtualAlloc_(nullptr, dwSize + KB64, MEM_RESERVE, flProtect);
-                if (!address) return nullptr;
-
-                diff = ((ULONG_PTR)address % KB64);
-                addr64 = address + (KB64 - diff);
-
-                CPalThread *pthrCurrent = InternalGetCurrentThread();
-                InternalEnterCriticalSection(pthrCurrent, &virtual_realloc);
-                VirtualFree(address, 0, MEM_RELEASE);
-                address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
-                InternalLeaveCriticalSection(pthrCurrent, &virtual_realloc);
-
-                if (!address) return nullptr;
+            {
+                // This is an actual OOM.
+                return nullptr;
             }
-        }
 
+            diff = ((ULONG_PTR)address % KB64);
+            char * addr64 = address + (KB64 - diff);
+
+            // Free the regions enclosing the 64K aligned region we intend to use.
+            if (VirtualFreeEnclosing_(address, dwSize, KB64, addr64) == 0)
+            {
+                ASSERT("Unable to unmap the enclosing memory.\n");
+                return nullptr;
+            }
+
+            address = addr64;
+#ifdef DEBUG
+            InterlockedIncrement(&attempt2);
+#endif
+        }
+#ifdef DEBUG
+        else
+        {
+            InterlockedIncrement(&attempt1);
+        }
+#endif
+
+#ifdef DEBUG
+        TRACE("VirtualAlloc 64K alignment attempts: %d : %d \n", attempt1.RawValue(), attempt2.RawValue());
+#endif
         if (flAllocationType == 0) return address;
         lpAddress = address;
     }

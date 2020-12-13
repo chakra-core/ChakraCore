@@ -26,6 +26,8 @@ var tests = [
             var a=[1,2];
             Array.prototype.push.call(a,1);
             assert.areEqual([1,2,1], a, "Incorrect result from Array.prototype.push()");
+            
+            Array.prototype.push.call([0, 0, 0, 0, 0]);
         }
     },
     {

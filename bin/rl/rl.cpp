@@ -4620,7 +4620,13 @@ UpdateTitleStatus()
    // start at 1: skip primary thread 0 (unless we decide to let it do real work)
    for (i = 1; i <= NumberOfThreads; i++) {
       ThreadInfo[i].GetCurrentTest(tempBuf);
-      s += sprintf_s(s, REMAININGARRAYLEN(TitleStatus, s), "; %s", tempBuf);
+      size_t remainingCount = REMAININGARRAYLEN(TitleStatus, s);
+      size_t testLen = strnlen_s(tempBuf, BUFFER_SIZE);
+      // Accounting for formatting string and endofbuffer char.
+      if ((testLen + 3) >= remainingCount) {
+          break;
+      }
+      s += sprintf_s(s, remainingCount, "; %s", tempBuf);
    }
 
    LeaveCriticalSection(&csTitleBar);

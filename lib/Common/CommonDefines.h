@@ -12,6 +12,10 @@
 #include "Warnings.h"
 #include "ChakraCoreVersion.h"
 
+// CFG was never enabled for ARM32 and requires WIN10 SDK
+#if !defined(_M_ARM) && defined(_WIN32) && defined(NTDDI_WIN10)
+#define _CONTROL_FLOW_GUARD 1
+#endif
 
 //----------------------------------------------------------------------------------------------------
 // Default debug/fretest/release flags values
@@ -110,30 +114,12 @@
 #define ENABLE_UNICODE_API 1                        // Enable use of Unicode-related APIs
 #endif
 
-// Normalize ICU_VERSION for non-Kit ICU
-#if defined(HAS_ICU) && !defined(ICU_VERSION) && !defined(WINDOWS10_ICU)
-#include "unicode/uvernum.h"
-#define ICU_VERSION U_ICU_VERSION_MAJOR_NUM
-#endif
-
-// Make non-Windows Kit ICU look and act like Windows Kit ICU for better compat
-#if defined(HAS_ICU) && !defined(WINDOWS10_ICU)
-#define U_SHOW_CPLUSPLUS_API 0
-// ICU 55 (Ubuntu 16.04 system default) has uloc_toUnicodeLocale* marked as draft, which is required for Intl
-#if ICU_VERSION > 56
-#define U_DEFAULT_SHOW_DRAFT 0
-#define U_HIDE_DRAFT_API 1
-#endif
-#define U_HIDE_DEPRECATED_API 1
-#define U_HIDE_OBSOLETE_API 1
-#define U_HIDE_INTERNAL_API 1
-#endif
-
 // Language features
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support
-#define ENABLE_JS_BUILTINS                          // Built In functions support
 #endif
+
+#define ENABLE_JS_BUILTINS                          // Built In functions support
 
 #if defined(_WIN32) && !defined(HAS_ICU)
 #define INTL_WINGLOB 1
@@ -268,6 +254,8 @@
 
 // JIT features
 
+#define ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+
 #if DISABLE_JIT
 #define ENABLE_NATIVE_CODEGEN 0
 #define ENABLE_PROFILE_INFO 0
@@ -316,7 +304,9 @@
 #endif
 
 // Other features
-// #define CHAKRA_CORE_DOWN_COMPAT 1
+#if defined(_CHAKRACOREBUILD)
+# define CHAKRA_CORE_DOWN_COMPAT 1
+#endif
 
 // todo:: Enable vectorcall on NTBUILD. OS#13609380
 #if defined(_WIN32) && !defined(NTBUILD) && defined(_M_IX86)

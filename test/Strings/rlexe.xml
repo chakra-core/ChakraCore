@@ -14,6 +14,11 @@
   </test>
   <test>
     <default>
+      <files>fromCodePoint.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>charCodeAt.js</files>
       <baseline>charCodeAt.baseline</baseline>
     </default>
@@ -121,6 +126,12 @@
     <default>
       <files>trim.js</files>
       <baseline>trim.baseline</baseline>
+    </default>
+  </test>
+   <test>
+    <default>
+      <files>trimStart_trimEnd.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -255,6 +266,12 @@
     <default>
       <files>null_embedded_string_toDouble.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>constructorConcat.js</files>
+      <compile-flags>-lic:1 -mic:1 -bgjit-</compile-flags>
     </default>
   </test>
 </regress-exe>

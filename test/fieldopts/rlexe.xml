@@ -2,6 +2,11 @@
 <regress-exe>
   <test>
     <default>
+      <files>depolymorph01.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>equiv-finaltypeandpoly.js</files>
       <compile-flags>-maxSimpleJitRunCount:2</compile-flags>
     </default>
@@ -511,8 +516,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -520,8 +524,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:globOpt</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -529,8 +532,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:inline</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -538,8 +540,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpec</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -547,8 +548,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -556,8 +556,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -565,8 +564,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:fixedMethods</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -574,8 +572,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:splitNewScObject</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -583,8 +580,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:splitNewScObject</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -592,8 +588,7 @@
       <files>objtypespec-newobj.2.js</files>
       <baseline>objtypespec-newobj.2.baseline</baseline>
       <compile-flags>-maxinterpretcount:2 -off:objTypeSpecNewObj -off:fixedNewObj -off:splitNewScObject</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_dynapogo,exclude_jenkins</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -850,6 +845,12 @@
   <test>
     <default>
       <files>argobjlengthhoist.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>OS23440664.js</files>
+      <compile-flags>-off:bailonnoprofile -force:fixdataprops -forcejitloopbody</compile-flags>
     </default>
   </test>
 </regress-exe>

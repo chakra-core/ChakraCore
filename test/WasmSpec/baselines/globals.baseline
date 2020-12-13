@@ -1,3 +1,0 @@
-(19) testsuite/core/globals.wast:55: generate module  failed. Unexpected Error: CompileError: Mutable globals cannot be exported
-(20) testsuite/core/globals.wast:56: generate module  failed. Unexpected Error: CompileError: Mutable globals cannot be exported
-34/36 tests passed.

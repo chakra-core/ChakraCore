@@ -25,12 +25,13 @@
 
 // Platform specific code
 #if defined(_WIN32) && defined(_MSC_VER)
-#include <oaidl.h>
+#include <windows.h>
 
 // Header macros
 #define CHAKRA_CALLBACK CALLBACK
 #define CHAKRA_API STDAPI_(JsErrorCode)
 
+typedef unsigned char byte;
 typedef DWORD_PTR ChakraCookie;
 typedef BYTE* ChakraBytePtr;
 #else // Non-Windows VC++
@@ -41,6 +42,7 @@ typedef BYTE* ChakraBytePtr;
 #define _In_z_
 #define _In_opt_
 #define _Inout_
+#define _Inout_opt_
 #define _Out_
 #define _Out_opt_
 #define _In_reads_(x)
@@ -217,7 +219,7 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorInvalidContext,
         /// <summary>
-        ///     Module evaluation is called in wrong context.
+        ///     The Module HostInfoKind provided was invalid.
         /// </summary>
         JsInvalidModuleHostInfoKind,
         /// <summary>
@@ -237,6 +239,7 @@ typedef unsigned short uint16_t;
         ///     Module was not yet evaluated when JsGetModuleNamespace was called.
         /// </summary>
         JsErrorModuleNotEvaluated,
+
         /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
@@ -313,6 +316,18 @@ typedef unsigned short uint16_t;
         ///     VM was unable to perform the request action
         /// </summary>
         JsErrorDiagUnableToPerformAction,
+        /// <summary>
+        ///     Serializer/Deserializer does not support current data
+        /// </summary>
+        JsSerializerNotSupported,
+        /// <summary>
+        ///     Current object is not transferable during serialization
+        /// </summary>
+        JsTransferableNotSupported,
+        /// <summary>
+        ///     Current object is already detached when serialized
+        /// </summary>
+        JsTransferableAlreadyDetached,
     } JsErrorCode;
 
     /// <summary>
@@ -549,6 +564,10 @@ typedef unsigned short uint16_t;
         ///     This one needs to be set for Utf16
         /// </summary>
         JsParseScriptAttributeArrayBufferIsUtf16Encoded = 0x2,
+        /// <summary>
+        ///     Script should be parsed in strict mode
+        /// </summary>
+        JsParseScriptAttributeStrictMode = 0x4,
     } JsParseScriptAttributes;
 
     /// <summary>
@@ -623,6 +642,27 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsDataView = 12,
     } JsValueType;
+
+    typedef enum _JsScriptEncodingType
+    {
+        Utf8,
+        Utf16
+    } JsScriptEncodingType;
+
+    typedef enum _JsScriptContainerType
+    {
+        HeapAllocatedBuffer
+    } JsScriptContainerType;
+
+    typedef struct _JsScriptContents
+    {
+        void * container;
+        JsScriptEncodingType encodingType;
+        JsScriptContainerType containerType;
+        JsSourceContext sourceContext;
+        size_t contentLengthInBytes;
+        WCHAR * fullPath;
+    } JsScriptContents;
 
     /// <summary>
     ///     User implemented callback routine for memory allocation events
@@ -922,7 +962,7 @@ typedef unsigned short uint16_t;
     /// <remarks>
     ///     Removes a reference to a <c>JsRef</c> handle that was created by <c>JsAddRef</c>.
     /// </remarks>
-    /// <param name="ref">The object to add a reference to.</param>
+    /// <param name="ref">The object to remove the reference from.</param>
     /// <param name="count">The object's new reference count (can pass in null).</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -1051,7 +1091,7 @@ typedef unsigned short uint16_t;
             _Out_ JsRuntimeHandle *runtime);
 
     /// <summary>
-    ///     Tells the runtime to do any idle processing it need to do.
+    ///     Tells the runtime to do any idle processing it needs to do.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -2411,6 +2451,60 @@ typedef unsigned short uint16_t;
         JsSetPromiseContinuationCallback(
             _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     Note: Experimental API
+    ///     Starts a request for background script parsing on another thread
+    /// </summary>
+    /// <param name="contents">ScriptContents struct with data needed to start parsing</param>
+    /// <param name="dwBgParseCookie">Identifier for subsequent BGParse operations</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsQueueBackgroundParse_Experimental(
+            _In_ JsScriptContents* contents,
+            _Out_ DWORD* dwBgParseCookie);
+
+    /// <summary>
+    ///     Note: Experimental API
+    ///     Appropriately frees resources associated with a previously queued background parse
+    /// </summary>
+    /// <param name="dwBgParseCookie">Identifier for BGParse operation</param>
+    /// <param name="buffer">Pointer to script source buffer, used for validation</param>
+    /// <param name="callerOwnsBuffer">When <c>true</c>, caller is responsible for freeing buffer</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsDiscardBackgroundParse_Experimental(
+            _In_ DWORD dwBgParseCookie,
+            _In_ void* buffer,
+            _Out_ bool* callerOwnsBuffer);
+
+    /// <summary>
+    ///     Note: Experimental API
+    ///     Executes the background parsed script
+    /// </summary>
+    /// <param name="dwBgParseCookie">Identifier for subsequent BGParse operations</param>
+    /// <param name="script">Pointer to script source</param>
+    /// <param name="sourceContext">JsSourceContext identifier</param>
+    /// <param name="url">Path to the parsed script</param>
+    /// <param name="parseAttributes"></param>
+    /// <param name="parserState">[May not be needed]</param>
+    /// <param name="result">Result of script execution</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsExecuteBackgroundParse_Experimental(
+            _In_ DWORD dwBgParseCookie,
+            _In_ JsValueRef script,
+            _In_ JsSourceContext sourceContext,
+            _In_ WCHAR *url,
+            _In_ JsParseScriptAttributes parseAttributes,
+            _In_ JsValueRef parserState,
+            _Out_ JsValueRef *result);
 
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"

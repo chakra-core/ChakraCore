@@ -27,7 +27,7 @@ namespace JSON
         void __declspec(noreturn) ThrowSyntaxError(int wErr)
         {
             char16 scanPos[16];
-            ::_itow_s(GetScanPosition(), scanPos, _countof(scanPos) / sizeof(char16), 10);
+            ::_itow_s(GetScanPosition(), scanPos, _countof(scanPos), 10);
             Js::JavascriptError::ThrowSyntaxError(scriptContext, wErr, scanPos);
         }
 

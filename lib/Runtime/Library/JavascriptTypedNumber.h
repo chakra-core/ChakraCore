@@ -31,23 +31,6 @@ namespace Js
 
         static Var ToVar(T nValue, ScriptContext* scriptContext);
 
-        static JavascriptTypedNumber<T>* FromVar(Var value)
-        {
-            AssertOrFailFastMsg(JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number ||
-                JavascriptOperators::GetTypeId(value) == TypeIds_UInt64Number, "invalid typed number");
-
-            return static_cast<JavascriptTypedNumber<T>*>(value);
-        };
-
-        static JavascriptTypedNumber<T>* UnsafeFromVar(Var value)
-        {
-#if DBG
-            AssertMsg(JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number ||
-                JavascriptOperators::GetTypeId(value) == TypeIds_UInt64Number, "invalid typed number");
-#endif
-            return static_cast<JavascriptTypedNumber<T>*>(value);
-        };
-
         static JavascriptString* ToString(Var value, ScriptContext* scriptContext);
 
         Var ToJavascriptNumber()
@@ -57,7 +40,7 @@ namespace Js
 
         RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override
         {
-            return RecyclableObject::FromVar(JavascriptTypedNumber::ToVar(this->GetValue(), requestContext));
+            return VarTo<RecyclableObject>(JavascriptTypedNumber::ToVar(this->GetValue(), requestContext));
         }
 
         BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override
@@ -75,4 +58,14 @@ namespace Js
 
     typedef JavascriptTypedNumber<__int64> JavascriptInt64Number;
     typedef JavascriptTypedNumber<unsigned __int64> JavascriptUInt64Number;
+
+    template <> inline bool VarIsImpl<JavascriptInt64Number>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Int64Number;
+    }
+
+    template <> inline bool VarIsImpl<JavascriptUInt64Number>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_UInt64Number;
+    }
 }

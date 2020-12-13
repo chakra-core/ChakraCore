@@ -1,10 +1,12 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "a": "Object {...}"
     },
     "locals": {
       "y": "string x",
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2",
@@ -15,10 +17,12 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "a": "Object {...}"
     },
     "locals": {
       "y": "string y",
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2",

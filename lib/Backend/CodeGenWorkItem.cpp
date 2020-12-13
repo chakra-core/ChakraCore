@@ -210,19 +210,7 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 #if PDATA_ENABLED & defined(_WIN32)
         if (this->entryPointInfo)
         {
-            XDataAllocation * xdataAllocation = this->entryPointInfo->GetNativeEntryPointData()->GetXDataInfo();
-            if (xdataAllocation)
-            {
-                void* functionTable = xdataAllocation->functionTable;
-                if (functionTable)
-                {
-                    if (!DelayDeletingFunctionTable::AddEntry(functionTable))
-                    {
-                        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("[%d]OnWorkItemProcessFail: Failed to add to slist, table: %llx\n"), GetCurrentThreadId(), functionTable);
-                        DelayDeletingFunctionTable::DeleteFunctionTable(functionTable);
-                    }
-                }
-            }
+            this->entryPointInfo->GetNativeEntryPointData()->CleanupXDataInfo();
         }
 #endif
         codeGen->FreeNativeCodeGenAllocation(this->allocation->allocation->address);

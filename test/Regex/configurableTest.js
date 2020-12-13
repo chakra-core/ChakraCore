@@ -15,7 +15,7 @@ var propertyConstructorArray = ["fakeProp","$_","$*","$&","$+","$`","$'","input"
                                 "index","length","prototype","constructor"
                                ];
 
-var propertyInstanceArray = ["global","ignoreCase","lastIndex","multiline","source","sticky"];
+var propertyInstanceArray = ["global","ignoreCase","lastIndex","multiline","source","sticky","dotAll"];
 
 function RegexTests(i,propertyArray)
 {

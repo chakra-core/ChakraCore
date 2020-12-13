@@ -259,6 +259,13 @@ void ThreadContextManagerBase::ShutdownThreadContext(
     if (deleteThreadContext)
     {
         AllocationPolicyManager * policyManager = threadContext->IsThreadBound() ? threadContext->GetAllocationPolicyManager() : nullptr;
+#if DBG
+        // An assert can fire in the Recycler dtor if this ThreadContext is destroyed while
+        // the process is detaching (i.e., all of the other threads have terminated). In this
+        // case, don't run that assert because all of the other threads were torn down early
+        // because of WFMO
+        threadContext->GetRecycler()->SetDisableConcurrentThreadExitedCheck();
+#endif
         HeapDelete(threadContext);
 
         if (policyManager)

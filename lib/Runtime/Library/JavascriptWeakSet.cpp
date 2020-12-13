@@ -12,25 +12,6 @@ namespace Js
     {
     }
 
-    bool JavascriptWeakSet::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_WeakSet;
-    }
-
-    JavascriptWeakSet* JavascriptWeakSet::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
-
-        return static_cast<JavascriptWeakSet *>(aValue);
-    }
-
-    JavascriptWeakSet* JavascriptWeakSet::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
-
-        return static_cast<JavascriptWeakSet *>(aValue);
-    }
-
     Var JavascriptWeakSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -68,7 +49,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
             }
-            adder = RecyclableObject::FromVar(adderVar);
+            adder = VarTo<RecyclableObject>(adderVar);
         }
 
         if (iter != nullptr)
@@ -88,7 +69,7 @@ namespace Js
 #endif
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), weakSetObject, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), weakSetObject, nullptr, scriptContext) :
             weakSetObject;
     }
 
@@ -99,12 +80,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakSet::Is(args[0]))
+        if (!VarIs<JavascriptWeakSet>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.add"), _u("WeakSet"));
         }
 
-        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
+        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -115,7 +96,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakSet.prototype.add"));
         }
 
-        RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+        RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
 #if ENABLE_TTD
         //In replay we need to pin the object (and will release at snapshot points) -- in record we don't need to do anything
@@ -137,19 +118,19 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakSet::Is(args[0]))
+        if (!VarIs<JavascriptWeakSet>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.delete"), _u("WeakSet"));
         }
 
-        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
+        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool didDelete = false;
 
         if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             didDelete = weakSet->Delete(keyObj);
         }
@@ -178,19 +159,19 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakSet::Is(args[0]))
+        if (!VarIs<JavascriptWeakSet>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.has"), _u("WeakSet"));
         }
 
-        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
+        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool hasValue = false;
 
         if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             hasValue = weakSet->Has(keyObj);
         }

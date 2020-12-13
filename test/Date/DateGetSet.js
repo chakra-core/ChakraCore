@@ -183,14 +183,11 @@ WScript.Echo("valueOf : " + d.valueOf())
 WScript.Echo("toISOString method : " + typeof d.toISOString);
 WScript.Echo("toJSON method : " + typeof d.toJSON);
 
-// Set fullYear/fullYear+month/year on the Date prototype
-Date.prototype.setYear(5);                  // Year
-WScript.Echo(Date.prototype.getFullYear());
-Date.prototype.setYear(4, 4);               // Year, month -- month should be ignored
-WScript.Echo(Date.prototype.getFullYear());
-WScript.Echo(Date.prototype.getMonth());
-Date.prototype.setFullYear(1999);           // Only full year
-WScript.Echo(Date.prototype.getFullYear());
-Date.prototype.setFullYear(1998, 5);        // Full year and month
-WScript.Echo(Date.prototype.getFullYear());
-WScript.Echo(Date.prototype.getMonth());
+WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js", "self");
+
+assert.throws(() => Date.prototype.setYear(5), TypeError);
+assert.throws(() => Date.prototype.getFullYear(), TypeError);
+assert.throws(() => Date.prototype.setYear(4, 4), TypeError);
+assert.throws(() => Date.prototype.getMonth(), TypeError);
+assert.throws(() => Date.prototype.setFullYear(1999), TypeError);
+assert.throws(() => Date.prototype.setFullYear(1998, 5), TypeError);

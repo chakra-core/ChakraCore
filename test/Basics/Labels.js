@@ -338,6 +338,19 @@ testNoSyntaxErrorWithDanglingStaticAfterLabel=
 testRuntimeErrorWithDanglingStaticAfterLabel=
     `L: static
     x = 0`
+
+testSyntaxErrorWithContinueAfterLabel=
+    `function fn() {
+        L:
+            continue L;
+    }`
+
+testNoLabelNotFoundWithBreakAfterLabel=
+    `function fn() {
+        L:
+            break L;
+    }`
+
     
 function testModuleScript(source, message, shouldFail = false) {
     let testfunc = () => testRunner.LoadModule(source, 'samethread', shouldFail);
@@ -423,13 +436,13 @@ var tests = [
 
             for(let label in invalidLabels)
             {
-                assert.throws(() => eval(label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'", invalidLabels[label]);
-                assert.throws(() => eval(strictMode + label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'", invalidLabels[label]);
+                assert.throws(() => eval(label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'");
+                assert.throws(() => eval(strictMode + label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'");
             }
             
             for(let invalidLabelInStrict in strictModeOnlyInvalidLabels)
             {
-                assert.throws(() => eval(strictMode + invalidLabelInStrict + testIfLabelIsValid), SyntaxError, "Expected syntax error in strict mode for future reserved keyword '" + invalidLabelInStrict + "'", strictModeOnlyInvalidLabels[invalidLabelInStrict])
+                assert.throws(() => eval(strictMode + invalidLabelInStrict + testIfLabelIsValid), SyntaxError, "Expected syntax error in strict mode for future reserved keyword '" + invalidLabelInStrict + "'")
                 assert.doesNotThrow(() => eval(invalidLabelInStrict + testIfLabelIsValid), "Expected no syntax error for future reserved keyword '" + invalidLabelInStrict + " in non-strict mode")
             }
         }
@@ -467,6 +480,8 @@ var tests = [
             assert.throws(() => eval(testRuntimeErrorWithDanglingAwaitAfterLabel), ReferenceError, "Expected reference error from stranded await being used after label", "'await' is not defined")
             assert.throws(() => eval(testRuntimeErrorWithDanglingStaticAfterLabel), ReferenceError, "Expected reference error from stranded static being used after label", "'static' is not defined")
             assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingStaticAfterLabel), "Expected no issue parsing since static is viewed as an identifier")
+            assert.throws(() => eval(testSyntaxErrorWithContinueAfterLabel), SyntaxError, "Expected syntax error from having continue outside of loop", "Can't have 'continue' outside of loop")
+            assert.doesNotThrow(() => eval(testNoLabelNotFoundWithBreakAfterLabel), "Expected no issue from finding label")
         }
     }
 ];

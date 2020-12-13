@@ -41,20 +41,6 @@ namespace Js
 
         DataView(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
 
-        static BOOL Is(Var aValue);
-
-        static inline DataView* FromVar(Var aValue)
-        {
-            AssertOrFailFast(DataView::Is(aValue));
-            return static_cast<DataView*>(aValue);
-        }
-
-        static inline DataView* UnsafeFromVar(Var aValue)
-        {
-            Assert(DataView::Is(aValue));
-            return static_cast<DataView*>(aValue);
-        }
-
         uint32 GetByteOffset() const { return byteOffset; }
         void ClearLengthAndBufferOnDetach();
 
@@ -216,4 +202,9 @@ namespace Js
         Field(BYTE*) buffer;   // beginning of buffer
 
     };
+
+    template <> inline bool VarIsImpl<DataView>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_DataView;
+    }
 }

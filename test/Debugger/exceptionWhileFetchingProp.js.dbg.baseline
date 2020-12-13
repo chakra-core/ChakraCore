@@ -1,0 +1,10 @@
+[
+  {
+    "evaluate": {
+      "p": {
+        "#__proto__": "Object {...}",
+        "[Proxy]": "Proxy {...}"
+      }
+    }
+  }
+]

@@ -96,4 +96,10 @@ CopyLoop
 
     NESTED_END
 
+    NESTED_ENTRY BreakSpeculation
+    cmp x0, x0
+    cseleq x0, x0, x0
+    ret
+    NESTED_END
+
     END

@@ -42,9 +42,6 @@ namespace Js
 
         void EnsureJsBuiltInByteCode(ScriptContext * scriptContext);
 
-        static DynamicObject* GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext);
-        static void RecordDefaultIteratorFunctions(Js::PropertyIds propertyId, ScriptContext * scriptContext, JavascriptFunction* iteratorFunc);
-        static void RecordCommonNativeInterfaceBuiltIns(Js::PropertyIds propertyId, ScriptContext * scriptContext, JavascriptFunction * scriptFunction);
         static Var EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_Internal_GetLength(RecyclableObject* function, CallInfo callInfo, ...);

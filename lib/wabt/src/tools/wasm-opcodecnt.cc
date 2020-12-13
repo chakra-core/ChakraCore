@@ -59,10 +59,7 @@ static void ParseOptions(int argc, char** argv) {
     s_log_stream = FileStream::CreateStdout();
     s_read_binary_options.log_stream = s_log_stream.get();
   });
-  parser.AddOption('h', "help", "Print this help message", [&parser]() {
-    parser.PrintHelp();
-    exit(0);
-  });
+  parser.AddHelpOption();
   parser.AddOption('o', "output", "FILENAME",
                    "Output file for the opcode counts, by default use stdout",
                    [](const char* argument) { s_outfile = argument; });
@@ -159,7 +156,7 @@ int ProgramMain(int argc, char** argv) {
   if (Succeeded(result)) {
     OpcodeInfoCounts counts;
     result = ReadBinaryOpcnt(file_data.data(), file_data.size(),
-                             &s_read_binary_options, &counts);
+                             s_read_binary_options, &counts);
     if (Succeeded(result)) {
       stream.Writef("Opcode counts:\n");
       WriteCounts(stream, counts);

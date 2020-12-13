@@ -2,6 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="$(MsBuildThisFileDirectory)ArrayBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DelayFreeArrayBufferHelper.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)BufferStringBuilder.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)CommonExternalApiImpl.cpp" />
@@ -9,6 +10,10 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)dataview.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)EngineInterfaceObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFromSyncIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFunction.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptAsyncGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGeneratorFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
@@ -102,11 +107,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalWrapperObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
+    <ClInclude Include="DelayFreeArrayBufferHelper.h" />
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />
@@ -121,6 +130,10 @@
     <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
+    <ClInclude Include="JavascriptAsyncFromSyncIterator.h" />
+    <ClInclude Include="JavascriptAsyncFuction.h" />
+    <ClInclude Include="JavascriptAsyncGenerator.h" />
+    <ClInclude Include="JavascriptAsyncGeneratorFuction.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
     <ClInclude Include="JavascriptBuiltInFunctions.h" />
     <ClInclude Include="JavascriptExternalFunction.h" />
@@ -226,6 +239,11 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="..\LibraryFunction.h" />
+    <ClInclude Include="IntlExtensionObjectBuiltIns.h" />
+    <ClInclude Include="StringCacheList.h" />
+    <ClInclude Include="CustomExternalWrapperObject.h" />
+    <ClInclude Include="JavascriptBigInt.h" />
+    <ClInclude Include="JavascriptBigIntObject.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
@@ -236,7 +254,6 @@
     <None Include="JavascriptLibrary.inl" />
     <None Include="JavascriptNumber.inl" />
     <None Include="JavascriptString.inl" />
-    <None Include="JavascriptBoolean.inl" />
     <None Include="amd64\JavascriptFunctionA.S">
       <Filter>amd64</Filter>
     </None>

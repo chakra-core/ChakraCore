@@ -20,26 +20,6 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_Date);
     }
 
-    bool JavascriptDate::Is(Var aValue)
-    {
-        // All WinRT Date's are also implicitly Javascript dates
-        return IsDateTypeId(JavascriptOperators::GetTypeId(aValue));
-    }
-
-    JavascriptDate* JavascriptDate::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'Date'");
-
-        return static_cast<JavascriptDate *>(aValue);
-    }
-
-    JavascriptDate* JavascriptDate::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'Date'");
-
-        return static_cast<JavascriptDate *>(aValue);
-    }
-
     Var JavascriptDate::GetDateData(JavascriptDate* date, DateImplementation::DateData dd, ScriptContext* scriptContext)
     {
         return JavascriptNumber::ToVarIntCheck(date->m_date.GetDateData(dd, false, scriptContext), scriptContext);
@@ -115,7 +95,7 @@ namespace Js
             //
             RecyclableObject* pNew = NewInstanceAsConstructor(args, scriptContext);
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pNew, nullptr, scriptContext) :
                 pNew;
         }
     }
@@ -165,17 +145,17 @@ namespace Js
         //
         if (args.Info.Count == 2)
         {
-            if (JavascriptDate::Is(args[1]))
+            if (VarIs<JavascriptDate>(args[1]))
             {
-                JavascriptDate* dateObject = JavascriptDate::FromVar(args[1]);
+                JavascriptDate* dateObject = VarTo<JavascriptDate>(args[1]);
                 timeValue = ((dateObject)->m_date).m_tvUtc;
             }
             else
             {
                 Var value = JavascriptConversion::ToPrimitive<Js::JavascriptHint::None>(args[1], scriptContext);
-                if (JavascriptString::Is(value))
+                if (VarIs<JavascriptString>(value))
                 {
-                    timeValue = ParseHelper(scriptContext, JavascriptString::FromVar(value));
+                    timeValue = ParseHelper(scriptContext, VarTo<JavascriptString>(value));
                 }
                 else
                 {
@@ -254,9 +234,9 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Date[Symbol.toPrimitive]"));
             }
 
-            if (JavascriptString::Is(args[1]))
+            if (VarIs<JavascriptString>(args[1]))
             {
-                JavascriptString* StringObject = JavascriptString::FromVar(args[1]);
+                JavascriptString* StringObject = VarTo<JavascriptString>(args[1]);
                 const char16 * str = StringObject->GetString();
 
                 if (wcscmp(str, _u("default")) == 0 || wcscmp(str, _u("string")) == 0)
@@ -264,13 +244,13 @@ namespace Js
                     // Date objects, are unique among built-in ECMAScript object in that they treat "default" as being equivalent to "string"
                     // If hint is the string value "string" or the string value "default", then
                     // Let tryFirst be "string".
-                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(RecyclableObject::UnsafeFromVar(args[0]), scriptContext);
+                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(UnsafeVarTo<RecyclableObject>(args[0]), scriptContext);
                 }
                 // Else if hint is the string value "number", then
                 // Let tryFirst be "number".
                 else if(wcscmp(str, _u("number")) == 0)
                 {
-                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(RecyclableObject::UnsafeFromVar(args[0]), scriptContext);
+                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(UnsafeVarTo<RecyclableObject>(args[0]), scriptContext);
                 }
                 //anything else should throw a type error
             }
@@ -288,7 +268,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetDate, scriptContext, args, &result))
@@ -297,7 +277,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getDate"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -315,7 +295,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetDay, scriptContext, args, &result))
@@ -324,7 +304,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getDay"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -342,7 +322,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetFullYear, scriptContext, args, &result))
@@ -351,7 +331,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getFullYear"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -369,7 +349,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetYear, scriptContext, args, &result))
@@ -378,7 +358,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getYear"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -396,7 +376,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetHours, scriptContext, args, &result))
@@ -405,7 +385,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getHours"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -423,7 +403,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetMilliseconds, scriptContext, args, &result))
@@ -432,7 +412,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getMilliseconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -450,7 +430,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetMinutes, scriptContext, args, &result))
@@ -459,7 +439,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getMinutes"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -477,7 +457,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetMonth, scriptContext, args, &result))
@@ -486,7 +466,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getMonth"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -504,7 +484,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetSeconds, scriptContext, args, &result))
@@ -513,7 +493,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getSeconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         if (!date->m_date.IsNaN())
         {
@@ -531,7 +511,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetTime, scriptContext, args, &result))
@@ -540,7 +520,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getTime"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptNumber::ToVarNoCheck(date->GetTime(), scriptContext);
     }
@@ -554,7 +534,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetTimezoneOffset, scriptContext, args, &result))
@@ -563,7 +543,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getTimezoneOffset"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetDateData(date, DateImplementation::DateData::TimezoneOffset, scriptContext);
     }
@@ -577,7 +557,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCDate, scriptContext, args, &result))
@@ -586,7 +566,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCDate"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Date, scriptContext);
     }
@@ -600,7 +580,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCDay, scriptContext, args, &result))
@@ -609,7 +589,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCDay"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Day, scriptContext);
     }
@@ -623,7 +603,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCFullYear, scriptContext, args, &result))
@@ -632,7 +612,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCFullYear"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::FullYear, scriptContext);
     }
@@ -646,7 +626,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCHours, scriptContext, args, &result))
@@ -655,7 +635,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCHours"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Hours, scriptContext);
     }
@@ -669,7 +649,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCMilliseconds, scriptContext, args, &result))
@@ -678,7 +658,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCMilliseconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Milliseconds, scriptContext);
     }
@@ -692,7 +672,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCMinutes, scriptContext, args, &result))
@@ -701,7 +681,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCMinutes"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Minutes, scriptContext);
     }
@@ -715,7 +695,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCMonth, scriptContext, args, &result))
@@ -724,7 +704,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCMonth"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Month, scriptContext);
     }
@@ -738,7 +718,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetUTCSeconds, scriptContext, args, &result))
@@ -747,7 +727,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getUTCSeconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Seconds, scriptContext);
     }
@@ -761,7 +741,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryGetVarDate, scriptContext, args, &result))
@@ -770,7 +750,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getVarDate"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return scriptContext->GetLibrary()->CreateVariantDate(
             DateImplementation::VarDateFromJsUtcTime(date->GetTime(), scriptContext)
@@ -852,7 +832,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetDate, scriptContext, args, &result))
@@ -861,7 +841,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setDate"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Date, scriptContext);
     }
@@ -875,7 +855,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetFullYear, scriptContext, args, &result))
@@ -884,7 +864,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setFullYear"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::FullYear, scriptContext);
     }
@@ -898,7 +878,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetYear, scriptContext, args, &result))
@@ -907,7 +887,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setYear"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Year, scriptContext);
     }
@@ -921,7 +901,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetHours, scriptContext, args, &result))
@@ -930,7 +910,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setHours"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Hours, scriptContext);
     }
@@ -944,7 +924,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetMilliseconds, scriptContext, args, &result))
@@ -953,7 +933,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setMilliseconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Milliseconds, scriptContext);
     }
@@ -967,7 +947,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetMinutes, scriptContext, args, &result))
@@ -976,7 +956,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setMinutes"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Minutes, scriptContext);
     }
@@ -990,7 +970,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetMonth, scriptContext, args, &result))
@@ -999,7 +979,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setMonth"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Month, scriptContext);
     }
@@ -1013,7 +993,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetSeconds, scriptContext, args, &result))
@@ -1022,7 +1002,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setSeconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetDateData(date, args, DateImplementation::DateData::Seconds, scriptContext);
     }
@@ -1036,7 +1016,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetTime, scriptContext, args, &result))
@@ -1045,7 +1025,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setTime"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
         double value;
@@ -1076,7 +1056,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCDate, scriptContext, args, &result))
@@ -1085,7 +1065,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCDate"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::Date, scriptContext);
     }
@@ -1099,7 +1079,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCFullYear, scriptContext, args, &result))
@@ -1108,7 +1088,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCFullYear"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::FullYear, scriptContext);
     }
@@ -1122,7 +1102,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCHours, scriptContext, args, &result))
@@ -1131,7 +1111,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCHours"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::Hours, scriptContext);
     }
@@ -1145,7 +1125,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCMilliseconds, scriptContext, args, &result))
@@ -1154,7 +1134,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCMilliseconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::Milliseconds, scriptContext);
     }
@@ -1168,7 +1148,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCMinutes, scriptContext, args, &result))
@@ -1177,7 +1157,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCMinutes"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::Minutes, scriptContext);
     }
@@ -1191,7 +1171,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCMonth, scriptContext, args, &result))
@@ -1200,7 +1180,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCMonth"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::Month, scriptContext);
     }
@@ -1214,7 +1194,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntrySetUTCSeconds, scriptContext, args, &result))
@@ -1223,7 +1203,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.setUTCSeconds"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::SetUTCDateData(date, args, DateImplementation::DateData::Seconds, scriptContext);
     }
@@ -1237,7 +1217,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToDateString, scriptContext, args, &result))
@@ -1246,7 +1226,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toDateString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
@@ -1264,7 +1244,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Date_Prototype_toISOString);
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToISOString, scriptContext, args, &result))
@@ -1273,7 +1253,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toISOString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetISOString(scriptContext);
@@ -1316,7 +1296,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, scriptContext->GetPropertyName(PropertyIds::toISOString)->GetBuffer());
         }
-        RecyclableObject* toISOFunc = RecyclableObject::FromVar(toISO);
+        RecyclableObject* toISOFunc = VarTo<RecyclableObject>(toISO);
         return scriptContext->GetThreadContext()->ExecuteImplicitCall(toISOFunc, Js::ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(scriptContext->GetThreadContext(), toISOFunc, CallInfo(1), thisObj);
@@ -1332,7 +1312,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToLocaleDateString, scriptContext, args, &result))
@@ -1341,7 +1321,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toLocaleDateString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
         if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
@@ -1390,7 +1370,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToLocaleString, scriptContext, args, &result))
@@ -1399,7 +1379,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toLocaleString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
         if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
@@ -1458,7 +1438,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToLocaleTimeString, scriptContext, args, &result))
@@ -1467,7 +1447,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toLocaleTimeString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
 #ifdef ENABLE_INTL_OBJECT
         if (CONFIG_FLAG(IntlBuiltIns) && scriptContext->IsIntlEnabled()){
@@ -1515,7 +1495,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToTimeString, scriptContext, args, &result))
@@ -1524,7 +1504,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toTimeString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
@@ -1542,7 +1522,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToUTCString, scriptContext, args, &result))
@@ -1551,7 +1531,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toUTCString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
         return date->m_date.GetString(
@@ -1568,7 +1548,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryValueOf, scriptContext, args, &result))
@@ -1577,7 +1557,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.valueOf"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
         double value = date->m_date.GetMilliSeconds();
@@ -1593,7 +1573,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
         {
             Var result = nullptr;
             if (TryInvokeRemotely(EntryToString, scriptContext, args, &result))
@@ -1602,7 +1582,7 @@ namespace Js
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.toString"));
         }
-        JavascriptDate* date = JavascriptDate::FromVar(args[0]);
+        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         AssertMsg(args.Info.Count > 0, "Negative argument count");
         return JavascriptDate::ToString(date, scriptContext);
@@ -1612,7 +1592,7 @@ namespace Js
     {
         if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
         {
-            if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, result))
+            if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, result))
             {
                 return TRUE;
             }

@@ -114,6 +114,12 @@
   </test>
   <test>
     <default>
+      <files>reflect_defineProperty.js</files>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>objectproperty.js</files>
       <baseline>objectproperty_es6.baseline</baseline>
       <tags>typedarray</tags>
@@ -415,6 +421,11 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>bug18321215.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>definitetypedarray.js</files>
     </default>
   </test>
 </regress-exe>

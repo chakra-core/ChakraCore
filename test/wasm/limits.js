@@ -126,9 +126,9 @@ const tests = [
     errorMsg: "Too many element segments",
     makeModule: (builder, limit) => {
       builder.addFunction(null, kSig_v_v).addBody([]);
-      builder.setFunctionTableLength(1);
-      builder.function_table_inits.length = limit;
-      builder.function_table_inits.fill({base: 0, is_global: false, array: [0]})
+      builder.setTableLength(1);
+      builder.element_segments.length = limit;
+      builder.element_segments.fill({base:0, is_global:false, array:[0]});
     }
   }),
   // Test 14
@@ -137,7 +137,7 @@ const tests = [
     body() {
       assert.doesNotThrow(() => new WebAssembly.Table({element: "anyfunc", initial: MaxTableSize}));
       assert.doesNotThrow(() => new WebAssembly.Table({element: "anyfunc", initial: MaxTableSize, maximum: MaxTableSize}));
-      assert.doesNotThrow(() => new WebAssembly.Table({element: "anyfunc", maximum: MaxTableSize}));
+      assert.throws(() => new WebAssembly.Table({element: "anyfunc", maximum: MaxTableSize}));
       assert.throws(() => new WebAssembly.Table({element: "anyfunc", initial: MaxTableSize + 1}));
       assert.throws(() => new WebAssembly.Table({element: "anyfunc", initial: MaxTableSize + 1, maximum: MaxTableSize + 1}));
       assert.throws(() => new WebAssembly.Table({element: "anyfunc", maximum: MaxTableSize + 1}));
@@ -283,7 +283,7 @@ const tests = [
   // todo:: test MaxBrTableElems
 ];
 
-WScript.LoadScriptFile("../UnitTestFrameWork/yargs.js");
+WScript.LoadScriptFile("../UnitTestFramework/yargs.js");
 const argv = yargsParse(WScript.Arguments, {
   boolean: ["valid", "invalid", "verbose"],
   number: ["start", "end"],

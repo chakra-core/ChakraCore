@@ -71,8 +71,8 @@ namespace Js
             currentLocalMapIndex++;
             if (currentLocalMapIndex < sortedExportedNames->Count())
             {
-                Assert(JavascriptString::Is(sortedExportedNames->Item(currentLocalMapIndex)));
-                return JavascriptString::FromVar(sortedExportedNames->Item(currentLocalMapIndex));
+                Assert(VarIs<JavascriptString>(sortedExportedNames->Item(currentLocalMapIndex)));
+                return VarTo<JavascriptString>(sortedExportedNames->Item(currentLocalMapIndex));
             }
             else
             {

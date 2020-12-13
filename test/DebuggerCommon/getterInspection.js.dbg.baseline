@@ -28,6 +28,7 @@
       "nothrow": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "test": "function <large string>"
     }
   },
@@ -65,6 +66,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "test": "function <large string>"
     }
   }

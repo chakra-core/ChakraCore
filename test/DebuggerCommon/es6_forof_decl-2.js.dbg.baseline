@@ -2,26 +2,31 @@
   {
     "this": "Object {...}",
     "locals": {
-      "x": "number 1"
+      "x": "number 1",
+      "Symbol.toStringTag": "string global"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
-      "x": "number 1"
+      "x": "number 1",
+      "Symbol.toStringTag": "string global"
     },
     "globals": {}
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
-      "x": "number 1"
+      "x": "number 1",
+      "Symbol.toStringTag": "string global"
     },
     "globals": {}
   }

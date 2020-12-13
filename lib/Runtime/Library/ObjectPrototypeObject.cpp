@@ -80,8 +80,8 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject* object = RecyclableObject::FromVar(arg0);
-        RecyclableObject* newPrototype = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* object = VarTo<RecyclableObject>(arg0);
+        RecyclableObject* newPrototype = VarTo<RecyclableObject>(args[1]);
 
         // 5. Let status be O.[[SetPrototypeOf]](proto).
         // 6. ReturnIfAbrupt(status).

@@ -238,7 +238,7 @@ namespace JsUtil
             return entries[i].Value();
         }
 
-        const TValue Item(const TKey& key) const
+        TValue Item(const TKey& key) const
         {
             int i = FindEntry(key);
             Assert(i >= 0);

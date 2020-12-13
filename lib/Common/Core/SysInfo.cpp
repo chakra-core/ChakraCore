@@ -85,6 +85,7 @@ AutoSystemInfo::Initialize()
     allocationGranularityPageCount = dwAllocationGranularity / dwPageSize;
 
     isWindows8OrGreater = IsWindows8OrGreater();
+    isWindows8Point1OrGreater = IsWindows8Point1OrGreater();
 
     binaryName[0] = _u('\0');
 
@@ -361,30 +362,30 @@ AutoSystemInfo::CheckForAtom() const
 #endif
 
 bool
-AutoSystemInfo::IsCFGEnabled()
+AutoSystemInfo::IsWin8OrLater()
 {
-#if defined(_CONTROL_FLOW_GUARD)
-    return true
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        && IsWinThresholdOrLater() && !PHASE_OFF1(Js::CFGPhase)
-#endif //ENABLE_DEBUG_CONFIG_OPTIONS
-        ;
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_WIN8
+    return true;
 #else
-    return false;
-#endif //_CONTROL_FLOW_GUARD
+    return isWindows8OrGreater;
+#endif
 }
 
 bool
-AutoSystemInfo::IsWin8OrLater()
+AutoSystemInfo::IsWin8Point1OrLater()
 {
-    return isWindows8OrGreater;
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE
+    return true;
+#else
+    return isWindows8Point1OrGreater;
+#endif
 }
 
 #if defined(_CONTROL_FLOW_GUARD)
 bool
 AutoSystemInfo::IsWinThresholdOrLater()
 {
-#if defined(_M_ARM64)
+#if defined(_M_ARM64) || (defined(WINVER) && WINVER >= _WIN32_WINNT_WIN10)
     return true;
 #else
     return IsWindowsThresholdOrGreater();

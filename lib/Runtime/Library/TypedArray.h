@@ -130,10 +130,7 @@ namespace Js
 
         virtual BOOL InitProperty(Js::PropertyId propertyId, Js::Var value, PropertyOperationFlags flags = PropertyOperation_None, Js::PropertyValueInfo* info = NULL) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
-        static BOOL Is(Var aValue);
         static BOOL Is(TypeId typeId);
-        static TypedArrayBase* FromVar(Var aValue);
-        static TypedArrayBase* UnsafeFromVar(Var aValue);
         // Returns false if this is not a TypedArray or it's not detached
         static BOOL IsDetachedTypedArray(Var aValue);
         static HRESULT GetBuffer(Var aValue, ArrayBuffer** outBuffer, uint32* outOffset, uint32* outLength);
@@ -179,6 +176,7 @@ namespace Js
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;
+        virtual BOOL IsObjectArrayFrozen() override;
 
         Var FindMinOrMax(Js::ScriptContext * scriptContext, TypeId typeId, bool findMax);
         template<typename T, bool checkNaNAndNegZero> Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax);
@@ -215,6 +213,11 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<TypedArrayBase>(RecyclableObject* obj)
+    {
+        return TypedArrayBase::Is(JavascriptOperators::GetTypeId(obj));
+    }
 
     template <typename TypeName, bool clamped = false, bool virtualAllocated = false>
     class TypedArray;
@@ -271,9 +274,6 @@ namespace Js
 
         Var Subarray(uint32 begin, uint32 end);
 
-        static BOOL Is(Var aValue);
-        static TypedArray<TypeName, clamped, virtualAllocated>* FromVar(Var aValue);
-        static TypedArray<TypeName, clamped, virtualAllocated>* UnsafeFromVar(Var aValue);
         static BOOL HasVirtualTableInfo(Var aValue)
         {
             return VirtualTableInfo<TypedArray<TypeName, clamped, virtualAllocated>>::HasVirtualTable(aValue) || VirtualTableInfo<CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::HasVirtualTable(aValue);
@@ -551,11 +551,8 @@ namespace Js
 
         static Var Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
-        static BOOL Is(Var aValue);
 
         Var Subarray(uint32 begin, uint32 end);
-        static CharArray* FromVar(Var aValue);
-        static CharArray* UnsafeFromVar(Var aValue);
 
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override;
         virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override;
@@ -586,6 +583,7 @@ namespace Js
         }
     };
 
+    template <> bool VarIsImpl<CharArray>(RecyclableObject* obj);
 
     template <typename TypeName, bool clamped, bool virtualAllocated>
     TypedArray<TypeName, clamped, virtualAllocated>::TypedArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :

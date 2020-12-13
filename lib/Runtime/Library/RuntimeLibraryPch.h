@@ -14,6 +14,7 @@
 #include "Library/JavascriptNumberObject.h"
 #include "Library/JavascriptStringObject.h"
 #include "Library/JavascriptBooleanObject.h"
+#include "Library/JavascriptBigIntObject.h"
 
 #include "Library/ObjectPrototypeObject.h"
 
@@ -30,18 +31,25 @@
 
 #include "Library/BoundFunction.h"
 #include "Library/JavascriptGeneratorFunction.h"
+#include "Library/JavascriptAsyncFunction.h"
+#include "Library/JavascriptAsyncGeneratorFunction.h"
 
 #include "Library/RegexHelper.h"
 #include "Library/JavascriptRegularExpression.h"
 #include "Library/JavascriptRegExpConstructor.h"
 #include "Library/JavascriptRegularExpressionResult.h"
 
+#include "Library/JavascriptAsyncFromSyncIterator.h"
 #include "Library/JavascriptVariantDate.h"
 #include "Library/JavascriptPromise.h"
 #include "Library/JavascriptSymbolObject.h"
+#ifdef _CHAKRACOREBUILD
+#include "Library/CustomExternalWrapperObject.h"
+#endif
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptReflect.h"
 #include "Library/JavascriptGenerator.h"
+#include "Library/JavascriptAsyncGenerator.h"
 
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"
@@ -50,7 +58,7 @@
 #include "Library/JavascriptWeakMap.h"
 #include "Library/JavascriptWeakSet.h"
 
-#include "Types/WithScopeObject.h"
+#include "Types/UnscopablesWrapperObject.h"
 #include "Types/PropertyIndexRanges.h"
 #include "Types/DictionaryPropertyDescriptor.h"
 #include "Types/DictionaryTypeHandler.h"

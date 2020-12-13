@@ -63,6 +63,11 @@ var tests = [
         name: "String.prototype.padStart out of bound scenario",
         body: function () {
             assert.throws(() => { 'foo'.padStart(2147483647);}, RangeError, "index is out of bound", "String length is out of bound");
+            assert.throws(() => { 'foo'.padEnd(2147483647);}, RangeError, "index is out of bound", "String length is out of bound");
+            assert.doesNotThrow(() => { 'foo'.padStart(2147483647, '');}, "Out of bounds pad length does not throw when padding with empty string");
+            assert.doesNotThrow(() => { 'foo'.padEnd(2147483647, '');}, "Out of bounds pad length does not throw when padding with empty string");
+            assert.areEqual('foo'.padStart(2147483647, ''), 'foo', "String padded with empty string is returned even if length of padding > max string length");
+            assert.areEqual('foo'.padEnd(2147483647, ''), 'foo', "String padded with empty string is returned even if length of padding > max string length");   
         }
     }
 ];

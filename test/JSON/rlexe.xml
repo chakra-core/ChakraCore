@@ -11,7 +11,12 @@
       <files>jx2.js</files>
       <baseline>jx2.baseline</baseline>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins</tags>
+      <tags>exclude_jenkins,slow</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>cacheassert.js</files>
     </default>
   </test>
   <test>
@@ -20,6 +25,11 @@
       <baseline>stringify-replacer.baseline</baseline>
       <compile-flags>-recyclerstress</compile-flags>
       <tags>exclude_test,Slow</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>arguments.js</files>
     </default>
   </test>
   <test>
@@ -100,6 +110,11 @@
   <test>
     <default>
       <files>stackoverflow.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsonerrorbuffer.js</files>
     </default>
   </test>
 </regress-exe>

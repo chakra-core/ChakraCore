@@ -5,6 +5,7 @@
       "[Intl.DateTimeFormat returned]": "Object {...}"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "undefined undefined",
@@ -23,6 +24,7 @@
       "[Intl.DateTimeFormat.prototype.format returned]": "string ‎2‎/‎1‎/‎2000"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -40,6 +42,7 @@
       "[toLocaleString returned]": "string <large string>"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -57,6 +60,7 @@
       "[Intl.DateTimeFormat.supportedLocalesOf returned]": "Array [en-US]"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -74,6 +78,7 @@
       "[resolvedOptions returned]": "Object {...}"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -91,6 +96,7 @@
       "[Intl.NumberFormat returned]": "Object {...}"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -109,6 +115,7 @@
       "[Intl.NumberFormat.prototype.format returned]": "string 123.456"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -126,6 +133,7 @@
       "[Intl.NumberFormat.supportedLocalesOf returned]": "Array [en-US]"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -143,6 +151,7 @@
       "[resolvedOptions returned]": "Object {...}"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -160,6 +169,7 @@
       "[Intl.Collator returned]": "Object {...}"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -178,6 +188,7 @@
       "[Intl.Collator.prototype.compare returned]": "number -1"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -195,6 +206,7 @@
       "[Intl.Collator.supportedLocalesOf returned]": "Array [en-US]"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",
@@ -212,6 +224,7 @@
       "[resolvedOptions returned]": "Object {...}"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "options": "Object {...}",
       "dateFormat1": "Object {...}",
       "date1": "Date <large string>",

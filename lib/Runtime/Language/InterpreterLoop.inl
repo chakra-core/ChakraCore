@@ -170,7 +170,7 @@ Js::Var Js::InterpreterStackFrame::INTERPRETERLOOPNAME()
     }
 
     Assert(this->returnAddress != nullptr);
-    AssertMsg(!this->GetFunctionBody()->GetUsesArgumentsObject() || m_arguments == NULL || Js::ArgumentsObject::Is(m_arguments), "Bad arguments!");
+    AssertMsg(!this->GetFunctionBody()->GetUsesArgumentsObject() || m_arguments == NULL || Js::VarIs<Js::ArgumentsObject>(m_arguments), "Bad arguments!");
 
     // IP Passing in the interpreter:
     // We keep a local copy of the bytecode's instruction pointer and
@@ -307,6 +307,7 @@ SWAP_BP_FOR_OPCODE:
 #ifndef INTERPRETER_ASMJS
         case INTERPRETER_OPCODE::Yield:
             {
+                this->retOffset = m_reader.GetCurrentOffset();
                 m_reader.Reg2_Small(ip);
                 return GetReg(GetFunctionBody()->GetYieldRegister());
             }

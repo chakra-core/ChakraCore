@@ -32,6 +32,8 @@ public:
     Js::FunctionInfo *GetCallSiteFuncInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, bool* isConstructorCall, bool* isPolymorphicCall);
     Js::FunctionInfo * InlineCallback(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth);
     Js::FunctionInfo * GetCallSiteCallbackInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
+    Js::FunctionInfo * InlineCallApplyTarget(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth);
+    Js::FunctionInfo * GetCallApplyTargetInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint16 GetConstantArgInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     bool HasCallSiteInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, Js::FunctionBody** functionBodyArray, uint functionBodyArrayLength, bool* canInlineArray, uint recursiveInlineDepth = 0);
@@ -135,6 +137,12 @@ private:
     { \
     Output::Flush(); \
     }
+#define INLINE_CALLBACKS_TRACE(...) \
+    if (PHASE_TESTTRACE(Js::InlineCallbacksPhase, this->topFunc) || PHASE_TRACE(Js::InlineCallbacksPhase, this->topFunc)) \
+    { \
+    Output::Print(__VA_ARGS__); \
+    Output::Flush(); \
+    }
 #else
 #define INLINE_VERBOSE_TRACE(...)
 #define POLYMORPHIC_INLINE_TESTTRACE(...)
@@ -143,4 +151,6 @@ private:
 #define INLINE_FLUSH()
 #define INLINE_TESTTRACE(...)
 #define INLINE_TESTTRACE_VERBOSE(...)
+#define INLINE_TRACE_AND_TESTTRACE(...)
+#define INLINE_CALLBACKS_TRACE(...)
 #endif

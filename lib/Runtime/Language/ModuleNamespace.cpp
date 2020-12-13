@@ -109,12 +109,16 @@ namespace Js
                 if (moduleNameRecord->module == moduleRecord)
                 {
                     // skip local exports as they are covered in the localExportSlots.
+                    // have to check the property map to avoid filtering out aliased local re-exports
+                    // which are not covered in localExportSlots
+                    if (propertyMap->ContainsKey(scriptContext->GetThreadContext()->GetPropertyName(propertyId)))
+                    {
 #if DBG
-                    localExportCount++;
+                        localExportCount++;
 #endif
-                    return;
+                        return;
+                    }
                 }
-                Assert(moduleNameRecord->module != moduleRecord);
                 this->AddUnambiguousNonLocalExport(propertyId, moduleNameRecord);
             });
         }
@@ -272,6 +276,12 @@ namespace Js
             // TODO: maybe we can cache the slot address & offset, instead of looking up everytime? We do need to look up the reference everytime.
             if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
             {
+                // special case for export * as ns
+                if (moduleNameRecord.bindingName == Js::PropertyIds::star_)
+                {
+                    *value = static_cast<Var>(moduleNameRecord.module->GetNamespace());
+                    return PropertyQueryFlags::Property_Found;
+                }
                 return JavascriptConversion::BooleanToPropertyQueryFlags(moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext));
             }
         }

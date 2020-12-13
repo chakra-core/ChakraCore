@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>comparison.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>global_object.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>increment.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>decrement.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>assign_by_value.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>add.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>subtract.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>mixed.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>strictly_equal.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bitwise_not.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>multiply.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+</regress-exe>

@@ -21,6 +21,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -46,11 +47,13 @@
       "aConst": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -76,11 +79,13 @@
       "aConst": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -102,11 +107,13 @@
       "aConst": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -128,11 +135,13 @@
       "aConst": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -158,6 +167,7 @@
       "aConst": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     }
   },

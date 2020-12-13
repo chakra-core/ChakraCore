@@ -894,7 +894,7 @@ namespace TTD
         // Null-terminate the list before we try to use the buffer as a string.
         charList.Add(_u('\0'));
 
-        bool likelyint; //we don't care about this just want to know that it is convertable to a number
+        LikelyNumberType likelyint; //we don't care about this just want to know that it is convertable to a number
         const char16* end;
         const char16* start = charList.GetBuffer();
         double val = Js::NumberUtilities::StrToDbl<char16>(start, &end, likelyint);
@@ -1152,7 +1152,7 @@ namespace TTD
 
     double TextFormatReader::ReadDoubleFromCharArray(const char16* buff)
     {
-        bool likelytInt; //we don't care about this as we already know it is a double
+        LikelyNumberType likelytInt; //we don't care about this as we already know it is a double
         const char16* end;
         double val = Js::NumberUtilities::StrToDbl<char16>(buff, &end, likelytInt);
         TTDAssert((buff != end) && !Js::JavascriptNumber::IsNan(val), "Error in parse.");
@@ -1906,7 +1906,7 @@ namespace TTD
                 this->AppendLiteral("null");
                 break;
             case Js::TypeIds_Boolean:
-                this->AppendBool(!!Js::JavascriptBoolean::FromVar(var)->GetValue());
+                this->AppendBool(!!Js::VarTo<Js::JavascriptBoolean>(var)->GetValue());
                 break;
             case Js::TypeIds_Integer:
                 this->AppendInteger(Js::TaggedInt::ToInt64(var));
@@ -1915,30 +1915,30 @@ namespace TTD
                 this->AppendDouble(Js::JavascriptNumber::GetValue(var));
                 break;
             case Js::TypeIds_Int64Number:
-                this->AppendInteger(Js::JavascriptInt64Number::FromVar(var)->GetValue());
+                this->AppendInteger(Js::VarTo<Js::JavascriptInt64Number>(var)->GetValue());
                 break;
             case Js::TypeIds_UInt64Number:
-                this->AppendUnsignedInteger(Js::JavascriptUInt64Number::FromVar(var)->GetValue());
+                this->AppendUnsignedInteger(Js::VarTo<Js::JavascriptUInt64Number>(var)->GetValue());
                 break;
             case Js::TypeIds_String:
                 this->AppendLiteral("'");
                 if(!skipStringContents)
                 {
-                    if(Js::JavascriptString::FromVar(var)->GetLength() <= 40)
+                    if(Js::VarTo<Js::JavascriptString>(var)->GetLength() <= 40)
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendText(Js::VarTo<Js::JavascriptString>(var)->GetString(), Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     }
                     else
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), 40);
+                        this->AppendText(Js::VarTo<Js::JavascriptString>(var)->GetString(), 40);
                         this->AppendLiteral("...");
-                        this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendInteger(Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     }
                 }
                 else
                 {
                     this->AppendLiteral("string@length=");
-                    this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    this->AppendInteger(Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     this->AppendLiteral("...");
                 }
                 this->AppendLiteral("'");
@@ -1948,7 +1948,7 @@ namespace TTD
 #if ENABLE_OBJECT_SOURCE_TRACKING
                 if(tid > Js::TypeIds_LastStaticType)
                 {
-                    const Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(var);
+                    const Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(var);
                     if(!IsDiagnosticOriginInformationValid(dynObj->TTDDiagOriginInfo))
                     {
                         this->AppendLiteral("*");

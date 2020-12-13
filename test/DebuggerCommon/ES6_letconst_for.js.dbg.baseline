@@ -3,16 +3,19 @@
     "this": "Object {...}",
     "locals": {
       "y": "number 1",
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 1",
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     },
     "globals": {}
@@ -21,16 +24,19 @@
     "this": "Object {...}",
     "locals": {
       "y": "number 2",
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     },
     "locals": {
       "z": "number 1",
       "y": "number 2",
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     },
     "globals": {}
@@ -39,6 +45,7 @@
     "this": "Object {...}",
     "locals": {
       "y": "number 3",
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     }
   }

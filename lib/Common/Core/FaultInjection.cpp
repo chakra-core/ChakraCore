@@ -117,7 +117,6 @@ namespace Js
         _In_opt_ const CONTEXT* pCtx = nullptr)
     {
         CONTEXT                         Context;
-        KNONVOLATILE_CONTEXT_POINTERS   NvContext;
         UNWIND_HISTORY_TABLE            UnwindHistoryTable;
         PRUNTIME_FUNCTION               RuntimeFunction;
         PVOID                           HandlerData;
@@ -141,7 +140,7 @@ namespace Js
         while (true)
         {
             RuntimeFunction = RtlLookupFunctionEntry(Context.Rip, &ImageBase, &UnwindHistoryTable);
-            RtlZeroMemory(&NvContext, sizeof(KNONVOLATILE_CONTEXT_POINTERS));
+
             if (!RuntimeFunction)
             {
                 Context.Rip = (ULONG64)(*(PULONG64)Context.Rsp);
@@ -150,7 +149,7 @@ namespace Js
             else
             {
                 RtlVirtualUnwind(UNW_FLAG_NHANDLER, ImageBase, Context.Rip, RuntimeFunction,
-                    &Context, &HandlerData, &EstablisherFrame, &NvContext);
+                    &Context, &HandlerData, &EstablisherFrame, NULL /* ContextPointers */);
             }
 
             if (!Context.Rip)

@@ -106,11 +106,11 @@ var tests = [
             assert.isTrue(typedArrayPrototype === Float32Array.prototype.__proto__, "All TypedArray prototypes have their [[prototype]] slot set to the %TypedArrayPrototype% intrinsic");
             assert.isTrue(typedArrayPrototype === Float64Array.prototype.__proto__, "All TypedArray prototypes have their [[prototype]] slot set to the %TypedArrayPrototype% intrinsic");
 
-            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "buffer", "%TypedArrayPrototype%.buffer", "get buffer");
-            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "byteLength", "%TypedArrayPrototype%.byteLength", "get byteLength");
-            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "byteOffset", "%TypedArrayPrototype%.byteOffset", "get byteOffset");
-            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "length", "%TypedArrayPrototype%.length", "get length");
-            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, Symbol.toStringTag, "%TypedArrayPrototype%[@@toStringTag]", "get [Symbol.toStringTag]");
+            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "buffer", "%TypedArrayPrototype%.buffer", "function get buffer() { [native code] }");
+            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "byteLength", "%TypedArrayPrototype%.byteLength", "function get byteLength() { [native code] }");
+            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "byteOffset", "%TypedArrayPrototype%.byteOffset", "function get byteOffset() { [native code] }");
+            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, "length", "%TypedArrayPrototype%.length", "function get length() { [native code] }");
+            verifyTypedArrayPrototypePropertyAccessor(typedArrayPrototype, Symbol.toStringTag, "%TypedArrayPrototype%[@@toStringTag]", "function get [Symbol.toStringTag]() { [native code] }");
 
             verifyTypedArrayPrototypePropertyFunction(typedArrayPrototype, "set", 2, "%TypedArrayPrototype%.set");
             verifyTypedArrayPrototypePropertyFunction(typedArrayPrototype, "subarray", 2, "%TypedArrayPrototype%.subarray");
@@ -920,6 +920,13 @@ var tests = [
         }
     },
     {
+        name: "ArrayBuffer.detach on 0 buffer should not throw error",
+        body: function() {
+            var ab = new ArrayBuffer(0);
+            assert.doesNotThrow(function() { ArrayBuffer.detach(ab) });
+        }
+    },
+    {
         name: "%TypedArray%.prototype.fill behavior",
         body: function() {
             var fill = Uint8Array.prototype.__proto__.fill;
@@ -1486,7 +1493,7 @@ var tests = [
             if (WScript.Platform.OS == "win32") { // Windows
                 assert.areEqual([9,8,7,2,10,5,4,3,1,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
             } else { // xplat
-                assert.areEqual([2,9,8,7,10,4,1,3,5,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
+                assert.areEqual([2,9,10,8,7,5,4,3,6,1], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
             }
 
             assert.throws(function() { sort.call(); }, TypeError, "Calling %TypedArrayPrototype%.sort with no this throws TypeError", "'this' is not a typed array object");

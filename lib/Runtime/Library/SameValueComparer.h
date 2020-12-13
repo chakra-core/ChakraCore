@@ -63,7 +63,7 @@ namespace Js
             case TypeIds_Int64Number:
             case TypeIds_UInt64Number:
                 {
-                    __int64 v = JavascriptInt64Number::FromVar(i)->GetValue();
+                    __int64 v = VarTo<JavascriptInt64Number>(i)->GetValue();
                     double d = (double) v;
                     if (v != (__int64) d)
                     {
@@ -85,7 +85,7 @@ namespace Js
 
             case TypeIds_String:
                 {
-                    JavascriptString* v = JavascriptString::UnsafeFromVar(i);
+                    JavascriptString* v = UnsafeVarTo<JavascriptString>(i);
                     return JsUtil::CharacterBuffer<WCHAR>::StaticGetHashCode(v->GetString(), v->GetLength());
                 }
 

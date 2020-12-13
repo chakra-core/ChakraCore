@@ -110,7 +110,7 @@ namespace Js
 #endif /* IR_VIEWER */
 
         static void ValidateSyntax(ScriptContext* scriptContext, const char16 *source, int sourceLength, bool isGenerator, bool isAsync, void (Parser::*validateSyntax)());
-        static void UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode) ;
+        static void UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext) ;
         static ScriptFunction* DefaultEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
 #ifdef ENABLE_SCRIPT_PROFILING
         static ScriptFunction* ProfileModeEvalHelper(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
@@ -120,10 +120,6 @@ namespace Js
             int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle,
             BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
 #endif /* IR_VIEWER */
-
-        static bool Is(Var aValue);
-        static GlobalObject* FromVar(Var aValue);
-        static GlobalObject* UnsafeFromVar(Var aValue);
 
         typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
         FieldNoBarrier(EvalHelperType) EvalHelper;
@@ -189,4 +185,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<GlobalObject>(RecyclableObject* obj)
+    {
+        return obj->GetTypeId() == TypeIds_GlobalObject;
+    }
 }

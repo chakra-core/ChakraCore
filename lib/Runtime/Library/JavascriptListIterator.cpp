@@ -15,27 +15,6 @@ namespace Js
         count = list->Count();
     }
 
-    bool JavascriptListIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_ListIterator;
-    }
-
-    JavascriptListIterator* JavascriptListIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptListIterator'");
-
-        return static_cast<JavascriptListIterator *>(aValue);
-    }
-
-    JavascriptListIterator* JavascriptListIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptListIterator'");
-
-        return static_cast<JavascriptListIterator *>(aValue);
-    }
-
-
     Var JavascriptListIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -48,17 +27,17 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptListIterator::Is(thisObj))
+        if (!VarIs<JavascriptListIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedListIterator, _u("ListIterator.next"));
         }
 
-        JavascriptListIterator* iterator = JavascriptListIterator::FromVar(thisObj);
+        JavascriptListIterator* iterator = VarTo<JavascriptListIterator>(thisObj);
         ListForListIterator* list = iterator->listForIterator;
 
         if (list == nullptr)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         if (iterator->index >= iterator->count)
@@ -66,13 +45,13 @@ namespace Js
             // Nulling out the listForIterator field is important so that the iterator
             // does not keep the list alive after iteration is completed.
             iterator->listForIterator = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         Var current = list->Item(iterator->index);
 
         iterator->index++;
 
-        return library->CreateIteratorResultObjectValueFalse(current);
+        return library->CreateIteratorResultObject(current);
     }
 } // namespace Js

@@ -70,5 +70,10 @@ function g5()
 };
 g5();
 
+// Tests that loop inversion does not crash when the outer loop does not have
+// a condition. In order to not stay in an infinite loop, these functions return
+// immediately. The bytecode will still be generated.
+function g6(p){if(!p) return; var a = 0; for (var h = 0;; ++h){ for (var r = 0; r < 1; ++r){ a = r; }}};g6(0);
+function g6a(p){"use strict"; if(!p) return; var a = 0; for (var h = 0;; ++h){ for (var r = 0; r < 1; ++r){ a = r; }}};g6a(0);
 
 WScript.Echo("pass");

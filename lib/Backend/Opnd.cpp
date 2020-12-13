@@ -962,7 +962,8 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 bool
 PropertySymOpnd::ChangesObjectLayout() const
 {
-    JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
+    JITTypeHolder cachedType = this->HasInitialType() ? this->GetInitialType() : 
+        this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
 
     JITTypeHolder finalType = this->GetFinalType();
 
@@ -987,13 +988,11 @@ PropertySymOpnd::ChangesObjectLayout() const
         // This is the case where the type transition actually occurs. (This is the only case that's detectable
         // during the loop pre-pass, since final types are not in place yet.)
 
-        Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
-
-        const JITTypeHandler * cachedTypeHandler = cachedType->GetTypeHandler();
         const JITTypeHandler * initialTypeHandler = initialType->GetTypeHandler();
 
-        return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
-            cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();
+        // If no final type has been set in the forward pass, then we have no way of knowing how the object shape will evolve here.
+        // If the initial type is object-header-inlined, assume that the layout may change.
+        return initialTypeHandler->IsObjectHeaderInlinedTypeHandler();
     }
 
     return false;
@@ -1016,7 +1015,7 @@ PropertySymOpnd::UpdateSlotForFinalType()
         return;
     }
 
-    // TODO: OOP JIT: should assert about runtime type handler addr 
+    // TODO: OOP JIT: should assert about runtime type handler addr
     Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
 
     if (cachedType->GetTypeHandler()->GetInlineSlotCapacity() == finalType->GetTypeHandler()->GetInlineSlotCapacity() &&
@@ -1056,24 +1055,6 @@ bool PropertySymOpnd::HasFinalType() const
     return this->finalType != nullptr;
 }
 
-bool PropertySymOpnd::NeedsAuxSlotPtrSymLoad() const
-{
-    // Consider: reload based on guarded prop ops' use of aux slots
-    return this->GetAuxSlotPtrSym() != nullptr;
-}
-
-void PropertySymOpnd::GenerateAuxSlotPtrSymLoad(IR::Instr * instrInsert)
-{
-    StackSym * auxSlotPtrSym = GetAuxSlotPtrSym();
-    Assert(auxSlotPtrSym);
-    Func * func = instrInsert->m_func;
-
-    IR::Opnd *opndIndir = IR::IndirOpnd::New(this->CreatePropertyOwnerOpnd(func), Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, func);
-    IR::RegOpnd *regOpnd = IR::RegOpnd::New(auxSlotPtrSym, TyMachReg, func);
-    regOpnd->SetIsJITOptimizedReg(true);
-    Lowerer::InsertMove(regOpnd, opndIndir, instrInsert);
-}
-
 PropertySymOpnd *
 PropertySymOpnd::CloneDefInternalSub(Func *func)
 {
@@ -1086,7 +1067,7 @@ PropertySymOpnd::CloneUseInternalSub(Func *func)
     return this->CopyInternalSub(func);
 }
 
-bool 
+bool
 PropertySymOpnd::ShouldUsePolyEquivTypeGuard(Func *const func) const
 {
     return this->IsPoly() && this->m_polyCacheUtil >= PolymorphicInlineCacheUtilizationThreshold && !PHASE_OFF(Js::PolyEquivTypeGuardPhase, func);
@@ -2303,7 +2284,19 @@ AddrOpnd::CopyInternal(Func *func)
 ///----------------------------------------------------------------------------
 
 bool
-AddrOpnd::IsEqualInternal(Opnd *opnd)
+AddrOpnd::IsEqualAddr(Opnd *opnd, void *addr)
+{
+    return opnd->IsAddrOpnd() && opnd->AsAddrOpnd()->IsEqualAddr(addr);
+}
+
+bool
+AddrOpnd::IsEqualAddr(void *addr) const
+{
+    return m_address == addr;
+}
+
+bool
+AddrOpnd::IsEqualInternal(Opnd *opnd) const
 {
     Assert(m_kind == OpndKindAddr);
     if (!opnd->IsAddrOpnd())
@@ -2311,7 +2304,7 @@ AddrOpnd::IsEqualInternal(Opnd *opnd)
         return false;
     }
 
-    return m_address == opnd->AsAddrOpnd()->m_address;
+    return IsEqualAddr(opnd->AsAddrOpnd()->m_address);
 }
 
 void
@@ -2538,6 +2531,7 @@ IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, Func *func, bool do
     indirOpnd->m_type = type;
     indirOpnd->SetIsJITOptimizedReg(false);
 
+    indirOpnd->m_conversionAllowed = false;
 
     indirOpnd->m_kind = OpndKindIndir;
 
@@ -2596,6 +2590,7 @@ IndirOpnd::CopyInternal(Func *func)
     newOpnd->canStoreTemp = this->canStoreTemp;
     newOpnd->SetOffset(m_offset, m_dontEncode);
     newOpnd->SetIsJITOptimizedReg(this->GetIsJITOptimizedReg());
+    newOpnd->m_conversionAllowed = this->m_conversionAllowed;
 
 #if DBG_DUMP
     newOpnd->m_addrKind = m_addrKind;
@@ -3250,7 +3245,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                             Output::Print(_u("%s"), func->GetInProcThreadContext()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
                         }
                         Output::Print(_u("(%u)"), propertyOpId);
-                        
+
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
                             Output::Print(_u("~"));
@@ -3320,22 +3315,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             {
                 Output::Print(_u("[isTempLastUse]"));
             }
-            StackSym *sym = regOpnd->GetStackSym();
-            if (sym && func)
-            {
-                if (sym == func->GetScriptContextSym())
-                {
-                    Output::Print(_u("[ScriptContext]"));
-                }
-                else if (sym == func->GetFuncObjSym())
-                {
-                    Output::Print(_u("[FuncObj]"));
-                }
-                else if (sym == func->GetFunctionBodySym())
-                {
-                    Output::Print(_u("[FunctionBody]"));
-                }
-            }
+
             if(regOpnd->IsArrayRegOpnd())
             {
                 if(dumpValueType)
@@ -3645,13 +3625,13 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                 }
                 else
                 {
-                    switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
+                    switch (Js::VarTo<Js::RecyclableObject>(address)->GetTypeId())
                     {
                     case Js::TypeIds_Boolean:
-                        WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
+                        WriteToBuffer(&buffer, &n, Js::VarTo<Js::JavascriptBoolean>(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
                         break;
                     case Js::TypeIds_String:
-                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
+                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::VarTo<Js::JavascriptString>(address)->GetSz());
                         break;
                     case Js::TypeIds_Number:
                         WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
@@ -3848,9 +3828,9 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
                 Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
-                if (!func->IsOOPJIT() && Js::JavascriptFunction::Is(dynamicObject))
+                if (!func->IsOOPJIT() && Js::VarIs<Js::JavascriptFunction>(dynamicObject))
                 {
-                    DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
+                    DumpFunctionInfo(&buffer, &n, Js::VarTo<Js::JavascriptFunction>((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
                         printToConsole, _u("FunctionObjectTypeRef"));
                 }
                 else

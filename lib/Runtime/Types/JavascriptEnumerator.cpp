@@ -11,22 +11,8 @@ namespace Js
         Assert(scriptContext != NULL);
     }
 
-    bool JavascriptEnumerator::Is(Var aValue)
+    template <> bool VarIsImpl<JavascriptEnumerator>(RecyclableObject* obj)
     {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Enumerator;
-    }
-
-    JavascriptEnumerator* JavascriptEnumerator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptEnumerator'");
-
-        return static_cast<JavascriptEnumerator *>(aValue);
-    }
-
-    JavascriptEnumerator* JavascriptEnumerator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptEnumerator'");
-
-        return static_cast<JavascriptEnumerator *>(aValue);
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Enumerator;
     }
 }

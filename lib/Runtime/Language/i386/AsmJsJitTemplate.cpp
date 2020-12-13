@@ -546,16 +546,25 @@ namespace Js
         AsmJsSIMDValue* simdArg;
 
         // setup stack memory
-        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(func);
+        AsmJsScriptFunction* asmJsFunc = VarTo<AsmJsScriptFunction>(func);
         Var moduleEnv = asmJsFunc->GetModuleEnvironment();
         JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;
         BYTE* arrayPtr = nullptr;
-        if (JavascriptArrayBuffer::Is(arrayBuffer))
+
+        if (VarIsCorrectType<ArrayBuffer>(arrayBuffer))
         {
             arrayPtr = arrayBuffer->GetBuffer();
             arraySize = arrayBuffer->GetByteLength();
         }
+        else
+        {
+            // Null should be the only way to fail VarIsCorrectType
+            // TODO: just check for null above
+            Assert(arrayBuffer == nullptr);
+            arrayBuffer = nullptr;
+        }
+
         Var* m_localSlots;
         int* m_localIntSlots;
         double* m_localDoubleSlots;
@@ -1349,7 +1358,7 @@ namespace Js
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;
             leftOffset -= templateData->GetBaseOffSet();
-            if (!isSrc2Const) 
+            if (!isSrc2Const)
             {
                 rightOffset -= templateData->GetBaseOffSet();
             }
@@ -1375,11 +1384,11 @@ namespace Js
                 size += CMP::EncodeInstruction<int32>( buffer, InstrParamsRegAddr( reg1, RegEBP, rightOffset ) );
                 break;
             case 2:
-                if (isSrc2Const) 
+                if (isSrc2Const)
                 {
                     size += CMP::EncodeInstruction<int32>(buffer, InstrParamsAddrImm<int32>(RegEBP, leftOffset, rightOffset));
                 }
-                else 
+                else
                 {
                     size += CMP::EncodeInstruction<int32>(buffer, InstrParamsRegAddr(reg2, RegEBP, leftOffset));
                 }

@@ -56,7 +56,19 @@
 </test>
 <test>
   <default>
+    <files>binaryArithmeticTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
     <files>int64x2Tests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>buildExtractTests.js</files>
     <compile-flags> -wasm -wasmsimd</compile-flags>
   </default>
 </test>

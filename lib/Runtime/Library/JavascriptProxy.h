@@ -50,10 +50,6 @@ namespace Js
 
         JavascriptProxy(DynamicType * type);
         JavascriptProxy(DynamicType * type, ScriptContext * scriptContext, RecyclableObject* target, RecyclableObject* handler);
-        static BOOL Is(_In_ Var obj);
-        static BOOL Is(_In_ RecyclableObject* obj);
-        static JavascriptProxy* FromVar(Var obj) { AssertOrFailFast(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
-        static JavascriptProxy* UnsafeFromVar(Var obj) { Assert(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
 
         // before recursively calling something on 'target' use this helper in case there is nesting of proxies.
         // the proxies could be deep nested and cause SO when processed recursively.
@@ -173,7 +169,7 @@ namespace Js
             for (uint32 i = 0; i < len; i++)
             {
                 if (!JavascriptOperators::GetItem(trapResultArray, i, &element, scriptContext) || // missing
-                    !(JavascriptString::Is(element) || JavascriptSymbol::Is(element)))  // neither String nor Symbol
+                    !(VarIs<JavascriptString>(element) || VarIs<JavascriptSymbol>(element)))  // neither String nor Symbol
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
                 }
@@ -239,4 +235,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptProxy>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
+    }
 }

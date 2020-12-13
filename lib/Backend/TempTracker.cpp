@@ -79,9 +79,19 @@ TempTrackerBase::~TempTrackerBase()
 void
 TempTrackerBase::MergeData(TempTrackerBase * fromData, bool deleteData)
 {
-    nonTempSyms.Or(&fromData->nonTempSyms);
-    tempTransferredSyms.Or(&fromData->tempTransferredSyms);
-    MergeDependencies(tempTransferDependencies, fromData->tempTransferDependencies, deleteData);
+    this->nonTempSyms.Or(&fromData->nonTempSyms);
+    this->tempTransferredSyms.Or(&fromData->tempTransferredSyms);
+    this->MergeDependencies(this->tempTransferDependencies, fromData->tempTransferDependencies, deleteData);
+    if (this->tempTransferDependencies)
+    {
+        FOREACH_HASHTABLE_ENTRY(BVSparse<JitArenaAllocator> *, bucket, this->tempTransferDependencies)
+        {
+            if (bucket.element->Test(&this->nonTempSyms))
+            {
+                this->nonTempSyms.Set(bucket.value);
+            }
+        } NEXT_HASHTABLE_ENTRY;
+    }
 }
 
 void
@@ -278,6 +288,16 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
 #endif
     }
 };
+
+template <typename T>
+void
+TempTracker<T>::DisallowMarkTempAcrossYield(BVSparse<JitArenaAllocator>* bytecodeUpwardExposed)
+{
+    if (bytecodeUpwardExposed != nullptr)
+    {
+        this->nonTempSyms.Or(bytecodeUpwardExposed);
+    }
+}
 
 template <typename T>
 void
@@ -1066,7 +1086,15 @@ ObjectTemp::IsTempProducing(IR::Instr * instr)
     Js::OpCode opcode = instr->m_opcode;
     if (OpCodeAttr::TempObjectProducing(opcode))
     {
-        return true;
+        if (instr->m_opcode == Js::OpCode::CallDirect)
+        {
+            IR::HelperCallOpnd* helper = instr->GetSrc1()->AsHelperCallOpnd();
+            return HelperMethodAttributes::TempObjectProducing(helper->m_fnHelper);
+        }
+        else
+        {
+            return true;
+        }
     }
 
     // TODO: Process NewScObject and CallI with isCtorCall when the ctor is fixed
@@ -1403,7 +1431,10 @@ ObjectTempVerify::SetDstIsTemp(bool dstIsTemp, bool dstIsTempTransferred, IR::In
                     Output::Flush();
                 }
 #endif
-                Assert(!instr->dstIsTempObject);
+                // In a generator function, we don't allow marking temp across yields. Since this assert makes
+                // sure that all instructions whose destinations produce temps are marked, it is not
+                // applicable for generators
+                Assert(instr->m_func->GetJITFunctionBody()->IsCoroutine() || !instr->dstIsTempObject);
             }
         }
     }

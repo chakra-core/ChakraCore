@@ -5,7 +5,7 @@
 #pragma once
 
 #ifdef ENABLE_TEST_HOOKS
-
+#include <oaidl.h>
 interface ICustomConfigFlags;
 
 #if defined(_WIN32) || defined(_MSC_VER)
@@ -30,6 +30,14 @@ struct TestHooks
     SetAssertToConsoleFlagPtr pfSetAssertToConsoleFlag;
     SetEnableCheckMemoryLeakOutputPtr pfSetEnableCheckMemoryLeakOutput;
     LogicalStringCompareImpl pfLogicalCompareStringImpl;
+
+    // Javasscript Bigint hooks
+    typedef digit_t(TESTHOOK_CALL *AddDigit)(digit_t a, digit_t b, digit_t* carry);
+    typedef digit_t(TESTHOOK_CALL *SubDigit)(digit_t a, digit_t b, digit_t* borrow);
+    typedef digit_t(TESTHOOK_CALL *MulDigit)(digit_t a, digit_t b, digit_t* high);
+    AddDigit pfAddDigit;
+    SubDigit pfSubDigit;
+    MulDigit pfMulDigit;
 
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAG_String(name) \
@@ -60,13 +68,6 @@ struct TestHooks
 #undef FLAG_NumberPairSet
 #undef FLAG_NumberTrioSet
 #undef FLAG_NumberRange
-
-#if ENABLE_NATIVE_CODEGEN
-#ifdef _WIN32
-    typedef void(TESTHOOK_CALL * ConnectJITServer)(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
-    ConnectJITServer pfnConnectJITServer;
-#endif
-#endif
 
     NotifyUnhandledExceptionPtr pfnNotifyUnhandledException;
 };

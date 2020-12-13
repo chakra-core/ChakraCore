@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": "Array []",
         "length": "number 10",
@@ -58,6 +59,7 @@
       "x": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": "Array []",
         "length": "number 10",

@@ -139,6 +139,14 @@ var tests = [
     }
   },
   {
+    name: "Using RegExp as newTarget should not assert",
+    body: function() {
+      var v0 = function() { this.a; };
+      var v1 = class extends v0 { constructor() { super(); } };
+      Reflect.construct(v1, [], RegExp);
+    }
+  },
+  {
     name: "getPrototypeOf Should not be called when set as prototype",
     body: function () {
       var p = new Proxy({}, { getPrototypeOf: function() {
@@ -153,6 +161,16 @@ var tests = [
         Object.setPrototypeOf(obj1, p); // This should not call the getPrototypeOf
 
         var obj2 = {__proto__ : p}; // This should not call the getPrototypeOf
+    }
+  },
+  {
+    name: "Cross-site activation object",
+    body: function () {
+        var tests = [0, 0];  
+        tests.forEach(function() {
+            var eval = WScript.LoadScript(0, "samethread").eval;
+            eval(0);
+        });
     }
   },
   {
@@ -189,6 +207,114 @@ var tests = [
         });
       }
   },
+  {
+    name: "destructuring : testing recursion",
+    body: function () {
+      try {
+        eval(`
+            var ${'['.repeat(6631)}
+          `);
+          assert.fail();
+        }
+        catch (e) {
+        }
+        
+        try {
+            eval(`
+               var {${'a:{'.repeat(6631)}
+            `);
+            assert.fail();
+        }
+        catch (e) {
+        }
+      }
+  },
+  {
+    name: "CrossSite issue while array concat OS: 18874745",
+    body: function () {
+          function test0() {
+            var IntArr0 = Array();
+            var sc0Code = `
+              Object.defineProperty(Array, Symbol.species, { value : function() {
+                      return IntArr0;
+                      }
+                  }
+              );
+            test = function(a, list) {
+                return [a].concat(list);
+            }
+            function out() {
+              test({}, [1]);
+            }
+            `;
+            var sc0 = WScript.LoadScript(sc0Code, 'samethread');
+            sc0.IntArr0 = IntArr0;
+            sc0.out();
+          }
+         test0();
+      }
+  },
+  {
+    name: "Init box javascript array : OS : 20517662",
+    body: function () {
+      var obj = {};
+      obj[0] = 11;
+      obj[1] = {};
+      obj[17] = 222;
+      obj[35] = 333; // This is will increase the size past the inline segment
+      
+      Object.assign({}, obj); // The InitBoxedInlineSegments will be called due to this call.
+    }
+  },
+  {
+    name: "calling promise's function as constructor should not be allowed",
+    body: function () {
+        var var_0 = new Promise(function () {});                                           
+        var var_1 = function () {};                                                        
+                                                                                          
+        var_0.then = function (a, b) {                                                     
+          var_2 = b;                                                                       
+        };                                                                                 
+        var_3 = Promise.prototype.finally.call(var_0, var_1);                              
+        assert.throws(() => { new var_2([]).var_3(); },TypeError);
+      }
+  },
+  {
+    name: "issue : 6174 : calling ToNumber for the fill value for typedarray.prototype.fill",
+    body: function () {
+        let arr1 = new Uint32Array(5);
+        let valueOfCalled = false;
+        let p1 = new Proxy([], {
+            get: function(oTarget, sKey) {
+                if (sKey.toString() == 'valueOf') {
+                    valueOfCalled = true;
+                }
+                return Reflect.get(oTarget, sKey);
+            }
+        });
+        Uint32Array.prototype.fill.call(arr1, p1, 5, 1);
+        assert.isTrue(valueOfCalled);
+    }
+  },
+  {
+    name: "class name should not change if calling multiple times",
+    body: function () {
+        function getClass() {
+          class A {
+            constructor() {
+
+            }
+          };
+          return A;
+        }
+        let f1 = getClass();
+        let f2 = getClass();
+        let f3 = getClass();
+        assert.areEqual("A", f1.name);
+        assert.areEqual("A", f2.name);
+        assert.areEqual("A", f3.name);
+      }
+  }
 
 ];
 

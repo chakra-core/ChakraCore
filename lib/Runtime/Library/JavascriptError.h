@@ -33,26 +33,11 @@ namespace Js
             m_errorType = kjstCustomError;
         }
 
-        static bool Is(Var aValue);
         static bool IsRemoteError(Var aValue);
 
         ErrorTypeEnum GetErrorType() { return m_errorType; }
 
         virtual bool HasDebugInfo();
-
-        static JavascriptError* FromVar(Var aValue)
-        {
-            AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptError'");
-
-            return static_cast<JavascriptError *>(RecyclableObject::FromVar(aValue));
-        }
-
-        static JavascriptError* UnsafeFromVar(Var aValue)
-        {
-            AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptError'");
-
-            return static_cast<JavascriptError *>(RecyclableObject::UnsafeFromVar(aValue));
-        }
 
         void SetNotEnumerable(PropertyId propertyId);
 
@@ -157,6 +142,7 @@ namespace Js
         static DWORD GetAdjustedResourceStringHr(DWORD hr, bool isFormatString);
 
         static int32 GetErrorNumberFromResourceID(int32 resourceId);
+        static bool ShouldTypeofErrorBeReThrown(Var errorObject);
 
         virtual JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);
@@ -191,4 +177,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptError>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Error;
+    }
 }

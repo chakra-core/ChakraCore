@@ -427,7 +427,14 @@ bool Debugger::DumpFunctionPosition(JsValueRef functionPosition)
 
 bool Debugger::StartDebugging(JsRuntimeHandle runtime)
 {
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsDiagStartDebugging(runtime, Debugger::DebugEventHandler, this));
+    JsErrorCode errorCode = ChakraRTInterface::JsDiagStartDebugging(runtime, Debugger::DebugEventHandler, this);
+
+    if (errorCode == JsErrorCode::JsErrorDiagAlreadyInDebugMode)
+    {
+        return false;
+    }
+
+    IfJsrtErrorFailLogAndRetFalse(errorCode);
 
     this->m_isDetached = false;
 
@@ -437,7 +444,15 @@ bool Debugger::StartDebugging(JsRuntimeHandle runtime)
 bool Debugger::StopDebugging(JsRuntimeHandle runtime)
 {
     void* callbackState = nullptr;
-    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsDiagStopDebugging(runtime, &callbackState));
+
+    JsErrorCode errorCode = ChakraRTInterface::JsDiagStopDebugging(runtime, &callbackState);
+
+    if (errorCode == JsErrorCode::JsErrorDiagNotInDebugMode)
+    {
+        return false;
+    }
+
+    IfJsrtErrorFailLogAndRetFalse(errorCode);
 
     Assert(callbackState == this);
 

@@ -17,6 +17,7 @@ function testLoadOpsForType(funcname, module, laneValues, expectedResults, start
     const instance = new WebAssembly.Instance(module, { "dummy" : { "memory" : memObj } }).exports;
 
     let intArray = new Int32Array (memObj.buffer);
+    let int8Array = new Int8Array (memObj.buffer);
 
     let forEachTestPosition =  (action)  => {
 
@@ -29,7 +30,7 @@ function testLoadOpsForType(funcname, module, laneValues, expectedResults, start
     
     forEachTestPosition ((pos, i) => {intArray[pos + i]  = laneValues[i];});
     instance[funcname](0);
-    forEachTestPosition((pos, i) => {assertEquals(intArray[pos + i], expectedResults[i]);});
+    forEachTestPosition((pos, i) => {assertEquals(expectedResults[i], intArray[pos + i]);});
 
     const MEM_SIZE_IN_BYTES = 1024 * 64;
 
@@ -60,12 +61,19 @@ function testLoadOpsForType(funcname, module, laneValues, expectedResults, start
         }
     }
     
-    check(0, "instance.m128_load4", MEM_SIZE_IN_BYTES - 32);
-    check(0, "instance.m128_load4", MEM_SIZE_IN_BYTES - 16);
-    check("Access index is out of range", "instance.m128_load4", MEM_SIZE_IN_BYTES - 8);
-    check("Access index is out of range", "instance.m128_load4", MEM_SIZE_IN_BYTES - 4);
-    check("Access index is out of range", "instance.m128_load4_offset", 0xFFFFFFFC);
-    check("Access index is out of range", "instance.m128_load4_offset", -1);
+    check(0, "instance.v128_load4", MEM_SIZE_IN_BYTES - 32);
+    check(0, "instance.v128_load4", MEM_SIZE_IN_BYTES - 16);
+    check("Access index is out of range", "instance.v128_load4", MEM_SIZE_IN_BYTES - 8);
+    check("Access index is out of range", "instance.v128_load4", MEM_SIZE_IN_BYTES - 4);
+    check("Access index is out of range", "instance.v128_load4_offset", 0xFFFFFFFC);
+    check("Access index is out of range", "instance.v128_load4_offset", -1);
+    // Verify read at "odd" index
+    int8Array[0] = 1;
+    int8Array[1] = 0;
+    int8Array[2] = 0;
+    int8Array[3] = 0;
+    int8Array[4] = 0;
+    check(0, "instance.v128_load4", 1);
 
 }
 
@@ -76,7 +84,7 @@ const laneValues = [0xAAAAAAAA, 0xFFFFFFFF, 0X80000000, 0x90A762A6];
 const expectedResults = [16, 32, 1, 14]; //i32.popcnt
 const startPositions = [0, 5, 11, 17];
 
-testLoadOpsForType("m128_load_test", module, laneValues, expectedResults,startPositions);
+testLoadOpsForType("v128_load_test", module, laneValues, expectedResults, startPositions);
 
 if (passed) {
     print("Passed");

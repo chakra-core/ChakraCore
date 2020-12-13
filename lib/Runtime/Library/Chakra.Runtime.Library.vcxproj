@@ -46,6 +46,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DelayFreeArrayBufferHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonExternalApiImpl.cpp" />
@@ -53,6 +54,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)DataView.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EngineInterfaceObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFromSyncIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGeneratorFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptGenerator.cpp" />
@@ -148,6 +153,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalWrapperObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DetachedStateBase.h" />
@@ -157,6 +165,9 @@
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="AtomicsOperations.h" />
+    <ClInclude Include="CustomExternalWrapperObject.h" />
+    <ClInclude Include="JavascriptBigInt.h" />
+    <ClInclude Include="JavascriptBigIntObject.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
@@ -173,6 +184,7 @@
     <ClInclude Include="JSONStringifier.h" />
     <ClInclude Include="LazyJSONString.h" />
     <ClInclude Include="SharedArrayBuffer.h" />
+    <ClInclude Include="DelayFreeArrayBufferHelper.h" />
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />
@@ -189,6 +201,10 @@
     <ClInclude Include="JavascriptArrayIndexStaticEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
     <ClInclude Include="JavascriptArrayIndexSnapshotEnumerator.h" />
+    <ClInclude Include="JavascriptAsyncFromSyncIterator.h" />
+    <ClInclude Include="JavascriptAsyncFunction.h" />
+    <ClInclude Include="JavascriptAsyncGenerator.h" />
+    <ClInclude Include="JavascriptAsyncGeneratorFunction.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
     <ClInclude Include="JavascriptBuiltInFunctions.h" />
     <ClInclude Include="JavascriptExternalFunction.h" />
@@ -307,7 +323,6 @@
     <None Include="ConcatString.inl" />
     <None Include="SparseArraySegment.inl" />
     <None Include="JavascriptArray.inl" />
-    <None Include="JavascriptBoolean.inl" />
     <None Include="JavascriptLibrary.inl" />
     <None Include="JavascriptNumber.inl" />
     <None Include="JavascriptString.inl" />

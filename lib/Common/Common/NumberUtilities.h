@@ -4,6 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+enum class LikelyNumberType
+{
+    Double,
+    Int,
+    BigInt,
+};
+
+
 namespace Js
 {
     class NumberConstants : public NumberConstantsBase
@@ -56,6 +64,7 @@ namespace Js
         static const double     MAX_VALUE;
         static const double     MIN_VALUE;
         static const double     NaN;
+        static const double     NegativeNaN;
         static const double     NEGATIVE_INFINITY;
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
@@ -91,6 +100,7 @@ namespace Js
 
         static bool IsFinite(double value);
         static bool IsNan(double value);
+        static bool IsNegative(double value);
         static bool IsFloat32NegZero(float value);
         static bool IsSpecial(double value, uint64 nSpecial);
         static uint64 ToSpecial(double value);
@@ -217,7 +227,7 @@ namespace Js
 
         // Implemented in lib\parser\common.  Should move to lib\common
         template<typename EncodedChar>
-        static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, bool& likelyInt);
+        static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, LikelyNumberType& likelyType, bool isESBigIntEnabled = false, bool isNumericSeparatorEnabled = false);
 
         static BOOL FDblToStr(double dbl, __out_ecount(nDstBufSize) char16 *psz, int nDstBufSize);
         static int FDblToStr(double dbl, NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) char16 *pchDst, int cchDst);
@@ -240,11 +250,11 @@ namespace Js
         static BOOL FDblIsInt32(double dbl, int32 *plw);
 
         template<typename EncodedChar>
-        static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim);
+        static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled = false);
         template <typename EncodedChar>
-        static double DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim);
+        static double DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled = false);
         template<typename EncodedChar>
-        static double DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim);
+        static double DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled = false);
         template<typename EncodedChar>
         static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, Js::ScriptContext *const scriptContext);
 

@@ -159,6 +159,8 @@ MACRO(VLDR,     Reg2,      0,              0,  LEGAL_VLOAD,     INSTR_TYPE(Forms
 MACRO(VLDR32,   Reg2,      0,              0,  LEGAL_VLOAD,     INSTR_TYPE(Forms_VLDR32), DL__C) //single precision float load
 MACRO(VMOV,     Reg2,      0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VMOV),   DM__C)
 MACRO(VMOVARMVFP, Reg2,    0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VMOVARMVFP),   DM__C)
+MACRO(VMOVF64R32L, Reg2,   0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VMOVF64R32L), DM__C) // transfer bits between integral register and lower 4 bytes of double register
+MACRO(VMOVF64R32U, Reg2,   0,              0,  LEGAL_REG2,      INSTR_TYPE(Forms_VMOVF64R32U), DM__C) // transfer bits between integral register and upper 4 bytes of double register
 MACRO(VMRS,     Empty,     OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMRS),   D___C)
 MACRO(VMRSR,    Reg1,      OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMRSR),   D___C)
 MACRO(VMSR,     Reg1,      OpSideEffect,   0,  LEGAL_NONE,      INSTR_TYPE(Forms_VMSR),   D___C)

@@ -84,10 +84,10 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "F5_1": "function <large string>",
       "x": "number 20",
       "y": "Object {...}",
-      "t1": "number 22.2"
+      "t1": "number 22.2",
+      "F5_1": "function <large string>"
     }
   },
   {
@@ -160,6 +160,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -332,10 +333,10 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "F5_1": "function <large string>",
       "x": "number 20",
       "y": "Object {...}",
-      "t1": "number 22.2"
+      "t1": "number 22.2",
+      "F5_1": "function <large string>"
     }
   },
   {
@@ -408,6 +409,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -580,10 +582,10 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "F5_1": "function <large string>",
       "x": "number 20",
       "y": "Object {...}",
-      "t1": "number 22.2"
+      "t1": "number 22.2",
+      "F5_1": "function <large string>"
     }
   },
   {
@@ -656,6 +658,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -828,10 +831,10 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "F5_1": "function <large string>",
       "x": "number 20",
       "y": "Object {...}",
-      "t1": "number 22.2"
+      "t1": "number 22.2",
+      "F5_1": "function <large string>"
     }
   },
   {
@@ -904,6 +907,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",

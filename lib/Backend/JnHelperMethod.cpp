@@ -179,7 +179,13 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
         return ShiftAddr(context, (double(*)(double))InterlockedExchange64);
 
     case HelperMemoryBarrier:
+#ifdef _M_HYBRID_X86_ARM64
+        AssertOrFailFastMsg(false, "The usage below fails to build for CHPE, and HelperMemoryBarrier is only required "
+                                   "for WASM threads, which are currently disabled");
+        return 0;
+#else
         return ShiftAddr(context, (void(*)())MemoryBarrier);
+#endif // !_M_HYBRID_X86_ARM64
 #endif
 
     case HelperDirectMath_FloorDb:
@@ -478,6 +484,11 @@ bool IsInVariant(IR::JnHelperMethod helper)
 bool CanBeReentrant(IR::JnHelperMethod helper)
 {
     return (JnHelperMethodAttributes[helper] & AttrCanNotBeReentrant) == 0;
+}
+
+bool TempObjectProducing(IR::JnHelperMethod helper)
+{
+    return (JnHelperMethodAttributes[helper] & AttrTempObjectProducing) != 0;
 }
 
 #ifdef DBG_DUMP

@@ -81,10 +81,11 @@
       "Symbol.iterator": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "p": "Promise [...]",
       "foo": "function <large string>",
       "af1": "function <large string>",
-      "af2": "function <large string>",
-      "p": "Promise [...]"
+      "af2": "function <large string>"
     }
   },
   {

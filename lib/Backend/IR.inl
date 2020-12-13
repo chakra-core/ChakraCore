@@ -126,6 +126,34 @@ Instr::AsLabelInstr()
 
 ///----------------------------------------------------------------------------
 ///
+/// Instr::IsGeneratorBailInInstr
+///
+///----------------------------------------------------------------------------
+
+__forceinline bool
+Instr::IsGeneratorBailInInstr() const
+{
+    return this->m_opcode == Js::OpCode::GeneratorBailInLabel;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Instr::AsGeneratorBailInInstr
+///
+///     Return this as a GeneratorBailInInstr *
+///
+///----------------------------------------------------------------------------
+
+inline GeneratorBailInInstr*
+Instr::AsGeneratorBailInInstr()
+{
+    AssertMsg(this->IsGeneratorBailInInstr(), "Bad call to AsGeneratorBailInInstr()");
+
+    return reinterpret_cast<GeneratorBailInInstr*>(this);
+}
+
+///----------------------------------------------------------------------------
+///
 /// Instr::AsMultiBrInstr
 ///
 ///     Return this as a MultiBrInstr *
@@ -256,6 +284,7 @@ Instr::EndsBasicBlock() const
     return
         this->IsBranchInstr() ||
         this->IsExitInstr() ||
+        this->m_opcode == Js::OpCode::Yield ||
         this->m_opcode == Js::OpCode::Ret ||
         this->m_opcode == Js::OpCode::Throw ||
         this->m_opcode == Js::OpCode::RuntimeTypeError ||
@@ -726,6 +755,13 @@ inline BOOL
 LabelInstr::IsUnreferenced(void) const
 {
     return labelRefs.Empty() && !m_hasNonBranchRef;
+}
+
+inline BOOL
+LabelInstr::IsGeneratorEpilogueLabel(void) const
+{
+    return this->m_opcode == Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel ||
+            this->m_opcode == Js::OpCode::GeneratorEpilogueFrameNullOutLabel;
 }
 
 inline void

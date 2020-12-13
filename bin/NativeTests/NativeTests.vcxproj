@@ -48,6 +48,8 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="JavascriptBigIntTests.cpp" />
+    <ClCompile Include="BigUIntTest.cpp" />
     <ClCompile Include="CodexAssert.cpp" />
     <ClCompile Include="CodexTests.cpp" />
     <ClCompile Include="FileLoadHelpers.cpp" />

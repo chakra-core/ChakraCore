@@ -34,10 +34,10 @@
         "a14": {
           "#__proto__": "function <large string>",
           "prototype": "Object {...}",
+          "length": "number 0",
           "name": "string func",
           "caller": "object null",
-          "arguments": "object null",
-          "length": "number 0"
+          "arguments": "object null"
         },
         "a15": {
           "#__proto__": "Array []",
@@ -61,7 +61,7 @@
           "#__proto__": "Object {...}"
         },
         "a19": {
-          "#__proto__": "RegExp ",
+          "#__proto__": "Object {...}",
           "lastIndex": "number 0",
           "global": "boolean false",
           "multiline": "boolean false",
@@ -69,16 +69,17 @@
           "source": "string Hello World!",
           "options": "string ",
           "unicode": "boolean false",
+          "dotAll": "boolean false",
           "sticky": "boolean false"
         },
         "a20": {
-          "#__proto__": "Error ",
+          "#__proto__": "Object {...}",
           "description": "string Hello World!",
           "message": "string Hello World!",
           "stack": "string <large string>"
         },
         "a21": {
-          "#__proto__": "Error ",
+          "#__proto__": "Object {...}",
           "message": "string Hello World!",
           "stack": "string <large string>"
         },

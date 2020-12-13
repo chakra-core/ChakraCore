@@ -19,31 +19,19 @@ namespace Js
     protected:
         BoundFunction(DynamicType * type);
         BoundFunction(Arguments args, DynamicType * type);
-        BoundFunction(RecyclableObject* targetFunction, Var boundThis, Var* args, uint argsCount, DynamicType *type);
+
     public:
         static BoundFunction* New(ScriptContext* scriptContext, ArgumentReader args);
 
-        static bool Is(Var func){ return JavascriptFunction::Is(func) && JavascriptFunction::UnsafeFromVar(func)->IsBoundFunction(); }
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         virtual JavascriptString* GetDisplayNameImpl() const override;
-        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
-        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
-        virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
 
         _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
 
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override;
-        virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
-        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
-
-        virtual BOOL IsWritable(PropertyId propertyId) override;
-        virtual BOOL IsConfigurable(PropertyId propertyId) override;
-        virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache = NULL) override;
         virtual inline BOOL IsConstructor() const override;
 
@@ -74,4 +62,9 @@ namespace Js
         Field(uint)                count;
         Field(Field(Var)*)         boundArgs;
     };
+
+    template <> inline bool VarIsImpl<BoundFunction>(RecyclableObject* obj)
+    {
+        return VarIs<JavascriptFunction>(obj) && UnsafeVarTo<JavascriptFunction>(obj)->IsBoundFunction();
+    }
 } // namespace Js

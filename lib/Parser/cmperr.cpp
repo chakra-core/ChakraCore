@@ -4,8 +4,16 @@
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
 
-ParseExceptionObject::ParseExceptionObject(HRESULT hr) : m_hr(hr)
+ParseExceptionObject::ParseExceptionObject(HRESULT hr, LPCWSTR stringOneIn, LPCWSTR stringTwoIn)
 {
+    m_hr = hr;
+    stringOne = SysAllocString(stringOneIn);
+    stringTwo = SysAllocString(stringTwoIn);
     Assert(FAILED(hr));
 }
 
+ParseExceptionObject::~ParseExceptionObject()
+{
+    SysFreeString(stringOne);
+    SysFreeString(stringTwo);
+}

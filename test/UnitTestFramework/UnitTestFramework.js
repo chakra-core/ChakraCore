@@ -173,7 +173,7 @@ var testRunner = function testRunner() {
                 _verbose = options.verbose;
             }
 
-            const onlyFlag = WScript.Arguments.filter((arg) => arg.substring(0, 6) === "-only:")
+            const onlyFlag = WScript.Arguments != undefined && WScript.Arguments.filter((arg) => arg.substring(0, 6) === "-only:")
             let only = undefined;
             if (onlyFlag.length === 1) {
                 only = onlyFlag[0].substring(6).split(",");
@@ -413,7 +413,7 @@ var assert = function assert() {
         }
         return baseMessage;
     }
-    
+
     return {
         strictEqual: function strictEqual(expected, actual, message) {
             validate(expected === actual, "strictEqual", message);
@@ -520,7 +520,7 @@ var assert = function assert() {
             if (exception === noException) {
                 return;
             }
-            
+
             var fileAndLineInfo = helpers.getFileAndLineInfo();
             throwMessage(addMessage("assert.doesNotThrow failed at " + fileAndLineInfo + ":\n  expected: <no exception>,\n    actual: " + exception + "\n   ", message));
         },

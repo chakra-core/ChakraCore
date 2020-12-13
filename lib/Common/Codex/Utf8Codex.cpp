@@ -69,11 +69,6 @@ namespace utf8
         return ((0x5B >> (((prefix ^ 0xF0) >> 3) & 0x1E)) & 0x03) + 1;
     }
 
-    const char16 WCH_UTF16_HIGH_FIRST  =  char16(0xd800);
-    const char16 WCH_UTF16_HIGH_LAST   =  char16(0xdbff);
-    const char16 WCH_UTF16_LOW_FIRST   =  char16(0xdc00);
-    const char16 WCH_UTF16_LOW_LAST    =  char16(0xdfff);
-
     char16 GetUnknownCharacter(DecodeOptions options = doDefault)
     {
         if ((options & doThrowOnInvalidWCHARs) != 0)
@@ -83,24 +78,9 @@ namespace utf8
         return char16(UNICODE_UNKNOWN_CHAR_MARK);
     }
 
-    inline BOOL InRange(const char16 ch, const char16 chMin, const char16 chMax)
-    {
-        return (unsigned)(ch - chMin) <= (unsigned)(chMax - chMin);
-    }
-
     BOOL IsValidWideChar(char16 ch)
     {
         return (ch < 0xfdd0) || ((ch > 0xfdef) && (ch <= 0xffef)) || ((ch >= 0xfff9) && (ch <= 0xfffd));
-    }
-
-    inline BOOL IsHighSurrogateChar(char16 ch)
-    {
-        return InRange( ch, WCH_UTF16_HIGH_FIRST, WCH_UTF16_HIGH_LAST );
-    }
-
-    inline BOOL IsLowSurrogateChar(char16 ch)
-    {
-        return InRange( ch, WCH_UTF16_LOW_FIRST, WCH_UTF16_LOW_LAST );
     }
 
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))
@@ -432,12 +412,17 @@ LSlowPath:
         return true;
     }
 
-    template <bool cesu8Encoding, bool countBytesOnly>
-    __range(0, cchIn * 3)
-    size_t EncodeIntoImpl(_When_(!countBytesOnly, __out_ecount(cchIn * 3)) LPUTF8 buffer, __in_ecount(cchIn) const char16 *source, charcount_t cchIn, const void* bufferEnd)
+    template <Utf8EncodingKind encoding, bool countBytesOnly = false>
+    __range(0, cbDest)
+    size_t EncodeIntoImpl(
+        _When_(!countBytesOnly, _Out_writes_(cbDest)) utf8char_t *destBuffer,
+        __range(0, cchSource * 3) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource)
     {
-        charcount_t cch = cchIn; // SAL analysis gets confused by EncodeTrueUtf8's dest buffer requirement unless we alias cchIn with a local
-        LPUTF8 dest = buffer;
+        charcount_t cch = cchSource; // SAL analysis gets confused by EncodeTrueUtf8's dest buffer requirement unless we alias cchSource with a local
+        LPUTF8 dest = destBuffer;
+        utf8char_t *bufferEnd = &destBuffer[cbDest];
 
         CodexAssertOrFailFast(dest <= bufferEnd);
 
@@ -459,11 +444,10 @@ LFastPath:
             dest += 4;
             source += 4;
             cch -= 4;
-
         }
 
 LSlowPath:
-        if (cesu8Encoding)
+        if (encoding == Utf8EncodingKind::Cesu8)
         {
             while (cch-- > 0)
             {
@@ -484,42 +468,71 @@ LSlowPath:
             }
         }
 
-        return dest - buffer;
+        return dest - destBuffer;
     }
 
-    __range(0, cch * 3)
-        size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    template <Utf8EncodingKind encoding>
+    __range(0, cbDest)
+    size_t EncodeInto(
+        _Out_writes_(cbDest) utf8char_t *dest,
+        __range(0, cchSource * 3) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource)
     {
-        return EncodeIntoImpl<true, false>(buffer, source, cch, &buffer[cch*3]);
+        return EncodeIntoImpl<encoding>(dest, cbDest, source, cchSource);
     }
 
-    __range(0, cch * 3)
-    size_t EncodeIntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    template <Utf8EncodingKind encoding>
+    __range(0, cbDest)
+    size_t EncodeIntoAndNullTerminate(
+        _Out_writes_z_(cbDest) utf8char_t *dest,
+        __range(1, cchSource * 3 + 1) size_t cbDest, // must be at least large enough to write null terminator
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource)
     {
-        size_t result = EncodeInto(buffer, source, cch);
-        buffer[result] = 0;
+        size_t destWriteMaxBytes = cbDest - 1; // leave room for null terminator
+        size_t result = EncodeIntoImpl<encoding>(dest, destWriteMaxBytes, source, cchSource);
+        dest[result] = 0;
         return result;
     }
 
-    __range(0, cch * 3)
-        size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
-    {
-        size_t result = EncodeIntoImpl<false, false>(buffer, source, cch, &buffer[3 * cch]);
-        buffer[result] = 0;
-        return result;
-    }
+    template
+    __range(0, cbDest)
+    size_t EncodeInto<Utf8EncodingKind::Cesu8>(
+        _Out_writes_(cbDest) utf8char_t *dest,
+        __range(0, cchSource * 3) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource);
 
-    __range(0, cch * 3)
-        size_t EncodeTrueUtf8IntoBoundsChecked(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch, const void * bufferEnd)
-    {
-        size_t result = EncodeIntoImpl<false, false>(buffer, source, cch, bufferEnd);
-        return result;
-    }
+    template
+    __range(0, cbDest)
+    size_t EncodeInto<Utf8EncodingKind::TrueUtf8>(
+        _Out_writes_(cbDest) utf8char_t *dest,
+        __range(0, cchSource * 3) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource);
 
+    template
+    __range(0, cbDest)
+    size_t EncodeIntoAndNullTerminate<Utf8EncodingKind::Cesu8>(
+        _Out_writes_z_(cbDest) utf8char_t *dest,
+        __range(1, cchSource * 3 + 1) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource);
+
+    template
+    __range(0, cbDest)
+    size_t EncodeIntoAndNullTerminate<Utf8EncodingKind::TrueUtf8>(
+        _Out_writes_z_(cbDest) utf8char_t *dest,
+        __range(1, cchSource * 3 + 1) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource);
+
+    // Since we are not actually encoding, the return value is bounded on cch
     __range(0, cch * 3)
-        size_t CountTrueUtf8(__in_ecount(cch) const char16 *source, charcount_t cch)
+    size_t CountTrueUtf8(__in_ecount(cch) const char16 *source, charcount_t cch)
     {
-        return EncodeIntoImpl<false, true>(nullptr, source, cch, nullptr);
+        return EncodeIntoImpl<Utf8EncodingKind::TrueUtf8, true /*count only*/>(nullptr, 0, source, cch);
     }
 
     // Convert the character index into a byte index.

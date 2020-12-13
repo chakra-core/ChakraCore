@@ -1,0 +1,2 @@
+SyntaxError: The statement of a 'with' statement cannot be a labelled function.
+	at code (LabelFuncAsWithStmt.js:7:1)

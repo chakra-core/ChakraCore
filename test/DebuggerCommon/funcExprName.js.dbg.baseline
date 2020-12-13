@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -23,12 +24,14 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -59,12 +62,14 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -79,12 +84,14 @@
       "a": "boolean false"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -107,12 +114,14 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     },
@@ -135,6 +144,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "outer": "function <large string>"
     }

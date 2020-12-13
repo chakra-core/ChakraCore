@@ -789,10 +789,38 @@ static const AssemblyStep Steps_FLT_FMSR_sr [] =
     STEP_OPCODE, STEP_DONE
 };
 
+static const AssemblyStep Steps_FLT_FMSR_d0r[] =
+{
+    STEP_DREG, 0, 23, STEP_NEXTOPN,
+    STEP_REG, 28,
+    STEP_OPCODE, STEP_DONE
+};
+
+static const AssemblyStep Steps_FLT_FMSR_d1r[] =
+{
+    STEP_DREG, 0, 23, STEP_NEXTOPN,
+    STEP_REG, 28,
+    STEP_OPCODE, STEP_DONE
+};
+
 static const AssemblyStep Steps_FLT_FMRS_rs [] =
 {
     STEP_REG, 28, STEP_NEXTOPN,
     STEP_SREG, 0, 23,
+    STEP_OPCODE, STEP_DONE
+};
+
+static const AssemblyStep Steps_FLT_FMRS_rd0[] =
+{
+    STEP_REG, 28, STEP_NEXTOPN,
+    STEP_DREG, 0, 23,
+    STEP_OPCODE, STEP_DONE
+};
+
+static const AssemblyStep Steps_FLT_FMRS_rd1[] =
+{
+    STEP_REG, 28, STEP_NEXTOPN,
+    STEP_DREG, 0, 23,
     STEP_OPCODE, STEP_DONE
 };
 

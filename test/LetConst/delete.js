@@ -13,7 +13,7 @@ if (this.x)
 WScript.Echo(this.x);
 
 Object.preventExtensions(this);
-Object.getOwnPropertyNames(this).forEach(function (p) {
+Object.getOwnPropertyNames(this).concat(Object.getOwnPropertySymbols(this)).forEach(function (p) {
     Object.defineProperty(this, p, { configurable: false });
 });
 

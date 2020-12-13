@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "DataStructures/BigInt.h"
+#include "DataStructures/BigUInt.h"
 
 namespace Js
 {
@@ -366,7 +366,7 @@ void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, int32 cch, int32 lwExp)
 
     while (++prgch < pchLim)
     {
-        if (*prgch == '.')
+        if (*prgch == '.' || *prgch == '_')
             continue;
         Assert(Js::NumberUtilities::IsDigit(*prgch));
         MulTenAdd((byte) (*prgch - '0'), &luExtra);
@@ -719,7 +719,7 @@ and re-compare.
 template <typename EncodedChar>
 static double AdjustDbl(double dbl, const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
-    Js::BigInt biDec, biDbl;
+    Js::BigUInt biDec, biDbl;
     int32 c2Dec, c2Dbl;
     int32 c5Dec, c5Dbl;
     int wAddHi, wT;
@@ -893,13 +893,13 @@ LFail:
 String to Double.
 ***************************************************************************/
 template <typename EncodedChar>
-double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar **ppchLim, bool& likelyInt )
+double Js::NumberUtilities::StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, LikelyNumberType& likelyNumberType, bool isBigIntEnabled, bool isNumericSeparatorEnabled)
 {
     uint32 lu;
     BIGNUM num;
     BIGNUM numHi;
     BIGNUM numLo;
-    double dbl;
+    double dbl = 0;
     double dblLo;
 #if DBG
     bool canUseLowPrec = false;
@@ -908,6 +908,10 @@ double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar 
     Js::NumberUtilities::LuLoDbl(dblLowPrec) = 0xFFFFFFFF;
     Assert(Js::NumberUtilities::IsNan(dblLowPrec));
 #endif //DBG
+
+    // Numeric separator characters exist in the numeric constant and should
+    // be ignored.
+    bool hasNumericSeparators = false;
 
     // For the mantissa digits. After leaving the state machine, pchMinDig
     // points to the first digit and pchLimDig points just past the last
@@ -979,8 +983,11 @@ LGetLeft:
     if (Js::NumberUtilities::IsDigit(*pch))
     {
 LGetLeftDig:
-        pchMinDig = pch;
-        for (cchDig = 1; Js::NumberUtilities::IsDigit(*++pch); cchDig++)
+        if (pchMinDig == NULL)
+        {
+            pchMinDig = pch;
+        }
+        for (cchDig++; Js::NumberUtilities::IsDigit(*++pch); cchDig++)
             ;
     }
     switch (*pch)
@@ -990,12 +997,39 @@ LGetLeftDig:
     case 'E':
     case 'e':
         goto LGetExp;
+    case 'n':
+        if (isBigIntEnabled)
+        {
+            goto LBigInt;
+        }
+        goto LGetLeftDefault;
+    case '_':
+        if (isNumericSeparatorEnabled)
+        {
+            // A numeric separator is only valid if it appears between two
+            // digits. If the preceeding or following character is not a digit,
+            // we should just fallthrough and fail. Otherwise we would have to
+            // handle cases like 1_.0 manually above.
+            // cchDig holds the count of digits in the literal. If it's >0, we
+            // can be sure the previous pch is valid.
+            if (cchDig > 0 && Js::NumberUtilities::IsDigit(*(pch - 1))
+                && Js::NumberUtilities::IsDigit(*(pch + 1)))
+            {
+                hasNumericSeparators = true;
+                pch++;
+                goto LGetLeftDig;
+            }
+        }
+        // Fallthrough
+LGetLeftDefault:
+    default:
+        likelyNumberType = LikelyNumberType::Int;
     }
     goto LEnd;
 
 LGetRight:
     Assert(*pch == '.');
-    likelyInt = false;
+    likelyNumberType = LikelyNumberType::Double;
     pch++;
     if (NULL == pchMinDig)
     {
@@ -1003,6 +1037,7 @@ LGetRight:
             lwAdj--;
         pchMinDig = pch;
     }
+LGetRightDigit:
     for( ; Js::NumberUtilities::IsDigit(*pch); pch++)
     {
         cchDig++;
@@ -1013,6 +1048,17 @@ LGetRight:
     case 'E':
     case 'e':
         goto LGetExp;
+    case '_':
+        if (isNumericSeparatorEnabled)
+        {
+            if (cchDig > 0 && Js::NumberUtilities::IsDigit(*(pch - 1)) &&
+                Js::NumberUtilities::IsDigit(*(pch + 1)))
+            {
+                hasNumericSeparators = true;
+                pch++;
+                goto LGetRightDigit;
+            }
+        }
     }
     goto LEnd;
 
@@ -1043,6 +1089,26 @@ LGetExpDigits:
         if (lwExp > 100000000)
             lwExp = 100000000;
     }
+    switch (*pch)
+    {
+    case '_':
+        if (isNumericSeparatorEnabled)
+        {
+            if (Js::NumberUtilities::IsDigit(*(pch - 1)) &&
+                Js::NumberUtilities::IsDigit(*(pch + 1)))
+            {
+                pch++;
+                goto LGetExpDigits;
+            }
+        }
+    }
+    goto LEnd;
+
+LBigInt:
+    pch++;
+    likelyNumberType = LikelyNumberType::BigInt;
+    *ppchLim = pch;
+    goto LDone;
 
 LEnd:
     *ppchLim = pch;
@@ -1056,7 +1122,8 @@ LEnd:
         pchLimDig = pch;
     Assert(pchMinDig != NULL);
     Assert(pchLimDig - pchMinDig == cchDig ||
-        pchLimDig - pchMinDig == cchDig + 1);
+        pchLimDig - pchMinDig == cchDig + 1 ||
+        (isNumericSeparatorEnabled && hasNumericSeparators));
 
     // Limit to kcchMaxSig digits.
     if (cchDig > kcchMaxSig)
@@ -1102,7 +1169,7 @@ LEnd:
             cchDig--;
             lwAdj++;
         }
-        else if (*pchLimDig != '.')
+        else if (*pchLimDig != '.' && *pchLimDig != '_')
         {
             Assert(FNzDigit(*pchLimDig));
             pchLimDig++;
@@ -1110,7 +1177,8 @@ LEnd:
         }
     }
     Assert(pchLimDig - pchMinDig == cchDig ||
-        pchLimDig - pchMinDig == cchDig + 1);
+        pchLimDig - pchMinDig == cchDig + 1 ||
+        (isNumericSeparatorEnabled && hasNumericSeparators));
 
     if (signExp < 0)
         lwExp = -lwExp;
@@ -1125,8 +1193,14 @@ LEnd:
             // Can use the ALU.
             for (lu = 0, pch = pchMinDig; pch < pchLimDig; pch++)
             {
-                if (*pch != '.')
+                switch (*pch)
                 {
+                case '.':
+                    break;
+                case '_':
+                    Assert(isNumericSeparatorEnabled && hasNumericSeparators);
+                    break;
+                default:
                     Assert(Js::NumberUtilities::IsDigit(*pch));
                     lu = lu * 10 + (*pch - '0');
                 }
@@ -1137,8 +1211,14 @@ LEnd:
         {
             for (dbl = 0, pch = pchMinDig; pch < pchLimDig; pch++)
             {
-                if (*pch != '.')
+                switch (*pch)
                 {
+                case '.':
+                    break;
+                case '_':
+                    Assert(isNumericSeparatorEnabled && hasNumericSeparators);
+                    break;
+                default:
                     Assert(Js::NumberUtilities::IsDigit(*pch));
                     dbl = dbl * 10 + (*pch - '0');
                 }
@@ -1256,8 +1336,8 @@ LDone:
     return dbl;
 }
 
-template double Js::NumberUtilities::StrToDbl<char16>( const char16 * psz, const char16 **ppchLim, bool& likelyInt );
-template double Js::NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, bool& likelyInt);
+template double Js::NumberUtilities::StrToDbl<char16>( const char16 * psz, const char16 **ppchLim, LikelyNumberType& likelyInt, bool isBigIntEnabled, bool isNumericSeparatorEnabled );
+template double Js::NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, LikelyNumberType& likelyInt, bool isBigIntEnabled, bool isNumericSeparatorEnabled );
 
 /***************************************************************************
 Uses big integer arithmetic to get the sequence of digits.
@@ -1272,9 +1352,9 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
     int wExp10, wExp2, w1, w2;
     int c2Num, c2Den, c5Num, c5Den;
     double dblT;
-    Js::BigInt biNum, biDen, biHi, biLo;
-    Js::BigInt *pbiLo;
-    Js::BigInt biT;
+    Js::BigUInt biNum, biDen, biHi, biLo;
+    Js::BigUInt *pbiLo;
+    Js::BigUInt biT;
     uint32 rglu[2];
 
     // Caller should take care of 0, negative and non-finite values.
@@ -2439,8 +2519,8 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, __out_ecount(cchDst
     {
         if (FormatDigits(rgb, pbLim, wExp10, pchDst, cchDst))
         {
-            bool likelyInt = true;
-            dblT = StrToDbl<char16>(pchDst, &pch,likelyInt);
+            LikelyNumberType likelyInt = LikelyNumberType::Int;
+            dblT = StrToDbl<char16>(pchDst, &pch, likelyInt);
             Assert(0 == *pch);
             Assert(dblT == dbl);
         }
@@ -2465,7 +2545,7 @@ BOOL Js::NumberUtilities::FNonZeroFiniteDblToStr(double dbl, __out_ecount(cchDst
     }
 
 #if DBG
-    bool likelyInt = true;
+    LikelyNumberType likelyInt = LikelyNumberType::Int;
     dblT = StrToDbl<char16>(pchDst, &pch, likelyInt);
     Assert(0 == *pch);
     Assert(dblT == dbl);

@@ -82,6 +82,16 @@ var tests = [
             eval("\u2028var\u2028x\u2028=\u20281234\u2028; result = x;");
             assert.areEqual(1234, result, "Mutli-unit whitespace after numeric literal does not affect literal value");
         }
+    },
+    {
+        name: "Multi-unit count updated in the middle of a token",
+        body: function () {
+            if (WScript.Platform.INTL_LIBRARY === "winglob" || WScript.Platform.INTL_LIBRARY === "icu") {
+                assert.throws(() => eval('\u20091a'), SyntaxError, 'Multi-unit whitespace followed by numeric literal followed by identifier', 'Unexpected identifier after numeric literal');
+                assert.throws(() => eval('\u20091\\u0065'), SyntaxError, 'Multi-unit whitespace followed by numeric literal followed by unicode escape sequence', 'Unexpected identifier after numeric literal');
+                assert.throws(() => eval('\u20090o1239'), SyntaxError, 'Multi-unit whitespace followed by invalid octal numeric literal', 'Invalid number');
+            }
+        }
     }
 ];
 

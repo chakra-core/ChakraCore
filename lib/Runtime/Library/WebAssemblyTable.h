@@ -31,10 +31,6 @@ namespace Js
         static Var EntryGet(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySet(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static bool Is(Var aValue);
-        static WebAssemblyTable * FromVar(Var aValue);
-        static WebAssemblyTable * UnsafeFromVar(Var aValue);
-
         static WebAssemblyTable * Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
 
         uint32 GetCurrentLength() const;
@@ -54,4 +50,9 @@ namespace Js
         Field(Field(Var)*) m_values;
 #endif
     };
+
+    template <> inline bool VarIsImpl<WebAssemblyTable>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyTable;
+    }
 }

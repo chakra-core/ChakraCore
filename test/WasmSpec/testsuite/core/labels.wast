@@ -227,16 +227,23 @@
           (i32.const 1)
         )
       )
-      (i32.const 1)
+      (i32.const 0)
     )
   )
 
   (func (export "br_if2") (result i32)
     (block $l0 (result i32)
       (if (i32.const 1)
-        (then (br $l0 (block $l1 (result i32) (br $l1 (i32.const 1)))))
+        (then
+          (drop
+            (br_if $l0
+              (block $l1 (result i32) (br $l1 (i32.const 1)))
+              (i32.const 1)
+            )
+          )
+        )
       )
-      (i32.const 1)
+      (i32.const 0)
     )
   )
 

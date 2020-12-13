@@ -7,12 +7,12 @@
     #error BAIL_OUT_KIND, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
 #endif
                /* kind */                           /* allowed bits */
-BAIL_OUT_KIND(BailOutInvalid,                       IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutForDebuggerBits | IR::BailOutMarkTempObject)
+BAIL_OUT_KIND(BailOutInvalid,                       IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutForDebuggerBits | IR::BailOutMarkTempObject | IR::LazyBailOut)
 BAIL_OUT_KIND(BailOutIntOnly,                       IR::BailOutMarkTempObject)
 BAIL_OUT_KIND(BailOutNumberOnly,                    IR::BailOutMarkTempObject)
 BAIL_OUT_KIND(BailOutPrimitiveButString,            IR::BailOutMarkTempObject)
-BAIL_OUT_KIND(BailOutOnImplicitCalls,               IR::BailOutForArrayBits)
-BAIL_OUT_KIND(BailOutOnImplicitCallsPreOp,          (IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutMarkTempObject) & ~IR::BailOutOnArrayAccessHelperCall )
+BAIL_OUT_KIND(BailOutOnImplicitCalls,               IR::BailOutForArrayBits | IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutOnImplicitCallsPreOp,          (IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutMarkTempObject | IR::LazyBailOut) & ~IR::BailOutOnArrayAccessHelperCall )
 BAIL_OUT_KIND(BailOutOnNotPrimitive,                IR::BailOutMarkTempObject)
 BAIL_OUT_KIND(BailOutOnMemOpError,                  IR::BailOutForArrayBits)
 BAIL_OUT_KIND(BailOutOnInlineFunction,              0)
@@ -20,21 +20,21 @@ BAIL_OUT_KIND(BailOutOnNoProfile,                   0)
 BAIL_OUT_KIND(BailOutOnPolymorphicInlineFunction,   0)
 BAIL_OUT_KIND(BailOutOnFailedPolymorphicInlineTypeCheck,   0)
 BAIL_OUT_KIND(BailOutShared,                        0)
-BAIL_OUT_KIND(BailOutOnNotArray,                    IR::BailOutOnMissingValue)
-BAIL_OUT_KIND(BailOutOnNotNativeArray,              IR::BailOutOnMissingValue)
-BAIL_OUT_KIND(BailOutConventionalTypedArrayAccessOnly, IR::BailOutMarkTempObject)
-BAIL_OUT_KIND(BailOutOnIrregularLength,             IR::BailOutMarkTempObject)
+BAIL_OUT_KIND(BailOutOnNotArray,                    IR::BailOutOnMissingValue | IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutOnNotNativeArray,              IR::BailOutOnMissingValue | IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutConventionalTypedArrayAccessOnly, IR::BailOutMarkTempObject | IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutOnIrregularLength,             IR::BailOutMarkTempObject | IR::LazyBailOut)
 BAIL_OUT_KIND(BailOutCheckThis,                     0)
 BAIL_OUT_KIND(BailOutOnTaggedValue,                 0)
-BAIL_OUT_KIND(BailOutFailedTypeCheck,               IR::BailOutMarkTempObject)
-BAIL_OUT_KIND(BailOutFailedEquivalentTypeCheck,     IR::BailOutMarkTempObject)
+BAIL_OUT_KIND(BailOutFailedTypeCheck,               IR::BailOutMarkTempObject | IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutFailedEquivalentTypeCheck,     IR::BailOutMarkTempObject | IR::LazyBailOut)
 BAIL_OUT_KIND(BailOutInjected,                      0)
 BAIL_OUT_KIND(BailOutExpectingInteger,              0)
 BAIL_OUT_KIND(BailOutExpectingString,               0)
 BAIL_OUT_KIND(BailOutFailedInlineTypeCheck,         IR::BailOutMarkTempObject)
-BAIL_OUT_KIND(BailOutFailedFixedFieldTypeCheck,     IR::BailOutMarkTempObject)
-BAIL_OUT_KIND(BailOutFailedFixedFieldCheck,         0)
-BAIL_OUT_KIND(BailOutFailedEquivalentFixedFieldTypeCheck,     IR::BailOutMarkTempObject)
+BAIL_OUT_KIND(BailOutFailedFixedFieldTypeCheck,     IR::BailOutMarkTempObject | IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutFailedFixedFieldCheck,         IR::LazyBailOut)
+BAIL_OUT_KIND(BailOutFailedEquivalentFixedFieldTypeCheck,     IR::BailOutMarkTempObject | IR::LazyBailOut)
 BAIL_OUT_KIND(BailOutOnFloor,                       0)
 BAIL_OUT_KIND(BailOnModByPowerOf2,                  0)
 BAIL_OUT_KIND(BailOnIntMin,                         0)
@@ -42,7 +42,6 @@ BAIL_OUT_KIND(BailOnDivResultNotInt,                IR::BailOutOnDivByZero | IR:
 BAIL_OUT_KIND(BailOnSimpleJitToFullJitLoopBody,     0)
 BAIL_OUT_KIND(BailOutFailedCtorGuardCheck,          0)
 BAIL_OUT_KIND(BailOutOnFailedHoistedBoundCheck,     0)
-BAIL_OUT_KIND(LazyBailOut,                          0)
 BAIL_OUT_KIND(BailOutOnFailedHoistedLoopCountBasedBoundCheck, 0)
 BAIL_OUT_KIND(BailOutForGeneratorYield,             0)
 BAIL_OUT_KIND(BailOutOnException,                   0)
@@ -110,9 +109,11 @@ BAIL_OUT_KIND_VALUE(BailOutOnDivSrcConditions, BailOutOnDivByZero | BailOutOnDiv
 
 #define BAIL_OUT_KIND_MISC_BIT_START BAIL_OUT_KIND_DIV_SRC_CONDITIONS_BIT_START + 2
 BAIL_OUT_KIND_VALUE(BailOutMarkTempObject, 1 << (BAIL_OUT_KIND_MISC_BIT_START + 0))
+// this is the most significant bit, must cast it to unsigned int so that the compiler knows we are not using a negative number
+BAIL_OUT_KIND_VALUE(LazyBailOut, (uint) 1 << (BAIL_OUT_KIND_MISC_BIT_START + 1))
+BAIL_OUT_KIND_VALUE(BailOutMisc, BailOutMarkTempObject | LazyBailOut)
 
-
-BAIL_OUT_KIND_VALUE_LAST(BailOutKindBits, BailOutMarkTempObject | BailOutOnDivSrcConditions | BailOutOnResultConditions | BailOutForArrayBits | BailOutForDebuggerBits)
+BAIL_OUT_KIND_VALUE_LAST(BailOutKindBits, BailOutMisc | BailOutOnDivSrcConditions | BailOutOnResultConditions | BailOutForArrayBits | BailOutForDebuggerBits)
 
 // Help caller undefine the macros
 #undef BAIL_OUT_KIND

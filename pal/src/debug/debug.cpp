@@ -1257,23 +1257,23 @@ DBGAttachProcess(
     DWORD processId
     )
 {
-    int attchmentCount;
+    int attachmentCount;
     int savedErrno;
 #if HAVE_PROCFS_CTL
     int fd;
     char ctlPath[1024];
 #endif  // HAVE_PROCFS_CTL
 
-    attchmentCount =
+    attachmentCount =
         DBGSetProcessAttached(pThread, hProcess, DBG_ATTACH);
 
-    if (attchmentCount == -1)
+    if (attachmentCount == -1)
     {
         /* Failed to set the process as attached */
         goto EXIT;
     }
 
-    if (attchmentCount == 1)
+    if (attachmentCount == 1)
     {
 #if HAVE_PROCFS_CTL
         struct timespec waitTime;

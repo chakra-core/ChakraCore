@@ -68,7 +68,7 @@ Instr::IsPlainInstr() const
 }
 
 bool
-Instr::DoStackArgsOpt(Func *topFunc) const
+Instr::DoStackArgsOpt() const
 {
     return this->usesStackArgumentsObject && m_func->IsStackArgsEnabled();
 }
@@ -1029,6 +1029,91 @@ bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
         (instr->GetByteCodeOffset() == this->GetByteCodeOffset()));
 }
 
+bool IR::Instr::IsStFldVariant() const
+{
+    return this->m_opcode == Js::OpCode::StFld ||
+        this->m_opcode == Js::OpCode::StFldStrict ||
+        this->m_opcode == Js::OpCode::StLocalFld ||
+        this->m_opcode == Js::OpCode::StRootFld ||
+        this->m_opcode == Js::OpCode::StRootFldStrict ||
+        this->m_opcode == Js::OpCode::StSuperFld ||
+        this->m_opcode == Js::OpCode::StSuperFldStrict;
+}
+
+bool IR::Instr::IsStElemVariant() const
+{
+    return this->m_opcode == Js::OpCode::StElemI_A ||
+        this->m_opcode == Js::OpCode::StElemI_A_Strict ||
+        this->m_opcode == Js::OpCode::StElemC;
+}
+
+bool IR::Instr::DontHoistBailOnNoProfileAboveInGeneratorFunction() const
+{
+    return this->m_opcode == Js::OpCode::GeneratorResumeYield ||
+        this->m_opcode == Js::OpCode::GeneratorCreateInterpreterStackFrame;
+}
+
+bool IR::Instr::CanChangeFieldValueWithoutImplicitCall() const
+{
+    // TODO: Why is InitFld necessary?
+    return this->IsStFldVariant() || this->IsStElemVariant();
+}
+
+// If LazyBailOut is the only BailOutKind on the instruction, the BailOutInfo is cleared.
+// Otherwise, we remove the LazyBailOut kind from the instruction and still keep the BailOutInfo.
+void IR::Instr::ClearLazyBailOut()
+{
+    if (!this->HasBailOutInfo())
+    {
+        return;
+    }
+
+    if (this->OnlyHasLazyBailOut())
+    {
+        this->ClearBailOutInfo();
+    }
+    else
+    {
+        this->GetBailOutInfo()->RestoreUseOfDst();
+        this->SetBailOutKind(BailOutInfo::WithoutLazyBailOut(this->GetBailOutKind()));
+    }
+
+    Assert(!this->HasLazyBailOut());
+}
+
+int IR::Instr::GetOpndCount() const
+{
+    return (this->m_src1 ? 1 : 0) + (this->m_src2 ? 1 : 0) + (this->m_dst ? 1 : 0);
+}
+
+bool IR::Instr::AreAllOpndsTypeSpecialized() const
+{
+    bool src1TypeSpec = !this->m_src1 || (this->m_src1->GetStackSym() && this->m_src1->GetStackSym()->IsTypeSpec());
+    bool src2TypeSpec = !this->m_src2 || (this->m_src2->GetStackSym() && this->m_src2->GetStackSym()->IsTypeSpec());
+    bool dstTypeSpec = !this->m_dst || (this->m_dst->GetStackSym() && this->m_dst->GetStackSym()->IsTypeSpec());
+    return src1TypeSpec && src2TypeSpec && dstTypeSpec && this->GetOpndCount() > 0;
+}
+
+bool IR::Instr::OnlyHasLazyBailOut() const
+{
+    return this->HasBailOutInfo() && BailOutInfo::OnlyHasLazyBailOut(this->GetBailOutKind());
+}
+
+bool IR::Instr::HasLazyBailOut() const
+{
+    return this->HasBailOutInfo() && BailOutInfo::HasLazyBailOut(this->GetBailOutKind());
+}
+
+bool IR::Instr::HasPreOpBailOut() const
+{
+    return this->HasBailOutInfo() && this->GetBailOutInfo()->bailOutOffset == this->GetByteCodeOffset();
+}
+
+bool IR::Instr::HasPostOpBailOut() const
+{
+    return this->HasBailOutInfo() && this->GetBailOutInfo()->bailOutOffset > this->GetByteCodeOffset();
+}
+
 BailOutInfo *
 Instr::GetBailOutInfo() const
 {
@@ -1203,7 +1288,7 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
         __assume(UNREACHED);
     }
     
-    if (oldBailOutInfo->bailOutInstr == this)
+    if (oldBailOutInfo->bailOutInstr == this && !oldBailOutInfo->sharedBailOutKind)
     {
         Assert(!oldBailOutInfo->wasCloned && !oldBailOutInfo->wasCopied);
         JitArenaAllocator * alloc = this->m_func->m_alloc;
@@ -1568,9 +1653,6 @@ BranchInstr::New(Js::OpCode opcode, LabelInstr * branchTarget, Func *func)
     branchInstr->m_src1 = nullptr;
     branchInstr->m_src2 = nullptr;
     branchInstr->m_byteCodeReg = Js::Constants::NoRegister;
-#if DBG
-    branchInstr->m_isHelperToNonHelperBranch = false;
-#endif
 
     return branchInstr;
 }
@@ -1823,6 +1905,14 @@ BranchInstr::Invert()
         this->m_opcode = Js::OpCode::BrOnNoProperty;
         break;
 
+    case Js::OpCode::BrOnHasLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnNoLocalProperty;
+        break;
+
+    case Js::OpCode::BrOnNoLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnHasLocalProperty;
+        break;
+
     case Js::OpCode::BrOnNoProperty:
         this->m_opcode = Js::OpCode::BrOnHasProperty;
         break;
@@ -2014,6 +2104,22 @@ Instr::New(Js::OpCode opcode, Func *func)
 
     instr = JitAnew(func->m_alloc, IR::Instr);
     instr->Init(opcode, InstrKindInstr, func);
+    return instr;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Instr::New
+///
+///     Create an Instr with a byte code offset.
+///
+///----------------------------------------------------------------------------
+
+Instr *
+Instr::New(Js::OpCode opcode, Func *func, IR::Instr * bytecodeOffsetInstr)
+{
+    Instr * instr = Instr::New(opcode, func);
+    instr->SetByteCodeOffset(bytecodeOffsetInstr);
     return instr;
 }
 
@@ -2664,6 +2770,21 @@ Instr::GetNextRealInstr() const
     return instr;
 }
 
+#if DBG
+IR::LabelInstr *
+Instr::GetNextNonEmptyLabel() const
+{
+    IR::Instr *instr = const_cast<Instr*>(this);
+
+    while (instr != nullptr && (!instr->IsLabelInstr() || instr->m_next->IsLabelInstr()))
+    {
+        instr = instr->m_next;
+    }
+
+    return instr->AsLabelInstr();
+}
+#endif
+
 ///----------------------------------------------------------------------------
 ///
 /// Instr::GetNextRealInstrOrLabel
@@ -2842,7 +2963,7 @@ Instr::IsByteCodeUsesInstrFor(IR::Instr * instr) const
 IR::LabelInstr *
 Instr::GetOrCreateContinueLabel(const bool isHelper)
 {
-    if(m_next && m_next->IsLabelInstr() && m_next->AsLabelInstr()->isOpHelper == isHelper)
+    if (m_next && m_next->IsLabelInstr() && m_next->AsLabelInstr()->isOpHelper == isHelper)
     {
         return m_next->AsLabelInstr();
     }
@@ -3067,6 +3188,8 @@ Instr::TransferTo(Instr * instr)
     instr->dstIsAlwaysConvertedToInt32 = this->dstIsAlwaysConvertedToInt32;
     instr->dstIsAlwaysConvertedToNumber = this->dstIsAlwaysConvertedToNumber;
     instr->dataWidth = this->dataWidth;
+    instr->isCtorCall = this->isCtorCall;
+    instr->forcePreOpBailOutIfNeeded = this->forcePreOpBailOutIfNeeded;
     IR::Opnd * dst = this->m_dst;
 
     if (dst)
@@ -3087,6 +3210,16 @@ Instr::TransferTo(Instr * instr)
 
     this->m_src1 = nullptr;
     this->m_src2 = nullptr;
+}
+
+// Convert an instruction to a bailout instruction and perform a shallow copy of the input instruction's BailOutInfo.
+// Can optionally change the BailOutKind, otherwise the input instruction's BailOutKind will be used instead.
+IR::Instr *
+Instr::ConvertToBailOutInstrWithBailOutInfoCopy(BailOutInfo *bailOutInfo, IR::BailOutKind bailOutKind)
+{
+    BailOutInfo *bailOutInfoCopy = JitAnew(this->m_func->m_alloc, BailOutInfo, bailOutInfo->bailOutOffset, this->m_func);
+    bailOutInfo->PartialDeepCopyTo(bailOutInfoCopy);
+    return this->ConvertToBailOutInstr(bailOutInfoCopy, bailOutKind);
 }
 
 IR::Instr *
@@ -3305,10 +3438,16 @@ bool Instr::TransfersSrcValue()
     // No point creating an unknown value for the src of a binary instr, as the dst will just be a different
     // Don't create value for instruction without dst as well. The value doesn't go anywhere.
 
-    // if (src2 == nullptr) Disable copy prop for ScopedLdFld/ScopeStFld, etc., consider enabling that in the future
     // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
 
-    return this->GetDst() != nullptr && this->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(this->m_opcode) && !this->CallsAccessor();
+    return
+        this->GetDst() != nullptr &&
+
+        // The lack of a Src2 does not always indicate that the instr is not a transfer instr (ex: StSlotChkUndecl).
+        (this->GetSrc2() == nullptr || OpCodeAttr::NonIntTransfer(this->m_opcode)) &&
+
+        !OpCodeAttr::DoNotTransfer(this->m_opcode) &&
+        !this->CallsAccessor();
 }
 
 
@@ -3344,6 +3483,11 @@ IR::Instr* Instr::GetBytecodeArgOutCapture()
         this->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
     Assert(this->m_dst->GetStackSym()->m_isArgCaptured);
     IR::Instr* instr = this->GetSrc1()->GetStackSym()->m_instrDef;
+    while (instr->m_opcode != Js::OpCode::BytecodeArgOutCapture)
+    {
+        Assert(instr->GetSrc1() && instr->GetSrc1()->GetStackSym() && instr->GetSrc1()->GetStackSym()->IsSingleDef());
+        instr = instr->GetSrc1()->GetStackSym()->m_instrDef;
+    }
     Assert(instr->m_opcode == Js::OpCode::BytecodeArgOutCapture);
     return instr;
 }
@@ -4108,6 +4252,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRTyp
 
     *pResult = value;
     return true;
+}
+
+GeneratorBailInInstr*
+GeneratorBailInInstr::New(IR::Instr* yieldInstr, Func* func)
+{
+    GeneratorBailInInstr* labelInstr = JitAnew(func->m_alloc, IR::GeneratorBailInInstr, func->m_alloc, yieldInstr);
+    labelInstr->Init(Js::OpCode::GeneratorBailInLabel, InstrKindLabel, func, false /* isOpHelper */);
+    return labelInstr;
 }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS

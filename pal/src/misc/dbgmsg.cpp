@@ -758,7 +758,7 @@ static BOOL DBG_get_indent(DBG_LEVEL_ID level, const char *format,
 Function :
     DBG_change_entrylevel
 
-    retrieve current ENTRY nesting level and [optionnally] modify it
+    retrieve current ENTRY nesting level and [optionally] modify it
 
 Parameters :
     int new_level : value to which the nesting level must be set, or -1

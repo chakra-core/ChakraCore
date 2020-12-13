@@ -1118,19 +1118,13 @@ Error:
                     continue;
                 }
                 case '+':
-                {
-                    if (lwNil != lwTime)
-                    {
-                        ss = ssAddOffset;
-                    }
-                    continue;
-                }
                 case '-':
                 {
-                    if (lwNil != lwTime)
+                    if (lwNil == lwTime)
                     {
-                        ss = ssSubOffset;
+                        goto LError;
                     }
+                    ss = (ch == '+') ? ssAddOffset : ssSubOffset;
                     continue;
                 }
             }
@@ -1266,13 +1260,23 @@ Error:
                 goto LError;
             }
 
-            for (lwT = ch - '0'; !FBig(*pch) && isdigit(*pch); pch++)
+            for (lwT = ch - '0'; ; pch++)
             {
+                // for time zone offset HH:mm, we already got HH so skip ':' and grab mm
+                if (((ss == ssAddOffset) || (ss == ssSubOffset)) && (*pch == ':')) 
+                {
+                    continue;
+                }
+                if (FBig(*pch) || !isdigit(*pch))
+                {
+                    break;
+                }
                 // to avoid overflow
                 if (pch - pchBase > 6)
                 {
                     goto LError;
                 }
+                // convert string to number, e.g. 07:30 -> 730
                 lwT = lwT * 10 + *pch - '0';
             }
 
@@ -1290,8 +1294,9 @@ Error:
                 {
                     AssertMsg(isNextFieldDateNegativeVersion5 == false, "isNextFieldDateNegativeVersion5 == false");
 
-                    if (lwNil != lwOffset)
+                    if (lwNil != lwOffset || lwNil == lwTime)
                         goto LError;
+                    // convert into minutes, e.g. 730 -> 7*60+30
                     lwOffset = lwT < 24 ? lwT * 60 :
                         (lwT % 100) + (lwT / 100) * 60;
                     if (ssSubOffset == ss)

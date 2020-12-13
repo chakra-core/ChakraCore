@@ -112,7 +112,7 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     mkdir binutils_compile; cd binutils_compile
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ROOT}/build/lib/"
     ../binutils/configure --enable-gold --enable-plugins --disable-werror --prefix="${ROOT}/build"
-    make -j
+    make -j4
     make install
     if [ $? != 0 ]; then
         exit 1

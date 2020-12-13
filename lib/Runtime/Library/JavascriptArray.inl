@@ -480,12 +480,15 @@ namespace Js
 
     inline void JavascriptArray::GenericDirectSetItemAt(const uint32 index, Var newValue)
     {
+        newValue = CrossSite::MarshalVar(this->GetScriptContext(), newValue);
         this->DirectSetItemAt(index, newValue);
     }
 
     template<typename T>
     inline void JavascriptArray::DirectSetItemInLastUsedSegmentAt(const uint32 offset, const T newValue)
     {
+        Assert(!SparseArraySegment<T>::IsMissingItem(&newValue));
+
         SparseArraySegment<T> *const seg = (SparseArraySegment<T>*)GetLastUsedSegment();
         Assert(seg);
         Assert(offset < seg->size);
@@ -526,6 +529,8 @@ namespace Js
         const T newValue,
         StElemInfo *const stElemInfo)
     {
+        Assert(!SparseArraySegment<T>::IsMissingItem(&newValue));
+
         SparseArraySegment<T> *const seg = SparseArraySegment<T>::From(head);
         Assert(seg);
         Assert(offset < seg->size);
@@ -1219,6 +1224,8 @@ SECOND_PASS:
     template<typename T>
     void JavascriptArray::DirectSetItem_Full(uint32 itemIndex, T newValue)
     {
+        Assert(!SparseArraySegment<T>::IsMissingItem(&newValue));
+
         DebugOnly(VerifyNotNeedMarshal(newValue));
         this->EnsureHead<T>();
         AnalysisAssert(head);

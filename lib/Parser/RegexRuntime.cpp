@@ -778,6 +778,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void TrieMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
+        w->PrintEOL(_u(""));
         trie.Print(w);
     }
 #endif
@@ -5752,12 +5753,33 @@ namespace UnifiedRegex
         w->PrintEOL(_u("Program {"));
         w->Indent();
         w->PrintEOL(_u("source:       %s"), PointerValue(source));
+
+        w->Print(_u("litbuf:       "));
+        const char16 *litbuf = this->rep.insts.litbuf;
+        size_t litbufLen = 0;
+        if (litbuf == nullptr)
+        {
+            w->PrintEOL(_u("<NONE>"));
+        }
+        else
+        {
+            litbufLen = this->rep.insts.litbufLen;
+            for (size_t i = 0; i < litbufLen; ++i)
+            {
+                const char16 c = (char16)litbuf[i];
+                w->PrintEscapedChar(c);
+            }
+            w->PrintEOL(_u(""));
+        }
+        w->PrintEOL(_u("litbufLen:    %u"), litbufLen);
+
         w->Print(_u("flags:        "));
         if ((flags & GlobalRegexFlag) != 0) w->Print(_u("global "));
         if ((flags & MultilineRegexFlag) != 0) w->Print(_u("multiline "));
-        if ((flags & IgnoreCaseRegexFlag) != 0) w->Print(_u("ignorecase"));
-        if ((flags & UnicodeRegexFlag) != 0) w->Print(_u("unicode"));
-        if ((flags & StickyRegexFlag) != 0) w->Print(_u("sticky"));
+        if ((flags & IgnoreCaseRegexFlag) != 0) w->Print(_u("ignorecase "));
+        if ((flags & DotAllRegexFlag) != 0) w->Print(_u("dotAll "));
+        if ((flags & UnicodeRegexFlag) != 0) w->Print(_u("unicode "));
+        if ((flags & StickyRegexFlag) != 0) w->Print(_u("sticky "));
         w->EOL();
         w->PrintEOL(_u("numGroups:    %d"), numGroups);
         w->PrintEOL(_u("numLoops:     %d"), numLoops);

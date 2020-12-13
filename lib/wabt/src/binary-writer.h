@@ -32,7 +32,7 @@ struct WriteBinaryOptions {
   bool write_debug_names = false;
 };
 
-Result WriteBinaryModule(Stream*, const Module*, const WriteBinaryOptions*);
+Result WriteBinaryModule(Stream*, const Module*, const WriteBinaryOptions&);
 
 void WriteType(Stream* stream, Type type);
 

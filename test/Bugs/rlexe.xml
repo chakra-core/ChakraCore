@@ -498,6 +498,13 @@
   </test>
   <test>
     <default>
+      <files>skipping_nested_deferred_incorrect_function_id.js</files>
+      <tags>exclude_jshost</tags>
+      <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>withSplitScope.js</files>
     </default>
   </test>
@@ -535,6 +542,97 @@
       <files>SuperAccessInGlobalLambda.js</files>
       <baseline>SuperAccessInGlobalLambda.baseline</baseline>
       <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_5572_wscript_loadscript_loadmodule.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>function_id_destructured_reparse.js</files>
+      <compile-flags>-useparserstatecache -parserstatecache -force:deferparse</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_5585.js</files>
+      <compile-flags>-esdynamicimport -mutehosterrormsg -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>loopcrash.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -MinMemOpCount:0 -werexceptionsupport  -bgjit- -loopinterpretcount:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS18260560.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_5883.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS18926499.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>Bug19767482.js</files>
+      <compile-flags>-maxinterpretcount:1 -bgjit- -oopjit- -loopinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>Bug19948792.js</files>
+      <compile-flags>-maxinterpretcount:1 -bgjit- -oopjit- -loopinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_6179.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS21193960.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:2 -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_6239.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_6277.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS23102586.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_6239.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
     </default>
   </test>
 </regress-exe>

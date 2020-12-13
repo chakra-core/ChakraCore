@@ -55,6 +55,19 @@ var tests = [
             assert.areEqual(s, Object(s)[Symbol.toPrimitive](), ""); // true
             assert.areEqual(s, Symbol.prototype[Symbol.toPrimitive].call(s), ""); // true
 
+            var symbolObject = Object(s);
+            Object.defineProperty(symbolObject, Symbol.toPrimitive, {
+                value: function() { return 42; },
+                configurable: true,
+            });
+            assert.areEqual(+symbolObject, 42, "User-defined @@toPrimitive is called on symbol objects");
+            Object.defineProperty(symbolObject, Symbol.toPrimitive, { value: undefined });
+            Object.defineProperty(symbolObject, 'valueOf', {
+                value: function() { return 43; },
+                configurable: true,
+            });
+            assert.areEqual(+symbolObject, 43, "OrdinaryToPrimitive is called if @@toPrimitive is undefined");
+
             assert.areEqual(Symbol.toPrimitive, Symbol.toPrimitive[Symbol.toPrimitive](), "Symbol.toPrimitive");
             assert.areEqual(Symbol.iterator, Symbol.iterator[Symbol.toPrimitive](), "Symbol.iterator");
             assert.areEqual(Symbol.hasInstance, Symbol.hasInstance[Symbol.toPrimitive](), "Symbol.hasInstance");

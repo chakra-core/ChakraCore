@@ -71,15 +71,15 @@ var tests = [
             assert.throws(function () { eval("function* gf() { +yield 2; }"); }, SyntaxError, "yield with operand cannot appear in UnaryExpression -- e.g. operand of unary +", "Syntax error");
             assert.throws(function () { eval("function* gf() { +yield* 'foo'; }"); }, SyntaxError, "yield* with operand cannot appear in UnaryExpression -- e.g. operand of unary +", "Syntax error");
 
-            assert.throws(function () { eval("function* gf() { yield++; }"); }, SyntaxError, "yield cannot appear in PostfixExpression -- e.g. operand of postfix ++", "Syntax error");
+            assert.throws(function () { eval("function* gf() { yield++; }"); }, SyntaxError, "yield cannot appear in PostfixExpression -- e.g. operand of postfix ++", "Unexpected token ';' after '++'");
         }
     },
     {
         name: "Invalid use of yield in lvalue positions that are runtime errors",
         body: function () {
-            assert.throws(function () { eval('function* gf() { (yield) = 10; }'); var g = gf(); g.next(); g.next(); }, ReferenceError, "yield cannot be the LHS target of an assignment", "Invalid left-hand side in assignment");
-            assert.throws(function () { eval('function* gf() { ++(yield); }'); var g = gf(); g.next(); g.next(); }, ReferenceError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment");
-            assert.throws(function () { eval('function* gf() { (yield)++; }'); var g = gf(); g.next(); g.next(); }, ReferenceError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment");
+            assert.throws(function () { eval('function* gf() { (yield) = 10; }'); var g = gf(); g.next(); g.next(); }, SyntaxError, "yield cannot be the LHS target of an assignment", "Invalid left-hand side in assignment.");
+            assert.throws(function () { eval('function* gf() { ++(yield); }'); var g = gf(); g.next(); g.next(); }, SyntaxError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment.");
+            assert.throws(function () { eval('function* gf() { (yield)++; }'); var g = gf(); g.next(); g.next(); }, SyntaxError, "yield cannot be the target of an increment operator", "Invalid left-hand side in assignment.");
         }
     },
     {
@@ -96,6 +96,7 @@ var tests = [
             assert.throws(function () { eval("function* gf() { var gfe = function* yield() { } }"); }, SyntaxError, "Cannot name generator function expression 'yield' in generator body", "The use of a keyword for an identifier is invalid");
 
             assert.throws(function () { eval("function* gf() { class yield { } }"); }, SyntaxError, "Cannot name class 'yield' in generator body", "The use of a keyword for an identifier is invalid");
+            assert.throws(function () { eval("function f() { class yield { } }"); }, SyntaxError, "Can name class 'yield'");
 
             // TODO: Is this correct or a spec bug that will be fixed?
             // var yield = 10; function* gf() { var o = { yield }; } gf();
@@ -133,8 +134,6 @@ var tests = [
             assert.doesNotThrow(function () { eval("function f() { function yield() { } }"); }, "Can name function 'yield' in non-generator body");
             assert.doesNotThrow(function () { eval("function f() { function* yield() { } }"); }, "Can name generator function 'yield' in non-generator body");
             assert.doesNotThrow(function () { eval("function f() { var fe = function yield() { } }"); }, "Can name function expression 'yield' in non-generator body");
-
-            assert.doesNotThrow(function () { eval("function f() { class yield { } }"); }, "Can name class 'yield' in non-generator body");
 
             assert.doesNotThrow(function () { eval("function f() { var o = { yield: 10 } }"); }, "Can name object literal property 'yield' in non-generator body");
             assert.doesNotThrow(function () { eval("function f() { var o = { get yield() { } } }"); }, "Can name accessor method 'yield' in non-generator body");
@@ -193,7 +192,7 @@ var tests = [
     {
         name: "yield is a keyword and disallowed within arrow function parameter syntax",
         body: function () {
-            assert.throws(function () { eval("function* gf() { var a = yield => { }; }"); }, SyntaxError, "yield cannot appear as the formal name of an unparenthesized arrow function parameter list", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = yield => { }; }"); }, SyntaxError, "yield cannot appear as the formal name of an unparenthesized arrow function parameter list", "Unexpected token '=>' after 'yield'");
             assert.throws(function () { eval("function* gf() { var a = (yield) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (single formal)", "The use of a keyword for an identifier is invalid");
             assert.throws(function () { eval("function* gf() { var a = (x, y, yield) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (middle formal)", "The use of a keyword for an identifier is invalid");
             assert.throws(function () { eval("function* gf() { var a = (x, yield, y) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (last formal)", "The use of a keyword for an identifier is invalid");

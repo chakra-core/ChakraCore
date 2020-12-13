@@ -19,6 +19,7 @@ struct InlineCacheUnit
 };
 
 typedef JsUtil::BaseDictionary<ParseNode*, SList<Symbol*>*, ArenaAllocator, PowerOf2SizePolicy> CapturedSymMap;
+typedef JsUtil::BaseDictionary<Js::ProfileId, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy> CallSiteToCallApplyCallSiteMap;
 
 class FuncInfo
 {
@@ -145,8 +146,10 @@ public:
     PidRegisterMap stringToRegister; // maps string constant to register
     typedef JsUtil::BaseDictionary<double,Js::RegSlot, ArenaAllocator, PrimeSizePolicy> DoubleRegisterMap;
     DoubleRegisterMap doubleConstantToRegister; // maps double constant to register
+    typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator> BigIntRegisterMap;
+    BigIntRegisterMap bigintToRegister; // maps bigint constant to register
 
-    typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator, PowerOf2SizePolicy, Js::StringTemplateCallsiteObjectComparer> StringTemplateCallsiteRegisterMap;
+    typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator, PowerOf2SizePolicy> StringTemplateCallsiteRegisterMap;
     StringTemplateCallsiteRegisterMap stringTemplateCallsiteRegisterMap; // maps string template callsite constant to register
 
     Scope *paramScope; // top level scope for parameter default values
@@ -166,6 +169,7 @@ public:
     RootObjectInlineCacheIdMap * rootObjectStoreInlineCacheMap;
     InlineCacheMap * inlineCacheMap;
     ReferencedPropertyIdMap * referencedPropertyIdToMapIndex;
+    CallSiteToCallApplyCallSiteMap * callSiteToCallApplyCallSiteMap;
     SListBase<uint> valueOfStoreCacheIds;
     SListBase<uint> toStringStoreCacheIds;
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
@@ -173,6 +177,7 @@ public:
     Symbol *argumentsSymbol;
     Symbol *thisSymbol;
     Symbol *newTargetSymbol;
+    Symbol* importMetaSymbol;
     Symbol *superSymbol;
     Symbol *superConstructorSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
@@ -321,6 +326,17 @@ public:
         return newTargetSymbol;
     }
 
+    void SetImportMetaSymbol(Symbol* sym)
+    {
+        Assert(importMetaSymbol == nullptr || importMetaSymbol == sym);
+        importMetaSymbol = sym;
+    }
+
+    Symbol* GetImportMetaSymbol() const
+    {
+        return importMetaSymbol;
+    }
+
     void SetSuperSymbol(Symbol *sym)
     {
         Assert(superSymbol == nullptr || superSymbol == sym);
@@ -467,6 +483,7 @@ public:
     BOOL IsClassConstructor() const;
     BOOL IsBaseClassConstructor() const;
     BOOL IsDerivedClassConstructor() const;
+    bool IsAsyncGenerator() const;
 
     void RemoveTargetStmt(ParseNodeStmt* pnodeStmt) {
         targetStatements.Remove(pnodeStmt);
@@ -674,7 +691,7 @@ public:
         }
 
         // If we share inline caches we should never have more than one entry in the list.
-        Assert(Js::FunctionBody::ShouldShareInlineCaches() || cacheList->Count() <= 1);
+        Assert(!Js::FunctionBody::ShouldShareInlineCaches() || cacheList->Count() <= 1);
 
         InlineCacheUnit cacheIdUnit;
 
@@ -792,6 +809,7 @@ public:
     void OnEndVisitScope(Scope *scope, bool isMergedScope = false);
     void AddCapturedSym(Symbol *sym);
     CapturedSymMap *EnsureCapturedSymMap();
+    CallSiteToCallApplyCallSiteMap * EnsureCallSiteToCallApplyCallSiteMap();
 
 #if DBG_DUMP
     void Dump();

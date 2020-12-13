@@ -1,10 +1,10 @@
-﻿//-------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "DataStructures/BigInt.h"
+#include "DataStructures/BigUInt.h"
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
 
@@ -160,7 +160,7 @@ namespace Js
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::UnsafeFromVar(result), nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), UnsafeVarTo<RecyclableObject>(result), nullptr, scriptContext) :
             result;
     }
 
@@ -219,9 +219,9 @@ namespace Js
         return IsValidCharCount(idx) && idx < GetLength();
     }
 
-    bool JavascriptString::Is(Var aValue)
+    template <> bool VarIsImpl<JavascriptString>(RecyclableObject* obj)
     {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_String;
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_String;
     }
 
     void JavascriptString::GetPropertyRecord(_Out_ Js::PropertyRecord const ** propertyRecord, bool dontLookupFromDictionary)
@@ -238,20 +238,6 @@ namespace Js
     void JavascriptString::CachePropertyRecord(_In_ PropertyRecord const* propertyRecord)
     {
         // Base string doesn't have enough room to keep this value, so do nothing
-    }
-
-    JavascriptString* JavascriptString::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
-
-        return static_cast<JavascriptString *>(aValue);
-    }
-
-    JavascriptString* JavascriptString::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
-
-        return static_cast<JavascriptString *>(aValue);
     }
 
     charcount_t
@@ -410,7 +396,7 @@ case_2:
 
         if(!IsFinalized())
         {
-            if(CompoundString::Is(this))
+            if(VarIs<CompoundString>(this))
             {
                 return ConcatDestructive_Compound(pstRight);
             }
@@ -456,7 +442,7 @@ case_2:
 
     JavascriptString* JavascriptString::ConcatDestructive_Compound(JavascriptString* pstRight)
     {
-        Assert(CompoundString::Is(this));
+        Assert(VarIs<CompoundString>(this));
         Assert(pstRight);
 
 #ifdef PROFILE_STRINGS
@@ -471,7 +457,7 @@ case_2:
             Output::Flush();
         }
 
-        CompoundString *const leftCs = CompoundString::FromVar(this);
+        CompoundString *const leftCs = VarTo<CompoundString>(this);
         leftCs->PrepareForAppend();
         leftCs->Append(pstRight);
         return this;
@@ -567,7 +553,7 @@ case_2:
 
         if(!pstLeft->IsFinalized())
         {
-            if(CompoundString::Is(pstLeft))
+            if(VarIs<CompoundString>(pstLeft))
             {
                 return Concat_Compound(pstLeft, pstRight);
             }
@@ -605,7 +591,7 @@ case_2:
     JavascriptString* JavascriptString::Concat_Compound(JavascriptString * pstLeft, JavascriptString * pstRight)
     {
         Assert(pstLeft);
-        Assert(CompoundString::Is(pstLeft));
+        Assert(VarIs<CompoundString>(pstLeft));
         Assert(pstRight);
 
 #ifdef PROFILE_STRINGS
@@ -623,7 +609,7 @@ case_2:
         // This is not a left-dead concat, but we can reuse available space in the left string
         // because it may be accessible by script code, append to a clone.
         const bool needAppend = pstRight->GetLength() != 0;
-        CompoundString *const leftCs = CompoundString::FromVar(pstLeft)->Clone(needAppend);
+        CompoundString *const leftCs = VarTo<CompoundString>(pstLeft)->Clone(needAppend);
         if(needAppend)
         {
             leftCs->Append(pstRight);
@@ -747,6 +733,9 @@ case_2:
         Var value;
         if (pThis->GetItemAt(idxPosition, &value))
         {
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+            value = BreakSpeculation(value);
+#endif
             return value;
         }
         else
@@ -795,7 +784,11 @@ case_2:
             return scriptContext->GetLibrary()->GetNaN();
         }
 
-        return TaggedInt::ToVarUnchecked(pThis->GetItem(idxPosition));
+        Var charCode = TaggedInt::ToVarUnchecked(pThis->GetItem(idxPosition));
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+        charCode = BreakSpeculation(charCode);
+#endif
+        return charCode;
     }
 
     Var JavascriptString::EntryCodePointAt(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1064,7 +1057,7 @@ case_2:
 
         if (args.Info.Count > 2)
         {
-            if (JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 position = 0;
             }
@@ -1621,7 +1614,7 @@ case_2:
         JavascriptString * pMatch = nullptr;
 
         JavascriptString * pReplace = nullptr;
-        JavascriptFunction* replacefn = nullptr;
+        RecyclableObject* replacefn = nullptr;
 
         SearchValueHelper(scriptContext, ((args.Info.Count > 1)?args[1]:scriptContext->GetLibrary()->GetNull()), &pRegEx, &pMatch);
         ReplaceValueHelper(scriptContext, ((args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined()), &replacefn, &pReplace);
@@ -1660,13 +1653,13 @@ case_2:
 
         // When the config is enabled, the operation is handled by a Symbol function (e.g. Symbol.replace).
         if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-            && JavascriptRegExp::Is(aValue))
+            && VarIs<JavascriptRegExp>(aValue))
         {
-            *ppSearchRegEx = JavascriptRegExp::FromVar(aValue);
+            *ppSearchRegEx = VarTo<JavascriptRegExp>(aValue);
         }
-        else if (JavascriptString::Is(aValue))
+        else if (VarIs<JavascriptString>(aValue))
         {
-            *ppSearchString = JavascriptString::FromVar(aValue);
+            *ppSearchString = VarTo<JavascriptString>(aValue);
         }
         else
         {
@@ -1674,18 +1667,18 @@ case_2:
         }
     }
 
-    void JavascriptString::ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptFunction ** ppReplaceFn, JavascriptString ** ppReplaceString)
+    void JavascriptString::ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, RecyclableObject ** ppReplaceFn, JavascriptString ** ppReplaceString)
     {
         *ppReplaceFn = nullptr;
         *ppReplaceString = nullptr;
 
-        if (JavascriptFunction::Is(aValue))
+        if (JavascriptConversion::IsCallable(aValue))
         {
-            *ppReplaceFn = JavascriptFunction::FromVar(aValue);
+            *ppReplaceFn = VarTo<RecyclableObject>(aValue);
         }
-        else if (JavascriptString::Is(aValue))
+        else if (VarIs<JavascriptString>(aValue))
         {
-            *ppReplaceString = JavascriptString::FromVar(aValue);
+            *ppReplaceString = VarTo<JavascriptString>(aValue);
         }
         else
         {
@@ -1767,7 +1760,7 @@ case_2:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
         }
 
-        RecyclableObject* fnObj = RecyclableObject::UnsafeFromVar(fn);
+        RecyclableObject* fnObj = UnsafeVarTo<RecyclableObject>(fn);
         return CallRegExFunction<argCount>(fnObj, regExp, args, scriptContext);
     }
 
@@ -1820,10 +1813,10 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            idxStart = JavascriptOperators::IsUndefinedObject(args[1], scriptContext) ? 0 : ConvertToIndex(args[1], scriptContext);
+            idxStart = JavascriptOperators::IsUndefinedObject(args[1]) ? 0 : ConvertToIndex(args[1], scriptContext);
             if (args.Info.Count > 2)
             {
-                idxEnd = JavascriptOperators::IsUndefinedObject(args[2], scriptContext) ? len : ConvertToIndex(args[2], scriptContext);
+                idxEnd = JavascriptOperators::IsUndefinedObject(args[2]) ? len : ConvertToIndex(args[2], scriptContext);
             }
         }
 
@@ -1849,6 +1842,11 @@ case_2:
         {
             idxEnd = idxStart;
         }
+
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+        pThis = (JavascriptString*)BreakSpeculation(pThis);
+#endif
+
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
 
@@ -1883,7 +1881,7 @@ case_2:
         else
         {
             uint32 limit;
-            if (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 limit = UINT_MAX;
             }
@@ -1894,9 +1892,9 @@ case_2:
 
             // When the config is enabled, the operation is handled by RegExp.prototype[@@split].
             if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                && JavascriptRegExp::Is(args[1]))
+                && VarIs<JavascriptRegExp>(args[1]))
             {
-                return RegexHelper::RegexSplit(scriptContext, JavascriptRegExp::UnsafeFromVar(args[1]), input, limit,
+                return RegexHelper::RegexSplit(scriptContext, UnsafeVarTo<JavascriptRegExp>(args[1]), input, limit,
                     RegexHelper::IsResultNotUsed(callInfo.Flags));
             }
             else
@@ -1945,10 +1943,10 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            idxStart = JavascriptOperators::IsUndefinedObject(args[1], scriptContext) ? 0 : ConvertToIndex(args[1], scriptContext);
+            idxStart = JavascriptOperators::IsUndefinedObject(args[1]) ? 0 : ConvertToIndex(args[1], scriptContext);
             if (args.Info.Count > 2)
             {
-                idxEnd = JavascriptOperators::IsUndefinedObject(args[2], scriptContext) ? len : ConvertToIndex(args[2], scriptContext);
+                idxEnd = JavascriptOperators::IsUndefinedObject(args[2]) ? len : ConvertToIndex(args[2], scriptContext);
             }
         }
 
@@ -1967,6 +1965,10 @@ case_2:
             //return the string if we need to substring entire span
             return pThis;
         }
+
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+        pThis = (JavascriptString*)BreakSpeculation(pThis);
+#endif
 
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
@@ -1990,10 +1992,10 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            idxStart = JavascriptOperators::IsUndefinedObject(args[1], scriptContext) ? 0 : ConvertToIndex(args[1], scriptContext);
+            idxStart = JavascriptOperators::IsUndefinedObject(args[1]) ? 0 : ConvertToIndex(args[1], scriptContext);
             if (args.Info.Count > 2)
             {
-                idxEnd = JavascriptOperators::IsUndefinedObject(args[2], scriptContext) ? len : ConvertToIndex(args[2], scriptContext);
+                idxEnd = JavascriptOperators::IsUndefinedObject(args[2]) ? len : ConvertToIndex(args[2], scriptContext);
             }
         }
         if (idxStart < 0)
@@ -2023,6 +2025,10 @@ case_2:
             //return the string if we need to substr entire span
             return pThis;
         }
+
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+        pThis = (JavascriptString*)BreakSpeculation(pThis);
+#endif
 
         Assert(0 <= idxStart && idxStart <= idxEnd && idxEnd <= len);
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
@@ -2082,13 +2088,8 @@ case_2:
             return mainString;
         }
 
-        if (maxLength > JavascriptString::MaxCharLength)
-        {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
-        }
-
         JavascriptString * fillerString = nullptr;
-        if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+        if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2]))
         {
             JavascriptString *argStr = JavascriptConversion::ToString(args[2], scriptContext);
             if (argStr->GetLength() > 0)
@@ -2099,6 +2100,11 @@ case_2:
             {
                 return mainString;
             }
+        }
+
+        if (maxLength > JavascriptString::MaxCharLength)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
         }
 
         if (fillerString == nullptr)
@@ -2199,7 +2205,7 @@ case_2:
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::UnsafeFromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                if (UnsafeVarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
                 {
                     return result;
                 }
@@ -2376,7 +2382,7 @@ case_2:
         return TrimLeftRightHelper<true /*trimLeft*/, true /*trimRight*/>(pThis, scriptContext);
     }
 
-    Var JavascriptString::EntryTrimLeft(RecyclableObject* function, CallInfo callInfo, ...)
+    Var JavascriptString::EntryTrimStart(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -2397,8 +2403,7 @@ case_2:
         return TrimLeftRightHelper< true /*trimLeft*/, false /*trimRight*/>(pThis, scriptContext);
     }
 
-
-    Var JavascriptString::EntryTrimRight(RecyclableObject* function, CallInfo callInfo, ...)
+    Var JavascriptString::EntryTrimEnd(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -2504,7 +2509,7 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[1], scriptContext))
+            if (!JavascriptOperators::IsUndefinedObject(args[1]))
             {
                 double countDbl = JavascriptConversion::ToInteger(args[1], scriptContext);
                 if (JavascriptNumber::IsPosInf(countDbl) || countDbl < 0.0)
@@ -2595,7 +2600,7 @@ case_2:
 
         if (args.Info.Count > 2)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (!JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 startPosition = ConvertToIndex(args[2], scriptContext); // this is to adjust corner cases like MAX_VALUE
                 startPosition = min(max(startPosition, 0), thisStrLen);
@@ -2650,7 +2655,7 @@ case_2:
 
         if (args.Info.Count > 2)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (!JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 endPosition = ConvertToIndex(args[2], scriptContext); // this is to adjust corner cases like MAX_VALUE
                 endPosition = min(max(endPosition, 0), thisStrLen);
@@ -2714,7 +2719,7 @@ case_2:
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::UnsafeFromVar(args[0])->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
+                if (UnsafeVarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
                 {
                     return result;
                 }
@@ -2962,7 +2967,7 @@ case_2:
             return JavascriptNumber::ToVar(value, this->GetScriptContext());
         }
 
-        BigInt bi;
+        BigUInt bi;
         for ( ; pch < pchEnd ; pch++)
         {
             char16 ch = *pch;
@@ -3088,10 +3093,10 @@ case_2:
     //
     bool JavascriptString::LessThan(Var aLeft, Var aRight)
     {
-        AssertMsg(JavascriptString::Is(aLeft) && JavascriptString::Is(aRight), "string LessThan");
+        AssertMsg(VarIs<JavascriptString>(aLeft) && VarIs<JavascriptString>(aRight), "string LessThan");
 
-        JavascriptString *leftString  = JavascriptString::FromVar(aLeft);
-        JavascriptString *rightString = JavascriptString::FromVar(aRight);
+        JavascriptString *leftString  = VarTo<JavascriptString>(aLeft);
+        JavascriptString *rightString = VarTo<JavascriptString>(aRight);
 
         if (JavascriptString::strcmp(leftString, rightString) < 0)
         {
@@ -3106,20 +3111,20 @@ case_2:
         Assert(pString);
 
         // 1. If Type(value) is String, return value.
-        if (JavascriptString::Is(aValue))
+        if (VarIs<JavascriptString>(aValue))
         {
-            *pString = JavascriptString::FromVar(aValue);
+            *pString = VarTo<JavascriptString>(aValue);
             return TRUE;
         }
         // 2. If Type(value) is Object and value has a [[StringData]] internal slot
-        else if ( JavascriptStringObject::Is(aValue))
+        else if ( VarIs<JavascriptStringObject>(aValue))
         {
-            JavascriptStringObject* pStringObj = JavascriptStringObject::FromVar(aValue);
+            JavascriptStringObject* pStringObj = VarTo<JavascriptStringObject>(aValue);
 
             // a. Let s be the value of value's [[StringData]] internal slot.
             // b. If s is not undefined, then return s.
             *pString = pStringObj->Unwrap();
-            *pString = JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext,
+            *pString = VarTo<JavascriptString>(CrossSite::MarshalVar(scriptContext,
               *pString, pStringObj->GetScriptContext()));
             return TRUE;
         }
@@ -3167,8 +3172,8 @@ case_2:
         //
         // pszProp = _u("href");
         // pszTag = _u("a");
-        // pThis = JavascriptString::FromVar(args[0]);
-        // pPropertyValue = JavascriptString::FromVar(args[1]);
+        // pThis = VarTo<JavascriptString>(args[0]);
+        // pPropertyValue = VarTo<JavascriptString>(args[1]);
         //
         // pResult = _u("<a href=\"[[pPropertyValue]]\">[[pThis]]</a>");
         //
@@ -3407,6 +3412,7 @@ case_2:
 
     int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position)
     {
+        Assert(searchLen > 0);
         const char16 searchFirst = searchStr[0];
         uint32 lMatchedJump = searchLen;
         if (jmpTable[searchFirst].shift > 0)
@@ -3415,31 +3421,41 @@ case_2:
         }
         WCHAR c;
         char16 const * p = inputStr + min(len - searchLen, position);
-        while(p >= inputStr)
+
+        while (true)
         {
+            uint32 remaining = (uint32)(p - inputStr);
+            uint32 backwardOffset = 0;
             // first character match, keep checking
             if (*p == searchFirst)
             {
-                if ( wmemcmp(p, searchStr, searchLen) == 0 )
+                if (wmemcmp(p, searchStr, searchLen) == 0)
                 {
-                    break;
+                    return (int)remaining;
                 }
-                p -= lMatchedJump;
+                backwardOffset = lMatchedJump;
             }
             else
             {
                 c = *p;
-                if ( 0 == ( c & ~0x7f ) && jmpTable[c].shift != 0 )
+                if (0 == (c & ~0x7f) && jmpTable[c].shift != 0)
                 {
-                    p -= jmpTable[c].shift;
+                    backwardOffset = jmpTable[c].shift;
                 }
                 else
                 {
-                    p -= searchLen;
+                    backwardOffset = searchLen;
                 }
             }
+            AssertOrFailFast(backwardOffset > 0);
+            if (backwardOffset > remaining)
+            {
+                break;
+            }
+            p -= backwardOffset;
         }
-        return ((p >= inputStr) ? (int)(p - inputStr) : -1);
+
+        return -1;
     }
 
     bool JavascriptString::BuildLastCharForwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen)

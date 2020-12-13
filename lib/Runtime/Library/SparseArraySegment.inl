@@ -223,12 +223,25 @@ namespace Js
         return SparseArraySegment<T>::Allocate<isLeaf>(recycler, left, length, size);
     }
 
+    template<>
+    inline Var SparseArraySegment<int32>::GetMissingItemVar()
+    {
+        return JavascriptArray::IntMissingItemVar;
+    }
+
+    template<>
+    inline Var SparseArraySegment<double>::GetMissingItemVar()
+    {
+        return (Var)FloatMissingItemPattern;
+    }
+
     template<typename T>
     void SparseArraySegment<T>::FillSegmentBuffer(uint32 start, uint32 size)
     {
         // Fill the segment buffer using gp-register-sized stores. Avoid using the FPU for the sake
         // of perf (especially x86).
-        Var fill = JavascriptArray::MissingItem;
+        Var fill = (Var)SparseArraySegment<T>::GetMissingItemVar();
+
         if (sizeof(Var) > sizeof(T))
         {
             // Pointer size is greater than the element (int32 buffer on x64).
@@ -255,7 +268,12 @@ namespace Js
             Assert(sizeof(T) % sizeof(Var) == 0);
             uint step = sizeof(T) / sizeof(Var);
 
-            for (uint i = start; i < size * step; i++)
+            // We're filling [length...size-1] based on the element size. If this is going to be a float segment on 32-bit,
+            // only fill past the point where the float elements will reside. Size * step has to be a 32-bit number.
+            start *= step;
+            size *= step;
+
+            for (uint i = start; i < size; i++)
             {
                 ((Var*)(this->elements))[i] = fill; // swb: no write barrier, set to non-GC pointer
             }

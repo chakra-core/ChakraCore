@@ -35,23 +35,9 @@ namespace Js
         return &this->propertyRecordUsageCache;
     }
 
-    /* static */
-    bool PropertyString::Is(RecyclableObject * obj)
+    template <> bool VarIsImpl<PropertyString>(RecyclableObject * obj)
     {
         return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
-    }
-
-    /* static */
-    bool PropertyString::Is(Var var)
-    {
-        return RecyclableObject::Is(var) && PropertyString::Is(RecyclableObject::UnsafeFromVar(var));
-    }
-
-    PropertyString* PropertyString::UnsafeFromVar(Js::Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'PropertyString'");
-
-        return static_cast<PropertyString *>(aValue);
     }
 
     const void * PropertyString::GetOriginalStringReference()

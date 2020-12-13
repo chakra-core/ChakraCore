@@ -382,7 +382,7 @@ size_t EtwTrace::GetSimpleJitFunctionName(
     const size_t suffixCharLength = _countof(_u("Simple")) - 1;
 
     const char16 *const functionName = GetFunctionName(body);
-    const size_t functionNameCharLength = wcslen(functionName);
+    const size_t functionNameCharLength = body->GetDisplayNameLength();
     const size_t requiredCharCapacity = functionNameCharLength + suffixCharLength + 1;
     if(requiredCharCapacity > nameCharCapacity || name == NULL)
     {

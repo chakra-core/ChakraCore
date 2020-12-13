@@ -42,3 +42,4 @@ private:
     Field(TaggedPointer<JsrtContext>) previous;
     Field(TaggedPointer<JsrtContext>) next;
 };
+

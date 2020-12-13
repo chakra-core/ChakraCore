@@ -166,6 +166,11 @@
 </test>
 <test>
   <default>
+    <files>badfuncformat.js</files>
+  </default>
+</test>
+<test>
+  <default>
     <files>table_imports.js</files>
     <baseline>baselines/table_imports.baseline</baseline>
     <compile-flags>-wasm -wasmi64</compile-flags>

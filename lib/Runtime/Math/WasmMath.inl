@@ -155,6 +155,8 @@ DstType WasmMath::ConvertFloatToInt(SrcType srcVal, _In_ Js::ScriptContext * scr
         return 0;
     }
 
+    // TODO NumberUtilities::ToSpecial
+
     ReinterpretType val = *reinterpret_cast<ReinterpretType*> (&srcVal);
     if (MaxCmp(val, Max) || (val >= NegZero && NegOneCmp(val, NegOne)))
     {

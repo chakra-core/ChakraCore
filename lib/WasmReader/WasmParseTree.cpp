@@ -81,7 +81,7 @@ bool IsLocalType(WasmTypes::WasmType type)
 {
     // Check if type in range ]Void,Limit[
 #ifdef ENABLE_WASM_SIMD
-    if (type == WasmTypes::M128 && !Simd::IsEnabled())
+    if (type == WasmTypes::V128 && !Simd::IsEnabled())
     {
         return false;
     }
@@ -99,7 +99,7 @@ uint32 GetTypeByteSize(WasmType type)
     case F32: return sizeof(float);
     case F64: return sizeof(double);
 #ifdef ENABLE_WASM_SIMD
-    case M128:
+    case V128:
         Simd::EnsureSimdIsEnabled();
         CompileAssert(sizeof(Simd::simdvec) == 16);
         return sizeof(Simd::simdvec);
@@ -119,7 +119,7 @@ const char16 * GetTypeName(WasmType type)
     case WasmTypes::WasmType::F32: return _u("f32");
     case WasmTypes::WasmType::F64: return _u("f64");
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::WasmType::M128: 
+    case WasmTypes::WasmType::V128: 
         Simd::EnsureSimdIsEnabled();
         return _u("m128");
 #endif
@@ -140,9 +140,9 @@ WasmTypes::WasmType LanguageTypes::ToWasmType(int8 binType)
     case LanguageTypes::f32: return WasmTypes::F32;
     case LanguageTypes::f64: return WasmTypes::F64;
 #ifdef ENABLE_WASM_SIMD
-    case LanguageTypes::m128:
+    case LanguageTypes::v128:
         Simd::EnsureSimdIsEnabled();
-        return WasmTypes::M128;
+        return WasmTypes::V128;
 #endif
     default:
         throw WasmCompilationException(_u("Invalid binary type %d"), binType);

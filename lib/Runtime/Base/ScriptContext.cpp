@@ -42,6 +42,12 @@
 #include "Core/CRC.h"
 #include "Common/CompressionUtilities.h"
 
+#ifdef _M_IX86
+#ifdef _CONTROL_FLOW_GUARD
+extern "C" PVOID __guard_check_icall_fptr;
+#endif
+#endif
+
 namespace Js
 {
     ScriptContext * ScriptContext::New(ThreadContext * threadContext)
@@ -108,6 +114,7 @@ namespace Js
         isPerformingNonreentrantWork(false),
         isDiagnosticsScriptContext(false),
         m_enumerateNonUserFunctionsOnly(false),
+        scriptContextPrivilegeLevel(ScriptContextPrivilegeLevel::Low),
         recycler(threadContext->EnsureRecycler()),
         CurrentThunk(DefaultEntryThunk),
         CurrentCrossSiteThunk(CrossSite::DefaultThunk),
@@ -1059,6 +1066,7 @@ namespace Js
         Output::Print(_u("    SetIterator                    %8d   %8d\n"), typeCount[TypeIds_SetIterator], instanceCount[TypeIds_SetIterator]);
         Output::Print(_u("    StringIterator                 %8d   %8d\n"), typeCount[TypeIds_StringIterator], instanceCount[TypeIds_StringIterator]);
         Output::Print(_u("    Generator                      %8d   %8d\n"), typeCount[TypeIds_Generator], instanceCount[TypeIds_Generator]);
+        Output::Print(_u("    AsyncGenerator                 %8d   %8d\n"), typeCount[TypeIds_AsyncGenerator], instanceCount[TypeIds_AsyncGenerator]);
 #if !DBG
         Output::Print(_u("    ** Instance statistics only available on debug builds...\n"));
 #endif
@@ -1483,6 +1491,11 @@ namespace Js
         globalObject->Initialize(this);
 
         this->GetThreadContext()->RegisterScriptContext(this);
+    }
+
+    bool ScriptContext::ExceedsStackNestedFuncCount(uint count)
+    {
+        return count >= (InterpreterStackFrame::LocalsThreshold / (sizeof(StackScriptFunction) / sizeof(Var)));
     }
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -1952,17 +1965,18 @@ namespace Js
                 Js::Throw::OutOfMemory();
             }
             Assert(length < MAXLONG);
+            charcount_t ccLength = static_cast<charcount_t>(length);
 
             // Allocate memory for the UTF8 output buffer.
             // We need at most 3 bytes for each Unicode code point.
             // The + 1 is to include the terminating NUL.
             // Nit:  Technically, we know that the NUL only needs 1 byte instead of
             // 3, but that's difficult to express in a SAL annotation for "EncodeInto".
-            size_t cbUtf8Buffer = AllocSizeMath::Mul(AllocSizeMath::Add(length, 1), 3);
+            size_t cbUtf8Buffer = UInt32Math::MulAdd<3, 1>(ccLength);
 
             utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
 
-            cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const char16*)script, static_cast<charcount_t>(length));
+            cbNeeded = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::Cesu8>(utf8Script, cbUtf8Buffer, (const char16*)script, ccLength);
 
 #if DBG_DUMP && defined(PROFILE_MEM)
             if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
@@ -1982,23 +1996,20 @@ namespace Js
         else
         {
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
-            if (*ppSourceInfo == nullptr)
-            {
 #ifndef NTBUILD
-                if (loadScriptFlag & LoadScriptFlag_ExternalArrayBuffer)
-                {
-                    *ppSourceInfo = Utf8SourceInfo::NewWithNoCopy(this,
-                        script, (int)length, cb, pSrcInfo, isLibraryCode,
-                        scriptSource);
-                }
-                else
+            if (loadScriptFlag & LoadScriptFlag_ExternalArrayBuffer)
+            {
+                *ppSourceInfo = Utf8SourceInfo::NewWithNoCopy(this,
+                    script, (int)length, cb, pSrcInfo, isLibraryCode,
+                    scriptSource);
+            }
+            else
 #endif
-                {
-                    // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
-                    // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
-                    *ppSourceInfo = Utf8SourceInfo::New(this, script,
-                        (int)length, cb, pSrcInfo, isLibraryCode);
-                }
+            {
+                // The 'length' here is not correct (we will get the length from the parser) however parser isn't done yet.
+                // Once the parser is done we will update the utf8sourceinfo's length correctly
+                *ppSourceInfo = Utf8SourceInfo::New(this, script,
+                    (int)length, cb, pSrcInfo, isLibraryCode);
             }
         }
     }
@@ -2020,6 +2031,11 @@ namespace Js
             {
                 grfscr |= fscrWillDeferFncParse;
             }
+        }
+
+        if ((loadScriptFlag & LoadScriptFlag_StrictMode) == LoadScriptFlag_StrictMode)
+        {
+            grfscr |= fscrUseStrictMode;
         }
 
         if ((loadScriptFlag & LoadScriptFlag_disableAsmJs) == LoadScriptFlag_disableAsmJs)
@@ -2455,7 +2471,7 @@ ExitTempAllocator:
                 hr = ps.ParseCesu8Source(&parseTree, pszSrc, cbLength, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                     sourceContextInfo);
             }
-            
+
             utf8SourceInfo->SetParseFlags(grfscr);
             srcLength = ps.GetSourceLength();
 
@@ -2543,7 +2559,7 @@ ExitTempAllocator:
         SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
         const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, Js::Var scriptSource)
     {
-        uint sourceIndex;
+        uint sourceIndex = Constants::InvalidSourceIndex;
         JavascriptFunction * pFunction = nullptr;
 
         ParseNodeProg * parseTree = ParseScript(parser, script, cb, pSrcInfo,
@@ -2560,7 +2576,11 @@ ExitTempAllocator:
             Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
             pse->Free();
-
+            if (sourceIndex != Constants::InvalidSourceIndex)
+            {
+                // If we registered source, we should remove it or we will register another source info
+                this->RemoveSource(sourceIndex);
+            }
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
             return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
                 rootDisplayName, loadScriptFlag, scriptSource);
@@ -2799,6 +2819,12 @@ ExitTempAllocator:
         return info;
     }
 
+    void ScriptContext::RemoveSource(uint index)
+    {
+        Assert(this->sourceList->IsItemValid(index)); // This assert should be a subset of info != null- if info was null, in the last collect, we'd have invalidated the item
+        this->sourceList->RemoveAt(index);
+    }
+
     bool ScriptContext::IsItemValidInSourceList(int index)
     {
         return (index < this->sourceList->Count()) && this->sourceList->IsItemValid(index);
@@ -2875,7 +2901,7 @@ ExitTempAllocator:
         return success;
     }
 
-    void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pfuncScript)
+    void ScriptContext::AddToEvalMap(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pfuncScript)
     {
         Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 
@@ -2898,7 +2924,7 @@ ExitTempAllocator:
 #endif
     }
 
-    void ScriptContext::AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
+    void ScriptContext::AddToEvalMapHelper(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pFuncScript)
     {
         EvalCacheDictionary *dict = isIndirect ? this->Cache()->indirectEvalCacheDictionary : this->Cache()->evalCacheDictionary;
         if (dict == nullptr)
@@ -2913,6 +2939,15 @@ ExitTempAllocator:
             {
                 this->Cache()->evalCacheDictionary = dict;
             }
+        }
+
+        if (key.owningVar == nullptr)
+        {
+            // We need to copy buffer because in this case the buffer could have come from the host e.g. through IActiveScriptDirect::Parse
+            JavascriptString* copiedString = JavascriptString::NewCopyBuffer(key.str.GetBuffer(), key.str.GetLength(), this);
+            key.owningVar = copiedString;
+            Assert(key.str.GetLength() == copiedString->GetLength());
+            key.str = JsUtil::CharacterBuffer<char16>(copiedString->GetString(), copiedString->GetLength());
         }
 
         dict->Add(key, pFuncScript);
@@ -3821,21 +3856,6 @@ ExitTempAllocator:
 
         } autoRestore(this->GetThreadContext());
 
-        if (!Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            if (attach)
-            {
-                // Now force nonative, so the job will not be put in jit queue.
-                ForceNoNative();
-            }
-            else
-            {
-                // Take the runtime out of interpreted mode so the JIT
-                // queue can be exercised.
-                this->ForceNative();
-            }
-        }
-
         // Invalidate all the caches.
         this->threadContext->InvalidateAllProtoInlineCaches();
         this->threadContext->InvalidateAllStoreFieldInlineCaches();
@@ -4063,7 +4083,7 @@ ExitTempAllocator:
                 scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo() != nullptr &&
                 scriptFunction->GetFunctionBody()->GetAsmJsFunctionInfo()->GetModuleFunctionBody() != nullptr)
             {
-                AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(scriptFunction);
+                AsmJsScriptFunction* asmFunc = VarTo<AsmJsScriptFunction>(scriptFunction);
                 void* env = (void*)asmFunc->GetModuleEnvironment();
                 SList<AsmJsScriptFunction*> * funcList = nullptr;
                 if (asmJsEnvironmentMap->TryGetValue(env, &funcList))
@@ -4101,7 +4121,6 @@ ExitTempAllocator:
         // Wrapped function are not allocated with the EnumClass bit
         Assert(pFunction->GetFunctionInfo() != &JavascriptExternalFunction::EntryInfo::WrappedFunctionThunk);
 
-        JavascriptMethod entryPoint = pFunction->GetEntryPoint();
         FunctionInfo * info = pFunction->GetFunctionInfo();
         FunctionProxy * proxy = info->GetFunctionProxy();
 
@@ -4152,9 +4171,9 @@ ExitTempAllocator:
             pFunction->ResetConstructorCacheToDefault();
         }
 
-        if (ScriptFunctionWithInlineCache::Is(pFunction))
+        if (VarIs<ScriptFunctionWithInlineCache>(pFunction))
         {
-            ScriptFunctionWithInlineCache::FromVar(pFunction)->ClearInlineCacheOnFunctionObject();
+            VarTo<ScriptFunctionWithInlineCache>(pFunction)->ClearInlineCacheOnFunctionObject();
         }
 
         // We should have force parsed the function, and have a function body
@@ -4173,26 +4192,13 @@ ExitTempAllocator:
         }
 #endif
 
-        ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
-
 #ifdef ASMJS_PLAT
+        ScriptFunction * scriptFunction = VarTo<ScriptFunction>(pFunction);
         scriptContext->TransitionEnvironmentForDebugger(scriptFunction);
 #endif
-
-        JavascriptMethod newEntryPoint;
-        if (CrossSite::IsThunk(entryPoint))
-        {
-            // Can't change from cross-site to non-cross-site, but still need to update the e.p.info on ScriptFunctionType.
-            newEntryPoint = entryPoint;
-        }
-        else
-        {
-            newEntryPoint = pBody->GetDirectEntryPoint(pBody->GetDefaultFunctionEntryPointInfo());
-        }
-
-        scriptFunction->ChangeEntryPoint(pBody->GetDefaultFunctionEntryPointInfo(), newEntryPoint);
     }
-#endif
+
+#endif // ENABLE_SCRIPT_DEBUGGING
 
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     void ScriptContext::RecyclerEnumClassEnumeratorCallback(void *address, size_t size)
@@ -4251,7 +4257,7 @@ ExitTempAllocator:
             {
                 OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\t\tJs::ScriptContext::GetProfileModeThunk : 0x%08X\n"), (DWORD_PTR)Js::ScriptContext::GetProfileModeThunk(entryPoint));
 
-                ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
+                ScriptFunction * scriptFunction = VarTo<ScriptFunction>(pFunction);
                 scriptFunction->ChangeEntryPoint(proxy->GetDefaultEntryPointInfo(), Js::ScriptContext::GetProfileModeThunk(entryPoint));
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SCRIPT_PROFILING)
@@ -4484,11 +4490,6 @@ ExitTempAllocator:
         {
             forceNoNative = this->IsInterpreted();
         }
-        else if (!Js::Configuration::Global.EnableJitInDebugMode())
-        {
-            forceNoNative = true;
-            this->ForceNoNative();
-        }
         return forceNoNative;
     }
 
@@ -4522,8 +4523,8 @@ ExitTempAllocator:
 #if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
         RUNTIME_ARGUMENTS(args, callInfo);
 
-        Assert(!WasmScriptFunction::Is(callable));
-        JavascriptFunction* function = JavascriptFunction::FromVar(callable);
+        Assert(!VarIs<WasmScriptFunction>(callable));
+        JavascriptFunction* function = VarTo<JavascriptFunction>(callable);
         ScriptContext* scriptContext = function->GetScriptContext();
 
         // We can come here when profiling is not on
@@ -4582,7 +4583,7 @@ ExitTempAllocator:
                     else
                     {
                         // it is string because user had called in toString extract name from it
-                        Assert(JavascriptString::Is(sourceString));
+                        Assert(VarIs<JavascriptString>(sourceString));
                         const char16 *pwszToString = ((JavascriptString *)sourceString)->GetSz();
                         const char16 *pwszNameStart = wcsstr(pwszToString, _u(" "));
                         const char16 *pwszNameEnd = wcsstr(pwszToString, _u("("));
@@ -4636,6 +4637,10 @@ ExitTempAllocator:
             else if (origEntryPoint == Js::JavascriptFunction::NewAsyncFunctionInstance)
             {
                 origEntryPoint = Js::JavascriptFunction::NewAsyncFunctionInstanceRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptFunction::NewAsyncGeneratorFunctionInstance)
+            {
+                origEntryPoint = Js::JavascriptFunction::NewAsyncGeneratorFunctionInstanceRestrictedMode;
             }
         }
 
@@ -5036,7 +5041,7 @@ ExitTempAllocator:
 
     void ScriptContext::RegisterIsInstInlineCache(Js::IsInstInlineCache * cache, Js::Var function)
     {
-        Assert(JavascriptFunction::FromVar(function)->GetScriptContext() == this);
+        Assert(VarTo<JavascriptFunction>(function)->GetScriptContext() == this);
         hasIsInstInlineCache = true;
 #if DBG
         this->isInstInlineCacheAllocator.Unlock();
@@ -5351,6 +5356,8 @@ ScriptContext::GetJitFuncRangeCache()
         contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
         contextData.libraryAddr = (intptr_t)GetLibrary();
         contextData.globalObjectAddr = (intptr_t)GetLibrary()->GetGlobalObject();
+        contextData.objectPrototypeAddr = (intptr_t)GetLibrary()->GetObjectPrototype();
+        contextData.functionPrototypeAddr = (intptr_t)GetLibrary()->GetFunctionPrototype();
         contextData.builtinFunctionsBaseAddr = (intptr_t)GetLibrary()->GetBuiltinFunctions();
         contextData.sideEffectsAddr = optimizationOverrides.GetAddressOfSideEffects();
         contextData.arraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfArraySetElementFastPathVtable();
@@ -5394,10 +5401,41 @@ ScriptContext::GetJitFuncRangeCache()
         allowPrereserveAlloc = false;
 #endif
         // The EnsureJITThreadContext() call could fail if the JIT Server process has died. In such cases, we should not try to do anything further in the client process.
-        if (this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc))
+        if (!this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc))
         {
-            HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+            return;
+        }
+
+        HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+
+        if (!m_remoteScriptContextAddr)
+        {
+            return;
+        }
+
+        // Initialize mutable ScriptContext state if needed
+        if (this->IsPRNGSeeded())
+        {
+            hr = JITManager::GetJITManager()->SetIsPRNGSeeded(m_remoteScriptContextAddr, TRUE);
             JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+        }
+
+        ModuleRecordList* moduleRecordList = this->GetLibrary()->GetModuleRecordList();
+        if (moduleRecordList)
+        {
+            moduleRecordList->Map([this](int start, SourceTextModuleRecord* moduleRecord) {
+                intptr_t exportSlotsAddr = (intptr_t)moduleRecord->GetLocalExportSlots();
+                // only add modules which have initialized localExportSlots
+                if (exportSlotsAddr)
+                {
+                    HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
+                        m_remoteScriptContextAddr,
+                        moduleRecord->GetModuleId(),
+                        exportSlotsAddr);
+                    JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+                }
+            });
         }
     }
 #endif
@@ -5530,6 +5568,16 @@ ScriptContext::GetJitFuncRangeCache()
     intptr_t ScriptContext::GetGlobalObjectThisAddr() const
     {
         return (intptr_t)GetLibrary()->GetGlobalObject()->ToThis();
+    }
+
+    intptr_t ScriptContext::GetObjectPrototypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetObjectPrototype();
+    }
+
+    intptr_t ScriptContext::GetFunctionPrototypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetFunctionPrototype();
     }
 
     intptr_t ScriptContext::GetNumberAllocatorAddr() const
@@ -5806,6 +5854,7 @@ ScriptContext::GetJitFuncRangeCache()
 
     void ConvertKey(const FastEvalMapString& src, EvalMapString& dest)
     {
+        dest.owningVar = src.owningVar;
         dest.str = src.str;
         dest.strict = src.strict;
         dest.moduleID = src.moduleID;
@@ -6428,6 +6477,18 @@ ScriptContext::GetJitFuncRangeCache()
         return true;
     }
 
+    void ScriptContext::SetIsDiagnosticsScriptContext(bool set)
+    {
+        this->isDiagnosticsScriptContext = set;
+        if (this->isDiagnosticsScriptContext)
+        {
+            this->scriptContextPrivilegeLevel = ScriptContextPrivilegeLevel::Medium;
+        }
+        else
+        {
+            this->scriptContextPrivilegeLevel = ScriptContextPrivilegeLevel::Low;
+        }
+    }
 
     bool ScriptContext::IsScriptContextInDebugMode() const
     {

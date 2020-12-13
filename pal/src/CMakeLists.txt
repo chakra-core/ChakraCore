@@ -173,6 +173,10 @@ add_library(Chakra.Pal
   ${ARCH_SOURCES}
 )
 
+if(EMBED_ICU)
+  add_dependencies(Chakra.Pal ${EMBEDDED_ICU_TARGET})
+endif()
+
 if (NOT STATIC_LIBRARY)
   add_library(Chakra.Pal.Singular
     STATIC
@@ -196,4 +200,8 @@ if (NOT STATIC_LIBRARY)
     ${PTHREAD}
     dl
     )
+
+  if(EMBED_ICU)
+    add_dependencies(Chakra.Pal.Singular ${EMBEDDED_ICU_TARGET})
+  endif()
 endif()

@@ -403,7 +403,7 @@ async function testTableApi(baseModule) {
   console.log(`call_i32(29): ${call_i32(29)}`);
   console.log(`call_i32(30): ${call_i32(30)}`);
 
-  const table2 = new WebAssembly.Table({element: "anyfunc"});
+  const table2 = new WebAssembly.Table({element: "anyfunc", initial: 0});
   table.grow(0);
   try {table2.get(0); console.log("Failed. Unexpected successfull call to table2.get(0)");} catch (e) {}
   table.grow(1);

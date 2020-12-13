@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "c": "function <large string>"
     },
     "arguments": {
@@ -16,17 +17,20 @@
       "e": "string level1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "c": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "c": "function <large string>"
     },
     "locals": {
       "b": "string level2",
       "a": "string level2level3",
       "e": "string level1",
+      "Symbol.toStringTag": "string global",
       "c": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",

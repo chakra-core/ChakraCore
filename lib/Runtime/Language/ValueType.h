@@ -172,6 +172,7 @@ public:
 
     bool HasBeenPrimitive() const;
     bool IsPrimitive() const;
+    bool IsPrimitiveOrObject() const;
     bool IsLikelyPrimitive() const;
 
 #if DBG

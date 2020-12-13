@@ -93,6 +93,7 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ObjLiteralCount, UInt32, 0);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LiteralRegexCount, UInt32, 0);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InnerScopeCount, UInt32, 0);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(ProfileId, ProfiledCallApplyCallSiteCount, UInt16, 0);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(ProfileId, ProfiledForInLoopCount, UInt16, 0);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalClosureRegister, RegSlot, Constants::NoRegister);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ParamClosureRegister, RegSlot, Constants::NoRegister);

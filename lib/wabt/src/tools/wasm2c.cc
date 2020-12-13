@@ -22,7 +22,7 @@
 #include "src/apply-names.h"
 #include "src/binary-reader.h"
 #include "src/binary-reader-ir.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
 #include "src/feature.h"
 #include "src/generate-names.h"
 #include "src/ir.h"
@@ -80,15 +80,16 @@ static void ParseOptions(int argc, char** argv) {
                      });
   parser.Parse(argc, argv);
 
-  // TODO(binji): currently wasm2c doesn't support any feature flags.
-  bool any_feature_enabled = false;
-#define WABT_FEATURE(variable, flag, help) \
-  any_feature_enabled |= s_features.variable##_enabled();
+  // TODO(binji): currently wasm2c doesn't support any non-default feature
+  // flags.
+  bool any_non_default_feature = false;
+#define WABT_FEATURE(variable, flag, default_, help) \
+  any_non_default_feature |= (s_features.variable##_enabled() != default_);
 #include "src/feature.def"
 #undef WABT_FEATURE
 
-  if (any_feature_enabled) {
-    fprintf(stderr, "wasm2c doesn't currently support any --enable-* flags.\n");
+  if (any_non_default_feature) {
+    fprintf(stderr, "wasm2c currently support only default feature flags.\n");
     exit(1);
   }
 }
@@ -112,7 +113,7 @@ int ProgramMain(int argc, char** argv) {
   std::vector<uint8_t> file_data;
   result = ReadFile(s_infile.c_str(), &file_data);
   if (Succeeded(result)) {
-    ErrorHandlerFile error_handler(Location::Type::Binary);
+    Errors errors;
     Module module;
     const bool kStopOnFirstError = true;
     const bool kFailOnCustomSectionError = true;
@@ -120,12 +121,11 @@ int ProgramMain(int argc, char** argv) {
                               s_read_debug_names, kStopOnFirstError,
                               kFailOnCustomSectionError);
     result = ReadBinaryIr(s_infile.c_str(), file_data.data(), file_data.size(),
-                          &options, &error_handler, &module);
+                          options, &errors, &module);
     if (Succeeded(result)) {
       if (Succeeded(result)) {
         ValidateOptions options(s_features);
-        WastLexer* lexer = nullptr;
-        result = ValidateModule(lexer, &module, &error_handler, &options);
+        result = ValidateModule(&module, &errors, options);
         result |= GenerateNames(&module);
       }
 
@@ -143,14 +143,15 @@ int ProgramMain(int argc, char** argv) {
           FileStream c_stream(s_outfile.c_str());
           FileStream h_stream(header_name);
           result = WriteC(&c_stream, &h_stream, header_name.c_str(), &module,
-                          &s_write_c_options);
+                          s_write_c_options);
         } else {
           FileStream stream(stdout);
           result =
-              WriteC(&stream, &stream, "wasm.h", &module, &s_write_c_options);
+              WriteC(&stream, &stream, "wasm.h", &module, s_write_c_options);
         }
       }
     }
+    FormatErrorsToFile(errors, Location::Type::Binary);
   }
   return result != Result::Ok;
 }

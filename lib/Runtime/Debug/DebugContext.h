@@ -76,8 +76,8 @@ namespace Js
         ProbeContainer* diagProbesContainer;
         DebuggerMode debuggerMode;
         bool isClosed : 1;
-        bool isDebuggerRecording : 1;
         bool isReparsingSource : 1;
+        bool isDebuggerRecording : 1;
 
         // Private Functions
         void WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList);

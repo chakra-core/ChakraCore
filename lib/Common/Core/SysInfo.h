@@ -15,8 +15,8 @@ public:
     uint GetAllocationGranularityPageSize() const;
 
     bool DisableDebugScopeCapture() const { return this->disableDebugScopeCapture; }
-    bool IsCFGEnabled();
     bool IsWin8OrLater();
+    bool IsWin8Point1OrLater();
 #if defined(_CONTROL_FLOW_GUARD)
     bool IsWinThresholdOrLater();
 #endif
@@ -89,6 +89,7 @@ private:
     AutoSystemInfo() : majorVersion(0), minorVersion(0), buildDateHash(0), buildTimeHash(0), crtSize(0) { Initialize(); }
     void Initialize();
     bool isWindows8OrGreater;
+    bool isWindows8Point1OrGreater;
     uint allocationGranularityPageCount;
     HANDLE processHandle;
     DWORD crtSize;

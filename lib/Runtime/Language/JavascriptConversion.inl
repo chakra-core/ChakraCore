@@ -15,7 +15,12 @@ namespace Js {
     inline BOOL JavascriptConversion::ToBoolean(Var aValue,ScriptContext* scriptContext)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(Conv_ToBoolean, reentrancylock, scriptContext->GetThreadContext());
-        if (TaggedInt::Is(aValue))
+
+        if (VarIs<JavascriptBoolean>(aValue))
+        {
+            return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue();
+        }
+        else if (TaggedInt::Is(aValue))
         {
             return aValue != reinterpret_cast<Var>(AtomTag_IntPtr);
         }
@@ -248,7 +253,7 @@ namespace Js {
            {
                return nullptr;
            }
-           int64 int64Val = JavascriptInt64Number::UnsafeFromVar(value)->GetValue();
+           int64 int64Val = UnsafeVarTo<JavascriptInt64Number>(value)->GetValue();
 
            return TryCanonicalizeIntHelper<int64, allowNegOne>(int64Val);
 
@@ -259,7 +264,7 @@ namespace Js {
            {
                return nullptr;
            }
-           uint64 uint64Val = JavascriptUInt64Number::UnsafeFromVar(value)->GetValue();
+           uint64 uint64Val = UnsafeVarTo<JavascriptUInt64Number>(value)->GetValue();
 
            return TryCanonicalizeIntHelper<uint64, allowNegOne>(uint64Val);
        }
@@ -297,10 +302,12 @@ namespace Js {
 #if FLOATVAR
            if (typeId == TypeIds_Number)
            {
-               // NaN could have sign bit set, but that isn't observable so canonicalize to positive NaN
                double numberValue = JavascriptNumber::GetValue(value);
+               // NaN and -NaN do not canonicalize to the same value, but they are equal, so only allow +NaN
                return JavascriptNumber::IsNan(numberValue)
-                   ? JavascriptNumber::ToVar(JavascriptNumber::NaN)
+                   ? JavascriptNumber::IsNegative(numberValue)
+                        ? nullptr
+                        : JavascriptNumber::ToVar(JavascriptNumber::NaN)
                    : value;
            }
 #else

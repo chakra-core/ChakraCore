@@ -106,11 +106,6 @@ struct v128 {
 
 namespace wabt {
 
-enum class ErrorLevel {
-  Warning,
-  Error,
-};
-
 typedef uint32_t Index;    // An index into one of the many index spaces.
 typedef uint32_t Address;  // An address or size in linear memory.
 typedef size_t Offset;     // An offset into a host's file or memory buffer.
@@ -289,6 +284,13 @@ enum class ExternalKind {
 static const int kExternalKindCount = WABT_ENUM_COUNT(ExternalKind);
 
 struct Limits {
+  Limits() = default;
+  explicit Limits(uint64_t initial) : initial(initial) {}
+  Limits(uint64_t initial, uint64_t max)
+      : initial(initial), max(max), has_max(true) {}
+  Limits(uint64_t initial, uint64_t max, bool is_shared)
+      : initial(initial), max(max), has_max(true), is_shared(is_shared) {}
+
   uint64_t initial = 0;
   uint64_t max = 0;
   bool has_max = false;
@@ -390,18 +392,6 @@ static WABT_INLINE TypeVector GetInlineTypeVector(Type type) {
     default:
       WABT_UNREACHABLE;
   }
-}
-
-/* error level */
-
-static WABT_INLINE const char* GetErrorLevelName(ErrorLevel error_level) {
-  switch (error_level) {
-    case ErrorLevel::Warning:
-      return "warning";
-    case ErrorLevel::Error:
-      return "error";
-  }
-  WABT_UNREACHABLE;
 }
 
 template <typename T>

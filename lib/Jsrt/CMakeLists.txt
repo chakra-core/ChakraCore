@@ -26,4 +26,5 @@ target_include_directories (
     ../Runtime/ByteCode
     ../Runtime/Debug
     ../Parser
+    ../SCACore
     )

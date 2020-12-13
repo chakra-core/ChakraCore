@@ -38,7 +38,7 @@ typedef struct {} TTDRecorder;
     } \
 
 #define MARSHAL_OBJECT(p, scriptContext) \
-        Js::RecyclableObject* __obj = Js::RecyclableObject::FromVar(p); \
+        Js::RecyclableObject* __obj = Js::VarTo<Js::RecyclableObject>(p); \
         if (__obj->GetScriptContext() != scriptContext) \
         { \
             if(__obj->GetScriptContext()->GetThreadContext() != scriptContext->GetThreadContext()) \
@@ -68,7 +68,7 @@ typedef struct {} TTDRecorder;
 #define VALIDATE_INCOMING_REFERENCE(p, scriptContext) \
         { \
             VALIDATE_JSREF(p); \
-            if (Js::RecyclableObject::Is(p)) \
+            if (Js::VarIs<Js::RecyclableObject>(p)) \
             { \
                 MARSHAL_OBJECT(p, scriptContext)   \
             } \
@@ -87,7 +87,7 @@ typedef struct {} TTDRecorder;
 #define VALIDATE_INCOMING_RECYCLABLE(p, scriptContext) \
 { \
     VALIDATE_JSREF(p); \
-    if (!Js::RecyclableObject::Is(p)) \
+    if (!Js::VarIs<Js::RecyclableObject>(p)) \
     { \
         return JsErrorInvalidArgument; \
     } \
@@ -107,7 +107,7 @@ typedef struct {} TTDRecorder;
 #define VALIDATE_INCOMING_FUNCTION(p, scriptContext) \
         { \
             VALIDATE_JSREF(p); \
-            if (!Js::JavascriptFunction::Is(p)) \
+            if (!Js::VarIs<Js::JavascriptFunction>(p)) \
             { \
                 return JsErrorInvalidArgument; \
             } \

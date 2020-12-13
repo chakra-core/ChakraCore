@@ -116,6 +116,23 @@
   "type mismatch"
 )
 
+(assert_invalid
+  (module (func $i32-vs-empty (local i32) (get_local 0)))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $i64-vs-empty (local i64) (get_local 0)))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $f32-vs-empty (local f32) (get_local 0)))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $f64-vs-empty (local f64) (get_local 0)))
+  "type mismatch"
+)
+
 
 ;; Invalid local index
 

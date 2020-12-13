@@ -73,6 +73,12 @@ var tests = [
     }
   },
   {
+    name: "Class names are parsed in strict mode",
+    body: function () {
+      assert.throws(function () { eval("class l\u0065t { }") }, SyntaxError);
+    }
+  },
+  {
     name: "Class methods may not have an octal name",
     body: function () {
       assert.throws(function () { eval("class E0 { 0123() {} }") }, SyntaxError, "0123");

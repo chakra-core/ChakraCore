@@ -1,0 +1,11 @@
+Harness Status: OK
+Found 9 tests: Fail = 2 Pass = 7
+Fail Missing arguments  assert_throws: function "() => WebAssembly.Module.customSections(module)" did not throw
+Pass Non-Module arguments  
+Pass Branding  
+Pass Empty module  
+Pass Empty module: array caching  
+Pass Custom sections  
+Pass Custom sections with surrogate pairs  
+Fail Custom sections with U+FFFD  assert_equals: expected 1 but got 0
+Pass Stray argument  

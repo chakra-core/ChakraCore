@@ -19,13 +19,15 @@
 #endif
 
 /*
- *           variable          flag                       help
+ *           variable          flag                       default  help
  * ========================================================================= */
 
-WABT_FEATURE(exceptions,       "exceptions",              "Experimental exception handling")
-WABT_FEATURE(mutable_globals,  "mutable-globals",         "Import/export mutable globals")
-WABT_FEATURE(sat_float_to_int, "saturating-float-to-int", "Saturating float-to-int operators")
-WABT_FEATURE(sign_extension,   "sign-extension",          "Sign-extension operators")
-WABT_FEATURE(simd,             "simd",                    "SIMD support")
-WABT_FEATURE(threads,          "threads",                 "Threading support")
-WABT_FEATURE(multi_value,      "multi-value",             "Multi-value")
+WABT_FEATURE(exceptions,       "exceptions",              false,   "Experimental exception handling")
+WABT_FEATURE(mutable_globals,  "mutable-globals",         true,    "Import/export mutable globals")
+WABT_FEATURE(sat_float_to_int, "saturating-float-to-int", false,   "Saturating float-to-int operators")
+WABT_FEATURE(sign_extension,   "sign-extension",          false,   "Sign-extension operators")
+WABT_FEATURE(simd,             "simd",                    false,   "SIMD support")
+WABT_FEATURE(threads,          "threads",                 false,   "Threading support")
+WABT_FEATURE(multi_value,      "multi-value",             false,   "Multi-value")
+WABT_FEATURE(tail_call,        "tail-call",               false,   "Tail-call support")
+WABT_FEATURE(bulk_memory,      "bulk-memory",             false,   "Bulk-memory operations")

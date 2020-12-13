@@ -29,7 +29,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)BigInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BigUInt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DictionaryStats.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GrowingArray.cpp" />
@@ -45,7 +45,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BigInt.h" />
+    <ClInclude Include="BigUInt.h" />
     <ClInclude Include="BaseDictionary.h" />
     <ClInclude Include="BufferBuilder.h" />
     <ClInclude Include="Cache.h" />

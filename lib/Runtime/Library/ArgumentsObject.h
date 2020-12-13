@@ -19,8 +19,6 @@ namespace Js
             Assert(type->GetTypeId() == TypeIds_Arguments);
         }
 
-        static bool Is(Var aValue);
-
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache = nullptr) override;
@@ -31,6 +29,11 @@ namespace Js
         virtual void SetHeapArguments(HeapArgumentsObject *args) = 0;
         virtual BOOL AdvanceWalkerToArgsFrame(JavascriptStackWalker *walker) = 0;
     };
+
+    template <> inline bool VarIsImpl<ArgumentsObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Arguments;
+    }
 
     class ES5HeapArgumentsObject;
 
@@ -116,11 +119,11 @@ namespace Js
         }
 
         ES5HeapArgumentsObject* ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject = true);
-        const ActivationObject* const GetFrameObject() { return frameObject; }
+        const ActivationObject* GetFrameObject() { return frameObject; }
         void SetFrameObject(ActivationObject * value)
         {
             AssertMsg(frameObject == nullptr, "Setting the frame object again?");
-            Assert(!value || ActivationObject::Is(value));
+            Assert(!value || VarIsCorrectType(value));
             frameObject = value;
         }
 

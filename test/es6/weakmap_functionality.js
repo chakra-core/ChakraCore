@@ -95,6 +95,29 @@ var tests = [
     },
 
     {
+        name : "WeakMap constructor caches next method from iterator",
+        body: function () {
+            const keys = [ { }, { }, { } ];
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : [keys[iterCount], iterCount],
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            const wm = new WeakMap(iter);
+
+            assert.areEqual(0, wm.get(keys[0]), "wm has key keys[0]");
+            assert.areEqual(1, wm.get(keys[1]), "wm has key keys[1]");
+            assert.areEqual(2, wm.get(keys[2]), "wm has key keys[2]");
+        }
+    },
+
+    {
         name: "WeakMap constructor throws exceptions for non- and malformed iterable arguments",
         body: function () {
             var iterableNoIteratorMethod = { [Symbol.iterator]: 123 };
@@ -500,6 +523,28 @@ var tests = [
             assert.isTrue(wm.has(frozenObj), "First WeakMap still has frozen object as key");
         }
     },
+
+    {
+        name: "WeakMap internal property data is not copied by Object.assign",
+        body: function () {
+            var key1 = {};
+            var key2 = {};
+            var map = new WeakMap(); 
+
+            map.set(key1, 1);
+            map.delete(Object.assign(key2, key1));
+            assert.isFalse(map.has(key2));
+
+            key1 = {};
+            key2 = {};
+            map = new WeakMap(); 
+
+            map.set(key1, 1);
+            key1.a = 1;
+            map.delete(Object.assign(key2, key1));
+            assert.isFalse(map.has(key2));
+        }
+    }
 
 ];
 

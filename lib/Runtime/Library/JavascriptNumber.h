@@ -37,6 +37,9 @@ namespace Js
         static Var ToVarMaybeInPlace(double value, ScriptContext* scriptContext, JavascriptNumber *result);
         static Var ToVarIntCheck(double value, ScriptContext* scriptContext);
         static Var ToVar(int32 nValue, ScriptContext* scriptContext);
+#ifdef ENABLE_TEST_HOOKS
+        static Var ToVarFor32BitBytecode(int32 nValue, ScriptContext* scriptContext);
+#endif
 #if defined(__clang__) && defined(_M_IX86)
         static Var ToVar(intptr_t nValue, ScriptContext* scriptContext);
 #endif
@@ -55,6 +58,7 @@ namespace Js
         static bool TryToVarFastWithCheck(double value, Var* result);
 
         inline static BOOL IsNan(double value) { return NumberUtilities::IsNan(value); }
+        inline static BOOL IsNegative(double value) { return NumberUtilities::IsNegative(value); }
         static bool IsZero(double value);
         static BOOL IsNegZero(double value);
         static bool IsPosInf(double value);

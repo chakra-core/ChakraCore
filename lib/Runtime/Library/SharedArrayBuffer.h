@@ -73,10 +73,6 @@ namespace Js
         static Var EntryGetterByteLength(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static bool Is(Var aValue);
-        static SharedArrayBuffer* FromVar(Var aValue);
-        static SharedArrayBuffer* UnsafeFromVar(Var aValue);
-
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
@@ -89,7 +85,7 @@ namespace Js
         virtual bool IsArrayBuffer() override { return false; }
         virtual bool IsSharedArrayBuffer() override { return true; }
         virtual ArrayBuffer * GetAsArrayBuffer() { return nullptr; }
-        virtual SharedArrayBuffer * GetAsSharedArrayBuffer() override { return SharedArrayBuffer::FromVar(this); }
+        virtual SharedArrayBuffer * GetAsSharedArrayBuffer() override;
 
         WaiterList *GetWaiterList(uint index);
         SharedContents *GetSharedContents() { return sharedContents; }
@@ -114,6 +110,11 @@ namespace Js
 
         static CriticalSection csSharedArrayBuffer;
     };
+
+    template <> inline bool VarIsImpl<SharedArrayBuffer>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_SharedArrayBuffer;
+    }
 
     class JavascriptSharedArrayBuffer : public SharedArrayBuffer
     {
@@ -144,9 +145,6 @@ namespace Js
         static WebAssemblySharedArrayBuffer* Create(uint32 length, uint32 maxLength, DynamicType * type);
         static WebAssemblySharedArrayBuffer* Create(SharedContents *sharedContents, DynamicType * type);
 
-        static bool Is(Var aValue);
-        static WebAssemblySharedArrayBuffer* FromVar(Var aValue);
-
         virtual bool IsValidVirtualBufferLength(uint length) const override;
         virtual bool IsWebAssemblyArrayBuffer() override { return true; }
         _Must_inspect_result_ bool GrowMemory(uint32 newBufferLength);
@@ -160,6 +158,11 @@ namespace Js
         WebAssemblySharedArrayBuffer(SharedContents *sharedContents, DynamicType * type);
         void ValidateBuffer();
     };
+
+    template <> inline bool VarIsImpl<WebAssemblySharedArrayBuffer>(RecyclableObject* obj)
+    {
+        return VarIs<SharedArrayBuffer>(obj) && UnsafeVarTo<SharedArrayBuffer>(obj)->IsWebAssemblyArrayBuffer();
+    }
 #endif
 
     // An agent can be viewed as a worker

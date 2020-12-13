@@ -58,6 +58,7 @@ public:
         Assert(tk == tkStrCon || tk == tkStrTmplBasic || tk == tkStrTmplBegin || tk == tkStrTmplMid || tk == tkStrTmplEnd);
         return u.pid;
     }
+
     IdentPtr GetIdentifier(HashTbl * hashTbl)
     {
         Assert(IsIdentifier() || IsReservedWord());
@@ -72,6 +73,12 @@ public:
     {
         Assert(tk == tkIntCon);
         return u.lw;
+    }
+
+    IdentPtr GetBigInt() const
+    {
+        Assert(tk == tkBigIntCon);
+        return u.pid;
     }
 
     double GetDouble() const
@@ -136,6 +143,12 @@ public:
     {
         this->u.dbl = dbl;
         this->u.maybeInt = maybeInt;
+    }
+
+    void SetBigInt(IdentPtr pid)
+    {
+        this->u.pid = pid;
+        this->u.pchMin = nullptr;
     }
 
     tokens SetRegex(UnifiedRegex::RegexPattern *const pattern, Parser *const parser);
@@ -480,6 +493,10 @@ public:
       return m_EscapeOnLastTkStrCon;
     }
 
+    bool LastIdentifierHasEscape()
+    {
+        return m_lastIdentifierHasEscape;
+    }
 
     bool IsOctOrLeadingZeroOnLastTKNumber()
     {
@@ -500,7 +517,6 @@ public:
     // character of the token would have if the entire file was converted to Unicode (UTF16-LE).
     charcount_t IchLimTok(void) const
     {
-
         Assert(m_currentCharacter - m_pchBase >= 0);
         Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
         Assert(static_cast<charcount_t>(m_currentCharacter - m_pchBase) >= this->m_cMultiUnits);
@@ -689,6 +705,7 @@ public:
         }
     };
 
+    tokens GetPrevious() { return m_tkPrevious; }
     void Capture(_Out_ RestorePoint* restorePoint);
     void SeekTo(const RestorePoint& restorePoint);
     void SeekToForcingPid(const RestorePoint& restorePoint);
@@ -717,6 +734,7 @@ private:
     BOOL m_doubleQuoteOnLastTkStrCon :1;
     bool m_OctOrLeadingZeroOnLastTKNumber :1;
     bool m_EscapeOnLastTkStrCon:1;
+    bool m_lastIdentifierHasEscape:1;
     BOOL m_fNextStringTemplateIsTagged:1;   // the next string template scanned has a tag (must create raw strings)
     BYTE m_DeferredParseFlags:2;            // suppressStrPid and suppressIdPid    
     bool es6UnicodeMode;                // True if ES6Unicode Extensions are enabled.
@@ -763,11 +781,11 @@ private:
         throw ParseExceptionObject(hr);
     }
 
-    const EncodedCharPtr PchBase(void) const
+    EncodedCharPtr PchBase(void) const
     {
         return m_pchBase;
     }
-    const EncodedCharPtr PchMinTok(void)
+    EncodedCharPtr PchMinTok(void)
     {
         return m_pchMinTok;
     }
@@ -780,7 +798,7 @@ private:
 
     void ScanNewLine(uint ch);
     void NotifyScannedNewLine();
-    charcount_t LineLength(EncodedCharPtr first, EncodedCharPtr last);
+    charcount_t LineLength(EncodedCharPtr first, EncodedCharPtr last, size_t* cb);
 
     tokens ScanIdentifier(bool identifyKwds, EncodedCharPtr *pp);
     BOOL FastIdentifierContinue(EncodedCharPtr&p, EncodedCharPtr last);
@@ -788,7 +806,7 @@ private:
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);
-    EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt);
+    EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, LikelyNumberType& likelyInt, size_t savedMultiUnits);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);
     uint32 UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last);

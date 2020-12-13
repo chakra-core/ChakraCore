@@ -232,7 +232,7 @@ namespace JsUtil
             return values[i];
         }
 
-        const TBValue Item(const TBKey& key) const
+        TBValue Item(const TBKey& key) const
         {
             int i = FindEntry(key);
             Assert(i >= 0);

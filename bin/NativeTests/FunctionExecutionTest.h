@@ -127,6 +127,8 @@ namespace Js
         FunctionEntryPointInfo* GetDefaultFunctionEntryPointInfo() { return &defaultInfo; }
         FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() { return &simpleInfo; }
         void TraceExecutionMode(const char *const eventDescription = nullptr) const { UNREFERENCED_PARAMETER(eventDescription); }
+        // Dummy implementation to match the real FunctionBody's method
+        bool SkipAutoProfileForCoroutine() const { return false; }
         
         FunctionBody(bool interpreterProfile, bool interpreterAutoProfile, bool simpleJit):
             doInterpreterProfile(interpreterProfile),

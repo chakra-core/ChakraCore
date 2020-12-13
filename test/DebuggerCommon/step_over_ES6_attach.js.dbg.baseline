@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
@@ -16,6 +17,7 @@
       "x": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",

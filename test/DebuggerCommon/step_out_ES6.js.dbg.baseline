@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"
@@ -15,6 +16,7 @@
       "z": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"
@@ -22,6 +24,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"
@@ -36,6 +39,7 @@
       "z": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"

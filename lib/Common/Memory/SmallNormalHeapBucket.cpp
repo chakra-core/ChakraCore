@@ -23,12 +23,14 @@ SmallNormalHeapBucketBase<TBlockType>::AggregateBucketStats()
 {
     __super::AggregateBucketStats();
 
+#if ENABLE_PARTIAL_GC
     HeapBlockList::ForEach(partialHeapBlockList, [this](TBlockType* heapBlock) {
         heapBlock->AggregateBlockStats(this->memStats);
     });
     HeapBlockList::ForEach(partialSweptHeapBlockList, [this](TBlockType* heapBlock) {
         heapBlock->AggregateBlockStats(this->memStats);
     });
+#endif
 }
 #endif
 

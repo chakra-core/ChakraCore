@@ -8,6 +8,41 @@ const int32 AstBytecodeRatioEstimate = 4;
 const int32 AstBytecodeRatioEstimate = 5;
 #endif
 
+
+enum DynamicLoadKind
+{
+    Invalid,
+    Local,
+    Env,
+    LocalWith,
+    EnvWith
+};
+
+struct DynamicLoadRecord
+{
+    DynamicLoadRecord();
+    DynamicLoadKind kind;
+    Js::ByteCodeLabel label;
+    union
+    {
+        uint32 index;
+        Js::RegSlot instance;
+    };
+};
+
+struct JumpCleanupInfo
+{
+    // Used for loop nodes
+    ParseNode* loopNode;
+    uint loopId;
+
+    // Used for try and finally nodes
+    Js::OpCode tryOp;
+    Js::ByteCodeLabel label;
+    Js::RegSlot regSlot1;
+    Js::RegSlot regSlot2;
+};
+
 class ByteCodeGenerator
 {
 private:
@@ -27,12 +62,16 @@ private:
 
     SList<FuncInfo*> * funcInfosToFinalize;
 
+    using JumpCleanupList = DList<JumpCleanupInfo, ArenaAllocator>;
+    JumpCleanupList* jumpCleanupList;
+
     int32 maxAstSize;
     uint16 envDepth;
     uint sourceIndex;
     uint dynamicScopeCount;
     uint loopDepth;
     uint16 m_callSiteId;
+    uint16 m_callApplyCallSiteCount;
     bool isBinding;
     bool trackEnvDepth;
     bool funcEscapes;
@@ -64,6 +103,13 @@ public:
     static const unsigned int DefaultArraySize = 0;  // This __must__ be '0' so that "(new Array()).length == 0"
     static const unsigned int MinArgumentsForCallOptimization = 16;
     bool forceNoNative;
+
+    // A flag that when set will force bytecode opcodes to be emitted in strict mode when avaliable.
+    // This flag is set outside of emit calls under the condition that the bytecode being emitted
+    // corresponds to computed property names within classes. This fixes a bug where computed property
+    // names would not enforce strict mode when inside a class even though the spec requires that
+    // all code within a class must be strict.
+    bool forceStrictModeForClassComputedPropertyName = false;
 
     ByteCodeGenerator(Js::ScriptContext* scriptContext, Js::ScopeInfo* parentScopeInfo);
 
@@ -144,6 +190,18 @@ public:
     }
     Js::ProfileId GetCurrentCallSiteId() { return m_callSiteId; }
 
+    Js::ProfileId GetNextCallApplyCallSiteId(Js::OpCode op)
+    {
+        if (m_writer.ShouldIncrementCallSiteId(op))
+        {
+            if (m_callApplyCallSiteCount != Js::Constants::NoProfileId)
+            {
+                return m_callApplyCallSiteCount++;
+            }
+        }
+        return m_callApplyCallSiteCount;
+    }
+
     Js::RegSlot NextVarRegister();
     Js::RegSlot NextConstRegister();
     FuncInfo *TopFuncInfo() const;
@@ -176,6 +234,7 @@ public:
     Js::RegSlot EnregisterConstant(unsigned int constant);
     Js::RegSlot EnregisterStringConstant(IdentPtr pid);
     Js::RegSlot EnregisterDoubleConstant(double d);
+    Js::RegSlot EnregisterBigIntConstant(ParseNodePtr pid);
     Js::RegSlot EnregisterStringTemplateCallsiteConstant(ParseNode* pnode);
 
     static Js::JavascriptArray* BuildArrayFromStringList(ParseNode* stringNodeList, uint arrayLength, Js::ScriptContext* scriptContext);
@@ -206,6 +265,7 @@ public:
 
     void RecordAllIntConstants(FuncInfo * funcInfo);
     void RecordAllStrConstants(FuncInfo * funcInfo);
+    void RecordAllBigIntConstants(FuncInfo * funcInfo);
     void RecordAllStringTemplateCallsiteConstants(FuncInfo* funcInfo);
 
     // For now, this just assigns field ids for the current script.
@@ -214,6 +274,9 @@ public:
     void AssignPropertyIds(Js::ParseableFunctionInfo* functionInfo);
     void MapCacheIdsToPropertyIds(FuncInfo *funcInfo);
     void MapReferencedPropertyIds(FuncInfo *funcInfo);
+#if ENABLE_NATIVE_CODEGEN
+    void MapCallSiteToCallApplyCallSiteMap(FuncInfo * funcInfo);
+#endif
     FuncInfo *StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNodeFnc *pnodeFnc, Js::ParseableFunctionInfo * reuseNestedFunc);
     void EndBindFunction(bool funcExprWithName);
     void StartBindCatch(ParseNode *pnode);
@@ -254,7 +317,7 @@ public:
     Symbol *AddSymbolToFunctionScope(const char16 *key, int keyLength, ParseNode *varDecl, SymbolType symbolType);
     void FuncEscapes(Scope *scope);
     void EmitTopLevelStatement(ParseNode *stmt, FuncInfo *funcInfo, BOOL fReturnValue);
-    void EmitInvertedLoop(ParseNodeLoop* outerLoop,ParseNodeFor* invertedLoop,FuncInfo* funcInfo);
+    void EmitInvertedLoop(ParseNodeStmt* outerLoop,ParseNodeFor* invertedLoop,FuncInfo* funcInfo);
     void DefineFunctions(FuncInfo *funcInfoParent);
     Js::RegSlot DefineOneFunction(ParseNodeFnc *pnodeFnc, FuncInfo *funcInfoParent, bool generateAssignment=true, Js::RegSlot regEnv = Js::Constants::NoRegister, Js::RegSlot frameDisplayTemp = Js::Constants::NoRegister);
     void DefineCachedFunctions(FuncInfo *funcInfoParent);
@@ -269,11 +332,11 @@ public:
     void LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromParams = false);
     void EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister);
     void LoadNewTargetObject(FuncInfo *funcInfo);
+    void LoadImportMetaObject(FuncInfo* funcInfo);
     void LoadSuperObject(FuncInfo *funcInfo);
     void LoadSuperConstructorObject(FuncInfo *funcInfo);
-    void EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * pnodeSuperCall, BOOL fReturnValue);
+    void EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * pnodeSuperCall, BOOL fReturnValue, BOOL fEvaluateComponents);
     void EmitClassConstructorEndCode(FuncInfo *funcInfo);
-    void EmitBaseClassConstructorThisObject(FuncInfo *funcInfo);
 
     // TODO: home the 'this' argument
     void EmitLoadFormalIntoRegister(ParseNode *pnodeFormal, Js::RegSlot pos, FuncInfo *funcInfo);
@@ -292,7 +355,7 @@ public:
     void EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool skipUseBeforeDeclarationCheck = false);
     void EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
-    void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1);
+    void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1, bool reuseLoc = false);
 
     bool ShouldLoadConstThis(FuncInfo* funcInfo);
 
@@ -326,7 +389,7 @@ public:
             isStrictMode ? (isRoot ? Js::OpCode::StRootFldStrict : Js::OpCode::StFldStrict) :
             isRoot ? Js::OpCode::StRootFld : Js::OpCode::StFld;
     }
-    static Js::OpCode GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit);
+    static Js::OpCode GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit, bool forceStrictModeForClassComputedPropertyName = false);
     static Js::OpCode GetScopedStFldOpCode(bool isStrictMode, bool isConsoleScope = false)
     {
         return isStrictMode ? 
@@ -361,9 +424,6 @@ public:
     void StartSubexpression(ParseNode* node);
     void EndSubexpression(ParseNode* node);
 
-    bool IsES6DestructuringEnabled() const;
-    bool IsES6ForLoopSemanticsEnabled() const;
-
     // Debugger methods.
     bool IsInDebugMode() const;
     bool IsInNonDebugMode() const;
@@ -377,6 +437,8 @@ public:
     void PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNodeFnc *pnodeFnc);
     void InsertPropertyToDebuggerScope(FuncInfo* funcInfo, Js::DebuggerScope* debuggerScope, Symbol* sym);
     FuncInfo *FindEnclosingNonLambda();
+    static FuncInfo* GetParentFuncInfo(FuncInfo* child);
+    FuncInfo* GetEnclosingFuncInfo();
 
     bool CanStackNestedFunc(FuncInfo * funcInfo, bool trace = false);
     void CheckDeferParseHasMaybeEscapedNestedFunc();
@@ -396,6 +458,31 @@ public:
     Js::OpCode GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo);
     Js::OpCode GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo);
     Js::OpCode GetInitFldOp(Scope *scope, Js::RegSlot scopeLocation, FuncInfo *funcInfo, bool letDecl = false);
+    
+    void PushJumpCleanupForLoop(ParseNode* loopNode, uint loopId)
+    {
+        this->jumpCleanupList->Prepend({
+            loopNode,
+            loopId,
+            Js::OpCode::Nop,
+            0,
+            Js::Constants::NoRegister,
+            Js::Constants::NoRegister
+        });
+    }
+
+    void PushJumpCleanupForTry(
+        Js::OpCode tryOp,
+        Js::ByteCodeLabel label = 0,
+        Js::RegSlot regSlot1 = Js::Constants::NoRegister,
+        Js::RegSlot regSlot2 = Js::Constants::NoRegister)
+    {
+        this->jumpCleanupList->Prepend({nullptr, 0, tryOp, label, regSlot1, regSlot2});
+    }
+
+    void PopJumpCleanup() { this->jumpCleanupList->RemoveHead(); }
+    bool HasJumpCleanup() { return !this->jumpCleanupList->Empty(); }
+    void EmitJumpCleanup(ParseNode* target, FuncInfo* funcInfo);
 
 private:
     bool NeedCheckBlockVar(Symbol* sym, Scope* scope, FuncInfo* funcInfo) const;
@@ -412,7 +499,8 @@ template<class Fn> void ByteCodeGenerator::IterateBlockScopedVariables(ParseNode
     }
 }
 
-struct ApplyCheck {
+struct ApplyCheck
+{
     bool matches;
     bool insideApplyCall;
     bool sawApply;

@@ -309,7 +309,7 @@ LblDone:
         bool isTaggedNumber;
 #if FLOATVAR
         // If we add another tagged representation that is not numerical - this will not work.
-        isTaggedNumber = !RecyclableObject::Is(aValue);
+        isTaggedNumber = !VarIs<RecyclableObject>(aValue);
 #else
         isTaggedNumber = TaggedInt::Is(aValue);
 #endif

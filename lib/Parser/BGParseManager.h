@@ -52,13 +52,13 @@ public:
     static DWORD IncFailed();
 
     HRESULT QueueBackgroundParse(LPCUTF8 pszSrc, size_t cbLength, char16 *fullPath, DWORD* dwBgParseCookie);
-    HRESULT GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_t* pcbLength);
+    HRESULT GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_t* pcbLength, WCHAR** sourceUrl);
     HRESULT GetParseResults(
         Js::ScriptContext* scriptContextUI,
         DWORD cookie,
         LPCUTF8 pszSrc,
         SRCINFO const * pSrcInfo,
-        Js::ParseableFunctionInfo** ppFunc,
+        Js::FunctionBody** ppFunc,
         CompileScriptException* pse,
         size_t& srcLength,
         Js::Utf8SourceInfo* utf8SourceInfo,
@@ -127,6 +127,7 @@ public:
     DWORD GetCookie() const { return cookie; }
     const byte* GetScriptSrc() const { return script; }
     size_t GetScriptLength() const { return cb; }
+    WCHAR* GetScriptPath() const { return path; }
 
 private:
     // This cookie is the public identifier for this parser work

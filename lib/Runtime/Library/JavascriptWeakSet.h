@@ -25,10 +25,6 @@ namespace Js
     public:
         JavascriptWeakSet(DynamicType* type);
 
-        static bool Is(Var aValue);
-        static JavascriptWeakSet* FromVar(Var aValue);
-        static JavascriptWeakSet* UnsafeFromVar(Var aValue);
-
         void Add(RecyclableObject* key);
         bool Delete(RecyclableObject* key);
         bool Has(RecyclableObject* key);
@@ -69,4 +65,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptWeakSet>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_WeakSet;
+    }
 }

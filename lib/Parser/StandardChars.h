@@ -323,6 +323,7 @@ namespace UnifiedRegex
         void SetNonWordIUChars(ArenaAllocator* setAllocator, CharSet<Char> &set);
         void SetNewline(ArenaAllocator* setAllocator, CharSet<Char> &set);
         void SetNonNewline(ArenaAllocator* setAllocator, CharSet<Char> &set);
+        void SetFullSet(ArenaAllocator* setAllocator, CharSet<Char> &set);
 
         CharSet<Char>* GetFullSet();
         CharSet<Char>* GetEmptySet();

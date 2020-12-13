@@ -18,9 +18,6 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(SpreadArgument);
 
     public:
-        static bool Is(Var aValue);
-        static SpreadArgument* FromVar(Var value);
-        static SpreadArgument* UnsafeFromVar(Var value);
         SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type);
         const Var* GetArgumentSpread() const { return iteratorIndices ? iteratorIndices->GetBuffer() : nullptr; }
         uint GetArgumentSpreadCount()  const { return iteratorIndices ? iteratorIndices->Count() : 0; }
@@ -73,4 +70,9 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override { AssertAndFailFast(); return FALSE; };
         virtual Var GetTypeOfString(ScriptContext * requestContext) override { AssertAndFailFast(); return RecyclableObject::GetTypeOfString(requestContext); };
     };
+
+    template <> inline bool VarIsImpl<SpreadArgument>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_SpreadArgument;
+    }
 }

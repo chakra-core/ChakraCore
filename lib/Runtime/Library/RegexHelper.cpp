@@ -41,6 +41,15 @@ namespace Js
                     return false;
                 flags = (UnifiedRegex::RegexFlags)(flags | UnifiedRegex::MultilineRegexFlag);
                 break;
+            case 's':
+                if (scriptContext->GetConfig()->IsES2018RegExDotAllEnabled())
+                {
+                    if ((flags & UnifiedRegex::DotAllRegexFlag) != 0)
+                        return false;
+                    flags = (UnifiedRegex::RegexFlags)(flags | UnifiedRegex::DotAllRegexFlag);
+                    break;
+                }
+                return false;
             case 'u':
                 if (scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
                 {
@@ -115,7 +124,7 @@ namespace Js
         // generate a trivial options string right here on the stack and delegate to the string parsing
         // based implementation.
         //
-        const CharCount OPT_BUF_SIZE = 6;
+        const CharCount OPT_BUF_SIZE = 7;
         char16 opts[OPT_BUF_SIZE];
 
         CharCount i = 0;
@@ -130,6 +139,11 @@ namespace Js
         if (flags & UnifiedRegex::MultilineRegexFlag)
         {
             opts[i++] = _u('m');
+        }
+        if (flags & UnifiedRegex::DotAllRegexFlag)
+        {
+            Assert(scriptContext->GetConfig()->IsES2018RegExDotAllEnabled());
+            opts[i++] = _u('s');
         }
         if (flags & UnifiedRegex::UnicodeRegexFlag)
         {
@@ -797,8 +811,8 @@ namespace Js
                 if (captureIndex < numGroups && (captureIndex != 0))
                 {
                     Var group = getGroup(captureIndex, nonMatchValue);
-                    if (JavascriptString::Is(group))
-                        concatenated.Append(JavascriptString::UnsafeFromVar(group));
+                    if (VarIs<JavascriptString>(group))
+                        concatenated.Append(UnsafeVarTo<JavascriptString>(group));
                     else if (group != nonMatchValue)
                         concatenated.Append(replace, substitutionOffset, offset - substitutionOffset);
                 }
@@ -940,7 +954,7 @@ namespace Js
         return RegexEs6ReplaceImpl(scriptContext, thisObj, input, appendReplacement, noResult);
     }
 
-    Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replaceFn)
+    Var RegexHelper::RegexEs6ReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, RecyclableObject* replaceFn)
     {
         auto appendReplacement = [&](
             CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& resultBuilder,
@@ -964,6 +978,9 @@ namespace Js
             ushort argCount = (ushort) numberOfCaptures + 4;
 
             PROBE_STACK_NO_DISPOSE(scriptContext, argCount * sizeof(Var));
+
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+
             Var* args = (Var*) _alloca(argCount * sizeof(Var));
 
             args[0] = scriptContext->GetLibrary()->GetUndefined();
@@ -975,10 +992,9 @@ namespace Js
             }
             args[numberOfCaptures + 2] = JavascriptNumber::ToVar(position, scriptContext);
             args[numberOfCaptures + 3] = input;
-
-            Js::Var replaceFnResult = scriptContext->GetThreadContext()->ExecuteImplicitCall(replaceFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
+            Js::Var replaceFnResult = threadContext->ExecuteImplicitCall(replaceFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
             {
-                return replaceFn->CallFunction(Arguments(CallInfo(argCount), args));
+                return JavascriptFunction::CallFunction<true>(replaceFn, replaceFn->GetEntryPoint(), Arguments(CallInfo(argCount), args));
             });
             JavascriptString* replace = JavascriptConversion::ToString(replaceFnResult, scriptContext);
 
@@ -1232,7 +1248,7 @@ namespace Js
         return newString;
     }
 
-    Var RegexHelper::RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, RecyclableObject* replacefn)
     {
         ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
 
@@ -1251,7 +1267,7 @@ namespace Js
     }
 
     // String.prototype.replace, replace value is a function (ES5 15.5.4.11)
-    Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::RegexEs5ReplaceImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, RecyclableObject* replacefn)
     {
         UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
         JavascriptString* newString = nullptr;
@@ -1334,7 +1350,7 @@ namespace Js
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
             {
-                return replacefn->CallFunction(Arguments(CallInfo(UInt16Math::Add(numGroups, 3)), replaceArgs));
+                    return JavascriptFunction::CallFunction<true>(replacefn, replacefn->GetEntryPoint(), Arguments(CallInfo(UInt16Math::Add(numGroups, 3)), replaceArgs));
             });
             JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
             concatenated.Append(input, offset, lastActualMatch.offset - offset);
@@ -1467,7 +1483,7 @@ namespace Js
         return concatenated.ToString();
     }
 
-    Var RegexHelper::StringReplace(ScriptContext* scriptContext, JavascriptString* match, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::StringReplace(ScriptContext* scriptContext, JavascriptString* match, JavascriptString* input, RecyclableObject* replacefn)
     {
         CharCount indexMatched = JavascriptString::strstr(input, match, true);
         Assert(match->GetScriptContext() == scriptContext);
@@ -1615,7 +1631,7 @@ namespace Js
                 Js::Arguments(callInfo, args),
                 scriptContext);
         });
-        RecyclableObject* splitter = RecyclableObject::UnsafeFromVar(regEx);
+        RecyclableObject* splitter = UnsafeVarTo<RecyclableObject>(regEx);
 
         JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
 
@@ -2304,7 +2320,7 @@ namespace Js
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
-    Var RegexHelper::RegexReplaceFunction(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::RegexReplaceFunction(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, RecyclableObject* replacefn)
     {
         Var result = RegexHelper::RegexReplaceImpl(entryFunctionContext, thisObj, input, replacefn);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
@@ -2352,7 +2368,7 @@ namespace Js
         // an Object or Null. RegExp algorithms have special conditions for when the result is Null,
         // so we can directly cast to RecyclableObject.
         Assert(!JavascriptOperators::IsNull(result));
-        return RecyclableObject::UnsafeFromVar(result);
+        return UnsafeVarTo<RecyclableObject>(result);
     }
 
     JavascriptString* RegexHelper::GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext)

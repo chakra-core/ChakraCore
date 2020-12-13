@@ -18,9 +18,6 @@ namespace Js
 
     public:
         JavascriptNumberObject(Var value, DynamicType * type);
-        static bool Is(Var aValue);
-        static JavascriptNumberObject* FromVar(Var aValue);
-        static JavascriptNumberObject* UnsafeFromVar(Var aValue);
         double GetValue() const;
         void SetValue(Var value);
         Var Unwrap() const;
@@ -38,4 +35,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptNumberObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_NumberObject;
+    }
 }

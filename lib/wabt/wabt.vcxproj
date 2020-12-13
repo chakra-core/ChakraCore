@@ -58,17 +58,18 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\common.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\config.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\emscripten-helpers.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\error-handler.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\error-formatter.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\expr-visitor.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\feature.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\filenames.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\generate-names.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\hash-util.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\filenames.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ir.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\leb128.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\lexer-source-line-finder.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\lexer-source.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\literal.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\opcode-code-table.c" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\opcode.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\option-parser.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\wast-lexer-gen.cc" />
@@ -80,7 +81,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\type-checker.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\utf8.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\validator.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\wast-parser-lexer-shared.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\wast-parser.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\wat-writer.cc" />
   </ItemGroup>
@@ -102,13 +102,14 @@
     <ClInclude Include="src\circular-array.h" />
     <ClInclude Include="src\color.h" />
     <ClInclude Include="src\common.h" />
-    <ClInclude Include="src\error-handler.h" />
+    <ClInclude Include="src\error-formatter.h" />
+    <ClInclude Include="src\error.h" />
     <ClInclude Include="src\expr-visitor.h" />
     <ClInclude Include="src\feature.def" />
     <ClInclude Include="src\feature.h" />
+    <ClInclude Include="src\filenames.h" />
     <ClInclude Include="src\generate-names.h" />
     <ClInclude Include="src\hash-util.h" />
-    <ClInclude Include="src\filenames.h" />
     <ClInclude Include="src\intrusive-list.h" />
     <ClInclude Include="src\ir.h" />
     <ClInclude Include="src\leb128.h" />
@@ -116,12 +117,13 @@
     <ClInclude Include="src\lexer-source.h" />
     <ClInclude Include="src\literal.h" />
     <ClInclude Include="src\make-unique.h" />
+    <ClInclude Include="src\opcode-code-table.h" />
     <ClInclude Include="src\opcode.def" />
     <ClInclude Include="src\opcode.h" />
     <ClInclude Include="src\option-parser.h" />
     <ClInclude Include="src\range.h" />
-    <ClInclude Include="src\result.h" />
     <ClInclude Include="src\resolve-names.h" />
+    <ClInclude Include="src\result.h" />
     <ClInclude Include="src\stream.h" />
     <ClInclude Include="src\string-view.h" />
     <ClInclude Include="src\token.h" />
@@ -130,7 +132,6 @@
     <ClInclude Include="src\utf8.h" />
     <ClInclude Include="src\validator.h" />
     <ClInclude Include="src\wast-lexer.h" />
-    <ClInclude Include="src\wast-parser-lexer-shared.h" />
     <ClInclude Include="src\wast-parser.h" />
     <ClInclude Include="src\wat-writer.h" />
   </ItemGroup>

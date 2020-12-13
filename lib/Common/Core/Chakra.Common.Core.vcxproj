@@ -42,7 +42,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobalSecurityPolicy.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Output.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfCounter.cpp" />
-    <ClCompile Include="CRC.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CRC.cpp" />
     <None Include="PerfCounterImpl.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfCounterSet.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ProfileInstrument.cpp" />

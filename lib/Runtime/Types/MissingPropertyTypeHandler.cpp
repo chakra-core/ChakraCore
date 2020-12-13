@@ -15,6 +15,11 @@ namespace Js
     MissingPropertyTypeHandler::MissingPropertyTypeHandler() :
         DynamicTypeHandler(1, 1, (uint16)sizeof(DynamicObject)) {}
 
+    DynamicTypeHandler * MissingPropertyTypeHandler::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, MissingPropertyTypeHandler);
+    }
+
     PropertyId MissingPropertyTypeHandler::GetPropertyId(ScriptContext* scriptContext, PropertyIndex index)
     {
         return Constants::NoProperty;

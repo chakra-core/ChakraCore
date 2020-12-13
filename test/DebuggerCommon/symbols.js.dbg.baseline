@@ -32,7 +32,8 @@
                 "is": "function <large string>",
                 "assign": "function <large string>",
                 "values": "function <large string>",
-                "entries": "function <large string>"
+                "entries": "function <large string>",
+                "fromEntries": "function <large string>"
               },
               "hasOwnProperty": {
                 "#__proto__": "function <large string>",
@@ -107,12 +108,14 @@
                 "Symbol.toStringTag": "string Symbol",
                 "valueOf": "function <large string>",
                 "toString": "function <large string>",
-                "Symbol.toPrimitive": "function <large string>"
+                "Symbol.toPrimitive": "function <large string>",
+                "description": "Error <large string>"
               },
               "name": "string Symbol",
               "hasInstance": "symbol <large string>",
               "isConcatSpreadable": "symbol <large string>",
               "iterator": "symbol <large string>",
+              "asyncIterator": "symbol <large string>",
               "species": "symbol <large string>",
               "toPrimitive": "symbol <large string>",
               "toStringTag": "symbol <large string>",
@@ -179,7 +182,8 @@
               },
               "length": "number 1",
               "name": "string <large string>"
-            }
+            },
+            "description": "string symobject"
           }
         },
         "short symbol name": "symbol Symbol(s)",

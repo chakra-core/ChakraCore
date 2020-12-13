@@ -1113,7 +1113,7 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
             size_t objectSize = header->objectSize;
             // trim off the trailing part which is not a pointer
             objectSize = HeapInfo::RoundObjectSize(objectSize);
-            if (objectSize > 0) // otherwize the object total size is less than a pointer size
+            if (objectSize > 0) // otherwise the object total size is less than a pointer size
             {
                 recycler->ScanObjectInlineInterior((void **)objectAddress, objectSize);
             }
@@ -1170,7 +1170,7 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
                 size_t objectSize = header->objectSize;
                 // trim off the trailing part which is not a pointer
                 objectSize = HeapInfo::RoundObjectSize(objectSize);
-                if (objectSize > 0) // otherwize the object total size is less than a pointer size
+                if (objectSize > 0) // otherwise the object total size is less than a pointer size
                 {
                     recycler->ScanObjectInlineInterior((void **)objectAddress, objectSize);
                 }
@@ -1321,7 +1321,7 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
             objectSize = HeapInfo::RoundObjectSize(objectSize);
         }
 #endif
-        if (objectSize > 0) // otherwize the object total size is less than a pointer size
+        if (objectSize > 0) // otherwise the object total size is less than a pointer size
         {
             bool noOOMDuringMark = true;
 #ifdef RECYCLER_VISITED_HOST

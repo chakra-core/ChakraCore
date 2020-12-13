@@ -273,6 +273,7 @@ public:
 
 protected:
     static uint BuildDeferredStubTreeHelper(ParseNodeBlock* pnodeBlock, DeferredFunctionStub* deferredStubs, uint currentStubIndex, uint deferredStubCount, Recycler *recycler);
+    void ShiftCurrDeferredStubToChildFunction(ParseNodeFnc* pnodeFnc, ParseNodeFnc* pnodeFncParent);
 
     HRESULT ParseSourceInternal(
         __out ParseNodeProg ** parseTree, LPCUTF8 pszSrc, size_t offsetInBytes,
@@ -312,10 +313,11 @@ protected:
     Js::ScriptContext* m_scriptContext;
     HashTbl * GetHashTbl() { return this->GetScanner()->GetHashTbl(); }
 
-    __declspec(noreturn) void Error(HRESULT hr);
+    LPCWSTR GetTokenString(tokens token);
+    __declspec(noreturn) void Error(HRESULT hr, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
 private:
     __declspec(noreturn) void Error(HRESULT hr, ParseNodePtr pnode);
-    __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
+    __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
     __declspec(noreturn) static void OutOfMemory();
 
     void EnsureStackAvailable();
@@ -325,6 +327,16 @@ private:
     bool CheckForDirective(bool* pIsUseStrict, bool* pIsUseAsm, bool* pIsOctalInString);
     bool CheckStrictModeStrPid(IdentPtr pid);
     bool CheckAsmjsModeStrPid(IdentPtr pid);
+
+    bool CheckContextualKeyword(IdentPtr keywordPid)
+    {
+        if (m_token.tk == tkID && !GetScanner()->LastIdentifierHasEscape())
+        {
+            IdentPtr pid = m_token.GetIdentifier(GetHashTbl());
+            return pid == keywordPid;
+        }
+        return false;
+    }
 
     bool IsCurBlockInLoop() const;
 
@@ -376,6 +388,7 @@ private:
 
     ParseNodeInt * CreateIntNode(int32 lw);
     ParseNodeStr * CreateStrNode(IdentPtr pid);
+    ParseNodeBigInt * CreateBigIntNode(IdentPtr pid);
     ParseNodeName * CreateNameNode(IdentPtr pid);
     ParseNodeName * CreateNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
     ParseNodeSpecialName * CreateSpecialNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
@@ -471,6 +484,7 @@ private:
         IdentPtr set;
         IdentPtr get;
         IdentPtr let;
+        IdentPtr await;
         IdentPtr constructor;
         IdentPtr prototype;
         IdentPtr __proto__;
@@ -478,13 +492,14 @@ private:
         IdentPtr target;
         IdentPtr from;
         IdentPtr as;
+        IdentPtr meta;
         IdentPtr _default;
         IdentPtr _star; // Special '*' identifier for modules
-        IdentPtr _starDefaultStar; // Special '*default*' identifier for modules
         IdentPtr _this; // Special 'this' identifier
         IdentPtr _newTarget; // Special new.target identifier
         IdentPtr _super; // Special super identifier
         IdentPtr _superConstructor; // Special super constructor identifier
+        IdentPtr _importMeta; // Special import.meta identifier
     };
 
     WellKnownPropertyPids wellKnownPropertyPids;
@@ -538,8 +553,6 @@ private:
         if (buildAST)
         {
             pnode->grfnop = 0;
-            pnode->pnodeOuter = (NULL == m_pstmtCur) ? NULL : m_pstmtCur->pnodeStmt;
-
             pStmt->pnodeStmt = pnode;
         }
         else
@@ -639,10 +652,12 @@ protected:
     ModuleImportOrExportEntryList* EnsureModuleStarExportEntryList();
 
     void AddModuleSpecifier(IdentPtr moduleRequest);
-    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest, charcount_t offsetForError = 0);
     ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, ModuleImportOrExportEntry* importOrExportEntry);
     void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
+    void CheckForDuplicateExportEntry(IdentPtr exportName);
     void CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName);
+    void VerifyModuleLocalExportEntries();
 
     ParseNodeVar * CreateModuleImportDeclNode(IdentPtr localName);
 
@@ -958,7 +973,7 @@ private:
         charcount_t ichMin,
         _Out_opt_ BOOL* pfCanAssign = nullptr);
 
-    bool IsImportOrExportStatementValidHere();
+    void CheckIfImportOrExportStatementValidHere();
     bool IsTopLevelModuleFunc();
 
     template<bool buildAST> ParseNodePtr ParseImport();
@@ -1001,7 +1016,6 @@ private:
 
     void AppendToList(ParseNodePtr * node, ParseNodePtr nodeToAppend);
 
-    bool IsES6DestructuringEnabled() const;
     bool IsPossiblePatternStart() const { return m_token.tk == tkLCurly || m_token.tk == tkLBrack; }
     bool IsPostFixOperators() const
     {
@@ -1064,6 +1078,7 @@ public:
     IdentPtr GetArgumentsPid() const { return wellKnownPropertyPids.arguments; }
     IdentPtr GetEvalPid() const { return wellKnownPropertyPids.eval; }
     IdentPtr GetTargetPid() const { return wellKnownPropertyPids.target; }
+    IdentPtr GetMetaPid() const { return wellKnownPropertyPids.meta; }
     BackgroundParseItem *GetCurrBackgroundParseItem() const { return currBackgroundParseItem; }
     void SetCurrBackgroundParseItem(BackgroundParseItem *item) { currBackgroundParseItem = item; }
 
@@ -1084,11 +1099,11 @@ private:
     void AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
     void AddToNodeListEscapedUse(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
 
-    void ChkCurTokNoScan(int tk, int wErr)
+    void ChkCurTokNoScan(int tk, int wErr, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""))
     {
         if (m_token.tk != tk)
         {
-            Error(wErr);
+            Error(wErr, stringOne, stringTwo);
         }
     }
 
@@ -1127,17 +1142,17 @@ private:
 
     enum FncDeclFlag : ushort
     {
-        fFncNoFlgs                  = 0,
-        fFncDeclaration             = 1 << 0,
-        fFncNoArg                   = 1 << 1,
-        fFncOneArg                  = 1 << 2, //Force exactly one argument.
-        fFncNoName                  = 1 << 3,
-        fFncLambda                  = 1 << 4,
-        fFncMethod                  = 1 << 5,
-        fFncClassMember             = 1 << 6,
-        fFncGenerator               = 1 << 7,
-        fFncAsync                   = 1 << 8,
-        fFncModule                  = 1 << 9,
+        fFncNoFlgs      = 0,
+        fFncDeclaration = 1 << 0,
+        fFncNoArg       = 1 << 1,
+        fFncOneArg      = 1 << 2, //Force exactly one argument.
+        fFncNoName      = 1 << 3,
+        fFncLambda      = 1 << 4,
+        fFncMethod      = 1 << 5,
+        fFncClassMember = 1 << 6,
+        fFncGenerator   = 1 << 7,
+        fFncAsync       = 1 << 8,
+        fFncModule      = 1 << 9,
         fFncClassConstructor        = 1 << 10,
         fFncBaseClassConstructor    = 1 << 11,
     };

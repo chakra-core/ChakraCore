@@ -117,7 +117,8 @@
     "arguments": "Object {...}",
     "functionCallsReturn": {
       "[Anonymous function returned]": "function <large string>",
-      "[forEach returned]": "undefined undefined"
+      "[builtInCallInstanceFunction returned]": "function <large string>",
+      "[Array.prototype.every returned]": "boolean true"
     },
     "locals": {
       "d": "Date <large string>"

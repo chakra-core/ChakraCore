@@ -98,11 +98,15 @@ namespace Js
     class JavascriptBooleanObject;
     class JavascriptSymbol;
     class JavascriptSymbolObject;
+#ifdef _CHAKRACOREBUILD
+    class CustomExternalWrapperObject;
+#endif
     class JavascriptProxy;
     class JavascriptReflect;
     class JavascriptEnumeratorIterator;
     class JavascriptArrayIterator;
     enum class JavascriptArrayIteratorKind;
+    class JavascriptAsyncFromSyncIterator;
     class JavascriptMapIterator;
     enum class JavascriptMapIteratorKind;
     class JavascriptSetIterator;
@@ -112,8 +116,6 @@ namespace Js
     class JavascriptPromise;
     class JavascriptPromiseCapability;
     class JavascriptPromiseReaction;
-    class JavascriptPromiseAsyncSpawnExecutorFunction;
-    class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction;
     class JavascriptPromiseCapabilitiesExecutorFunction;
     class JavascriptPromiseResolveOrRejectFunction;
     class JavascriptPromiseReactionTaskFunction;
@@ -121,11 +123,15 @@ namespace Js
     class JavascriptPromiseThunkFinallyFunction;
     class JavascriptPromiseResolveThenableTaskFunction;
     class JavascriptPromiseAllResolveElementFunction;
+    class JavascriptPromiseAllSettledResolveOrRejectElementFunction;
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper;
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
+    class JavascriptAsyncSpawnExecutorFunction;
+    class JavascriptAsyncSpawnStepFunction;
     class JavascriptGenerator;
     class LiteralString;
     class JavascriptStringObject;
+    class JavascriptBigIntObject;
     struct PropertyDescriptor;
     class Type;
     class DynamicType;
@@ -138,9 +144,10 @@ namespace Js
     class IndexPropertyDescriptor;
     class DynamicObject;
     class ArrayObject;
-    class WithScopeObject;
+    class UnscopablesWrapperObject;
     class SpreadArgument;
     class JavascriptString;
+    class JavascriptBigInt;
     class StringCopyInfo;
     class StringCopyInfoStack;
     class ObjectPrototypeObject;
@@ -174,6 +181,7 @@ namespace Js
     class StackScriptFunction;
     class GeneratorVirtualScriptFunction;
     class JavascriptGeneratorFunction;
+    class JavascriptAsyncGeneratorFunction;
     class JavascriptAsyncFunction;
     class AsmJsScriptFunction;
     class WasmScriptFunction;
@@ -424,6 +432,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Library/JavascriptNumber.h"
 #include "Library/JavascriptFunction.h"
+#include "Library/BoundFunction.h"
 #include "Library/RuntimeFunction.h"
 #include "Library/JavascriptExternalFunction.h"
 #include "Library/CustomExternalIterator.h"
@@ -471,6 +480,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(builtin)
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(esVersion, feature, m_scriptContext)
 #endif
+
+#include "Library/DelayFreeArrayBufferHelper.h"
 #include "Base/ThreadContext.h"
 
 #include "Base/StackProber.h"
@@ -510,6 +521,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
+#include "Library/JavascriptBigInt.h"
 #include "Library/WebAssemblyEnvironment.h"
 #include "Library/WebAssemblyTable.h"
 #include "Library/WebAssemblyMemory.h"
@@ -521,6 +533,11 @@ enum tagDEBUG_EVENT_INFO_TYPE
 //#include "Language/ModuleNamespace.h"
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
+#include "Library/StackScriptFunction.h"
+
+#ifdef _CHAKRACOREBUILD
+#include "Library/CustomExternalWrapperObject.h"
+#endif
 
 #include "Library/JavascriptProxy.h"
 
@@ -540,6 +557,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Debug/TTEventLog.h"
 #endif
 
+#include "Library/JavascriptGeneratorFunction.h"
+#include "Library/JavascriptAsyncFunction.h"
+#include "Library/JavascriptAsyncGeneratorFunction.h"
+
 #include "../WasmReader/WasmReader.h"
 
 #include "Language/AsmJsTypes.h"
@@ -557,7 +578,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/JavascriptConversion.inl"
 #include "Types/RecyclableObject.inl"
 #include "Types/DynamicObject.inl"
-#include "Library/JavascriptBoolean.inl"
 #include "Library/JavascriptArray.inl"
 #include "Library/SparseArraySegment.inl"
 #include "Library/JavascriptNumber.inl"
@@ -566,7 +586,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/InlineCachePointerArray.inl"
 #include "Language/JavascriptOperators.inl"
 #include "Language/TaggedInt.inl"
-#include "Library/JavascriptGeneratorFunction.h"
 
 #ifndef USED_IN_STATIC_LIB
 #ifdef ENABLE_INTL_OBJECT

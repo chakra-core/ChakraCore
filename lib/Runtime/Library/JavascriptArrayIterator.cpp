@@ -19,26 +19,6 @@ namespace Js
         }
     }
 
-    bool JavascriptArrayIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_ArrayIterator;
-    }
-
-    JavascriptArrayIterator* JavascriptArrayIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
-
-        return static_cast<JavascriptArrayIterator *>(aValue);
-    }
-
-    JavascriptArrayIterator* JavascriptArrayIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
-
-        return static_cast<JavascriptArrayIterator *>(aValue);
-    }
-
     Var JavascriptArrayIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -56,33 +36,33 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptArrayIterator::Is(thisObj))
+        if (!VarIs<JavascriptArrayIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedArrayIterator, _u("Array Iterator.prototype.next"));
         }
 
-        JavascriptArrayIterator* iterator = JavascriptArrayIterator::FromVar(thisObj);
+        JavascriptArrayIterator* iterator = VarTo<JavascriptArrayIterator>(thisObj);
         Var iterable = iterator->m_iterableObject;
 
         if (iterable == nullptr)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         int64 length;
         JavascriptArray* pArr = nullptr;
         TypedArrayBase *typedArrayBase = nullptr;
-        if (JavascriptArray::Is(iterable) && !JavascriptArray::FromVar(iterable)->IsCrossSiteObject())
+        if (JavascriptArray::IsNonES5Array(iterable) && !VarTo<JavascriptArray>(iterable)->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
-            Assert(!JavascriptCopyOnAccessNativeIntArray::Is(iterable));
+            Assert(!VarIs<JavascriptCopyOnAccessNativeIntArray>(iterable));
 #endif
             pArr = JavascriptArray::FromAnyArray(iterable);
             length = pArr->GetLength();
         }
-        else if (TypedArrayBase::Is(iterable))
+        else if (VarIs<TypedArrayBase>(iterable))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(iterable);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(iterable);
             if (typedArrayBase->IsDetachedBuffer())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
@@ -102,14 +82,14 @@ namespace Js
             // Nulling out the m_iterableObject field is important so that the iterator
             // does not keep the iterable object alive after iteration is completed.
             iterator->m_iterableObject = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         iterator->m_nextIndex += 1;
 
         if (iterator->m_kind == JavascriptArrayIteratorKind::Key)
         {
-            return library->CreateIteratorResultObjectValueFalse(JavascriptNumber::ToVar(index, scriptContext));
+            return library->CreateIteratorResultObject(JavascriptNumber::ToVar(index, scriptContext));
         }
 
         Var value;
@@ -130,7 +110,7 @@ namespace Js
 
         if (iterator->m_kind == JavascriptArrayIteratorKind::Value)
         {
-            return library->CreateIteratorResultObjectValueFalse(value);
+            return library->CreateIteratorResultObject(value);
         }
 
         Assert(iterator->m_kind == JavascriptArrayIteratorKind::KeyAndValue);
@@ -140,6 +120,6 @@ namespace Js
         keyValueTuple->SetItem(0, JavascriptNumber::ToVar(index, scriptContext), PropertyOperation_None);
         keyValueTuple->SetItem(1, value, PropertyOperation_None);
 
-        return library->CreateIteratorResultObjectValueFalse(keyValueTuple);
+        return library->CreateIteratorResultObject(keyValueTuple);
     }
 } //namespace Js

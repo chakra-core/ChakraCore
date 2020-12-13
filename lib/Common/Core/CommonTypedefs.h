@@ -61,3 +61,6 @@ namespace Js
 {
     typedef uint32 LocalFunctionId;
 };
+
+// digit_t represents a digit in bigint underline
+typedef uintptr_t digit_t;

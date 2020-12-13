@@ -434,6 +434,10 @@ public:
     void DumpStats();
 #endif
 
+    bool IsPreReservedSegment(void * segment)
+    {
+        return this->codePageAllocators->IsPreReservedSegment(segment);
+    }
 private:
     /**
      * Inline methods

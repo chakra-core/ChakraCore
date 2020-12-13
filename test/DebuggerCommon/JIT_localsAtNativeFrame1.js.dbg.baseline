@@ -55,6 +55,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F1": "function <large string>",
       "F2": "function <large string>",
       "Run": "function <large string>"
@@ -116,6 +117,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F1": "function <large string>",
       "F2": "function <large string>",
       "Run": "function <large string>"
@@ -177,6 +179,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F1": "function <large string>",
       "F2": "function <large string>",
       "Run": "function <large string>"
@@ -238,6 +241,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "F1": "function <large string>",
       "F2": "function <large string>",
       "Run": "function <large string>"

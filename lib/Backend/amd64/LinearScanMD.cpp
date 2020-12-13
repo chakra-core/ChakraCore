@@ -321,142 +321,16 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     // Load the bailout target into rax
     //     mov  rax, BailOut
     //     call rax
-    Assert(instr->GetSrc1()->IsHelperCallOpnd());
-    Lowerer::InsertMove(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func), instr->GetSrc1(), instr);
-    instr->ReplaceSrc1(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func));
-}
 
-// Gets the InterpreterStackFrame pointer into RAX.
-// Restores the live stack locations followed by the live registers from
-// the interpreter's register slots.
-// RecordDefs each live register that is restored.
-//
-// Generates the following code:
-//
-// MOV rax, param0
-// MOV rax, [rax + JavascriptGenerator::GetFrameOffset()]
-//
-// for each live stack location, sym
-//
-//   MOV rcx, [rax + regslot offset]
-//   MOV sym(stack location), rcx
-//
-// for each live register, sym (rax is restore last if it is live)
-//
-//   MOV sym(register), [rax + regslot offset]
-//
-IR::Instr *
-LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, BailOutInfo * bailOutInfo)
-{
-    IR::Instr * instrAfter = resumeLabelInstr->m_next;
-
-    IR::RegOpnd * raxRegOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, this->func);
-    IR::RegOpnd * rcxRegOpnd = IR::RegOpnd::New(nullptr, RegRCX, TyVar, this->func);
-
-    StackSym * sym = StackSym::NewParamSlotSym(1, this->func);
-    this->func->SetArgOffset(sym, LowererMD::GetFormalParamOffset() * MachPtr);
-    IR::SymOpnd * symOpnd = IR::SymOpnd::New(sym, TyMachPtr, this->func);
-    LinearScan::InsertMove(raxRegOpnd, symOpnd, instrAfter);
-
-    IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(raxRegOpnd, Js::JavascriptGenerator::GetFrameOffset(), TyMachPtr, this->func);
-    LinearScan::InsertMove(raxRegOpnd, indirOpnd, instrAfter);
-
-
-    // rax points to the frame, restore stack syms and registers except rax, restore rax last
-
-    IR::Instr * raxRestoreInstr = nullptr;
-    IR::Instr * instrInsertStackSym = instrAfter;
-    IR::Instr * instrInsertRegSym = instrAfter;
-
-    Assert(bailOutInfo->capturedValues->constantValues.Empty());
-    Assert(bailOutInfo->capturedValues->copyPropSyms.Empty());
-    Assert(bailOutInfo->liveLosslessInt32Syms->IsEmpty());
-    Assert(bailOutInfo->liveFloat64Syms->IsEmpty());
-
-    auto restoreSymFn = [this, &raxRegOpnd, &rcxRegOpnd, &raxRestoreInstr, &instrInsertStackSym, &instrInsertRegSym](Js::RegSlot regSlot, StackSym* stackSym)
+    // TODO: Before lazy bailout, this is done unconditionally.
+    //       Need to verify if this is the right check in order
+    //       to keep the same behaviour as before.
+    if (!instr->HasLazyBailOut())
     {
-        Assert(stackSym->IsVar());
-
-        int32 offset = regSlot * sizeof(Js::Var) + Js::InterpreterStackFrame::GetOffsetOfLocals();
-
-        IR::Opnd * srcOpnd = IR::IndirOpnd::New(raxRegOpnd, offset, stackSym->GetType(), this->func);
-        Lifetime * lifetime = stackSym->scratch.linearScan.lifetime;
-
-        if (lifetime->isSpilled)
-        {
-            // stack restores require an extra register since we can't move an indir directly to an indir on amd64
-            IR::SymOpnd * dstOpnd = IR::SymOpnd::New(stackSym, stackSym->GetType(), this->func);
-            LinearScan::InsertMove(rcxRegOpnd, srcOpnd, instrInsertStackSym);
-            LinearScan::InsertMove(dstOpnd, rcxRegOpnd, instrInsertStackSym);
-        }
-        else
-        {
-            // register restores must come after stack restores so that we have RAX and RCX free to
-            // use for stack restores and further RAX must be restored last since it holds the
-            // pointer to the InterpreterStackFrame from which we are restoring values.
-            // We must also track these restores using RecordDef in case the symbols are spilled.
-
-            IR::RegOpnd * dstRegOpnd = IR::RegOpnd::New(stackSym, stackSym->GetType(), this->func);
-            dstRegOpnd->SetReg(lifetime->reg);
-
-            IR::Instr * instr = LinearScan::InsertMove(dstRegOpnd, srcOpnd, instrInsertRegSym);
-
-            if (instrInsertRegSym == instrInsertStackSym)
-            {
-                // this is the first register sym, make sure we don't insert stack stores
-                // after this instruction so we can ensure rax and rcx remain free to use
-                // for restoring spilled stack syms.
-                instrInsertStackSym = instr;
-            }
-
-            if (lifetime->reg == RegRAX)
-            {
-                // ensure rax is restored last
-                Assert(instrInsertRegSym != instrInsertStackSym);
-
-                instrInsertRegSym = instr;
-
-                if (raxRestoreInstr != nullptr)
-                {
-                    AssertMsg(false, "this is unexpected until copy prop is enabled");
-                    // rax was mapped to multiple bytecode registers.  Obviously only the first
-                    // restore we do will work so change all following stores to `mov rax, rax`.
-                    // We still need to keep them around for RecordDef in case the corresponding
-                    // dst sym is spilled later on.
-                    raxRestoreInstr->FreeSrc1();
-                    raxRestoreInstr->SetSrc1(raxRegOpnd);
-                }
-
-                raxRestoreInstr = instr;
-            }
-
-            this->linearScan->RecordDef(lifetime, instr, 0);
-        }
-    };
-
-    FOREACH_BITSET_IN_SPARSEBV(symId, bailOutInfo->byteCodeUpwardExposedUsed)
-    {
-        StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
-        restoreSymFn(stackSym->GetByteCodeRegSlot(), stackSym);
+        Assert(instr->GetSrc1()->IsHelperCallOpnd());
+        Lowerer::InsertMove(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func), instr->GetSrc1(), instr);
+        instr->ReplaceSrc1(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func));
     }
-    NEXT_BITSET_IN_SPARSEBV;
-
-    if (bailOutInfo->capturedValues->argObjSyms)
-    {
-        FOREACH_BITSET_IN_SPARSEBV(symId, bailOutInfo->capturedValues->argObjSyms)
-        {
-            StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
-            restoreSymFn(stackSym->GetByteCodeRegSlot(), stackSym);
-        }
-        NEXT_BITSET_IN_SPARSEBV;
-    }
-
-    Js::RegSlot localsCount = this->func->GetJITFunctionBody()->GetLocalsCount();
-    bailOutInfo->IterateArgOutSyms([localsCount, &restoreSymFn](uint, uint argOutSlotOffset, StackSym* sym) {
-        restoreSymFn(localsCount + argOutSlotOffset, sym);
-    });
-
-    return instrAfter;
 }
 
 uint LinearScanMD::GetRegisterSaveIndex(RegNum reg)

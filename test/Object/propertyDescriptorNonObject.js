@@ -36,11 +36,10 @@ var tests = [
     {
         name: "Object.create in sloppy mode with `this` as a propertyDescriptor when it contains non-object properties",
         body: function() {
-            a = 0;
             assert.throws(function() { Object.create({}, this) },
                 TypeError,
-                "Should throw TypeError because property 'a' is defined on `this` and is a non-object.",
-                "Invalid descriptor for property 'a'")
+                "Should throw TypeError because property Symbol.toStringTag is defined on `this` and is a non-object.",
+                "Invalid descriptor for property 'Symbol.toStringTag'")
         }
     },
 ];

@@ -148,14 +148,14 @@ Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
         return sizeof(int64);
         break;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Wasm::Simd::EnsureSimdIsEnabled();
         CompileAssert(sizeof(Simd::simdvec) == 16);
         return sizeof(Simd::simdvec);
         break;
 #endif
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Invalid param type"));
     }
 }

@@ -12,25 +12,6 @@ namespace Js
     {
     }
 
-    bool JavascriptWeakMap::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_WeakMap;
-    }
-
-    JavascriptWeakMap* JavascriptWeakMap::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
-
-        return static_cast<JavascriptWeakMap *>(aValue);
-    }
-
-    JavascriptWeakMap* JavascriptWeakMap::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
-
-        return static_cast<JavascriptWeakMap *>(RecyclableObject::UnsafeFromVar(aValue));
-    }
-
     JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::GetWeakMapKeyMapFromKey(RecyclableObject* key) const
     {
         AssertOrFailFast(DynamicType::Is(key->GetTypeId()) || JavascriptOperators::GetTypeId(key) == TypeIds_HostDispatch);
@@ -114,7 +95,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
             }
-            adder = RecyclableObject::FromVar(adderVar);
+            adder = VarTo<RecyclableObject>(adderVar);
         }
 
         if (iter != nullptr)
@@ -127,7 +108,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
                 }
 
-                RecyclableObject* obj = RecyclableObject::FromVar(nextItem);
+                RecyclableObject* obj = VarTo<RecyclableObject>(nextItem);
 
                 Var key = nullptr, value = nullptr;
 
@@ -155,7 +136,7 @@ namespace Js
 #endif
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), weakMapObject, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), weakMapObject, nullptr, scriptContext) :
             weakMapObject;
     }
 
@@ -166,19 +147,19 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakMap::Is(args[0]))
+        if (!VarIs<JavascriptWeakMap>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.delete"), _u("WeakMap"));
         }
 
-        JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
+        JavascriptWeakMap* weakMap = VarTo<JavascriptWeakMap>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool didDelete = false;
 
         if (JavascriptOperators::IsObject(key))
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             didDelete = weakMap->Delete(keyObj);
         }
@@ -207,12 +188,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakMap::Is(args[0]))
+        if (!VarIs<JavascriptWeakMap>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.get"), _u("WeakMap"));
         }
 
-        JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
+        JavascriptWeakMap* weakMap = VarTo<JavascriptWeakMap>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -220,7 +201,7 @@ namespace Js
         Var value = nullptr;
         if (JavascriptOperators::IsObject(key))
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
             loaded = weakMap->Get(keyObj, &value);
         }
 
@@ -248,19 +229,19 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakMap::Is(args[0]))
+        if (!VarIs<JavascriptWeakMap>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.has"), _u("WeakMap"));
         }
 
-        JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
+        JavascriptWeakMap* weakMap = VarTo<JavascriptWeakMap>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool hasValue = false;
 
         if (JavascriptOperators::IsObject(key))
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             hasValue = weakMap->Has(keyObj);
         }
@@ -289,12 +270,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakMap::Is(args[0]))
+        if (!VarIs<JavascriptWeakMap>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakMap.prototype.set"), _u("WeakMap"));
         }
 
-        JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(args[0]);
+        JavascriptWeakMap* weakMap = VarTo<JavascriptWeakMap>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         Var value = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
@@ -304,7 +285,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakMap.prototype.set"));
         }
 
-        RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+        RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
 #if ENABLE_TTD
         //In replay we need to pin the object (and will release at snapshot points) -- in record we don't need to do anything

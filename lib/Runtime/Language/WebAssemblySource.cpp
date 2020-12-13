@@ -27,15 +27,15 @@ WebAssemblySource::WebAssemblySource(byte* source, uint bufferLength, bool creat
 void WebAssemblySource::ReadBufferSource(Var val, ScriptContext * scriptContext)
 {
     BYTE* srcBuffer;
-    if (Js::TypedArrayBase::Is(val))
+    if (Js::VarIs<Js::TypedArrayBase>(val))
     {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(val);
+        Js::TypedArrayBase* array = Js::VarTo<Js::TypedArrayBase>(val);
         srcBuffer = array->GetByteBuffer();
         bufferLength = array->GetByteLength();
     }
-    else if (Js::ArrayBuffer::Is(val))
+    else if (Js::VarIs<Js::ArrayBuffer>(val))
     {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(val);
+        Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(val);
         srcBuffer = arrayBuffer->GetBuffer();
         bufferLength = arrayBuffer->GetByteLength();
     }

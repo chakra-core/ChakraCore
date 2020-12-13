@@ -5,7 +5,8 @@
       "[Intl.getCanonicalLocales returned]": "Array [en-US]"
     },
     "locals": {
-      "x": "number 0"
+      "x": "number 0",
+      "Symbol.toStringTag": "string global"
     }
   },
   {
@@ -14,7 +15,8 @@
       "[Intl.getCanonicalLocales returned]": "Array [en-US]"
     },
     "locals": {
-      "x": "number 1"
+      "x": "number 1",
+      "Symbol.toStringTag": "string global"
     }
   }
 ]

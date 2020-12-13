@@ -48,14 +48,18 @@ var tests = [
         "use strict";
         var obj0 = {
             m() {
+                assert.areEqual(this, obj0);
+                assert.areEqual(this.__proto__, base, "this.__proto__ === base");
                 super.prop = "identifier";
-                Object.freeze(obj0);
+                assert.isTrue(this.hasOwnProperty('prop'), "this.hasOwnProperty('prop')");
+                Object.freeze(this);
                 super.prop = "super";
             }
         };
 
         var obj1 = {
             m() {
+                assert.areEqual(this, obj1);
                 super['prop'] = "expression";
                 Object.freeze(obj1);
                 super['prop'] = "super";

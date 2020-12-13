@@ -138,6 +138,7 @@ public:
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize);
     BOOL    FreeLocal(LPVOID lpAddress);
+    bool    GetFileInfo(LPVOID address, HANDLE* fileHandle, PVOID* baseAddress);
 
 private:
 
@@ -165,6 +166,7 @@ public:
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize);
     BOOL    FreeLocal(LPVOID lpAddress);
+    bool    GetFileInfo(LPVOID address, HANDLE* fileHandle, PVOID* baseAddress);
 
     bool        IsInRange(void * address);
     static bool IsInRange(void * regionStart, void * address);

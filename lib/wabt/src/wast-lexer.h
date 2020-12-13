@@ -24,6 +24,7 @@
 #include "src/common.h"
 #include "src/lexer-source-line-finder.h"
 #include "src/literal.h"
+#include "src/make-unique.h"
 #include "src/opcode.h"
 #include "src/token.h"
 
@@ -50,7 +51,9 @@ class WastLexer {
   Result Fill(size_t need);
 
   // TODO(binji): Move this out of the lexer.
-  LexerSourceLineFinder& line_finder() { return line_finder_; }
+  std::unique_ptr<LexerSourceLineFinder> MakeLineFinder() {
+    return MakeUnique<LexerSourceLineFinder>(source_->Clone());
+  }
 
  private:
   Location GetLocation();
@@ -58,7 +61,6 @@ class WastLexer {
   std::string GetText(size_t at = 0);
 
   std::unique_ptr<LexerSource> source_;
-  LexerSourceLineFinder line_finder_;
   std::string filename_;
   int line_;
   int comment_nesting_;

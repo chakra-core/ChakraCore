@@ -46,7 +46,7 @@ namespace JSON
         Js::RecyclableObject* reviver = nullptr;
         if (args.Info.Count > 2 && Js::JavascriptConversion::IsCallable(args[2]))
         {
-            reviver = Js::RecyclableObject::UnsafeFromVar(args[2]);
+            reviver = Js::UnsafeVarTo<Js::RecyclableObject>(args[2]);
         }
 
         return Parse(input, reviver, scriptContext);
@@ -60,7 +60,7 @@ namespace JSON
 
         TryFinally([&]()
         {
-            LazyJSONString* lazyString = LazyJSONString::TryFromVar(input);
+            LazyJSONString* lazyString = JavascriptOperators::TryFromVar<LazyJSONString>(input);
             if (lazyString)
             {
                 // Try to reconstruct object based on the data collected during stringify
@@ -122,15 +122,16 @@ namespace JSON
         if (Js::JavascriptOperators::GetTypeId(value) == Js::TypeIds_HostDispatch)
         {
             // If we a remote object, we need to pull out the underlying JS object to stringify that
-            Js::DynamicObject* remoteObject = Js::RecyclableObject::FromVar(value)->GetRemoteObject();
+            Js::DynamicObject* remoteObject = Js::VarTo<Js::RecyclableObject>(value)->GetRemoteObject();
             if (remoteObject != nullptr)
             {
-                value = Js::DynamicObject::FromVar(remoteObject);
+                AssertOrFailFast(Js::VarIsCorrectType(remoteObject));
+                value = remoteObject;
             }
             else
             {
                 Js::Var result;
-                if (Js::RecyclableObject::FromVar(value)->InvokeBuiltInOperationRemotely(Stringify, args, &result))
+                if (Js::VarTo<Js::RecyclableObject>(value)->InvokeBuiltInOperationRemotely(Stringify, args, &result))
                 {
                     return result;
                 }

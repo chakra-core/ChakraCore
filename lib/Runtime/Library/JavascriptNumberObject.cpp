@@ -20,25 +20,6 @@ namespace Js
         Assert(TaggedInt::Is(value) || !ThreadContext::IsOnStack(value));
     }
 
-    bool JavascriptNumberObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_NumberObject;
-    }
-
-    JavascriptNumberObject* JavascriptNumberObject::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
-
-        return static_cast<JavascriptNumberObject *>(aValue);
-    }
-
-    JavascriptNumberObject* JavascriptNumberObject::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNumber'");
-
-        return static_cast<JavascriptNumberObject *>(aValue);
-    }
-
     Var JavascriptNumberObject::Unwrap() const
     {
         return value;

@@ -191,6 +191,16 @@
   </test>
   <test>
     <default>
+       <files>hasBailedOutBug3.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+       <files>hasBailedOutBug4.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
        <files>StackOverflow.js</files>
     </default>
   </test>
@@ -203,5 +213,17 @@
     <default>
        <files>tfjitloopbug.js</files>
   </default>
+  </test>
+  <test>
+    <default>
+      <files>optional-catch-binding.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regionBugSpecHoisting.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
   </test>
 </regress-exe>

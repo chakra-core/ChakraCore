@@ -66,6 +66,12 @@ JITOutput::IsTrackCompoundedIntOverflowDisabled() const
 }
 
 bool
+JITOutput::IsMemOpDisabled() const
+{
+    return m_outputData->disableMemOp != FALSE;
+}
+
+bool
 JITOutput::IsArrayCheckHoistDisabled() const
 {
     return m_outputData->disableArrayCheckHoist != FALSE;
@@ -287,10 +293,16 @@ JITOutput::FinalizeNativeCode()
     if (!allocation->thunkAddress && CONFIG_FLAG(OOPCFGRegistration))
     {
         PVOID callTarget = (PVOID)m_outputData->codeAddress;
-#ifdef _M_ARM
-        callTarget = (PVOID)((uintptr_t)callTarget | 0x1);
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsJITServer())
+        {
+            m_func->GetOOPCodeGenAllocators()->emitBufferManager.SetValidCallTarget(m_oopAlloc, callTarget, true);
+        }
+        else
 #endif
-        m_func->GetThreadContextInfo()->SetValidCallTargetForCFG(callTarget);
+        {
+            m_func->GetInProcCodeGenAllocators()->emitBufferManager.SetValidCallTarget(m_inProcAlloc, callTarget, true);
+        }
     }
 }
 

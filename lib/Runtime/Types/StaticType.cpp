@@ -35,7 +35,7 @@ namespace Js
             valueStr = scriptContext->GetIntegerString(this);
             break;
         case TypeIds_Boolean:
-            valueStr = JavascriptBoolean::FromVar(this)->GetValue() ?
+            valueStr = VarTo<JavascriptBoolean>(this)->GetValue() ?
                            GetLibrary()->GetTrueDisplayString()
                          : GetLibrary()->GetFalseDisplayString();
             break;
@@ -43,7 +43,7 @@ namespace Js
             valueStr = JavascriptNumber::ToStringRadix10(JavascriptNumber::GetValue(this), scriptContext);
             break;
         case TypeIds_String:
-            valueStr = JavascriptString::FromVar(this);
+            valueStr = VarTo<JavascriptString>(this);
             break;
         default:
             valueStr = GetLibrary()->GetUndefinedDisplayString();

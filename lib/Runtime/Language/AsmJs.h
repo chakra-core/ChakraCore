@@ -48,8 +48,6 @@ namespace Js
         static bool CheckNewArrayView( AsmJsModuleCompiler &m, PropertyName varName, ParseNode *newExpr );
         static bool CheckFunction( AsmJsModuleCompiler &m, ParseNodeFnc* fncNode );
         static bool CheckFunctionsSequential(AsmJsModuleCompiler &m);
-        static bool CheckChangeHeap(AsmJsModuleCompiler &m);
-        static bool CheckByteLengthCall(AsmJsModuleCompiler &m, ParseNode * node, ParseNode * newBufferDecl);
         static bool CheckGlobalVariableInitImport( AsmJsModuleCompiler &m, PropertyName varName, ParseNode *initNode, bool isMutable = true );
         static bool CheckGlobalVariableImportExpr(AsmJsModuleCompiler &m, PropertyName varName, AsmJSCoercion coercion, ParseNode *coercedExpr);
         static bool CheckFunctionTables(AsmJsModuleCompiler& m);

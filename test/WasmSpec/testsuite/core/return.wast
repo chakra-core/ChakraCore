@@ -9,6 +9,19 @@
   (func (export "type-f32") (drop (f32.neg (return))))
   (func (export "type-f64") (drop (f64.neg (return))))
 
+  (func (export "type-i32-value") (result i32)
+    (block (result i32) (i32.ctz (return (i32.const 1))))
+  )
+  (func (export "type-i64-value") (result i64)
+    (block (result i64) (i64.ctz (return (i64.const 2))))
+  )
+  (func (export "type-f32-value") (result f32)
+    (block (result f32) (f32.neg (return (f32.const 3))))
+  )
+  (func (export "type-f64-value") (result f64)
+    (block (result f64) (f64.neg (return (f64.const 4))))
+  )
+
   (func (export "nullary") (return))
   (func (export "unary") (result f64) (return (f64.const 3)))
 
@@ -147,6 +160,13 @@
   (func (export "as-set_local-value") (result i32) (local f32)
     (set_local 0 (return (i32.const 17))) (i32.const -1)
   )
+  (func (export "as-tee_local-value") (result i32) (local i32)
+    (tee_local 0 (return (i32.const 1)))
+  )
+  (global $a (mut i32) (i32.const 0))
+  (func (export "as-set_global-value") (result i32)
+    (set_global $a (return (i32.const 1)))
+  )
 
   (memory 1)
   (func (export "as-load-address") (result f32)
@@ -206,6 +226,11 @@
 (assert_return (invoke "type-f32"))
 (assert_return (invoke "type-f64"))
 
+(assert_return (invoke "type-i32-value") (i32.const 1))
+(assert_return (invoke "type-i64-value") (i64.const 2))
+(assert_return (invoke "type-f32-value") (f32.const 3))
+(assert_return (invoke "type-f64-value") (f64.const 4))
+
 (assert_return (invoke "nullary"))
 (assert_return (invoke "unary") (f64.const 3))
 
@@ -257,6 +282,8 @@
 (assert_return (invoke "as-call_indirect-last") (i32.const 23))
 
 (assert_return (invoke "as-set_local-value") (i32.const 17))
+(assert_return (invoke "as-tee_local-value") (i32.const 1))
+(assert_return (invoke "as-set_global-value") (i32.const 1))
 
 (assert_return (invoke "as-load-address") (f32.const 1.7))
 (assert_return (invoke "as-loadN-address") (i64.const 30))

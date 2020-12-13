@@ -10,7 +10,8 @@
 #include "src/wast-lexer.h"
 #include "src/resolve-names.h"
 #include "src/binary-writer.h"
-#include "src/error-handler.h"
+#include "src/error.h"
+#include "src/error-formatter.h"
 #include "src/ir.h"
 #include "src/cast.h"
 #include "src/validator.h"
@@ -19,38 +20,33 @@
 using namespace wabt;
 using namespace ChakraWabt;
 
-class MyErrorHandler : public ErrorHandler
+void CheckResult(
+    Result result,
+    Errors* errors,
+    WastLexer* lexer,
+    const char* errorMessage
+)
 {
-public:
-    MyErrorHandler() : ErrorHandler(Location::Type::Text) {}
-
-    virtual bool OnError(ErrorLevel level, const Location& loc, const std::string& error, const std::string& source_line, size_t source_line_column_offset) override
+    if (!Succeeded(result))
     {
-        int colStart = loc.first_column - 1 - (int)source_line_column_offset;
-        int sourceErrorLength = (loc.last_column - loc.first_column) - 2;
-        if (sourceErrorLength < 0)
+        if (errors && errors->size() > 0)
         {
-            // -2 probably overflowed
-            sourceErrorLength = 0;
+            std::string message = FormatErrorsToString(
+                *errors,
+                Location::Type::Text,
+                lexer->MakeLineFinder().get(),
+                wabt::Color(),
+                errorMessage,
+                PrintHeader::Once,
+                256
+            );
+            char buf[4096];
+            wabt_snprintf(buf, 4096, "Wast Parsing %s", message.c_str());
+            throw WabtAPIError(buf);
         }
-        char buf[4096];
-        wabt_snprintf(buf, 4096, "Wast Parsing %s:%u:%u:\n%s\n%s\n%*s^%*s^",
-            GetErrorLevelName(level),
-            loc.line,
-            loc.first_column,
-            error.c_str(),
-            source_line.c_str(),
-            colStart, "",
-            sourceErrorLength, "");
-        throw Error(buf);
+        throw WabtAPIError(errorMessage);
     }
-
-    virtual size_t source_line_max_length() const override
-    {
-        return 256;
-    }
-
-};
+}
 
 namespace ChakraWabt
 {
@@ -58,7 +54,6 @@ namespace ChakraWabt
     {
         ChakraContext* chakra;
         WastLexer* lexer;
-        MyErrorHandler* errorHandler;
     };
 }
 
@@ -91,7 +86,7 @@ uint TruncSizeT(size_t value)
 {
     if (value > 0xffffffff)
     {
-        throw Error("Out of Memory");
+        throw WabtAPIError("Out of Memory");
     }
     return (uint)value;
 }
@@ -101,7 +96,7 @@ void set_property(Context* ctx, Js::Var obj, PropertyId id, Js::Var value, const
     bool success = ctx->chakra->spec->setProperty(obj, id, value, ctx->chakra->user_data);
     if (!success)
     {
-        throw Error(messageIfFailed);
+        throw WabtAPIError(messageIfFailed);
     }
 }
 
@@ -166,7 +161,7 @@ void write_command_type(Context* ctx, CommandType type, Js::Var cmdObj)
     uint i = (uint)type;
     if (i > (uint)CommandType::Last)
     {
-        throw Error("invalid command type");
+        throw WabtAPIError("invalid command type");
     }
     write_string(ctx, cmdObj, PropertyIds::type, s_command_names[i]);
 }
@@ -203,7 +198,7 @@ Js::Var create_const_vector(Context* ctx, const ConstVector& consts)
             break;
         default:
             assert(0);
-            throw Error("invalid constant type");
+            throw WabtAPIError("invalid constant type");
         }
         write_string(ctx, constDescriptor, PropertyIds::value, buf);
     }
@@ -287,19 +282,21 @@ Js::Var create_module(Context* ctx, const Module* module, bool validate = true)
 {
     if (!module)
     {
-        throw Error("No module found");
+        throw WabtAPIError("No module found");
     }
     if (validate)
     {
         ValidateOptions options(GetWabtFeatures(*ctx->chakra));
-        ValidateModule(ctx->lexer, module, ctx->errorHandler, &options);
+        Errors errors;
+        Result result = ValidateModule(module, &errors, options);
+        CheckResult(result, &errors, ctx->lexer, "Failed to validate module");
     }
     MemoryStream stream;
     WriteBinaryOptions s_write_binary_options;
-    Result result = WriteBinaryModule(&stream, module, &s_write_binary_options);
+    Result result = WriteBinaryModule(&stream, module, s_write_binary_options);
     if (!Succeeded(result))
     {
-        throw Error("Error while writing module");
+        throw WabtAPIError("Error while writing module");
     }
     const uint8_t* data = stream.output_buffer().data.data();
     const size_t size = stream.output_buffer().size();
@@ -469,25 +466,17 @@ Js::Var write_commands(Context* ctx, Script* script)
 
 void Validate(const ChakraContext& ctx, bool isSpec)
 {
-    if (!ctx.createBuffer) throw Error("Missing createBuffer");
+    if (!ctx.createBuffer) throw WabtAPIError("Missing createBuffer");
     if (isSpec)
     {
-        if (!ctx.spec) throw Error("Missing Spec context");
-        if (!ctx.spec->setProperty) throw Error("Missing spec->setProperty");
-        if (!ctx.spec->int32ToVar) throw Error("Missing spec->int32ToVar");
-        if (!ctx.spec->int64ToVar) throw Error("Missing spec->int64ToVar");
-        if (!ctx.spec->stringToVar) throw Error("Missing spec->stringToVar");
-        if (!ctx.spec->createObject) throw Error("Missing spec->createObject");
-        if (!ctx.spec->createArray) throw Error("Missing spec->createArray");
-        if (!ctx.spec->push) throw Error("Missing spec->push");
-    }
-}
-
-void CheckResult(Result result, const char* errorMessage)
-{
-    if (!Succeeded(result))
-    {
-        throw Error(errorMessage);
+        if (!ctx.spec) throw WabtAPIError("Missing Spec context");
+        if (!ctx.spec->setProperty) throw WabtAPIError("Missing spec->setProperty");
+        if (!ctx.spec->int32ToVar) throw WabtAPIError("Missing spec->int32ToVar");
+        if (!ctx.spec->int64ToVar) throw WabtAPIError("Missing spec->int64ToVar");
+        if (!ctx.spec->stringToVar) throw WabtAPIError("Missing spec->stringToVar");
+        if (!ctx.spec->createObject) throw WabtAPIError("Missing spec->createObject");
+        if (!ctx.spec->createArray) throw WabtAPIError("Missing spec->createArray");
+        if (!ctx.spec->push) throw WabtAPIError("Missing spec->push");
     }
 }
 
@@ -497,32 +486,31 @@ Js::Var ChakraWabt::ConvertWast2Wasm(ChakraContext& chakraCtx, char* buffer, uin
 
     std::unique_ptr<WastLexer> lexer = WastLexer::CreateBufferLexer("", buffer, (size_t)bufferSize);
 
-    MyErrorHandler s_error_handler;
     WastParseOptions options(GetWabtFeatures(chakraCtx));
     Context ctx;
     ctx.chakra = &chakraCtx;
-    ctx.errorHandler = &s_error_handler;
     ctx.lexer = lexer.get();
+    Errors errors;
 
     if (isSpecText)
     {
         std::unique_ptr<Script> script;
-        Result result = ParseWastScript(lexer.get(), &script, &s_error_handler, &options);
-        CheckResult(result, "Invalid wast script");
+        Result result = ParseWastScript(lexer.get(), &script, &errors, &options);
+        CheckResult(result, &errors, lexer.get(), "Invalid wast script");
 
-        result = ResolveNamesScript(lexer.get(), script.get(), &s_error_handler);
-        CheckResult(result, "Unable to resolve script's names");
+        result = ResolveNamesScript(script.get(), &errors);
+        CheckResult(result, &errors, lexer.get(), "Unable to resolve script's names");
 
         return write_commands(&ctx, script.get());
     }
     else
     {
         std::unique_ptr<Module> module;
-        Result result = ParseWatModule(lexer.get(), &module, &s_error_handler, &options);
-        CheckResult(result, "Invalid wat script");
+        Result result = ParseWatModule(lexer.get(), &module, &errors, &options);
+        CheckResult(result, &errors, lexer.get(), "Invalid wat script");
 
-        result = ResolveNamesModule(lexer.get(), module.get(), &s_error_handler);
-        CheckResult(result, "Unable to resolve module's names");
+        result = ResolveNamesModule(module.get(), &errors);
+        CheckResult(result, &errors, lexer.get(), "Unable to resolve module's names");
 
         return create_module(&ctx, module.get());
     }

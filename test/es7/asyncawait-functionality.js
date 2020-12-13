@@ -1039,29 +1039,74 @@ var tests = [
         }
     },
     {
-        name: "`then` is called with both onFulfilled and onRejected",
+        name: "`then` is not called when awaiting a non-promise or native promise",
         body: function (index) {
-            async function bar() {
-                throw new Error("Whoops");
-            }
-
-            async function foo() {
-                try {
-                    await bar();
-                } catch (e){
-                    echo(`Test #${index} - Success caught the expected exception`);
-                }
+            async function f() {
+                await 1;
+                await Promise.resolve(1);
             }
 
             var oldThen = Promise.prototype.then;
-            Promise.prototype.then = function(thenx, catchx) {
-                echo(`Test #${index} - then: ${!!thenx}, catch: ${!!catchx}`)
+            Promise.prototype.then = function(onResolve, onReject) {
+                echo(`Test #${index} - Failed "then" called on non-promise or native promise`);
                 return oldThen.apply(this, arguments);
-            }
+            };
 
-            foo();
+            f();
 
             Promise.prototype.then = oldThen;
+        }
+    },
+    {
+        name: "`then` is called when awaiting a promise subclass",
+        body: function (index) {
+            class PromiseSubclass extends Promise {
+                constructor(executor) { super(executor); }
+                then(onResolve, onReject) {
+                    echo(`Test #${index} - Success "then" called on a promise subclass`);
+                    return super.then(onResolve, onReject);
+                }
+            }
+
+            async function f() {
+                await PromiseSubclass.resolve(1);
+            }
+
+            f();
+        }
+    },
+    {
+        name: "`then` is called when awaiting a non-promise thenable",
+        body: function (index) {
+            let thenable = {
+                then(onResolve, onReject) {
+                    echo(`Test #${index} - Success "then" called on a thenable`);
+                    return Promise.resolve(1);
+                }
+            };
+
+            async function f() {
+                await thenable;
+            }
+
+            f();
+        }
+    },
+    {
+        name: "The constructor property is only accessed once by await",
+        body: function (index) {
+            async function f() {
+                let p = Promise.resolve(0);
+                Object.defineProperty(p, 'constructor', {
+                    get: function() {
+                        echo(`Test #${index} - constructor property accessed`);
+                        return Promise;
+                    }
+                });
+                await p;
+            }
+
+            f();
         }
     }
 ];

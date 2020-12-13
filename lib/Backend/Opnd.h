@@ -226,6 +226,7 @@ public:
     bool                IsUnsigned() const { return IRType_IsUnsignedInt(this->m_type); }
     int                 GetSize() const { return TySize[this->m_type]; }
     bool                IsInt64() const { return IRType_IsInt64(this->m_type); }
+    bool                IsUint64() const { return this->m_type == TyUint64; }
     bool                IsInt32() const { return this->m_type == TyInt32; }
     bool                IsUInt32() const { return this->m_type == TyUint32; }
     bool                IsIntegral32() const { return IsInt32() || IsUInt32(); }
@@ -635,6 +636,9 @@ public:
             // Note that even usesFixedValue cannot live on ObjTypeSpecFldInfo, because we may share a cache between
             // e.g. Object.prototype and new Object(), and only the latter actually uses the fixed value, even though both have it.
             bool usesFixedValue: 1;
+            bool auxSlotPtrSymAvailable:1;
+            bool producesAuxSlotPtr:1;
+            bool cantChangeType: 1;
 
             union
             {
@@ -647,6 +651,7 @@ public:
                     bool initialTypeChecked: 1;
                     bool typeMismatch: 1;
                     bool writeGuardChecked: 1;
+                    bool typeCheckRequired: 1;
                 };
                 uint8 typeCheckSeqFlags;
             };
@@ -797,9 +802,17 @@ public:
         return this->monoGuardType;
     }
 
-    void SetMonoGuardType(JITTypeHolder type)
+    bool SetMonoGuardType(JITTypeHolder type)
     {
+        if (!(this->monoGuardType == nullptr || this->monoGuardType == type) ||
+            !((HasEquivalentTypeSet() && GetEquivalentTypeSet()->Contains(type)) ||
+              (!HasEquivalentTypeSet() && GetType() == type)))
+        {
+            // Required type is not in the available set, or we already set the type to something else. Inform the caller.
+            return false;
+        }
         this->monoGuardType = type;
+        return true;
     }
 
     bool NeedsMonoCheck() const
@@ -962,6 +975,28 @@ public:
         this->typeDead = value;
     }
 
+    bool IsAuxSlotPtrSymAvailable() const
+    {
+        return this->auxSlotPtrSymAvailable;
+    }
+
+    void SetAuxSlotPtrSymAvailable(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->auxSlotPtrSymAvailable = value;
+    }
+
+    bool ProducesAuxSlotPtr() const
+    {
+        return this->producesAuxSlotPtr;
+    }
+
+    void SetProducesAuxSlotPtr(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->producesAuxSlotPtr = value;
+    }
+
     void SetTypeDeadIfTypeCheckSeqCandidate(bool value)
     {
         if (IsTypeCheckSeqCandidate())
@@ -1012,6 +1047,27 @@ public:
     {
         Assert(IsTypeCheckSeqCandidate());
         this->writeGuardChecked = value;
+    }
+
+    bool TypeCheckRequired() const
+    {
+        return this->typeCheckRequired;
+    }
+
+    void SetTypeCheckRequired(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->typeCheckRequired = value;
+    }
+
+    bool CantChangeType() const
+    {
+        return this->cantChangeType;
+    }
+
+    void SetCantChangeType(bool value)
+    {
+        this->cantChangeType = value;
     }
 
     uint16 GetObjTypeSpecFlags() const
@@ -1125,7 +1181,8 @@ public:
     // fall back on live cache.  Similarly, for fixed method checks.
     bool MayHaveImplicitCall() const
     {
-        return !IsRootObjectNonConfigurableFieldLoad() && !UsesFixedValue() && (!IsTypeCheckSeqCandidate() || !IsTypeCheckProtected());
+        return !IsRootObjectNonConfigurableFieldLoad() && !UsesFixedValue() && (!IsTypeCheckSeqCandidate() || !IsTypeCheckProtected()
+            || (IsLoadedFromProto() && NeedsWriteGuardTypeCheck()));
     }
 
     // Is the instruction involving this operand part of a type check sequence? This is different from IsObjTypeSpecOptimized
@@ -1154,9 +1211,6 @@ public:
     {
         this->finalType = JITTypeHolder(nullptr);
     }
-
-    bool NeedsAuxSlotPtrSymLoad() const;
-    void GenerateAuxSlotPtrSymLoad(IR::Instr * instrInsert);
 
     BVSparse<JitArenaAllocator>* GetGuardedPropOps()
     {
@@ -1472,7 +1526,9 @@ public:
 public:
     //Note type: OpndKindAddr
     AddrOpnd *              CopyInternal(Func *func);
-    bool                    IsEqualInternal(Opnd *opnd);
+    bool                    IsEqualInternal(Opnd *opnd) const;
+    bool                    IsEqualAddr(void *addr) const;
+    static bool             IsEqualAddr(IR::Opnd * opnd, void * addr);
     void                    FreeInternal(Func * func);
 
     bool                    IsDynamic() const { return addrOpndKind > AddrOpndKindConstantVar; }
@@ -1649,6 +1705,8 @@ public:
     byte                    GetScale() const;
     void                    SetScale(byte scale);
     bool                    TryGetIntConstIndexValue(bool trySym, IntConstType *pValue, bool *pIsNotInt);
+    void                    AllowConversion(bool value) { m_conversionAllowed = value; }
+    bool                    ConversionAllowed() const   { return m_conversionAllowed; }
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     const char16 *         GetDescription();
     IR::AddrOpndKind        GetAddrKind() const;
@@ -1665,6 +1723,7 @@ private:
     RegOpnd *               m_indexOpnd;
     int32                   m_offset;
     byte                    m_scale;
+    bool                    m_conversionAllowed;
     Func *                  m_func;  // We need the allocator to copy the base and index...
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

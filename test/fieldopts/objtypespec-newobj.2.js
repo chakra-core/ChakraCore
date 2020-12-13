@@ -415,13 +415,13 @@ function test41() {
 }
 
 var o = test41();
-writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o.toDateString() + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test41();
-writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o.toDateString() + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test41();
-writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o.toDateString() + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 writeLine("");
 
 writeLine("Test 42:");
@@ -439,13 +439,13 @@ function test42() {
 }
 
 var o = test42();
-writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o.toDateString() + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test42();
-writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o.toDateString() + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 
 o = test42();
-writeLine("o = " + o + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
+writeLine("o = " + o.toDateString() + " ({ a: " + o.a + ", b: " + o.b + ", c: " + o.c + ", p: " + o.p + ", q: " + o.q + ", x: " + o.x + ", y: " + o.y + " })");
 writeLine("");
 
 writeLine("Test 43:");

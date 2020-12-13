@@ -17,6 +17,7 @@ using namespace Js;
     // Redeclare static constants
     const UINT64 NumberConstantsBase::k_Nan;
     const UINT32 NumberConstantsBase::k_Nan32;
+    const UINT64 NumberConstantsBase::k_NegativeNan;
     const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
     const INT64 NumberUtilitiesBase::Neg_InvalidInt64;
     const uint64 NumberConstants::k_PosInf;
@@ -59,6 +60,7 @@ using namespace Js;
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);
     const double NumberConstants::MIN_VALUE = *(double*)(&NumberConstants::k_PosMin);
     const double NumberConstants::NaN = *(double*)(&NumberConstants::k_Nan);
+    const double NumberConstants::NegativeNaN = *(double*)(&NumberConstants::k_NegativeNan);
     const double NumberConstants::NEGATIVE_INFINITY= *(double*)(&NumberConstants::k_NegInf);
     const double NumberConstants::POSITIVE_INFINITY= *(double*)(&NumberConstants::k_PosInf );
     const double NumberConstants::NEG_ZERO= *(double*)(&NumberConstants::k_NegZero );
@@ -403,16 +405,28 @@ using namespace Js;
     }
 
     template<typename EncodedChar>
-    double NumberUtilities::DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim)
+    double NumberUtilities::DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled)
     {
         double dbl;
         uint uT;
         byte bExtra;
         int cbit;
+        const EncodedChar* pszSave = psz;
 
         // Skip leading zeros.
+LSkipZeroes:
         while (*psz == '0')
             psz++;
+
+        // If we stopped fast-scanning zeroes above because we ran into a numeric separator, skip that separator character if
+        // the previous character was a '0' (meaning the separator was not the first character in the literal) and the following
+        // character is a hex digit.
+        int unused;
+        if (*psz == '_' && isNumericSeparatorEnabled && pszSave < psz && psz[-1] == '0' && FHexDigit(psz[1], &unused))
+        {
+            psz++;
+            goto LSkipZeroes;
+        }
 
         dbl = 0;
         Assert(Js::NumberUtilities::LuHiDbl(dbl) == 0);
@@ -458,9 +472,17 @@ using namespace Js;
             if ((uT = (*psz - '0')) > 9)
             {
                 if ((uT -= 'A' - '0') <= 5 || (uT -= 'a' - 'A') <= 5)
+                {
                     uT += 10;
+                }
+                else if (*psz == '_' && isNumericSeparatorEnabled && pszSave < psz && psz[-1] != '_' && FHexDigit(psz[1], &unused))
+                {
+                    continue;
+                }
                 else
+                {
                     break;
+                }
             }
 
             if (cbit <= 17)
@@ -509,7 +531,7 @@ using namespace Js;
     }
 
     template <typename EncodedChar>
-    double NumberUtilities::DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim)
+    double NumberUtilities::DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled)
     {
         double dbl = 0;
         Assert(Js::NumberUtilities::LuHiDbl(dbl) == 0);
@@ -517,16 +539,32 @@ using namespace Js;
         uint uT;
         byte bExtra = 0;
         int cbit = 0;
+        const EncodedChar* pszSave = psz;
+
         // Skip leading zeros.
+LSkipZeroes:
         while (*psz == '0')
             psz++;
+
         // Get the first digit.
         uT = *psz - '0';
         if (uT > 1)
         {
+            // We can skip over this numeric separator character if:
+            //  - numeric separators are enabled
+            //  - we've walked past at least one zero character (ie: this isn't the first character in psz)
+            //  - the previous character was a zero
+            //  - the following character is a valid binary digit
+            if (*psz == '_' && isNumericSeparatorEnabled && pszSave < psz && psz[-1] == '0' && static_cast<uint>(psz[1] - '0') <= 1)
+            {
+                psz++;
+                goto LSkipZeroes;
+            }
+
             *ppchLim = psz;
             return dbl;
         }
+
         //Now that leading zeros are skipped first bit should be one so lets
         //go ahead and count it and increment psz
         cbit = 1;
@@ -542,12 +580,14 @@ using namespace Js;
         // Why 52? 52 is the last explicit bit and 1 bit away from 53 (max bits of precision
         // for double precision floating point)
         const uint leftShiftValue = 52;
-        for (; (uT = (*psz - '0')) <= 1; psz++)
+
+LGetBinaryDigit:
+        uT = *psz - '0';
+        if (uT <= 1)
         {
             if (cbit <= rightShiftValue)
             {
                 Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (rightShiftValue - cbit);
-
             }
             else if (cbit <= leftShiftValue)
             {
@@ -563,6 +603,16 @@ using namespace Js;
                 bExtra |= 1;
             }
             cbit++;
+            psz++;
+            goto LGetBinaryDigit;
+        }
+        else if (*psz == '_')
+        {
+            if (isNumericSeparatorEnabled && cbit > 0 && psz[-1] != '_' && static_cast<uint>(psz[1] - '0') <= 1)
+            {
+                psz++;
+                goto LGetBinaryDigit;
+            }
         }
         // Set the lim.
         *ppchLim = psz;
@@ -591,16 +641,24 @@ using namespace Js;
     }
 
     template <typename EncodedChar>
-    double NumberUtilities::DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim)
+    double NumberUtilities::DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled)
     {
         double dbl;
         uint uT;
         byte bExtra;
         int cbit;
+        const EncodedChar* pszSave = psz;
 
         // Skip leading zeros.
+LSkipZeroes:
         while (*psz == '0')
             psz++;
+
+        if (*psz == '_' && isNumericSeparatorEnabled && psz > pszSave && psz[-1] == '0' && static_cast<uint>(psz[1] - '0') <= 7)
+        {
+            psz++;
+            goto LSkipZeroes;
+        }
 
         dbl = 0;
         Assert(Js::NumberUtilities::LuHiDbl(dbl) == 0);
@@ -632,7 +690,9 @@ using namespace Js;
         }
         bExtra = 0;
 
-        for (; (uT = (*psz - '0')) <= 7; psz++)
+LGetOctalDigit:
+        uT = *psz - '0';
+        if (uT <= 7)
         {
             if (cbit <= 18)
                 Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (18 - cbit);
@@ -651,6 +711,16 @@ using namespace Js;
             else if (0 != uT)
                 bExtra |= 1;
             cbit += 3;
+            psz++;
+            goto LGetOctalDigit;
+        }
+        else if (*psz == '_')
+        {
+            if (isNumericSeparatorEnabled && cbit > 0 && psz[-1] != '_' && static_cast<uint>(psz[1] - '0') <= 7)
+            {
+                psz++;
+                goto LGetOctalDigit;
+            }
         }
 
         // Set the lim.
@@ -684,15 +754,15 @@ using namespace Js;
     double NumberUtilities::StrToDbl(const EncodedChar * psz, const EncodedChar **ppchLim, Js::ScriptContext *const scriptContext)
     {
         Assert(scriptContext);
-        bool likelyInt = true;
-        return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyInt);
+        LikelyNumberType likelyType = LikelyNumberType::Int;
+        return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyType);
     }
 
     template double NumberUtilities::StrToDbl<char16>(const char16 * psz, const char16 **ppchLim, Js::ScriptContext *const scriptContext);
     template double NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, Js::ScriptContext *const scriptContext);
-    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim);
-    template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim);
-    template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);
-    template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
+    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);

@@ -3,13 +3,13 @@
 20
 20
 ReferenceError: 'hello2' is not defined
-SyntaxError: Syntax error
-SyntaxError: Syntax error
-SyntaxError: Syntax error
-SyntaxError: Syntax error
-SyntaxError: Syntax error
-SyntaxError: Syntax error
-SyntaxError: Syntax error
+SyntaxError: Unexpected invalid identifier 'false' after '('
+SyntaxError: Unexpected invalid identifier 'false' after '='
+SyntaxError: Unexpected invalid identifier 'true' after '='
+SyntaxError: Unexpected keyword 'var' after '='
+SyntaxError: Unexpected invalid identifier 'var' after '='
+SyntaxError: Unexpected keyword 'else' after '='
+SyntaxError: Unexpected invalid identifier 'else' after '='
 SyntaxError: The use of a keyword for an identifier is invalid
 SyntaxError: The use of a keyword for an identifier is invalid
 SyntaxError: The use of a keyword for an identifier is invalid

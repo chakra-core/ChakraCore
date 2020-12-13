@@ -14,6 +14,7 @@ namespace Js
     struct ReturnedValue;
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 #endif
+    class DelayedFreeArrayBuffer;
 }
 
 typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
@@ -188,7 +189,8 @@ enum RecyclerCollectCallBackFlags
     Collect_Begin_Partial            = 0x21,
     Collect_Begin_Concurrent_Partial = Collect_Begin_Concurrent | Collect_Begin_Partial,
     Collect_End                      = 0x02,
-    Collect_Wait                     = 0x04     // callback can be from another thread
+    Collect_Wait                     = 0x04,     // callback can be from another thread
+    Collect_Begin_Sweep              = 0x08
 };
 typedef void (__cdecl *RecyclerCollectCallBackFunction)(void * context, RecyclerCollectCallBackFlags flags);
 
@@ -344,6 +346,25 @@ public:
         // Abstract notion to hold onto threadHandle of worker thread
         HANDLE threadHandle;
         WorkerThread(HANDLE handle = nullptr) :threadHandle(handle){};
+    };
+
+    struct AutoRestoreImplicitFlags
+    {
+        ThreadContext * threadContext;
+        Js::ImplicitCallFlags savedImplicitCallFlags;
+        DisableImplicitFlags savedDisableImplicitFlags;
+        AutoRestoreImplicitFlags(ThreadContext *threadContext, Js::ImplicitCallFlags implicitCallFlags, DisableImplicitFlags disableImplicitFlags) :
+            threadContext(threadContext),
+            savedImplicitCallFlags(implicitCallFlags),
+            savedDisableImplicitFlags(disableImplicitFlags)
+        {
+        }
+
+        ~AutoRestoreImplicitFlags()
+        {
+            threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(savedImplicitCallFlags));
+            threadContext->SetDisableImplicitFlags((DisableImplicitFlags)savedDisableImplicitFlags);
+        }
     };
 
     void SetCurrentThreadId(DWORD threadId) { this->currentThreadId = threadId; }
@@ -619,7 +640,7 @@ private:
     bool isThreadBound;
     bool hasThrownPendingException;
     bool * hasBailedOutBitPtr;
-    bool callDispose;
+
 #if ENABLE_JS_REENTRANCY_CHECK
     bool noJsReentrancy;
 #endif
@@ -627,7 +648,7 @@ private:
     bool reentrancySafeOrHandled;
     bool isInReentrancySafeRegion;
 
-    AllocationPolicyManager * allocationPolicyManager; 
+    AllocationPolicyManager * allocationPolicyManager;
 
     JsUtil::ThreadService threadService;
 #if ENABLE_NATIVE_CODEGEN
@@ -642,6 +663,10 @@ private:
 #endif
     IdleDecommitPageAllocator pageAllocator;
     Recycler* recycler;
+
+    // This instance holds list of delay-free array buffer - this will be used in 
+    // scanning the stack in order to release any delay-free buffer.
+    Js::DelayedFreeArrayBuffer delayFreeCallback;
 
     // Fake RecyclerWeakReference for built-in properties
     class StaticPropertyRecordReference : public RecyclerWeakReference<const Js::PropertyRecord>
@@ -667,7 +692,7 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
-    void * tryCatchFrameAddr;
+    void * tryHandlerAddrOfReturnAddr;
     enum RedeferralState
     {
         InitialRedeferralState,
@@ -816,7 +841,7 @@ private:
     bool isScriptActive;
 
     // When ETW rundown in background thread which needs to walk scriptContext/functionBody/entryPoint lists,
-    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of
+    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of 
     // functionBody/entrypoints, or expanding the auxPtrs
     CriticalSection csFunctionBody;
 
@@ -928,6 +953,11 @@ public:
 
     Js::NoSpecialPropertyThreadRegistry* GetNoSpecialPropertyRegistry() { return &this->noSpecialPropertyRegistry; }
     Js::OnlyWritablePropertyThreadRegistry* GetOnlyWritablePropertyRegistry() { return &this->onlyWritablePropertyRegistry; }
+
+    Js::DelayedFreeArrayBuffer * GetScanStackCallback()
+    {
+        return &this->delayFreeCallback;
+    }
 
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     DirectCallTelemetry directCallTelemetry;
@@ -1268,8 +1298,8 @@ public:
     uint EnterScriptStart(Js::ScriptEntryExitRecord *, bool doCleanup);
     void EnterScriptEnd(Js::ScriptEntryExitRecord *, bool doCleanup);
 
-    void * GetTryCatchFrameAddr() { return this->tryCatchFrameAddr; }
-    void SetTryCatchFrameAddr(void * frameAddr) { this->tryCatchFrameAddr = frameAddr; }
+    void * GetTryHandlerAddrOfReturnAddr() { return this->tryHandlerAddrOfReturnAddr; }
+    void SetTryHandlerAddrOfReturnAddr(void * addrOfReturnAddr) { this->tryHandlerAddrOfReturnAddr = addrOfReturnAddr; }
 
     template <bool leaveForHost>
     void LeaveScriptStart(void *);
@@ -1464,6 +1494,18 @@ public:
                 recyclableData->oldEntryPointInfo = oldEntryPointInfo;
             }
         }
+    }
+
+    bool IsOldEntryPointInfo(Js::ProxyEntryPointInfo* entryPointInfo)
+    {
+        Js::FunctionEntryPointInfo* current = this->recyclableData->oldEntryPointInfo;
+        while (current != nullptr)
+        {
+            if (current == entryPointInfo)
+                return true;
+            current = current->nextEntryPoint;
+        }
+        return false;
     }
 
     static bool IsOnStack(void const *ptr);
@@ -1678,6 +1720,8 @@ public:
 
     virtual uint GetRandomNumber() override;
     virtual bool DoSpecialMarkOnScanStack() override { return this->DoRedeferFunctionBodies(); }
+    virtual void OnScanStackCallback(void ** stackTop, size_t byteCount, void ** registers, size_t registersByteCount) override;
+
     virtual void PostSweepRedeferralCallBack() override;
 
     // DefaultCollectWrapper
@@ -1701,6 +1745,7 @@ public:
     int numExpirableObjects;
     int expirableCollectModeGcCount;
     bool disableExpiration;
+    bool callDispose;
 
     bool InExpirableCollectMode();
     void TryEnterExpirableCollectMode();

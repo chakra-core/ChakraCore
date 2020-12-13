@@ -47,17 +47,20 @@ namespace Js
         class Setup
         {
         public:
-            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false);
+            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false, bool isGeneratorFrame = false);
             Setup(ScriptFunction * function, Var * inParams, int inSlotsCount);
             size_t GetAllocationVarCount() const { return varAllocCount; }
+            size_t GetStackAllocationVarCount() const { return stackVarAllocCount; }
 
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
 
+            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, __in_ecount(stackVarAllocCount) Var * stackAllocation
+                                                         , bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr
 #if DBG
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr, Var invalidStackVar);
-#else
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr);
+                                                         , Var invalidStackVar
 #endif
+            );
+
             uint GetLocalCount() const { return localCount; }
 
         private:
@@ -75,10 +78,16 @@ namespace Js
             int inSlotsCount;
             uint localCount;
             uint varAllocCount;
+            uint stackVarAllocCount;
             uint inlineCacheCount;
             Js::CallFlags callFlags;
             bool bailedOut;
             bool bailedOutOfInlinee;
+
+            // Indicate whether this InterpreterStackFrame belongs to a generator function
+            // We use this flag to determine whether we need to allocate more space for
+            // objects such as for-in enumerators in a generator.
+            bool isGeneratorFrame;
         };
 
         struct AsmJsReturnStruct
@@ -152,7 +161,6 @@ namespace Js
         uint retOffset;
         int16 nestedFinallyDepth;
 
-
         void (InterpreterStackFrame::*opLoopBodyStart)(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
 #if ENABLE_PROFILE_INFO
         void (InterpreterStackFrame::*opProfiledLoopBodyStart)(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
@@ -186,9 +194,6 @@ namespace Js
 
         // 16-byte aligned
         __declspec(align(16)) Var m_localSlots[0];           // Range of locals and temporaries
-
-        static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
-                                                      // If there are more, we'll use an arena.
 
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
         inline InterpreterStackFrame() { }
@@ -310,11 +315,16 @@ namespace Js
         void * GetReturnAddress() { return returnAddress; }
 
         static uint32 GetOffsetOfLocals() { return offsetof(InterpreterStackFrame, m_localSlots); }
-        static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
+
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
         static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
         static uint32 GetOffsetOfForInEnumerators() { return offsetof(InterpreterStackFrame, forInObjectEnumerators); }
+
+        static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
+        static uint32 GetOffsetOfLocalFrameDisplay() { return offsetof(InterpreterStackFrame, localFrameDisplay); }
+        static uint32 GetOffsetOfLocalClosure() { return offsetof(InterpreterStackFrame, localClosure); }
+        static uint32 GetOffsetOfParamClosure() { return offsetof(InterpreterStackFrame, paramClosure); }
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -361,13 +371,16 @@ namespace Js
         _NOINLINE static Var InterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
         static Var InterpreterHelper(ScriptFunction* function, ArgumentReader args, void* returnAddress, void* addressOfReturnAddress, AsmJsReturnStruct* asmReturn = nullptr);
-        static const bool ShouldDoProfile(FunctionBody* executeFunction);
+        static bool ShouldDoProfile(FunctionBody* executeFunction);
         static InterpreterStackFrame* CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile);
 
         void InitializeClosures();
 
         static void OP_StPropIdArrFromVar(Var instance, uint32 index, Var value, ScriptContext* scriptContext);
         static Js::PropertyIdArray * OP_NewPropIdArrForCompProps(uint32 size, ScriptContext* scriptContext);
+
+        static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
+                                                      // If there are more, we'll use an arena.
 
     private:
 #if DYNAMIC_INTERPRETER_THUNK
@@ -467,7 +480,7 @@ namespace Js
         BOOL OP_BrNotUndecl_A(Var aValue);
         BOOL OP_BrOnHasProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnNoProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
-        BOOL OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
+        BOOL OP_BrOnHasEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
         BOOL OP_BrOnBaseConstructorKind(Var aValue);
 
@@ -555,9 +568,11 @@ namespace Js
         template <class T> void OP_SetProperty(unaligned T* playout);
         template <class T> void OP_SetLocalProperty(unaligned T* playout);
         template <class T> void OP_SetSuperProperty(unaligned T* playout);
+        template <class T> void OP_SetSuperPropertyStrict(unaligned T* playout);
         template <class T> void OP_ProfiledSetProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetLocalProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetSuperProperty(unaligned T* playout);
+        template <class T> void OP_ProfiledSetSuperPropertyStrict(unaligned T* playout);
         template <class T> void OP_SetRootProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetRootProperty(unaligned T* playout);
         template <class T> void OP_SetPropertyStrict(unaligned T* playout);
@@ -647,6 +662,7 @@ namespace Js
         void OP_StFunctionExpression(Var instance, Var value, PropertyIdIndexType index);
 
         template <class T> inline void OP_LdNewTarget(const unaligned T* playout);
+        template <class T> inline void OP_LdImportMeta(const unaligned T* playout);
 
         inline Var OP_Ld_A(Var aValue);
         inline Var OP_LdLocalObj();
@@ -656,6 +672,7 @@ namespace Js
 
         void OP_EnsureNoRootProperty(uint propertyIdIndex);
         void OP_EnsureNoRootRedeclProperty(uint propertyIdIndex);
+        void OP_EnsureCanDeclGloFunc(uint propertyIdIndex);
         void OP_ScopedEnsureNoRedeclProperty(Var aValue, uint propertyIdIndex, Var aValue2);
         Var OP_InitUndecl();
         void OP_InitUndeclSlot(Var aValue, int32 slot);
@@ -768,9 +785,11 @@ namespace Js
         void OP_TryFinallyWithYield(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException, Js::RegSlot regOffset);
         void OP_ResumeCatch();
         void OP_ResumeFinally(const byte* ip, Js::JumpOffset jumpOffset, RegSlot exceptionRegSlot, RegSlot offsetRegSlot);
-        inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
-        template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
+        Var OP_InitBaseClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RegSlot protoReg);
+        Var OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var ctorParent, Var protoParent, RegSlot protoReg);
+        Var InitClassHelper(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RecyclableObject *protoParent, RecyclableObject *constructorParent, RegSlot protoReg);
+        bool OP_CheckExtends(RegSlot ctorParent, RegSlot protoParent, RegSlot extends);
         inline Var OP_LdHomeObj(ScriptContext * scriptContext);
         inline Var OP_LdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);

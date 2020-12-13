@@ -7,6 +7,13 @@
 #define NUMBER_UTIL_INLINE
 #endif
 
+// Attempt to pun int/float without address-taking.
+// This helps compilers.
+
+#if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
+#include <immintrin.h>
+#endif
+
 #if !defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__)
 #if defined(_MSC_VER) // WINDOWS
 
@@ -136,17 +143,25 @@ namespace Js
 
     NUMBER_UTIL_INLINE bool NumberUtilities::IsNan(double value)
     {
+        const uint64 nCompare = ToSpecial(value);
 #if defined(TARGET_64)
-        // NaN is a range of values; all bits on the exponent are 1's and some nonzero significant.
-        // no distinction on signed NaN's
-        uint64 nCompare = ToSpecial(value);
-        bool isNan = (0 == (~nCompare & 0x7FF0000000000000ull) &&
+        // NaN is a range of values; all bits on the exponent are 1's 
+        // and some nonzero significant. No distinction on signed NaN's.
+        const bool isNan = (0 == (~nCompare & 0x7FF0000000000000ull) &&
             0 != (nCompare & 0x000FFFFFFFFFFFFFull));
         return isNan;
 #else
-        return 0 == (~Js::NumberUtilities::LuHiDbl(value) & 0x7FF00000) &&
-            (0 != Js::NumberUtilities::LuLoDbl(value) || 0 != (Js::NumberUtilities::LuHiDbl(value) & 0x000FFFFF));
+        const uint32 hi = (uint32)(nCompare >> 32);
+        const uint32 lo = (uint32)nCompare;
+        return 0 == (~hi & 0x7FF00000) &&
+            (0 != lo || 0 != (hi & 0x000FFFFF));
 #endif
+    }
+
+    NUMBER_UTIL_INLINE bool NumberUtilities::IsNegative(double value)
+    {
+        uint64 nCompare = ToSpecial(value);
+        return nCompare & 0x8000000000000000ull;
     }
 
     NUMBER_UTIL_INLINE bool NumberUtilities::IsSpecial(double value, uint64 nSpecial)
@@ -159,22 +174,46 @@ namespace Js
 
     NUMBER_UTIL_INLINE uint64 NumberUtilities::ToSpecial(double value)
     {
+#if defined(_AMD64_)
+        return _mm_cvtsi128_si64(_mm_castpd_si128(_mm_set_sd(value)));
+#elif defined(_M_ARM32_OR_ARM64)
+        return _CopyInt64FromDouble(value);
+#else
         return  *(reinterpret_cast<uint64 *>(&value));
+#endif
     }
 
     NUMBER_UTIL_INLINE uint32 NumberUtilities::ToSpecial(float value)
     {
+#if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
+        return _mm_cvtsi128_si32(_mm_castps_si128(_mm_set_ss(value)));
+#elif defined(_M_ARM32_OR_ARM64)
+        return _CopyInt32FromFloat(value);
+#else
         return  *(reinterpret_cast<uint32 *>(&value));
+#endif
     }
 
     NUMBER_UTIL_INLINE float NumberUtilities::ReinterpretBits(int value)
     {
+#if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
+        return _mm_cvtss_f32(_mm_castsi128_ps(_mm_cvtsi32_si128(value)));
+#elif defined(_M_ARM32_OR_ARM64)
+        return _CopyFloatFromInt32(value);
+#else
         return  *(reinterpret_cast<float *>(&value));
+#endif
     }
 
     NUMBER_UTIL_INLINE double NumberUtilities::ReinterpretBits(int64 value)
     {
+#if defined(_AMD64_)
+        return _mm_cvtsd_f64(_mm_castsi128_pd(_mm_cvtsi64_si128(value)));
+#elif defined(_M_ARM32_OR_ARM64)
+        return _CopyDoubleFromInt64(value);
+#else
         return  *(reinterpret_cast<double *>(&value));
+#endif
     }
 
     NUMBER_UTIL_INLINE bool NumberUtilities::IsFloat32NegZero(float value)

@@ -17,10 +17,21 @@ WScript.Flag(`-wasmMaxTableSize:${(Math.pow(2,32)-1)|0}`);
 
 self.addEventListener = function() {};
 
+if (!WebAssembly.Global) {
+  // Shim WebAssembly.Global so the tests fails, but don't crash
+  WebAssembly.Global = class {}
+}
+
 class ConsoleTestEnvironment {
+  constructor() {
+    this.all_loaded = false;
+    this.on_loaded = null;
+  }
+
   on_tests_ready() {
     runTests();
     this.all_loaded = true;
+    this.on_loaded();
   }
 
   // Invoked after setup() has been called to notify the test environment
@@ -37,7 +48,9 @@ class ConsoleTestEnvironment {
     return null;
   }
 
-  add_on_loaded_callback() {}
+  add_on_loaded_callback(fn) {
+    this.on_loaded = fn;
+  }
 
   // Should return the global scope object.
   global_scope() {
@@ -45,13 +58,43 @@ class ConsoleTestEnvironment {
   }
 }
 
+var environment;
 function chakra_create_test_environment() {
-  return new ConsoleTestEnvironment();
+  if (!environment) {
+    environment = new ConsoleTestEnvironment();
+  }
+  return environment;
 }
 
 WScript.LoadScriptFile("testsuite/harness/sync_index.js");
-WScript.LoadScriptFile("testsuite/harness/wasm-constants.js");
-WScript.LoadScriptFile("testsuite/harness/wasm-module-builder.js");
+const script = read(testfile);
+const re = /\/\/ META: script=(\/wasm\/jsapi\/)?(.+\.js)/gi;
+const mapping = {
+  "wasm-constants.js": "harness/wasm-constants.js",
+  "wasm-module-builder.js": "harness/wasm-module-builder.js",
+};
+let m;
+do {
+  m = re.exec(script);
+  if (m) {
+    const isLib = !!m[1];
+    const scriptToImport = m[2];
+    if (isLib) {
+      if (scriptToImport in mapping) {
+        WScript.LoadScriptFile(`testsuite/${mapping[scriptToImport]}`);
+      } else {
+        WScript.LoadScriptFile(`testsuite/js-api/${scriptToImport}`);
+      }
+    } else {
+      WScript.LoadScriptFile(
+        testfile
+          .split("/")
+          .slice(0, -1)
+          .concat(scriptToImport)
+          .join("/"));
+    }
+  }
+} while (m);
 WScript.LoadScript(read("testsuite/harness/testharness.js")
   // Use our text environment
   .replace(" = create_test_environment", " = chakra_create_test_environment"));

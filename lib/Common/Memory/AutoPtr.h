@@ -170,6 +170,11 @@ public:
         return &ptr;
     }
 
+    void SetPtr(T* ptr)
+    {
+        this->ptr = ptr;
+    }
+
 private:
     static IUnknown* ComPtrAssign(IUnknown** pp, IUnknown* lp)
     {

@@ -1,0 +1,32 @@
+Harness Status: OK
+Found 30 tests: Pass = 29 Fail = 1
+Pass Missing arguments: get  
+Pass Branding: get  
+Pass Missing arguments: set  
+Pass Branding: set  
+Pass Basic  
+Pass Growing  
+Pass Setting out-of-bounds  
+Pass Setting non-function  
+Pass Setting non-wasm function  
+Pass Setting non-wasm arrow function  
+Pass Getting out-of-range argument: undefined  
+Pass Setting out-of-range argument: undefined  
+Pass Getting out-of-range argument: NaN  
+Pass Setting out-of-range argument: NaN  
+Pass Getting out-of-range argument: Infinity  
+Pass Setting out-of-range argument: Infinity  
+Pass Getting out-of-range argument: -Infinity  
+Pass Setting out-of-range argument: -Infinity  
+Pass Getting out-of-range argument: -1  
+Pass Setting out-of-range argument: -1  
+Pass Getting out-of-range argument: 4294967296  
+Pass Setting out-of-range argument: 4294967296  
+Pass Getting out-of-range argument: 68719476736  
+Pass Setting out-of-range argument: 68719476736  
+Pass Getting out-of-range argument: "0x100000000"  
+Pass Setting out-of-range argument: "0x100000000"  
+Pass Getting out-of-range argument: object "[object Object]"  
+Pass Setting out-of-range argument: object "[object Object]"  
+Fail Order of argument conversion  assert_equals: expected 1 but got 0
+Pass Stray argument  

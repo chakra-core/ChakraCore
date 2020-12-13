@@ -164,6 +164,9 @@
     <ProjectReference Include="..\..\lib\Runtime\Math\Chakra.Runtime.Math.vcxproj">
       <Project>{abc904ad-9415-46f8-aa23-e33193f81f7c}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\lib\SCACore\Chakra.SCACore.vcxproj">
+      <Project>{4da3a367-6ed2-4ee8-9698-5bcd0b8af7f5}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\lib\WasmReader\Chakra.WasmReader.vcxproj">
       <Project>{53D52B0B-86D9-4D31-AD09-0D6B3C063ADD}</Project>
     </ProjectReference>
@@ -189,7 +192,7 @@
   <!-- Conditionally include the group of files to sign because MBv2 knows what to do with this but the old build definition gets confused. -->
   <ItemGroup Condition="'$(VSO_MICROBUILD_V2)'=='True' AND '$(POGO_TYPE)'!='PGI'">
     <FilesToSign Include="$(OutDir)\ChakraCore.dll">
-      <Authenticode>Microsoft</Authenticode>
+      <Authenticode>Microsoft400</Authenticode>
     </FilesToSign>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />

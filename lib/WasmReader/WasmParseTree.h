@@ -42,7 +42,7 @@ namespace Wasm
             F32 = 3,
             F64 = 4,
 #ifdef ENABLE_WASM_SIMD
-            M128 = 5,
+            V128 = 5,
 #endif
             Limit,
             Ptr,
@@ -55,7 +55,7 @@ namespace Wasm
                 | 1 << F32
                 | 1 << F64
 #ifdef ENABLE_WASM_SIMD
-                | 1 << M128
+                | 1 << V128
 #endif
         };
 
@@ -84,9 +84,9 @@ namespace Wasm
         }
 
 #ifdef ENABLE_WASM_SIMD
-#define WASM_M128_CHECK_TYPE Wasm::WasmTypes::M128
+#define WASM_V128_CHECK_TYPE Wasm::WasmTypes::V128
 #else
-#define WASM_M128_CHECK_TYPE Wasm::WasmTypes::Limit
+#define WASM_V128_CHECK_TYPE Wasm::WasmTypes::Limit
 #endif
 
         template<WasmType... T>

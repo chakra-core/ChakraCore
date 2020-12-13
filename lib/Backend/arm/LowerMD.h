@@ -93,9 +93,10 @@ public:
             void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = nullptr);
             void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget);
             bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
-            bool            GenerateFastCmSrEqConst(IR::Instr *instr);
-            bool            GenerateFastCmXxI4(IR::Instr *instr);
-            bool            GenerateFastCmXxR8(IR::Instr *instr) { Assert(UNREACHED); return nullptr; }
+            bool            GenerateFastCmSrXxConst(IR::Instr *instr);
+            void            GenerateFastCmXxI4(IR::Instr *instr);
+            void            GenerateFastCmXxR8(IR::Instr *instr);
+            void            GenerateFastCmXx(IR::Instr *instr);
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper = false);
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateClz(IR::Instr * instr);
@@ -118,7 +119,6 @@ public:
             void            GenerateFastBrS(IR::BranchInstr *brInstr);
             void            GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod);
             void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble) { Assert(UNREACHED); } // only for asm.js
-            IR::Opnd *      CreateStackArgumentsSlotOpnd();
             void            GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::Instr **instrFirst = nullptr, bool fContinueLabel = false);
             IR::RegOpnd *   LoadNonnegativeIndex(IR::RegOpnd *indexOpnd, const bool skipNegativeCheck, IR::LabelInstr *const notTaggedIntLabel, IR::LabelInstr *const negativeLabel, IR::Instr *const insertBeforeInstr);
             IR::RegOpnd *   GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::Instr * insertBeforeInstr, bool generateTagCheck = true);
@@ -130,6 +130,7 @@ public:
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
             void            GenerateFloatTest(IR::RegOpnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr* labelHelper, const bool checkForNullInLoopBody = false);
 
+     static IR::Opnd *      CreateStackArgumentsSlotOpnd(Func *func);
      static void            EmitInt4Instr(IR::Instr *instr);
             void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false);
             bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed, bool bailOutOnHelper = false, IR::LabelInstr * labelBailOut = nullptr);
@@ -247,6 +248,7 @@ public:
             void                LowerInlineSpreadArgOutLoop(IR::Instr *callInstr, IR::RegOpnd *indexOpnd, IR::RegOpnd *arrayElementsStartOpnd);
             void                LowerTypeof(IR::Instr * typeOfInstr);
             void                GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+            IR::BranchInstr*    InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr);
 private:
     IR::Opnd* IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
 

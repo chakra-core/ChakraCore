@@ -109,6 +109,11 @@
   </test>
   <test>
     <default>
+      <files>applyBailoutArgs.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bugs.js</files>
       <compile-flags>-maxinterpretcount:1 -off:simplejit -loopinterpretcount:1</compile-flags>
     </default>
@@ -134,6 +139,7 @@
       <files>NoProf.js</files>
     </default>
   </test>
+<!-- Random stack overflow with forced inlining
   <test>
     <default>
       <files>bug515849.js</files>
@@ -142,6 +148,7 @@
       <tags>exclude_arm64</tags>
     </default>
   </test>
+-->
   <test>
     <default>
       <files>inlineBuiltIns.js</files>
@@ -285,6 +292,11 @@
   </test>
   <test>
     <default>
+      <files>profilingbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug12528802.js</files>
     </default>
   </test>
@@ -304,7 +316,35 @@
   </test>
   <test>
     <default>
+      <files>InlineCallbackCallBailout.js</files>
+      <compile-flags>-testtrace:InlineCallbacks -testtrace:Bailout</compile-flags>
+      <baseline>InlineCallbackCallBailout.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>InlineCallInstanceFunction.js</files>
+      <compile-flags>-TestChakraLib -testtrace:bailout -testtrace:inlineCallbacks</compile-flags>
+      <baseline>InlineCallInstanceFunction.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>recursiveCallbacks.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>argoptbugs.js</files>
+      <compile-flags>-mic:1 -bgjit- -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_gh6303.js</files>
+      <flags>exclude_nonative</flags>
     </default>
   </test>
 </regress-exe>

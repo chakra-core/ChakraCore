@@ -44,3 +44,9 @@ var str = "abcabc";
 re.lastIndex = 3;
 WScript.Echo(str.replace(re, replacefn));
 
+let proxy = new Proxy(replacefn, {});
+var re = /abc/g;
+var str = "abcabc";
+re.lastIndex = 3;
+WScript.Echo(str.replace(re, proxy));
+

@@ -90,7 +90,7 @@ namespace Js
     };
     enum AsmJSTypedArrayBuiltinFunction
     {
-#define ASMJS_ARRAY_NAMES(name, propertyName) AsmJSTypedArrayBuiltin_##name,
+#define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) AsmJSTypedArrayBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJSTypedArrayBuiltin_COUNT
     };
@@ -390,7 +390,7 @@ namespace Js
         // Constructor
         AsmJsModuleArg(PropertyName name, ArgType type) : AsmJsSymbol(name, symbolType), mArgType(type) { }
         // Accessor
-        inline const ArgType GetArgType()const { return mArgType; }
+        inline ArgType GetArgType()const { return mArgType; }
 
         // AsmJsSymbol interface
     public:

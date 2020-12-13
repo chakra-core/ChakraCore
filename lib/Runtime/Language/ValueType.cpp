@@ -485,6 +485,11 @@ bool ValueType::IsPrimitive() const
     return result;
 }
 
+bool ValueType::IsPrimitiveOrObject() const
+{
+    return OneOnOthersOff(Bits::PrimitiveOrObject, Bits::CanBeTaggedValue);
+}
+
 bool ValueType::IsLikelyPrimitive() const
 {
     bool result =
@@ -577,7 +582,8 @@ bool ValueType::IsNotArrayOrObjectWithArray() const
 {
     return
         IsNotObject() ||
-        (IsObject() && GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array);
+        (IsObject() && GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array
+         && GetObjectType() != ObjectType::UninitializedObject && GetObjectType() != ObjectType::Object);
 }
 
 bool ValueType::IsNativeArray() const
@@ -808,7 +814,7 @@ ValueType ValueType::SetArrayTypeId(const Js::TypeId typeId) const
 {
     using namespace Js;
     Assert(IsLikelyArrayOrObjectWithArray());
-    Assert(JavascriptArray::Is(typeId));
+    Assert(JavascriptArray::IsNonES5Array(typeId));
     Assert(typeId == TypeIds_Array || IsLikelyObject() && GetObjectType() == ObjectType::Array); // objects with native arrays are currently not supported
 
     Bits newBits = bits & ~(Bits::NonInts | Bits::NonFloats);
@@ -1055,6 +1061,10 @@ ValueType ValueType::MergeWithObject(const ValueType other) const
         {
             // Any two different specific object types (excludes UninitializedObject and Object, which don't indicate any
             // specific type of object) merge to Object since the resulting type is not guaranteed to indicate any specific type
+            if (IsArrayOrObjectWithArray() || other.IsArrayOrObjectWithArray())
+            {
+                return Verify(GetObject(ObjectType::Object).ToLikely());
+            }
             merged.SetObjectType(ObjectType::Object);
             return Verify(merged);
         }
@@ -1100,7 +1110,7 @@ ValueType ValueType::Merge(const Js::Var var) const
                     ? GetInt(false)
                     : ValueType::Float);
     }
-    return Merge(FromObject(RecyclableObject::UnsafeFromVar(var)));
+    return Merge(FromObject(UnsafeVarTo<RecyclableObject>(var)));
 }
 
 ValueType::Bits ValueType::TypeIdToBits[Js::TypeIds_Limit];
@@ -1352,7 +1362,7 @@ ValueType ValueType::FromObject(Js::RecyclableObject *const recyclableObject)
     }
     Assert(DynamicType::Is(typeId)); // all static type IDs have nonzero values in TypeIdToBits
 
-    if(!JavascriptArray::Is(typeId))
+    if(!JavascriptArray::IsNonES5Array(typeId))
     {
         // TODO: Once the issue with loop bodies and uninitialized interpreter local slots is fixed, use FromVar
         DynamicObject *const object = static_cast<DynamicObject *>(recyclableObject);
@@ -1376,7 +1386,7 @@ ValueType ValueType::FromObjectWithArray(Js::DynamicObject *const object)
     Assert(objectArray);
     if(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(objectArray))
         return GetObject(ObjectType::Object);
-    return FromObjectArray(JavascriptArray::FromVar(objectArray));
+    return FromObjectArray(VarTo<JavascriptArray>(objectArray));
 }
 
 ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArray)
@@ -1945,13 +1955,18 @@ void ValueType::RunUnitTests()
                 ));
 
             if(!(
-                    t0.IsObject() && t1.IsObject() &&                                                       // both are objects
+                    t0.IsObject() && t1.IsObject() &&                                                             // both are objects
                     (
-                        t0.GetObjectType() == ObjectType::UninitializedObject ||
-                        t1.GetObjectType() == ObjectType::UninitializedObject
-                    ) &&                                                                                    // one has an uninitialized object type
-                    (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)    // one has a specific object type
-                ))                                                                                          // then the resulting object type is not guaranteed
+                        (
+                            (
+                                t0.GetObjectType() == ObjectType::UninitializedObject ||
+                                t1.GetObjectType() == ObjectType::UninitializedObject
+                            ) &&                                                                                  // one has an uninitialized object type
+                            (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)  // one has a specific object type
+                        ) ||
+                        (t0.IsArrayOrObjectWithArray() || t1.IsArrayOrObjectWithArray()) // or one was an array or an object with array
+                    )
+                ))                                                                                                // then the resulting object type is not guaranteed
             {
                 Assert(m.IsNotInt() == (t0.IsNotInt() && t1.IsNotInt()));
             }
@@ -1990,13 +2005,18 @@ void ValueType::RunUnitTests()
             Assert(m.IsLikelyString() == (t0.IsLikelyString() && t1.IsLikelyString()));
 
             if(!(
-                    t0.IsObject() && t1.IsObject() &&                                                       // both are objects
+                    t0.IsObject() && t1.IsObject() &&                                                             // both are objects
                     (
-                        t0.GetObjectType() == ObjectType::UninitializedObject ||
-                        t1.GetObjectType() == ObjectType::UninitializedObject
-                    ) &&                                                                                    // one has an uninitialized object type
-                    (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)    // one has a specific object type
-                ))                                                                                          // then the resulting object type is not guaranteed
+                        (
+                            (
+                                t0.GetObjectType() == ObjectType::UninitializedObject ||
+                                t1.GetObjectType() == ObjectType::UninitializedObject
+                            ) &&                                                                                  // one has an uninitialized object type
+                            (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)  // one has a specific object type
+                        ) ||
+                        (t0.IsArrayOrObjectWithArray() || t1.IsArrayOrObjectWithArray()) // or one was an array or an object with array
+                    )
+                ))                                                                                                // then the resulting object type is not guaranteed
             {
                 Assert(m.IsObject() == (t0.IsObject() && t1.IsObject()));
             }

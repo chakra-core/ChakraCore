@@ -19,10 +19,6 @@ namespace Js
     public:
         JavascriptStringIterator(DynamicType* type, JavascriptString* string);
 
-        static bool Is(Var aValue);
-        static JavascriptStringIterator* FromVar(Var aValue);
-        static JavascriptStringIterator* UnsafeFromVar(Var aValue);
-
         class EntryInfo
         {
         public:
@@ -34,4 +30,9 @@ namespace Js
     public:
         JavascriptString* GetStringForHeapEnum() { return m_string; }
     };
+
+    template <> inline bool VarIsImpl<JavascriptStringIterator>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_StringIterator;
+    }
 } // namespace Js

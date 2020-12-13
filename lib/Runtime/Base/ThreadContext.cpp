@@ -124,7 +124,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     entryExitRecord(nullptr),
     leafInterpreterFrame(nullptr),
     threadServiceWrapper(nullptr),
-    tryCatchFrameAddr(nullptr),
+    tryHandlerAddrOfReturnAddr(nullptr),
     temporaryArenaAllocatorCount(0),
     temporaryGuestArenaAllocatorCount(0),
     crefSContextForDiag(0),
@@ -721,7 +721,7 @@ bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemet
 
 bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const
 {
-    return this->tc->IsThreadBound(); 
+    return this->tc->IsThreadBound();
 }
 
 
@@ -1005,7 +1005,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     {
         if(this->TTDContext->GetActiveScriptContext() != nullptr && this->TTDContext->GetActiveScriptContext()->ShouldPerformReplayAction())
         {
-            //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
+            //We reload all properties that occur in the trace so they only way we get here in TTD mode is:
             //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or
             //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
             Js::PropertyId propertyId = Js::Constants::NoProperty;
@@ -1520,6 +1520,8 @@ ThreadContext::EnterScriptEnd(Js::ScriptEntryExitRecord * record, bool doCleanup
             this->hasThrownPendingException = false;
         }
 
+        delayFreeCallback.ClearAll();
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.FreeRejittedCode)
 #endif
@@ -1746,7 +1748,7 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
 {
     AssertCanHandleStackOverflowCall(obj->IsExternal() ||
         (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()));
+        Js::VarTo<Js::JavascriptFunction>(obj)->IsExternalFunction()));
     if (!this->IsStackAvailable(size))
     {
         if (this->IsExecutionDisabled())
@@ -1758,7 +1760,7 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
 
         if (obj->IsExternal() ||
             (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()))
+            Js::VarTo<Js::JavascriptFunction>(obj)->IsExternalFunction()))
         {
             Js::JavascriptError::ThrowStackOverflowError(scriptContext);
         }
@@ -2003,6 +2005,13 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         &m_jitThunkStartAddr);
     JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
+    // Initialize mutable ThreadContext state if needed
+    Js::TypeId wellKnownType = this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection];
+    if (m_remoteThreadContextInfo && wellKnownType != Js::TypeIds_Undefined)
+    {
+        hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(m_remoteThreadContextInfo, wellKnownType);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+    }
     return m_remoteThreadContextInfo != nullptr;
 #endif
 }
@@ -2598,6 +2607,8 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
 void
 ThreadContext::PreSweepCallback()
 {
+    CollectionCallBack(Collect_Begin_Sweep);
+
 #ifdef PERSISTENT_INLINE_CACHES
     ClearInlineCachesWithDeadWeakRefs();
 #else
@@ -2641,11 +2652,16 @@ ThreadContext::DoExpirableCollectModeStackWalk()
             if (javascriptFunction != nullptr && Js::ScriptFunction::Test(javascriptFunction))
             {
                 Js::ScriptFunction* scriptFunction = (Js::ScriptFunction*) javascriptFunction;
-                Js::FunctionEntryPointInfo* entryPointInfo =  scriptFunction->GetFunctionEntryPointInfo();
-                entryPointInfo->SetIsObjectUsed();
+
                 scriptFunction->GetFunctionBody()->MapEntryPoints([](int index, Js::FunctionEntryPointInfo* entryPoint){
                     entryPoint->SetIsObjectUsed();
                 });
+
+                // Make sure we marked the current one when iterating all entry points
+                Js::ProxyEntryPointInfo* entryPointInfo = scriptFunction->GetEntryPointInfo();
+                Assert(entryPointInfo == nullptr
+                    || !entryPointInfo->IsFunctionEntryPointInfo()
+                    || ((Js::FunctionEntryPointInfo*)entryPointInfo)->IsObjectUsed());
             }
         }
     }
@@ -2738,6 +2754,20 @@ ThreadContext::DoTryRedeferral() const
             Assert(0);
             return false;
     };
+}
+
+void
+ThreadContext::OnScanStackCallback(void ** stackTop, size_t byteCount, void ** registers, size_t registersByteCount)
+{
+    // Scan the stack to match with current list of delayed free buffer. For those which are not found on the stack
+    // will be released (ref-count decremented)
+
+    if (!this->delayFreeCallback.HasAnyItem())
+    {
+        return;
+    }
+
+    this->delayFreeCallback.ScanStack(stackTop, byteCount, registers, registersByteCount);
 }
 
 bool
@@ -3691,8 +3721,14 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
                 {
                     if (entry->entryPoints->TryGetValue(functionEntryPoint, &dummy))
                     {
-                        functionEntryPoint->DoLazyBailout(stackWalker.GetCurrentAddressOfInstructionPointer(),
-                            caller->GetFunctionBody(), propertyRecord);
+                        functionEntryPoint->DoLazyBailout(
+                            stackWalker.GetCurrentAddressOfInstructionPointer(),
+                            static_cast<BYTE*>(stackWalker.GetFramePointer())
+#if DBG
+                            , caller->GetFunctionBody()
+                            , propertyRecord
+#endif
+                        );
                     }
                 }
             }

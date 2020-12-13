@@ -39,14 +39,17 @@ class ParseNodeFnc;
 typedef ParseNode *ParseNodePtr;
 
 struct Ident;
+struct PidRefStack;
 typedef Ident *IdentPtr;
 
 struct ModuleImportOrExportEntry
 {
-    IdentPtr moduleRequest;
-    IdentPtr importName;
-    IdentPtr localName;
-    IdentPtr exportName;
+    IdentPtr     moduleRequest;
+    IdentPtr     importName;
+    IdentPtr     localName;
+    IdentPtr     exportName;
+    PidRefStack* pidRefStack;
+    charcount_t  offset;
 };
 
 typedef SList<ModuleImportOrExportEntry, ArenaAllocator> ModuleImportOrExportEntryList;

@@ -155,7 +155,7 @@ uint ConcatPath(LPCSTR filenameLeft, uint posPathSep, LPCSTR filenameRight, char
     return totalLength;
 }
 
-HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
+HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/, std::string* fullPath /*= nullptr*/, bool shouldMute /*=false */)
 {
     static char sHostApplicationPathBuffer[MAX_URI_LENGTH];
     static uint sHostApplicationPathBufferLength = (uint) -1;
@@ -169,7 +169,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
     FILE * file = NULL;
     size_t bufferLength = 0;
 
-    LPCSTR filename = filenameToLoad;
+    LPCSTR filename = fullPath == nullptr ? filenameToLoad : LPCSTR(fullPath->c_str());
     if (sHostApplicationPathBufferLength == (uint)-1)
     {
         // consider incoming filename as the host app and base its' path for others
@@ -188,7 +188,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         }
         sHostApplicationPathBuffer[sHostApplicationPathBufferLength] = char(0);
     }
-    else if (filename[0] != '/' && filename[0] != '\\') // make sure it's not a full path
+    else if (filename[0] != '/' && filename[0] != '\\' && fullPath == nullptr) // make sure it's not a full path
     {
         // concat host path and filename
         uint len = ConcatPath(sHostApplicationPathBuffer, sHostApplicationPathBufferLength,
@@ -216,7 +216,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         // etc.
         if (fopen_s(&file, filename, "rb") != 0)
         {
-            if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+            if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled && !shouldMute)
             {
 #ifdef _WIN32
                 DWORD lastError = GetLastError();

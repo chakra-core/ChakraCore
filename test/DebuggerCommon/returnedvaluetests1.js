@@ -27,7 +27,7 @@ function Run() {
     function test8() {
         function test7() {
             var d = new Date(2013, 1, 1);     
-            [d.toLocaleString].forEach(function (f) {
+            [d.toLocaleString].every(function (f) {
                 f; /**bp:resume('step_out');locals();stack()**/
                 return f;
             });

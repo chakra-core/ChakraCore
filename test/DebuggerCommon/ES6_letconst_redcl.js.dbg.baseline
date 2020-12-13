@@ -5,10 +5,13 @@
     }
   },
   {
-    "this": {},
+    "this": {
+      "Symbol.toStringTag": "string global"
+    },
     "locals": {
       "a": "number 100",
-      "b": "number 200"
+      "b": "number 200",
+      "Symbol.toStringTag": "string global"
     },
     "globals": {}
   }

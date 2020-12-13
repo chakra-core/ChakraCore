@@ -1,10 +1,11 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -16,18 +17,20 @@
       "z": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -37,7 +40,7 @@
     },
     "locals": {
       "e": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "number": "number 0",
         "description": "string ",
         "stack": "string <large string>"
@@ -45,10 +48,11 @@
       "z": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     }
   }
 ]

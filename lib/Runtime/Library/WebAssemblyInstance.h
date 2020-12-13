@@ -25,10 +25,6 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var GetterExports(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static bool Is(Var aValue);
-        static WebAssemblyInstance * FromVar(Var aValue);
-        static WebAssemblyInstance * UnsafeFromVar(Var aValue);
-
         static WebAssemblyInstance * CreateInstance(WebAssemblyModule * module, Var importObject);
     private:
         WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type);
@@ -45,5 +41,9 @@ namespace Js
         Field(Js::Var) m_exports;
     };
 
+    template <> inline bool VarIsImpl<WebAssemblyInstance>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyInstance;
+    }
 } // namespace Js
 #endif

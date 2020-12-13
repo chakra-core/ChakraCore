@@ -102,7 +102,7 @@ namespace Js
                 }
 
                 if (!DynamicType::Is(firstPrototypeWithEnumerableProperties->GetTypeId())
-                    || !DynamicObject::UnsafeFromVar(firstPrototypeWithEnumerableProperties)->GetHasNoEnumerableProperties())
+                    || !UnsafeVarTo<DynamicObject>(firstPrototypeWithEnumerableProperties)->GetHasNoEnumerableProperties())
                 {
                     break;
                 }

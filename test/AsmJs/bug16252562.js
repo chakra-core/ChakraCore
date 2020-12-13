@@ -11,4 +11,4 @@ function AsmModule(stdlib, foreign) {
   }
   return foo;
 }
-AsmModule(this, {Bar() {console.log(`new.target: ${new.target}`);}})();
+AsmModule(this, { Bar: function () { console.log(`new.target: ${new.target}`); } })();

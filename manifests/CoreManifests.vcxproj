@@ -20,6 +20,11 @@
       <Outputs>$(IntDir)\%(Filename)Events.h;$(IntDir)\%(Filename)Events.rc;$(IntDir)\%(Filename)Events_MSG00001.bin;$(IntDir)\%(Filename)EventsTEMP.bin</Outputs>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup Label="Publish">
+    <PublishGenerated Include="$(ObjectPath)$(ObjectDirectory)\microsoft-scripting-chakra-instrumentationevents.h">
+      <DestinationFile>$(ProjectIncPath)\microsoft-scripting-chakra-instrumentationevents.h</DestinationFile>
+    </PublishGenerated>
+  </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

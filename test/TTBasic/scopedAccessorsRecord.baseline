@@ -6,5 +6,5 @@ in nested setter2
 val is [object Object]
 val is 11
 test3: nested setter and setter from this
-val is [object Object]
+val is [object global]
 val is 12

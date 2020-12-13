@@ -240,6 +240,7 @@ protected:
 
     // Info populated for a compatible bound check and for hoisting out of loop
     StackSym *indexSym;
+    int indexOffset;
     int offset;
     ValueNumber indexValueNumber;
 
@@ -285,6 +286,12 @@ public:
     {
         Assert(HasAnyInfo());
         return offset;
+    }
+
+    int32 IndexOffset() const
+    {
+        Assert(HasAnyInfo());
+        return indexOffset;
     }
 
     void UpdateOffset(int newOffset)
@@ -334,7 +341,7 @@ public:
 public:
     void SetCompatibleBoundCheck(BasicBlock *const compatibleBoundCheckBlock, StackSym *const indexSym, const int offset, const ValueNumber indexValueNumber);
     void SetLoop(::Loop *const loop, const int indexConstantValue, const bool isLoopCountBasedBound = false);
-    void SetLoop(::Loop *const loop, StackSym *const indexSym, const int offset, Value *const indexValue, const IntConstantBounds &indexConstantBounds, const bool isLoopCountBasedBound = false);
+    void SetLoop(::Loop *const loop, StackSym *const indexSym, const int indexOffset, const int offset, Value *const indexValue, const IntConstantBounds &indexConstantBounds, const bool isLoopCountBasedBound = false);
     void SetLoopCount(::LoopCount *const loopCount, const int maxMagnitudeChange);
 };
 
@@ -353,6 +360,7 @@ public:
     using Base::CompatibleBoundCheckBlock;
     using Base::Loop;
     using Base::IndexSym;
+    using Base::IndexOffset;
     using Base::Offset;
     using Base::UpdateOffset;
     using Base::IndexValueNumber;
@@ -385,5 +393,5 @@ protected:
 public:
     void SetCompatibleBoundCheck(BasicBlock *const compatibleBoundCheckBlock, const int indexConstantValue);
     void SetLoop(::Loop *const loop, const int indexConstantValue, Value *const headSegmentLengthValue, const IntConstantBounds &headSegmentLengthConstantBounds, const bool isLoopCountBasedBound = false);
-    void SetLoop(::Loop *const loop, StackSym *const indexSym, const int offset, Value *const indexValue, const IntConstantBounds &indexConstantBounds, Value *const headSegmentLengthValue, const IntConstantBounds &headSegmentLengthConstantBounds, const bool isLoopCountBasedBound = false);
+    void SetLoop(::Loop *const loop, StackSym *const indexSym, const int indexOffset, const int offset, Value *const indexValue, const IntConstantBounds &indexConstantBounds, Value *const headSegmentLengthValue, const IntConstantBounds &headSegmentLengthConstantBounds, const bool isLoopCountBasedBound = false);
 };

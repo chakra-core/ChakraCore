@@ -238,26 +238,6 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
         }
     }
 
-    // EnumerationCompat
-    // This setting allows disabling a couple of changes to enumeration:
-    //     - A change that causes deleted property indexes to be reused for new properties, thereby changing the order in which
-    //       properties are enumerated
-    //     - A change that creates a true snapshot of the type just before enumeration, and enumerating only those properties. A
-    //       property that was deleted before enumeration and is added back during enumeration will not be enumerated.
-    // Values:
-    //     0 - Default
-    //     1 - Compatibility mode for enumeration order (disable changes described above)
-    // This FCK does not apply to WWAs. WWAs should use the RC compat mode to disable these changes.
-    dwValue = 0;
-    dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, _u("EnumerationCompat"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
-    {
-        if (dwValue == 1)
-        {
-            Js::Configuration::Global.flags.EnumerationCompat = true;
-        }
-    }
-
 #ifdef ENABLE_PROJECTION
     // FailFastIfDisconnectedDelegate
     // This setting allows enabling fail fast if the delegate invoked is disconnected
@@ -579,32 +559,33 @@ void ConfigParser::ProcessConfiguration(HANDLE hmod)
         FILE *fp;
 
         // fail usually means there is an existing console. We don't really care.
-        AllocConsole();
-
-        fd = _open_osfhandle((intptr_t)GetStdHandle(STD_OUTPUT_HANDLE), O_TEXT);
-        fp = _wfdopen(fd, _u("w"));
-
-        if (fp != nullptr)
+        if (AllocConsole())
         {
-            *stdout = *fp;
-            setvbuf(stdout, nullptr, _IONBF, 0);
-
-            fd = _open_osfhandle((intptr_t)GetStdHandle(STD_ERROR_HANDLE), O_TEXT);
+            fd = _open_osfhandle((intptr_t)GetStdHandle(STD_OUTPUT_HANDLE), O_TEXT);
             fp = _wfdopen(fd, _u("w"));
 
             if (fp != nullptr)
             {
-                *stderr = *fp;
-                setvbuf(stderr, nullptr, _IONBF, 0);
+                *stdout = *fp;                
+                setvbuf(stdout, nullptr, _IONBF, 0);
 
-                char16 buffer[_MAX_PATH + 70];
+                fd = _open_osfhandle((intptr_t)GetStdHandle(STD_ERROR_HANDLE), O_TEXT);
+                fp = _wfdopen(fd, _u("w"));
 
-                if (ConfigParserAPI::FillConsoleTitle(buffer, _MAX_PATH + 20, modulename))
+                if (fp != nullptr)
                 {
-                    SetConsoleTitle(buffer);
-                }
+                    *stderr = *fp;
+                    setvbuf(stderr, nullptr, _IONBF, 0);
 
-                hasOutput = true;
+                    char16 buffer[_MAX_PATH + 70];
+
+                    if (ConfigParserAPI::FillConsoleTitle(buffer, _MAX_PATH + 20, modulename))
+                    {
+                        SetConsoleTitle(buffer);
+                    }
+
+                    hasOutput = true;
+                }
             }
         }
     }

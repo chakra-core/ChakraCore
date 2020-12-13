@@ -8,7 +8,7 @@ These two blogs posts on contributing code to open source projects are a good re
 
 ## Security
 
-If you believe you have found a security issue in ChakraCore, please share it with us privately following the guidance at the Microsoft [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
+If you believe you have found a security issue in ChakraCore, please share it with us privately following the guidance at the Microsoft [Security TechCenter](https://www.microsoft.com/en-us/msrc/faqs-report-an-issue). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
 
 ## Legal
 

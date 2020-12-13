@@ -65,6 +65,8 @@ namespace Js
     const int magicEndOfPropIdsOfFormals = *(int*)"]pif";
     const int magicStartOfSlotIdToNestedIndexArray = *(int*)"sni[";
     const int magicEndOfSlotIdToNestedIndexArray = *(int*)"]sni";
+    const int magicStartOfCallSiteToCallApplyCallSiteArray = *(int*)"cca[";
+    const int magicEndOfCallSiteToCallApplyCallSiteArray = *(int*)"]cca";
 #endif
 
     // Serialized files are architecture specific
@@ -137,9 +139,11 @@ struct SerializedFieldList {
     bool has_auxiliary : 1;
     bool has_propertyIdOfFormals: 1;
     bool has_slotIdInCachedScopeToNestedIndexArray : 1;
+    bool has_callSiteToCallApplyCallSiteArray : 1;
     bool has_debuggerScopeSlotArray : 1;
     bool has_deferredStubs : 1;
     bool has_scopeInfo : 1;
+    bool has_printOffsets : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -484,6 +488,12 @@ public:
         {
             expectedFunctionBodySize.value = 0;
             expectedOpCodeCount.value = 0;
+#ifdef ENABLE_TEST_HOOKS
+            if (scriptContext->GetConfig()->Force32BitByteCode())
+            {
+                architecture.value = 32;
+            }
+#endif
         }
 
         // Library bytecode uses its own scheme
@@ -1049,9 +1059,13 @@ public:
                 DEFAULT_LAYOUT(Empty);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg3);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3C);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Arg);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ArgNoSrc);
@@ -1063,6 +1077,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg3);
                 DEFAULT_LAYOUT(StartCall);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Profiled2CallI);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(CallI);
@@ -1085,7 +1100,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementPIndexed);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2B1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3B1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Class);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementRootU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementScopedC);
@@ -1459,7 +1473,7 @@ public:
 
     uint32 PrependStringConstant(BufferBuilderList & builder, Var var)
     {
-        auto str = JavascriptString::FromVar(var);
+        auto str = VarTo<JavascriptString>(var);
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -1477,7 +1491,7 @@ public:
 
     uint32 PrependStringTemplateCallsiteConstant(BufferBuilderList & builder, Var var)
     {
-        ES5Array* callsite = ES5Array::FromVar(var);
+        ES5Array* callsite = VarTo<ES5Array>(var);
         Var element = nullptr;
         auto size = PrependInt32(builder, _u("String Template Callsite Constant String Count"), (int)callsite->GetLength());
 
@@ -1488,7 +1502,7 @@ public:
         }
 
         Var rawVar = JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
-        ES5Array* rawArray = ES5Array::FromVar(rawVar);
+        ES5Array* rawArray = VarTo<ES5Array>(rawVar);
 
         for (uint32 i = 0; i < rawArray->GetLength(); i++)
         {
@@ -1520,7 +1534,7 @@ public:
             return PrependByte(builder, _u("Null Constant"), ctNull);
 
         case TypeIds_Boolean:
-            return PrependByte(builder, _u("Boolean Constant"), JavascriptBoolean::FromVar(var)->GetValue()? ctTrue : ctFalse);
+            return PrependByte(builder, _u("Boolean Constant"), VarTo<JavascriptBoolean>(var)->GetValue()? ctTrue : ctFalse);
 
         case TypeIds_Number:
         {
@@ -1550,8 +1564,8 @@ public:
 
         case TypeIds_String:
         {
-            auto size = PrependByte(builder, _u("String Constant 16"), 
-                Js::PropertyString::Is(var)? ctPropertyString16 : ctString16);
+            auto size = PrependByte(builder, _u("String Constant 16"),
+                Js::VarIs<Js::PropertyString>(var)? ctPropertyString16 : ctString16);
             return size + PrependStringConstant(builder, var);
         }
 
@@ -1690,6 +1704,27 @@ public:
 #endif
         return size;
     }
+
+#if ENABLE_NATIVE_CODEGEN
+    uint32 AddCallSiteToCallApplyCallSiteArray(BufferBuilderList& builder, FunctionBody * functionBody)
+    {
+        uint32 size = 0;
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("Start CallSiteToCallApplyCallSiteArray"), magicStartOfCallSiteToCallApplyCallSiteArray);
+#endif
+        Js::ProfileId * callSiteToCallApplyCallSiteArray = functionBody->GetCallSiteToCallApplyCallSiteArray();
+        for (Js::ProfileId i = 0; i < functionBody->GetProfiledCallSiteCount(); i++)
+        {
+            size += PrependInt16(builder, _u(".call/.apply call site id for call site id"), callSiteToCallApplyCallSiteArray[i]);
+        }
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("End CallSiteToCallApplyCallSiteArray"), magicEndOfCallSiteToCallApplyCallSiteArray);
+#endif
+        return size;
+    }
+#endif
 
     // Gets the number of debugger slot array scopes there are in the function body's scope chain list.
     uint32 GetDebuggerScopeSlotArrayCount(FunctionBody * function)
@@ -2159,6 +2194,20 @@ public:
                 AddSlotIdInCachedScopeToNestedIndexArray(builder, function);
             }
 
+#if ENABLE_NATIVE_CODEGEN
+            if (function->GetCallSiteToCallApplyCallSiteArray() == nullptr)
+            {
+                definedFields.has_callSiteToCallApplyCallSiteArray = false;
+            }
+            else
+            {
+                definedFields.has_callSiteToCallApplyCallSiteArray = true;
+                AddCallSiteToCallApplyCallSiteArray(builder, function);
+            }
+#else
+            definedFields.has_callSiteToCallApplyCallSiteArray = false;
+#endif
+
             uint debuggerScopeSlotArraySize = GetDebuggerScopeSlotArrayCount(function);
             if (debuggerScopeSlotArraySize != 0)
             {
@@ -2294,7 +2343,7 @@ public:
             definedFields.has_attributes = true;
             PrependInt32(builder, _u("Attributes"), attributes);
         }
-       
+
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         PrependInt32(builder, _u("Offset Into Source for toString"), function->PrintableStartOffset());
         if (function->GetNestedCount() > 0)
@@ -2310,6 +2359,14 @@ public:
         {
             definedFields.has_deferredStubs = true;
             AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), cache, true);
+        }
+
+        PrintOffsets* printOffsets = function->GetPrintOffsets();
+        if (printOffsets != nullptr)
+        {
+            definedFields.has_printOffsets = true;
+            PrependInt32(builder, _u("Start print offset"), printOffsets->cbStartPrintOffset);
+            PrependInt32(builder, _u("End print offset"), printOffsets->cbEndPrintOffset);
         }
 
         ScopeInfo* scopeInfo = function->GetScopeInfo();
@@ -2896,7 +2953,7 @@ public:
         uint32 countOfAuxiliaryStructure;
         current = ReadUInt32(current, &countOfAuxiliaryStructure);
         Assert(countOfAuxiliaryStructure != 0);
-        
+
         uint32 sizeOfAuxiliaryBlock;
         uint32 sizeOfAuxiliaryContextBlock;
         current = ReadUInt32(current, &sizeOfAuxiliaryBlock);
@@ -3131,7 +3188,7 @@ public:
         string16IndexTable = (StringIndexRecord*)ReadInt32(string16s, &string16Count);
         lineCharacterOffsetCacheBuffer = (charcount_t *)ReadInt32(lineInfoCaches, &lineInfoCacheCount);
         byte haslineByteOffsetCacheBuffer;
-        current = ReadByte(lineInfoCaches + sizeof(charcount_t) * lineInfoCacheCount, &haslineByteOffsetCacheBuffer);
+        current = ReadByte((byte*)lineCharacterOffsetCacheBuffer + sizeof(charcount_t) * lineInfoCacheCount, &haslineByteOffsetCacheBuffer);
         if (haslineByteOffsetCacheBuffer)
         {
             lineByteOffsetCacheBuffer = (charcount_t *)current;
@@ -3210,16 +3267,7 @@ public:
         callsite->SetPropertyWithAttributes(Js::PropertyIds::raw, rawArray, PropertyNone, nullptr);
         callsite->Freeze();
 
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-
-        var = library->TryGetStringTemplateCallsiteObject(callsite);
-
-        if (var == nullptr)
-        {
-            library->AddStringTemplateCallsiteObject(callsite);
-            var = callsite;
-        }
-
+        var = callsite;
         LEAVE_PINNED_SCOPE();
 
         return current;
@@ -3428,7 +3476,7 @@ public:
         current = ReadUInt32(current, &count);
 
         Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->AllocateSlotIdInCachedScopeToNestedIndexArray(count);
-            
+
         uint32 value;
         for (uint i = 0; i < count; i++)
         {
@@ -3442,7 +3490,31 @@ public:
 
         return current;
     }
+    
+#if ENABLE_NATIVE_CODEGEN
+    const byte * ReadCallSiteToCallApplyCallSiteArray(const byte * current, FunctionBody * functionBody)
+    {
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        int constant;
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicStartOfCallSiteToCallApplyCallSiteArray);
+#endif
+        Js::ProfileId * callSiteToCallApplyCallSiteArray = functionBody->CreateCallSiteToCallApplyCallSiteArray();
 
+        Js::ProfileId value;
+        for (Js::ProfileId i = 0; i < functionBody->GetProfiledCallSiteCount(); i++)
+        {
+            current = ReadUInt16(current, &value);
+            callSiteToCallApplyCallSiteArray[i] = value;
+        }
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicEndOfCallSiteToCallApplyCallSiteArray);
+#endif
+
+        return current;
+    }
+#endif
 
     const byte * ReadSlotArrayDebuggerScopeProperties(const byte * current, FunctionBody* function, DebuggerScope* debuggerScope, uint propertyCount)
     {
@@ -3484,7 +3556,7 @@ public:
     {
         Assert(function);
         Assert(debuggerScopeCount != 0);
-        
+
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         int constant;
         current = ReadInt32(current, &constant);
@@ -4022,6 +4094,14 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
+        PrintOffsets* printOffsets = nullptr;
+        if (definedFields->has_printOffsets)
+        {
+            printOffsets = RecyclerNewLeaf(this->scriptContext->GetRecycler(), PrintOffsets);
+            current = ReadUInt32(current, &printOffsets->cbStartPrintOffset);
+            current = ReadUInt32(current, &printOffsets->cbEndPrintOffset);
+        }
+
         ScopeInfo* scopeInfo = nullptr;
         if (definedFields->has_scopeInfo)
         {
@@ -4086,6 +4166,10 @@ public:
             {
                 (*function)->SetDeferredStubs(deferredStubs);
             }
+            if (printOffsets != nullptr)
+            {
+                (*function)->SetPrintOffsets(printOffsets);
+            }
             if (scopeInfo != nullptr)
             {
                 (*function)->SetScopeInfo(scopeInfo);
@@ -4119,7 +4203,6 @@ public:
 
         // This is offsetIntoSource is the start offset in bytes as well.
         (*function)->m_cbStartOffset = offsetIntoSource;
-        (*function)->m_cbStartPrintOffset = offsetIntoSourcePrintable;
         (*function)->m_sourceIndex = this->sourceIndex;
 
 #define DEFINE_FUNCTION_PROXY_FIELDS 1
@@ -4270,6 +4353,13 @@ public:
             {
                 current = ReadSlotIdInCachedScopeToNestedIndexArray(current, *functionBody);
             }
+
+#if ENABLE_NATIVE_CODEGEN
+            if (definedFields->has_callSiteToCallApplyCallSiteArray)
+            {
+                current = ReadCallSiteToCallApplyCallSiteArray(current, *functionBody);
+            }
+#endif
 
             if (definedFields->has_debuggerScopeSlotArray)
             {
@@ -4879,7 +4969,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 
     int32 sourceCharLength = utf8SourceInfo->GetCchLength();
     ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
-    
+
     hr = builder.AddTopFunctionBody(function, srcInfo, cache);
 
     if (SUCCEEDED(hr))

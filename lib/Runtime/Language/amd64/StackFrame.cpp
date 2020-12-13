@@ -67,6 +67,7 @@ bool Js::Amd64StackFrame::Next()
     if (hasCallerContext)
     {
         *currentContext = *callerContext;
+        this->addressOfCodeAddr = this->GetAddressOfReturnAddress();
         OnCurrentContextUpdated();
         return true;
     }

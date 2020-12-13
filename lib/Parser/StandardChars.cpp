@@ -261,6 +261,11 @@ END {
         set.SetNotRanges(setAllocator, numNewlinePairs, newlineStr);
     }
 
+    void StandardChars<char16>::SetFullSet(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    {
+        set.SetNotRanges(allocator, 0, nullptr);
+    }
+
     CharSet<char16>* StandardChars<char16>::GetFullSet()
     {
         if (fullSet == 0)

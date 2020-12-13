@@ -196,7 +196,7 @@ namespace Js
         Arguments(const Arguments& other) : Info(other.Info), Values(other.Values) {}
 
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
-        const Var operator [](int idxArg) const
+        Var operator [](int idxArg) const
         {
             AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];

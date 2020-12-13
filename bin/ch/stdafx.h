@@ -129,7 +129,6 @@ do { \
     if ((jsErrorCode) != JsNoError) { \
         fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
-        Assert(false); \
         return JS_INVALID_REFERENCE; \
     } \
 } while (0)
@@ -140,7 +139,6 @@ do { \
     if ((jsErrorCode) != JsNoError) { \
         fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
-        Assert(false); \
         return false; \
     } \
 } while (0)

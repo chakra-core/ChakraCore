@@ -4611,7 +4611,7 @@ namespace UnifiedRegex
     {
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        if (w != 0)
+        if (w != 0 && REGEX_CONFIG_FLAG(RegexDebugAST))
         {
             w->PrintEOL(_u("REGEX AST /%s/ {"), PointerValue(program->source));
             w->Indent();
@@ -4723,7 +4723,7 @@ namespace UnifiedRegex
                     root->AnnotatePass4(compiler);
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-                    if (w != 0)
+                    if (w != 0 && REGEX_CONFIG_FLAG(RegexDebugAST) && REGEX_CONFIG_FLAG(RegexDebugAnnotatedAST))
                     {
                         w->PrintEOL(_u("REGEX ANNOTATED AST /%s/ {"), PointerValue(program->source));
                         w->Indent();

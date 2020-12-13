@@ -281,7 +281,7 @@ Result BinaryReaderOpcnt::OnEndFunc() {
 
 Result ReadBinaryOpcnt(const void* data,
                        size_t size,
-                       const struct ReadBinaryOptions* options,
+                       const ReadBinaryOptions& options,
                        OpcodeInfoCounts* counts) {
   BinaryReaderOpcnt reader(counts);
   return ReadBinary(data, size, &reader, options);

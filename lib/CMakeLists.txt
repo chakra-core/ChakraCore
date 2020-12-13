@@ -40,6 +40,7 @@ add_library (ChakraCoreStatic STATIC
   $<TARGET_OBJECTS:Chakra.Runtime.Types>
   $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
   $<TARGET_OBJECTS:Chakra.Parser>
+  $<TARGET_OBJECTS:Chakra.SCACore>
   ${wasm_objects}
   ${wabt_objects}
   ${lttng_objects}
@@ -77,6 +78,7 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  ${CHAKRACORE_SOURCE_DIR}/lib/SCACore
   ${wasm_includes}
   ${wabt_includes}
   )
@@ -87,6 +89,7 @@ endif()
 
 add_subdirectory (Common)
 add_subdirectory (Parser)
+add_subdirectory (SCACore)
 add_subdirectory (Runtime)
 add_subdirectory (Jsrt)
 if (CC_TARGETS_AMD64)
@@ -117,3 +120,23 @@ if(NOT CC_XCODE_PROJECT)
             "${CMAKE_BINARY_DIR}/include"
     )
 endif(NOT CC_XCODE_PROJECT)
+
+if (EMBED_ICU)
+  # Declare ICU dependencies in bulk.
+  # TODO Not the most idiomatic solution, need to understand if all of those
+  # libraries needed to depend on it
+  add_dependencies(Chakra.Backend ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Jsrt ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Jsrt.Core ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Parser ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.Base ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.ByteCode ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.Debug ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.Library ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.Math ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.Language ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.PlatformAgnostic ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.Runtime.Types ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.SCACore ${EMBEDDED_ICU_TARGET})
+  add_dependencies(Chakra.WasmReader ${EMBEDDED_ICU_TARGET})
+endif()

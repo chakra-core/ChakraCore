@@ -58,9 +58,9 @@ public:
     void            ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation = false);
     static bool     TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd);
     static bool     TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd);
-    const BYTE      GetRegEncode(IR::RegOpnd *regOpnd);
-    const BYTE      GetFloatRegEncode(IR::RegOpnd *regOpnd);
-    static const BYTE GetRegEncode(RegNum reg);
+    BYTE            GetRegEncode(IR::RegOpnd *regOpnd);
+    BYTE            GetFloatRegEncode(IR::RegOpnd *regOpnd);
+    static BYTE     GetRegEncode(RegNum reg);
     static uint32   GetOpdope(IR::Instr *instr);
     static uint32   GetOpdope(Js::OpCode op);
 

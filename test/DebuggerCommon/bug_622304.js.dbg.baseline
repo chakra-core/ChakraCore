@@ -6,6 +6,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>"
     },
     "arguments": {
@@ -19,6 +20,7 @@
       "x": "number 10"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>"
     }
   }

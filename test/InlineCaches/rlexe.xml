@@ -122,6 +122,11 @@
   </test>
   <test>
     <default>
+      <files>MissingProtoInval.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>instanceOfCacheCrossRegistration.js</files>
       <baseline>instanceOfCacheCrossRegistration.baseline</baseline>
     </default>

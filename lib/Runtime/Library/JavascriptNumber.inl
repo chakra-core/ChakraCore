@@ -14,7 +14,7 @@ namespace Js
 #endif
     )
     {
-        AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
+        AssertMsg(!IsNan(value) || ToSpecial(value) == k_NegativeNan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         SetSpecial(ToSpecial(value) ^ FloatTag_Value);
     }
 #else
@@ -40,6 +40,17 @@ namespace Js
             return JavascriptNumber::NewInlined((double) nValue, scriptContext);
         }
     }
+
+#ifdef ENABLE_TEST_HOOKS
+    __forceinline Var JavascriptNumber::ToVarFor32BitBytecode(int32 nValue, ScriptContext* scriptContext)
+    {
+        if ((1073741824 > nValue) && (nValue > -1073741824))
+        {
+            return TaggedInt::ToVarUnchecked(nValue);
+        }
+        return JavascriptNumber::NewInlined((double) nValue, scriptContext);
+    }
+#endif
 
 #if defined(__clang__) && defined(_M_IX86)
     __forceinline Var JavascriptNumber::ToVar(intptr_t nValue, ScriptContext* scriptContext)
@@ -96,7 +107,7 @@ namespace Js
 #if FLOATVAR
         if (IsNan(value))
         {
-            value = JavascriptNumber::NaN;
+            value = IsNegative(value) ? JavascriptNumber::NegativeNaN : JavascriptNumber::NaN;
         }
 
         *result = JavascriptNumber::ToVar(value);
@@ -128,7 +139,7 @@ namespace Js
     {
         if (IsNan(value))
         {
-            value = JavascriptNumber::NaN;
+            value = IsNegative(value) ? JavascriptNumber::NegativeNaN : JavascriptNumber::NaN;
         }
         return ToVar(value);
     }
@@ -147,8 +158,8 @@ namespace Js
 
     inline Var JavascriptNumber::ToVar(double value)
     {
-        uint64 val = *(uint64*)&value;
-        AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
+        const uint64 val = ToSpecial(value);
+        AssertMsg(!IsNan(value) || ToSpecial(value) == k_NegativeNan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         return reinterpret_cast<Var>(val ^ FloatTag_Value);
     }
 
@@ -161,7 +172,7 @@ namespace Js
 #if !defined(USED_IN_STATIC_LIB)
     inline bool JavascriptNumber::Is_NoTaggedIntCheck(Var aValue)
     {
-        RecyclableObject* object = RecyclableObject::FromVar(aValue);
+        RecyclableObject* object = VarTo<RecyclableObject>(aValue);
         AssertMsg((object->GetTypeId() == TypeIds_Number) == VirtualTableInfo<JavascriptNumber>::HasVirtualTable(object), "JavascriptNumber has no unique VTABLE?");
         return VirtualTableInfo<JavascriptNumber>::HasVirtualTable(object);
     }

@@ -22,9 +22,6 @@ namespace Js
         static Var DefaultEntryPoint(RecyclableObject* function, CallInfo callInfo, ...);
 
         static ThrowErrorObject* New(StaticType* type, JavascriptError* error, Recycler* recycler);
-        static bool Is(Var aValue);
-        static ThrowErrorObject* FromVar(Var aValue);
-        static ThrowErrorObject* UnsafeFromVar(Var aValue);
 
         static RecyclableObject* CreateThrowTypeErrorObject(ScriptContext* scriptContext, int32 hCode, PCWSTR varName);
         static RecyclableObject* CreateThrowTypeErrorObject(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName);
@@ -33,4 +30,9 @@ namespace Js
         typedef JavascriptError* (JavascriptLibrary::*CreateErrorFunc)();
         static RecyclableObject* CreateThrowErrorObject(CreateErrorFunc createError, ScriptContext* scriptContext, int32 hCode, PCWSTR varName);
     };
+
+    template <> inline bool VarIsImpl<ThrowErrorObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Undefined;
+    }
 }

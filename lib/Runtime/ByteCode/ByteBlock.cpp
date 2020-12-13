@@ -21,7 +21,7 @@ namespace Js
         return m_content;
     }
 
-    const byte ByteBlock::operator[](uint itemIndex) const
+    byte ByteBlock::operator[](uint itemIndex) const
     {
         AssertMsg(itemIndex < m_contentSize, "Ensure valid offset");
 

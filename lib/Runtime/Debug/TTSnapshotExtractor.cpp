@@ -40,7 +40,7 @@ namespace TTD
 
         if(Js::DynamicType::Is(obj->GetTypeId()))
         {
-            Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(obj);
+            Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(obj);
 
             dynObj->GetDynamicType()->GetTypeHandler()->MarkObjectSlots_TTD(this, dynObj);
 
@@ -247,7 +247,7 @@ namespace TTD
     void SnapshotExtractor::MarkVisitVar(Js::Var var)
     {
         TTDAssert(var != nullptr, "I don't think this should happen but not 100% sure.");
-        TTDAssert(Js::JavascriptOperators::GetTypeId(var) < Js::TypeIds_Limit || Js::RecyclableObject::FromVar(var)->IsExternal(), "Not cool.");
+        TTDAssert(Js::JavascriptOperators::GetTypeId(var) < Js::TypeIds_Limit || Js::VarTo<Js::RecyclableObject>(var)->IsExternal(), "Not cool.");
 
         //We don't need to visit tagged things
         if(JsSupport::IsVarTaggedInline(var))
@@ -259,7 +259,7 @@ namespace TTD
         {
             if(this->m_marks.MarkAndTestAddr<MarkTableTag::PrimitiveObjectTag>(var))
             {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(var);
+                Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(var);
                 this->MarkVisitType(obj->GetType());
             }
         }
@@ -269,12 +269,12 @@ namespace TTD
 
             if(this->m_marks.MarkAndTestAddr<MarkTableTag::CompoundObjectTag>(var))
             {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(var);
+                Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(var);
 
                 //do this here instead of in mark visit type as it wants the dynamic object as well
                 if(Js::DynamicType::Is(obj->GetTypeId()))
                 {
-                    Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(obj);
+                    Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(obj);
                     if(dynObj->GetDynamicType()->GetTypeHandler()->IsDeferredTypeHandler())
                     {
                         dynObj->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(dynObj);
@@ -476,7 +476,7 @@ namespace TTD
             case MarkTableTag::CompoundObjectTag:
             {
                 this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::RecyclableObject*>()->GetType(), threadContext);
-                if(Js::ScriptFunction::Is(this->m_marks.GetPtrValue<Js::RecyclableObject*>()))
+                if(Js::VarIs<Js::ScriptFunction>(this->m_marks.GetPtrValue<Js::RecyclableObject*>()))
                 {
                     this->ExtractScriptFunctionEnvironmentIfNeeded(this->m_marks.GetPtrValue<Js::ScriptFunction*>());
                 }

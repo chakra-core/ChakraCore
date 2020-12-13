@@ -84,6 +84,11 @@
   </test>
   <test>
     <default>
+      <files>ObjLitGetSet3.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ObjLitGetSetParseOnly.js</files>
       <baseline>ObjLitGetSetParseOnly.baseline</baseline>
     </default>
@@ -105,13 +110,11 @@
   <test>
     <default>
       <files>seal.js</files>
-      <baseline>seal.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>freeze.js</files>
-      <baseline>freeze.baseline</baseline>
     </default>
   </test>
   <test>

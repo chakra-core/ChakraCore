@@ -101,6 +101,7 @@ var tests = [
             assert.areEqual([0,1,2], fromFnc.call(null, [0,1,2]), "Calling Array.from with null this argument produces an array");
             assert.areEqual([0,1,2], fromFnc.call({}, [0,1,2]), "Calling Array.from with a non-function this argument produces an array");
             assert.areEqual([0,1,2], fromFnc.call(Math.sin, [0,1,2]), "Calling Array.from with a non-constructor function this argument produces an array");
+            assert.areEqual([2], Array.from([1], new Proxy(() => 2, {})), "Calling Array.from with a proxy calls the proxy");
         }
     },
     {
@@ -275,6 +276,28 @@ var tests = [
             }
 
             assert.areEqual([0,1,2,0,1,2,3,4], Array.from(objectWithIterator, mapFunction), "Array.from called with map function which alters iterator state");
+        }
+    },
+    {
+        name: "Array.from caches next method from iterator",
+        body: function() {
+            var iterator_val = 0;
+
+            var objectWithIterator = {
+                [Symbol.iterator]: function() {
+                    return {
+                        next: function () {
+                            this.next = undefined;
+                            return {
+                                done: iterator_val == 5,
+                                value: iterator_val++
+                            };
+                        }
+                    };
+                }
+            };
+
+            assert.areEqual([0,1,2,3,4], Array.from(objectWithIterator), "Array.from with iterator that removes next method");
         }
     },
     {

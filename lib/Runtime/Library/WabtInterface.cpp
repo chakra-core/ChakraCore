@@ -111,7 +111,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count < 2 || !JavascriptString::Is(args[1]))
+    if (args.Info.Count < 2 || !VarIs<JavascriptString>(args[1]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }
@@ -123,7 +123,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("config"));
         }
-        DynamicObject * configObject = JavascriptObject::FromVar(args[2]);
+        DynamicObject * configObject = VarTo<DynamicObject>(args[2]);
 
         Js::Var isSpecVar = JavascriptOperators::OP_GetProperty(configObject, PropertyIds::spec, scriptContext);
         isSpecText = JavascriptConversion::ToBool(isSpecVar, scriptContext);
@@ -173,7 +173,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         }
         return result;
     }
-    catch (ChakraWabt::Error& e)
+    catch (ChakraWabt::WabtAPIError& e)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, WABTERR_WabtError, NarrowStringToWide(&context, e.message));
     }

@@ -217,18 +217,18 @@ namespace Js
     void LineOffsetCache::AddLine(Recycler * allocator, charcount_t characterOffset, charcount_t byteOffset)
     {
         LineOffsetCacheList * characterOffsetList = (LineOffsetCacheList *)(LineOffsetCacheReadOnlyList*)this->lineCharacterOffsetCacheList;
-        characterOffsetList->Add(characterOffset);
         LineOffsetCacheList * byteOffsetList = (LineOffsetCacheList *)(LineOffsetCacheReadOnlyList*)this->lineByteOffsetCacheList;
-        if (byteOffsetList == nullptr && characterOffset != byteOffset)
+        if (characterOffset != byteOffset && byteOffsetList == nullptr)
         {
-            byteOffsetList = RecyclerNew(allocator, LineOffsetCacheList, allocator);
-            byteOffsetList->Copy(characterOffsetList);
-            this->lineByteOffsetCacheList = byteOffsetList;
+                byteOffsetList = RecyclerNew(allocator, LineOffsetCacheList, allocator);
+                byteOffsetList->Copy(characterOffsetList);
+                this->lineByteOffsetCacheList = byteOffsetList;
         }
-        else if (byteOffsetList != nullptr)
+        if (byteOffsetList != nullptr)
         {
             byteOffsetList->Add(byteOffset);
-        }        
+        }
+        characterOffsetList->Add(characterOffset);
 
 #if DBG
         Assert(this->lineByteOffsetCacheList == nullptr || this->lineByteOffsetCacheList->Count() == this->lineCharacterOffsetCacheList->Count());

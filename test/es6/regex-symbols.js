@@ -517,6 +517,42 @@ var tests = [
         }
     },
     {
+        name: "RegExp.prototype[@@replace] should call proxy 'replaceValue' to get the substitution when 'replaceValue' is callable",
+        body: function () {
+            var pattern = "(-)(=)";
+            var string = "a-=b-=c";
+            var replace = "*$&$1";
+
+            function verify(assertMessagePrefix, expectedResult, expectedCallCount, flags) {
+                withObservableRegExp(function () {
+                    var passedCorrectArguments = false;
+                    var callCount = 0;
+                    var re = new RegExp(pattern, flags);
+                    var replace = function (matched, capture1, capture2, position, stringArg) {
+                        callCount += 1;
+                        passedCorrectArguments =
+                            matched === "-=" &&
+                            capture1 === "-" &&
+                            capture2 === "=" &&
+                            (position === 1 || position === 4) &&
+                            stringArg === string;
+                        return "*";
+                    }
+                    var replaceProxy = new Proxy(replace, {});
+
+                    var result = re[Symbol.replace](string, replaceProxy);
+
+                    assert.areEqual(expectedCallCount, callCount, assertMessagePrefix + ": callCount");
+                    assert.isTrue(passedCorrectArguments, assertMessagePrefix + ": replace function arguments");
+                    assert.areEqual(expectedResult, result, assertMessagePrefix + ": result");
+                })
+            }
+
+            verify("non-global", "a*b-=c", 1, "");
+            verify("global", "a*b*c", 2, "g");
+        }
+    },
+    {
         name: "RegExp.prototype[@@replace] should 'Get' 'global' when it is overridden",
         body: function () {
             var re = /a-/g;

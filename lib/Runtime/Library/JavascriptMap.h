@@ -60,10 +60,6 @@ namespace Js
 
         static JavascriptMap* New(ScriptContext* scriptContext);
 
-        static bool Is(Var aValue);
-        static JavascriptMap* FromVar(Var aValue);
-        static JavascriptMap* UnsafeFromVar(Var aValue);
-
         void Clear();
 
         bool Delete(Var key);
@@ -118,4 +114,9 @@ namespace Js
         static JavascriptMap* CreateForSnapshotRestore(ScriptContext* ctx);
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptMap>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Map;
+    }
 }

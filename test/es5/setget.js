@@ -220,3 +220,7 @@ test(false);
 test(true);
 })();
 
+try {
+  eval("({ g\\u0065t foo() {} })");
+  write("Get and set cannot contain unicode escapes");
+} catch {}

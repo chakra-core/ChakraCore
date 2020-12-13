@@ -329,7 +329,7 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 }
 
 
-const uint32 WasmBinaryReader::EstimateCurrentFunctionBytecodeSize() const
+uint32 WasmBinaryReader::EstimateCurrentFunctionBytecodeSize() const
 {
     if (m_readerState != READER_STATE_FUNCTION)
     {
@@ -420,8 +420,8 @@ WasmOp WasmBinaryReader::ReadExpr()
         ConstNode<WasmTypes::F64>();
         break;
 #ifdef ENABLE_WASM_SIMD
-    case wbM128Const:
-        ConstNode<WasmTypes::M128>();
+    case wbV128Const:
+        ConstNode<WasmTypes::V128>();
         break;
 #endif
     case wbSetLocal:
@@ -683,7 +683,7 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += sizeof(double);
         break;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         for (uint i = 0; i < Simd::VEC_WIDTH; i++) 
         {
@@ -693,7 +693,7 @@ void WasmBinaryReader::ConstNode()
         break;
 #endif
     default:
-        WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_V128_CHECK_TYPE>();
     }
 }
 
@@ -1079,10 +1079,10 @@ void WasmBinaryReader::ReadGlobalSection()
         case WasmTypes::F32: break; // Handled
         case WasmTypes::F64: break; // Handled
 #ifdef ENABLE_WASM_SIMD
-        case WasmTypes::M128: ThrowDecodingError(_u("m128 globals not supported"));
+        case WasmTypes::V128: ThrowDecodingError(_u("v128 globals not supported"));
 #endif
         default:
-            WasmTypes::CompileAssertCases<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+            WasmTypes::CompileAssertCases<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         }
         
         bool isMutable = ReadMutableValue();
@@ -1247,40 +1247,61 @@ LEBType WasmBinaryReader::LEB128(uint32 &length)
     constexpr bool sign = LEBType(-1) < LEBType(0);
     LEBType result = 0;
     uint32 shift = 0;
-    byte b = 0;
+    byte b = 0x80;
     length = 0;
-    constexpr uint32 maxReads = (uint32) (((bits % 7) == 0) ? bits/7 : bits/7 + 1);
-    CompileAssert(maxReads > 0);
+    constexpr uint32 maxBytes = (uint32)((bits + 6) / 7);
+    CompileAssert(maxBytes > 0);
 
-    for (uint32 i = 0; i < maxReads; ++i)
+    uint32 iByte = 0;
+    for (; iByte < maxBytes && (b & 0x80) == 0x80; ++iByte)
     {
         CheckBytesLeft(1);
         b = *m_pc++;
-        ++length;
         result = result | ((LEBType)(b & 0x7f) << shift);
-        if (sign)
-        {
-            shift += 7;
-            if ((b & 0x80) == 0)
-                break;
-        }
-        else
-        {
-            if ((b & 0x80) == 0)
-                break;
-            shift += 7;
-        }
+        shift += 7;
     }
 
-    if (b & 0x80 || m_pc > m_end)
+    if ((b & 0x80) == 0x80)
     {
         ThrowDecodingError(_u("Invalid LEB128 format"));
     }
 
-    if (sign && (shift < (sizeof(LEBType) * 8)) && (0x40 & b))
+    const bool isLastByte = iByte == maxBytes;
+    constexpr bool hasExtraBits = (maxBytes * 7) != bits;
+    if (hasExtraBits && isLastByte)
     {
-#pragma prefast(suppress:26453)
-        result |= ((~(LEBType)0) << shift);
+        // A signed-LEB128 must sign-extend the final byte, excluding its most-significant bit
+        // For unsigned values, the extra bits must be all zero.
+        // For signed values, the extra bits *plus* the most significant bit must either be 0, or all ones.
+
+        // e.g. for a 32-bit LEB128:
+        //   bitsInLastByte = 4  (== 32 - (5-1) * 7)
+        //     0bYYYXXXX where Y are extra bits and X are bits included in LEB128
+        //   if signed: check if 0bYYYXXXX is 0b0000XXX or 0b1111XXX
+        //   is unsigned: check if 0bYYYXXXX is 0b000XXXX
+
+        constexpr int bitsInLastByte = bits - (maxBytes - 1) * 7;
+        constexpr int lastBitToCheck = bitsInLastByte - (sign ? 1 : 0);
+        constexpr byte signExtendedExtraBits = 0x7f & (0xFF << lastBitToCheck);
+        const byte checkedBits = b & (0xFF << lastBitToCheck);
+        bool validExtraBits =
+            checkedBits == 0 ||
+            (sign && checkedBits == signExtendedExtraBits);
+        if (!validExtraBits)
+        {
+            ThrowDecodingError(_u("Invalid LEB128 format"));
+        }
+    }
+
+    length = iByte;
+    if (sign)
+    {
+        // Perform sign extension
+        const int signExtendShift = (sizeof(LEBType) * 8) - shift;
+        if (signExtendShift > 0)
+        {
+            result = static_cast<LEBType>(result << signExtendShift) >> signExtendShift;
+        }
     }
     return result;
 }

@@ -15,9 +15,6 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptBooleanObject);
     public:
         JavascriptBooleanObject(JavascriptBoolean* value, DynamicType * type);
-        static bool Is(Var aValue);
-        static JavascriptBooleanObject* FromVar(Js::Var aValue);
-        static JavascriptBooleanObject* UnsafeFromVar(Js::Var aValue);
 
         BOOL GetValue() const;
         void Initialize(JavascriptBoolean* value);
@@ -35,4 +32,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptBooleanObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_BooleanObject;
+    }
 }

@@ -77,7 +77,6 @@ using namespace Js;
                 ? RoundUpObjectHeaderInlinedInlineSlotCapacity(inlineSlotCapacity)
                 : RoundUpInlineSlotCapacity(inlineSlotCapacity);
         this->slotCapacity = RoundUpSlotCapacity(slotCapacity, inlineSlotCapacity);
-        this->isNotPathTypeHandlerOrHasUserDefinedCtor = true;
 
         Assert(IsObjectHeaderInlinedTypeHandler() == IsObjectHeaderInlined(offsetOfInlineSlots));
     }
@@ -439,14 +438,14 @@ using namespace Js;
         LPCWSTR fixedPropertyResultType = nullptr;
         bool log = false;
 
-        if (pProperty && *pProperty && ((Js::JavascriptFunction::Is(*pProperty) && (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))) ||
+        if (pProperty && *pProperty && ((Js::VarIs<Js::JavascriptFunction>(*pProperty) && (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))) ||
             ((PHASE_VERBOSE_TRACE1(Js::UseFixedDataPropsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::UseFixedDataPropsPhase))) ))
         {
             if(*pProperty == nullptr)
             {
                 fixedPropertyResultType = _u("null");
             }
-            else if (Js::JavascriptFunction::Is(*pProperty))
+            else if (Js::VarIs<Js::JavascriptFunction>(*pProperty))
             {
                 fixedPropertyResultType = _u("function");
             }
@@ -562,7 +561,6 @@ using namespace Js;
                 scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ValueOf & possibleSideEffects));
                 scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ToString & possibleSideEffects));
             }
-
             else if (propertyId == PropertyIds::valueOf)
             {
                 scriptContext->optimizationOverrides.SetSideEffects((SideEffects)(SideEffects_ValueOf & possibleSideEffects));
@@ -692,7 +690,7 @@ using namespace Js;
         if(oldInlineSlotCapacity == newInlineSlotCapacity)
         {
             const int oldAuxSlotCapacity = oldTypeHandler->GetSlotCapacity() - oldInlineSlotCapacity;
-            Assert(oldAuxSlotCapacity < newAuxSlotCapacity);
+            AssertOrFailFast(oldAuxSlotCapacity < newAuxSlotCapacity);
             if(oldAuxSlotCapacity > 0)
             {
                 // Copy aux slots to the new array
@@ -885,6 +883,5 @@ using namespace Js;
         Output::Print(_u("%*sslotCapacity: %d\n"), fieldIndent, padding, this->slotCapacity);
         Output::Print(_u("%*sunusedBytes: %u\n"), fieldIndent, padding, this->unusedBytes);
         Output::Print(_u("%*sinlineSlotCapacty: %u\n"), fieldIndent, padding, this->inlineSlotCapacity);
-        Output::Print(_u("%*sisNotPathTypeHandlerOrHasUserDefinedCtor: %d\n"), fieldIndent, padding, static_cast<int>(this->isNotPathTypeHandlerOrHasUserDefinedCtor));
     }
 #endif

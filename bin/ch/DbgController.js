@@ -62,6 +62,7 @@ var controllerObj = (function () {
         // Discard all known globals to reduce baseline noise.
         [
             "#__proto__",
+            "globalThis",
             "Array",
             "ArrayBuffer",
             "Atomics",

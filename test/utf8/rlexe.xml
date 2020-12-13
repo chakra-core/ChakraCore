@@ -26,6 +26,7 @@
   <test>
     <default>
       <files>bugGH2386.js</files>
+      <compile-flags>-off:CaptureBytecodeRegUse</compile-flags>
     </default>
   </test>
   <test>

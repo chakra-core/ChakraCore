@@ -18,25 +18,6 @@ JavascriptSet* JavascriptSet::New(ScriptContext* scriptContext)
     return set;
 }
 
-bool JavascriptSet::Is(Var aValue)
-{
-    return JavascriptOperators::GetTypeId(aValue) == TypeIds_Set;
-}
-
-JavascriptSet* JavascriptSet::FromVar(Var aValue)
-{
-    AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
-
-    return static_cast<JavascriptSet *>(aValue);
-}
-
-JavascriptSet* JavascriptSet::UnsafeFromVar(Var aValue)
-{
-    AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
-
-    return static_cast<JavascriptSet *>(aValue);
-}
-
 JavascriptSet::SetDataList::Iterator JavascriptSet::GetIterator()
 {
     return this->list.GetIterator();
@@ -87,7 +68,7 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
-        adder = RecyclableObject::FromVar(adderVar);
+        adder = VarTo<RecyclableObject>(adderVar);
     }
 
     if (iter != nullptr)
@@ -102,7 +83,7 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     }
 
     return isCtorSuperCall ?
-        JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), setObject, nullptr, scriptContext) :
+        JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), setObject, nullptr, scriptContext) :
         setObject;
 }
 
@@ -188,7 +169,7 @@ Var JavascriptSet::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Set.prototype.forEach"));
     }
-    RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
 
     Var thisArg = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 

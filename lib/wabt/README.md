@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/WebAssembly/wabt.svg?branch=master)](https://travis-ci.org/WebAssembly/wabt) [![Windows status](https://ci.appveyor.com/api/projects/status/79hqj5l0qggw645d/branch/master?svg=true)](https://ci.appveyor.com/project/WebAssembly/wabt/branch/master)
+[![Build Status](https://travis-ci.org/WebAssembly/wabt.svg?branch=master)](https://travis-ci.org/WebAssembly/wabt) [![Windows status](https://ci.appveyor.com/api/projects/status/8vl5jwtk5ch6r84t/branch/master?svg=true)](https://ci.appveyor.com/project/WebAssembly/wabt/branch/master)
 
 # WABT: The WebAssembly Binary Toolkit
 
@@ -24,9 +24,9 @@ target; instead they aim for full fidelity and compliance with the spec (e.g.
 
 Wabt has been compiled to JavaScript via emscripten. Some of the functionality is available in the following demos:
 
-- [index](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/index.html)
-- [wat2wasm](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wat2wasm/)
-- [wasm2wat](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wasm2wat/)
+- [index](https://webassembly.github.io/wabt/demo/)
+- [wat2wasm](https://webassembly.github.io/wabt/demo/wat2wasm/)
+- [wasm2wat](https://webassembly.github.io/wabt/demo/wasm2wat/)
 
 ## Cloning
 
@@ -53,6 +53,10 @@ $ make
 This will build the default version of the tools: a debug build using the Clang
 compiler.
 
+**NOTE**: Under the hood, this uses make to run CMake, which then calls make again.
+On some systems, this doesn't build properly. If you see these errors, you can build
+using CMake directly as described below.
+
 There are many make targets available for other configurations as well. They
 are generated from every combination of a compiler, build type and
 configuration.
@@ -70,6 +74,8 @@ $ make gcc-i686-release
 $ make clang-debug-lsan
 $ make gcc-debug-no-re2c
 ```
+
+### Building using CMake directly
 
 You can also run CMake yourself, the normal way:
 
@@ -149,13 +155,13 @@ $ out/wat2wasm spec-test.wast -v
 $ out/wast2json spec-test.wast -o spec-test.json
 ```
 
-You can use `-h` to get additional help:
+You can use `--help` to get additional help:
 
 ```console
-$ out/wat2wasm -h
+$ out/wat2wasm --help
 ```
 
-Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wat2wasm/).
+Or try the [online demo](https://webassembly.github.io/wabt/demo/wat2wasm/).
 
 ## Running wasm2wat
 
@@ -169,13 +175,13 @@ $ out/wasm2wat test.wasm -o test.wat
 $ out/wasm2wat test.wasm -o test.wat
 ```
 
-You can use `-h` to get additional help:
+You can use `--help` to get additional help:
 
 ```console
-$ out/wasm2wat -h
+$ out/wasm2wat --help
 ```
 
-Or try the [online demo](https://cdn.rawgit.com/WebAssembly/wabt/aae5a4b7/demo/wasm2wat/).
+Or try the [online demo](https://webassembly.github.io/wabt/demo/wasm2wat/).
 
 ## Running wasm-interp
 
@@ -199,10 +205,10 @@ $ out/wasm-interp test.json --spec
 $ out/wasm-interp test.wasm -V 100 --run-all-exports
 ```
 
-You can use `-h` to get additional help:
+You can use `--help` to get additional help:
 
 ```console
-$ out/wasm-interp -h
+$ out/wasm-interp --help
 ```
 
 ## Running wasm2c

@@ -716,4 +716,10 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>classComputedPropertyName.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "locals": {
@@ -13,16 +14,18 @@
       "foo1": "object null"
     },
     "scopes0": {
+      "x": "undefined undefined",
       "foo2": "function <large string>",
-      "bar4": "function <large string>",
-      "x": "undefined undefined"
+      "bar4": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "arguments": {
@@ -32,6 +35,7 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
+      "x": "undefined undefined",
       "foo2": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -47,15 +51,16 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "x": "undefined undefined"
+      }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "arguments": {
@@ -65,6 +70,7 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
+      "x": "number 1",
       "foo2": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -80,15 +86,16 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "x": "number 1"
+      }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "arguments": {
@@ -98,6 +105,7 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
+      "x": "number 1",
       "foo2": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -113,10 +121,10 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "x": "number 1"
+      }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   }

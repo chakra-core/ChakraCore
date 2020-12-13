@@ -7,39 +7,6 @@
 namespace Js
 {
     // These function needs to be in INL file for static lib
-#if INT32VAR
-    inline bool RecyclableObject::Is(Var aValue)
-    {
-        AssertMsg(aValue != nullptr, "RecyclableObject::Is aValue is null");
-
-        return (((uintptr_t)aValue) >> VarTag_Shift) == 0;
-    }
-#else
-    inline bool RecyclableObject::Is(Var aValue)
-    {
-        AssertMsg(aValue != nullptr, "RecyclableObject::Is aValue is null");
-
-        return (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
-    }
-#endif
-
-    inline RecyclableObject* RecyclableObject::FromVar(const Js::Var aValue)
-    {
-        AssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
-        AssertMsg(Is(aValue), "Ensure instance is a RecyclableObject");
-        AssertOrFailFastMsg(!TaggedNumber::Is(aValue), "Tagged value being used as RecyclableObject");
-
-        return reinterpret_cast<RecyclableObject *>(aValue);
-    }
-
-    inline RecyclableObject* RecyclableObject::UnsafeFromVar(const Js::Var aValue)
-    {
-        AssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
-        AssertMsg(Is(aValue), "Ensure instance is a RecyclableObject");
-        AssertMsg(!TaggedNumber::Is(aValue), "Tagged value being used as RecyclableObject");
-
-        return reinterpret_cast<RecyclableObject *>(aValue);
-    }
 
     inline TypeId RecyclableObject::GetTypeId() const
     {

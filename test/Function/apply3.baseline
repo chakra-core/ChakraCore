@@ -56,9 +56,9 @@ global x1 : 0
 o.x1 : hello
 
 --- f.apply(v), v is missing/null/undefined/123/true/'string' ---
-Called with this: object[[object Object]], args: []
-Called with this: object[[object Object]], args: []
-Called with this: object[[object Object]], args: []
+Called with this: object[[object global]], args: []
+Called with this: object[[object global]], args: []
+Called with this: object[[object global]], args: []
 Called with this: object[123], args: []
 Called with this: object[true], args: []
 Called with this: object[string], args: []
@@ -80,9 +80,9 @@ t
 s
 
 --- f.call(v), v is missing/null/undefined/123/true/'string' ---
-Called with this: object[[object Object]], args: []
-Called with this: object[[object Object]], args: []
-Called with this: object[[object Object]], args: []
+Called with this: object[[object global]], args: []
+Called with this: object[[object global]], args: []
+Called with this: object[[object global]], args: []
 Called with this: object[123], args: []
 Called with this: object[true], args: []
 Called with this: object[string], args: []

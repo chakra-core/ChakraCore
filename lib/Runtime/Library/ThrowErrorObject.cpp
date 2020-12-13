@@ -17,7 +17,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        ThrowErrorObject* throwErrorObject = ThrowErrorObject::FromVar(function);
+        ThrowErrorObject* throwErrorObject = VarTo<ThrowErrorObject>(function);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         bool useExceptionWrapper =
@@ -50,23 +50,6 @@ namespace Js
     ThrowErrorObject* ThrowErrorObject::New(StaticType* type, JavascriptError* error, Recycler* recycler)
     {
         return RecyclerNew(recycler, ThrowErrorObject, type, error);
-    }
-
-    bool ThrowErrorObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Undefined;
-    }
-
-    ThrowErrorObject* ThrowErrorObject::FromVar(Var aValue)
-    {
-        AssertOrFailFast(Is(aValue));
-        return static_cast<ThrowErrorObject*>(aValue);
-    }
-
-    ThrowErrorObject* ThrowErrorObject::UnsafeFromVar(Var aValue)
-    {
-        Assert(Is(aValue));
-        return static_cast<ThrowErrorObject*>(aValue);
     }
 
     RecyclableObject* ThrowErrorObject::CreateThrowErrorObject(CreateErrorFunc createError, ScriptContext* scriptContext, int32 hCode, PCWSTR varName)

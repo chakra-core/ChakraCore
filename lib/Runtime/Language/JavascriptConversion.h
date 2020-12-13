@@ -17,7 +17,7 @@ namespace Js {
         static Var ToPrimitive(_In_ Var aValue, _In_ ScriptContext * scriptContext);
         static BOOL CanonicalNumericIndexString(JavascriptString *aValue, double *indexValue, ScriptContext * scriptContext);
 
-        static void ToPropertyKey(
+        static Var ToPropertyKey(
             Var argument,
             _In_ ScriptContext* scriptContext,
             _Out_ const PropertyRecord** propertyRecord,
@@ -82,6 +82,8 @@ namespace Js {
         static JavascriptString * ToPrimitiveString(Var aValue, ScriptContext * scriptContext);
 
         static int64 ToLength(Var aValue, ScriptContext* scriptContext);
+
+        static JavascriptBigInt * ToBigInt(Var aValue, ScriptContext * scriptContext);
 
         static float  LongToFloat(__int64 aValue);
         static float  ULongToFloat(unsigned __int64 aValue);

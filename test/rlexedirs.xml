@@ -95,6 +95,11 @@
 </dir>
 <dir>
   <default>
+    <files>BigInt</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>ControlFlow</files>
   </default>
 </dir>
@@ -116,6 +121,11 @@
 <dir>
   <default>
     <files>TaggedFloats</files>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>TryCatch</files>
   </default>
 </dir>
 <dir>
@@ -142,6 +152,11 @@
 <dir>
   <default>
     <files>Prototypes</files>
+  </default>
+</dir>
+<dir>
+  <default>
+    <files>RegAlloc</files>
   </default>
 </dir>
 <dir>

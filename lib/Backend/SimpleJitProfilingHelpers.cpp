@@ -69,7 +69,7 @@ using namespace Js;
         DynamicProfileInfo * dynamicProfileInfo = callerFunctionBody->GetDynamicProfileInfo();
 
         JavascriptFunction *const calleeFunction =
-            JavascriptFunction::Is(callee) ? JavascriptFunction::FromVar(callee) : nullptr;
+            VarIs<JavascriptFunction>(callee) ? VarTo<JavascriptFunction>(callee) : nullptr;
         FunctionInfo* calleeFunctionInfo = calleeFunction ? calleeFunction->GetFunctionInfo() : nullptr;
 
         auto const ctor = !!(info.Flags & CallFlags_New);
@@ -93,26 +93,6 @@ using namespace Js;
         dynamicProfileInfo->RecordReturnType(functionBody, profileId, retval);
         JIT_HELPER_END(SimpleProfileReturnTypeCall);
     }
-
-    Var SimpleJitHelpers::ProfiledStrictLdThis(Var thisVar, FunctionBody* functionBody)
-    {
-        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfiledStrictLdThis);
-        //Adapted from InterpreterStackFrame::OP_ProfiledStrictLdThis
-        DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
-        TypeId typeId = JavascriptOperators::GetTypeId(thisVar);
-
-        if (typeId == TypeIds_ActivationObject)
-        {
-            thisVar = functionBody->GetScriptContext()->GetLibrary()->GetUndefined();
-            dynamicProfileInfo->RecordThisInfo(thisVar, ThisType_Mapped);
-            return thisVar;
-        }
-
-        dynamicProfileInfo->RecordThisInfo(thisVar, ThisType_Simple);
-        return thisVar;
-        JIT_HELPER_END(SimpleProfiledStrictLdThis);
-    }
-
 
     Var SimpleJitHelpers::ProfiledLdThis(Var thisVar, int moduleID, FunctionBody* functionBody)
     {

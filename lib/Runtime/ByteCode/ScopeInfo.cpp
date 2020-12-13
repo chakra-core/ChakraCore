@@ -36,6 +36,7 @@ namespace Js
             this->SetIsFuncExpr(scopeSlot, sym->GetIsFuncExpr());
             this->SetIsModuleExportStorage(scopeSlot, sym->GetIsModuleExportStorage());
             this->SetIsModuleImport(scopeSlot, sym->GetIsModuleImport());
+            this->SetNeedDeclaration(scopeSlot, sym->GetNeedDeclaration());
         }
 
         TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
@@ -76,6 +77,7 @@ namespace Js
         {
             scopeInfo->isGeneratorFunctionBody = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsGenerator();
             scopeInfo->isAsyncFunctionBody = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsAsync();
+            scopeInfo->isClassConstructor = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsClassConstructor();
         }
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s #symbols: %d %s\n"),
@@ -112,8 +114,17 @@ namespace Js
     ScopeInfo * ScopeInfo::SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, Scope * scope, ScriptContext * scriptContext)
     {
         // Advance past scopes that will be excluded from the closure environment. (But note that we always want the body scope.)
-        while (scope && (!scope->GetMustInstantiate() && scope != scope->GetFunc()->GetBodyScope()))
+        while (scope)
         {
+            FuncInfo* func = scope->GetFunc();
+
+            if (scope->GetMustInstantiate() ||
+                func->GetBodyScope() == scope ||
+                (func->GetParamScope() == scope && func->IsBodyAndParamScopeMerged() && scope->GetHasNestedParamFunc()))
+            {
+                break;
+            }
+
             scope = scope->GetEnclosingScope();
         }
 
@@ -162,6 +173,21 @@ namespace Js
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
         Assert(currentScope->GetFunc() == funcInfo);
 
+        if (funcInfo->root->IsDeclaredInParamScope())
+        {
+            Assert(currentScope->GetScopeType() == ScopeType_FunctionBody);
+            Assert(currentScope->GetEnclosingScope());
+
+            FuncInfo* func = byteCodeGenerator->GetEnclosingFuncInfo();
+            Assert(func);
+
+            if (func->IsBodyAndParamScopeMerged())
+            {
+                currentScope = func->GetParamScope();
+                Assert(currentScope->GetScopeType() == ScopeType_Parameter);
+            }
+        }
+
         while (currentScope->GetFunc() == funcInfo)
         {
             currentScope = currentScope->GetEnclosingScope();
@@ -170,6 +196,23 @@ namespace Js
         ScopeInfo * scopeInfo = ScopeInfo::SaveScopeInfo(byteCodeGenerator, currentScope, byteCodeGenerator->GetScriptContext());
         if (scopeInfo != nullptr)
         {
+            if (funcInfo->root->IsDeclaredInParamScope())
+            {
+                FuncInfo* func = byteCodeGenerator->GetEnclosingFuncInfo();
+                Assert(func);
+
+                if (func->IsBodyAndParamScopeMerged())
+                {
+                    Assert(currentScope == func->GetParamScope() && currentScope->GetScopeType() == ScopeType_Parameter);
+                    Assert(scopeInfo->GetScopeType() == ScopeType_Parameter);
+                    Assert(func->GetBodyScope());
+
+                    // If the current function is nested in the param scope of it's enclosing function we may have
+                    // skipped the body scope and in may not be the scope stack but the body scope might still be
+                    // in the frame display and we will need to account for it. See ByteCodeGenerateor::FindScopeForSym.
+                    scopeInfo->mustInstantiate = func->GetBodyScope()->GetMustInstantiate();
+                }
+            }
             funcInfo->byteCodeFunction->SetScopeInfo(scopeInfo);
         }
     }
@@ -241,6 +284,7 @@ namespace Js
                 sym->SetIsFuncExpr(GetIsFuncExpr(i));
                 sym->SetIsModuleExportStorage(GetIsModuleExportStorage(i));
                 sym->SetIsModuleImport(GetIsModuleImport(i));
+                sym->SetNeedDeclaration(GetNeedDeclaration(i));
                 if (GetHasFuncAssignment(i))
                 {
                     sym->RestoreHasFuncAssignment();

@@ -78,10 +78,19 @@ using namespace Js;
     {
         Assert(c >= 0x10000);
         CompileAssert(sizeof(char16) * 2 == sizeof(codepoint_t));
+
+        ScriptContext* scriptContext = JavascriptLibrary::FromCharStringCache(this)->GetScriptContext();
+
+        // #sec - string.fromcodepoint: "If nextCP < 0 or nextCP > 0x10FFFF, throw a RangeError exception"
+        if (c > 0x10FFFF)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidCodePoint, scriptContext->GetIntegerString(c));
+        }
+
         char16 buffer[2];
 
         Js::NumberUtilities::CodePointAsSurrogatePair(c, buffer, buffer + 1);
-        JavascriptString* str = JavascriptString::NewCopyBuffer(buffer, 2, JavascriptLibrary::FromCharStringCache(this)->GetScriptContext());
+        JavascriptString* str = JavascriptString::NewCopyBuffer(buffer, 2, scriptContext);
         // TODO: perhaps do some sort of cache for supplementary characters
         return str;
     }

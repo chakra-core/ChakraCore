@@ -14,6 +14,8 @@ namespace Js
     private:
         static PropertyId const specialPropertyIdsAll[];
         static PropertyId const specialPropertyIdsWithoutUnicode[];
+        static PropertyId const specialPropertyIdsWithoutDotAll[];
+        static PropertyId const specialPropertyIdsWithoutDotAllOrUnicode[];
         static const uint defaultSpecialPropertyIdsCount = 6;
 
         Field(UnifiedRegex::RegexPattern*) pattern;
@@ -120,10 +122,7 @@ namespace Js
             this->lastIndexOrFlag = lastIndex;
         }
 
-        static bool Is(Var aValue);
         static bool IsRegExpLike(Var aValue, ScriptContext* scriptContext);
-        static JavascriptRegExp* FromVar(Var aValue);
-        static JavascriptRegExp* UnsafeFromVar(Var aValue);
 
         static JavascriptRegExp* CreateRegEx(const char16* pSource, CharCount sourceLen,
             UnifiedRegex::RegexFlags flags, ScriptContext *scriptContext);
@@ -154,6 +153,7 @@ namespace Js
             static FunctionInfo GetterSource;
             static FunctionInfo GetterSticky;
             static FunctionInfo GetterUnicode;
+            static FunctionInfo GetterDotAll;
             // v5.8 only
             static FunctionInfo Compile;
         };
@@ -176,6 +176,7 @@ namespace Js
         static Var EntryGetterSource(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSticky(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterUnicode(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterDotAll(RecyclableObject* function, CallInfo callInfo, ...);
         // v5.8 only
         static Var EntryCompile(RecyclableObject* function, CallInfo callInfo, ...);
 
@@ -217,5 +218,10 @@ namespace Js
             return VTableValue::VtableJavascriptRegExp;
         }
     };
+
+    template <> inline bool VarIsImpl<JavascriptRegExp>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_RegEx;
+    }
 
 } // namespace Js

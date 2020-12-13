@@ -98,7 +98,7 @@
 #elif COMPILER_IS_MSVC
 
 #include <intrin.h>
-#include <cstring>
+#include <string.h>
 
 #define WABT_UNUSED
 #define WABT_WARN_UNUSED
@@ -115,6 +115,8 @@
 #error unknown compiler
 
 #endif
+
+#ifdef __cplusplus
 
 namespace wabt {
 
@@ -279,7 +281,7 @@ int wabt_vsnprintf(char* str, size_t size, const char* format, va_list ap);
 #endif
 
 #if !HAVE_SSIZE_T
-typedef int ssize_t;
+typedef long ssize_t;
 #endif
 
 #if !HAVE_STRCASECMP
@@ -325,5 +327,7 @@ __inline float wabt_convert_uint64_to_float(uint64_t x) {
   return static_cast<float>(x);
 }
 #endif
+
+#endif  // __cplusplus
 
 #endif /* WABT_CONFIG_H_ */

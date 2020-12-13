@@ -92,9 +92,9 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
             importObject = args[2];
         }
 
-        if (WebAssemblyModule::Is(args[1]))
+        if (VarIs<WebAssemblyModule>(args[1]))
         {
-            resultObject = WebAssemblyInstance::CreateInstance(WebAssemblyModule::FromVar(args[1]), importObject);
+            resultObject = WebAssemblyInstance::CreateInstance(VarTo<WebAssemblyModule>(args[1]), importObject);
         }
         else
         {
@@ -227,7 +227,7 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
 
-    RecyclableObject* arrayBufferFunc = RecyclableObject::FromVar(arrayBufferProp);
+    RecyclableObject* arrayBufferFunc = VarTo<RecyclableObject>(arrayBufferProp);
     Var arrayBufferRes = nullptr;
     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
     {
@@ -236,7 +236,7 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
     END_SAFE_REENTRANT_CALL
 
     // Make sure res.arrayBuffer() is a Promise
-    if (!JavascriptPromise::Is(arrayBufferRes))
+    if (!VarIs<JavascriptPromise>(arrayBufferRes))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
@@ -245,11 +245,11 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
 
 bool WebAssembly::IsResponseObject(Var responseObject, ScriptContext* scriptContext)
 {
-    if (!RecyclableObject::Is(responseObject))
+    if (!VarIs<RecyclableObject>(responseObject))
     {
         return false;
     }
-    TypeId typeId = RecyclableObject::FromVar(responseObject)->GetTypeId();
+    TypeId typeId = VarTo<RecyclableObject>(responseObject)->GetTypeId();
     if (!CONFIG_FLAG(WasmIgnoreResponse))
     {
         return scriptContext->IsWellKnownHostType<WellKnownHostType_Response>(typeId) && typeId != TypeIds_Undefined;
@@ -271,13 +271,13 @@ Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var
         // We already have a response object, query it now
         responsePromise = CALL_ENTRYPOINT_NOASSERT(EntryQueryResponse, function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
     }
-    else if (JavascriptPromise::Is(responseArg))
+    else if (VarIs<JavascriptPromise>(responseArg))
     {
         JavascriptPromise* promise = (JavascriptPromise*)responseArg;
         // Wait until this promise resolves and then try to query the response object (if it's a response object)
         responsePromise = JavascriptPromise::CreateThenPromise(promise, library->GetWebAssemblyQueryResponseFunction(), library->GetThrowerFunction(), scriptContext);
     }
-    if (responsePromise && !JavascriptPromise::Is(responsePromise))
+    if (responsePromise && !VarIs<JavascriptPromise>(responsePromise))
     {
         AssertMsg(UNREACHED, "How did we end up with something other than a promise here ?");
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
@@ -288,12 +288,18 @@ Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var
 uint32
 WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
 {
-    double i = JavascriptConversion::ToInteger(val, ctx);
-    if (i < 0 || i > (double)UINT32_MAX)
+    double i = JavascriptConversion::ToNumber(val, ctx);
+    if (
+        JavascriptNumber::IsNan(i) ||
+        JavascriptNumber::IsPosInf(i) ||
+        JavascriptNumber::IsNegInf(i) ||
+        i < 0 ||
+        i > (double)UINT32_MAX
+    )
     {
-        JavascriptError::ThrowRangeError(ctx, JSERR_ArgumentOutOfRange);
+        JavascriptError::ThrowTypeError(ctx, JSERR_NeedNumber);
     }
-    return (uint32)i;
+    return (uint32)JavascriptConversion::ToInteger(i);
 }
 
 void

@@ -1,0 +1,120 @@
+Harness Status: OK
+Found 118 tests: Pass = 116 Fail = 2
+Pass WebAssembly.instantiate(module): Non-object imports argument: null  
+Pass WebAssembly.instantiate(module): Non-object imports argument: true  
+Pass WebAssembly.instantiate(module): Non-object imports argument: ""  
+Pass WebAssembly.instantiate(module): Non-object imports argument: symbol "Symbol()"  
+Pass WebAssembly.instantiate(module): Non-object imports argument: 1  
+Pass WebAssembly.instantiate(module): Non-object imports argument: 0.1  
+Pass WebAssembly.instantiate(module): Non-object imports argument: NaN  
+Pass WebAssembly.instantiate(module): Non-object module: undefined  
+Pass WebAssembly.instantiate(module): Non-object module: null  
+Pass WebAssembly.instantiate(module): Non-object module: true  
+Pass WebAssembly.instantiate(module): Non-object module: ""  
+Pass WebAssembly.instantiate(module): Non-object module: symbol "Symbol()"  
+Pass WebAssembly.instantiate(module): Non-object module: 1  
+Pass WebAssembly.instantiate(module): Non-object module: 0.1  
+Pass WebAssembly.instantiate(module): Non-object module: NaN  
+Pass WebAssembly.instantiate(module): Missing imports argument  
+Pass WebAssembly.instantiate(module): Imports argument with missing property: undefined  
+Pass WebAssembly.instantiate(module): Imports argument with missing property: empty object  
+Pass WebAssembly.instantiate(module): Imports argument with missing property: wrong property  
+Fail WebAssembly.instantiate(module): Importing an i64 global  assert_throws: function "function() { throw e }" threw object "TypeError: Invalid WebAssembly type conversion Var to i64" ("TypeError") expected object "LinkError" ("LinkError")
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: 1  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: 0.1  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: NaN  
+Pass WebAssembly.instantiate(module): Importing a function with an incorrectly-typed value: object "[object Object]"  
+Pass WebAssembly.instantiate(module): Importing a global with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(module): Importing a global with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(module): Importing a global with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(module): Importing a global with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(module): Importing a global with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(module): Importing a global with an incorrectly-typed value: plain object  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: 1  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: 0.1  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: NaN  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: plain object  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: WebAssembly.Memory  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: WebAssembly.Memory.prototype  
+Pass WebAssembly.instantiate(module): Importing memory with an incorrectly-typed value: Object.create(WebAssembly.Memory.prototype)  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: 1  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: 0.1  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: NaN  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: plain object  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: WebAssembly.Table  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: WebAssembly.Table.prototype  
+Pass WebAssembly.instantiate(module): Importing table with an incorrectly-typed value: Object.create(WebAssembly.Table.prototype)  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: null  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: true  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: ""  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: symbol "Symbol()"  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: 1  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: 0.1  
+Pass WebAssembly.instantiate(buffer): Non-object imports argument: NaN  
+Pass WebAssembly.instantiate(buffer): Non-object module: undefined  
+Pass WebAssembly.instantiate(buffer): Non-object module: null  
+Pass WebAssembly.instantiate(buffer): Non-object module: true  
+Pass WebAssembly.instantiate(buffer): Non-object module: ""  
+Pass WebAssembly.instantiate(buffer): Non-object module: symbol "Symbol()"  
+Pass WebAssembly.instantiate(buffer): Non-object module: 1  
+Pass WebAssembly.instantiate(buffer): Non-object module: 0.1  
+Pass WebAssembly.instantiate(buffer): Non-object module: NaN  
+Pass WebAssembly.instantiate(buffer): Missing imports argument  
+Pass WebAssembly.instantiate(buffer): Imports argument with missing property: undefined  
+Pass WebAssembly.instantiate(buffer): Imports argument with missing property: empty object  
+Pass WebAssembly.instantiate(buffer): Imports argument with missing property: wrong property  
+Fail WebAssembly.instantiate(buffer): Importing an i64 global  assert_throws: function "function() { throw e }" threw object "TypeError: Invalid WebAssembly type conversion Var to i64" ("TypeError") expected object "LinkError" ("LinkError")
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: 1  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: 0.1  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: NaN  
+Pass WebAssembly.instantiate(buffer): Importing a function with an incorrectly-typed value: object "[object Object]"  
+Pass WebAssembly.instantiate(buffer): Importing a global with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(buffer): Importing a global with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(buffer): Importing a global with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(buffer): Importing a global with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(buffer): Importing a global with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(buffer): Importing a global with an incorrectly-typed value: plain object  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: 1  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: 0.1  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: NaN  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: plain object  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: WebAssembly.Memory  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: WebAssembly.Memory.prototype  
+Pass WebAssembly.instantiate(buffer): Importing memory with an incorrectly-typed value: Object.create(WebAssembly.Memory.prototype)  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: undefined  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: null  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: true  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: ""  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: symbol "Symbol()"  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: 1  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: 0.1  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: NaN  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: plain object  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: WebAssembly.Table  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: WebAssembly.Table.prototype  
+Pass WebAssembly.instantiate(buffer): Importing table with an incorrectly-typed value: Object.create(WebAssembly.Table.prototype)  

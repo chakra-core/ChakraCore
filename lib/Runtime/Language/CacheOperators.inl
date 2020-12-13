@@ -350,7 +350,7 @@ namespace Js
             }
 
             // Before allowing proxies to cache, we would need to solve various issues (see JavascriptProxy::GetPropertyQuery).
-            Assert(!JavascriptProxy::Is(objectWithProperty));
+            Assert(!VarIs<JavascriptProxy>(objectWithProperty));
         }
         else
         {
@@ -363,13 +363,13 @@ namespace Js
             // Built-in Function.prototype properties 'length', 'arguments', and 'caller' are special cases.
             Assert(
                 objectWithProperty->IsWritable(propertyId) ||
-                (isRoot && RootObjectBase::FromVar(objectWithProperty)->IsLetConstGlobal(propertyId)) ||
+                (isRoot && VarTo<RootObjectBase>(objectWithProperty)->IsLetConstGlobal(propertyId)) ||
                 JavascriptFunction::IsBuiltinProperty(objectWithProperty, propertyId));
         }
 
-        const bool includeTypePropertyCache = 
-            IncludeTypePropertyCache && 
-            !isRoot && 
+        const bool includeTypePropertyCache =
+            IncludeTypePropertyCache &&
+            !isRoot &&
             (info->GetFunctionBody()
                  ? !PHASE_OFF(Js::TypePropertyCachePhase, info->GetFunctionBody())
                  : !PHASE_OFF1(Js::TypePropertyCachePhase)

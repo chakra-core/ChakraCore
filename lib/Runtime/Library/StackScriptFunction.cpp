@@ -21,7 +21,7 @@ namespace Js
         }
 
         // Only script function can be on the stack
-        StackScriptFunction * stackScriptFunction = StackScriptFunction::FromVar(function);
+        StackScriptFunction * stackScriptFunction = VarTo<StackScriptFunction>(function);
         ScriptFunction * boxedFunction = stackScriptFunction->boxedScriptFunction;
         if (boxedFunction != nullptr)
         {
@@ -58,24 +58,8 @@ namespace Js
             return function;
         }
 
-        ScriptFunction * boxed = StackScriptFunction::FromVar(function)->boxedScriptFunction;
+        ScriptFunction * boxed = VarTo<StackScriptFunction>(function)->boxedScriptFunction;
         return boxed ? boxed : function;
-    }
-
-    StackScriptFunction *
-    StackScriptFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(ScriptFunction::Is(var));
-        Assert(ThreadContext::IsOnStack(var));
-        return static_cast<StackScriptFunction *>(var);
-    }
-
-    StackScriptFunction *
-    StackScriptFunction::UnsafeFromVar(Var var)
-    {
-        Assert(ScriptFunction::Is(var));
-        Assert(ThreadContext::IsOnStack(var));
-        return static_cast<StackScriptFunction *>(var);
     }
 
     ScriptFunction *
@@ -112,7 +96,7 @@ namespace Js
 
             if (functionRef != nullptr && ThreadContext::IsOnStack(*functionRef))
             {
-                ScriptFunction * boxedScriptFunction = StackScriptFunction::FromVar(*functionRef)->boxedScriptFunction;
+                ScriptFunction * boxedScriptFunction = VarTo<StackScriptFunction>(*functionRef)->boxedScriptFunction;
                 if (boxedScriptFunction != nullptr)
                 {
                     *functionRef = boxedScriptFunction;
@@ -168,7 +152,7 @@ namespace Js
                 continue;
             }
 
-            ScriptFunction * callerScriptFunction = ScriptFunction::FromVar(caller);
+            ScriptFunction * callerScriptFunction = VarTo<ScriptFunction>(caller);
             FunctionBody * callerFunctionBody = callerScriptFunction->GetFunctionBody();
             if (hasInlineeToBox || this->NeedBoxFrame(callerFunctionBody))
             {
@@ -391,7 +375,7 @@ namespace Js
                 // Assert(ThreadContext::IsOnStack(callerScriptFunction));
                 if (ThreadContext::IsOnStack(callerScriptFunction))
                 {
-                    boxedCaller = this->BoxStackFunction(StackScriptFunction::FromVar(callerScriptFunction));
+                    boxedCaller = this->BoxStackFunction(VarTo<StackScriptFunction>(callerScriptFunction));
                     walker.SetCurrentFunction(boxedCaller);
 
                     InterpreterStackFrame * interpreterFrame = walker.GetCurrentInterpreterFrame();
@@ -507,7 +491,7 @@ namespace Js
     {
         this->ForEachStackNestedFunctionNative(walker, callerFunctionBody, [&](ScriptFunction *curr)
         {
-            StackScriptFunction * func = StackScriptFunction::FromVar(curr);
+            StackScriptFunction * func = VarTo<StackScriptFunction>(curr);
             // Need to check if we need the script function as the list of script function
             // include inlinee stack function that doesn't necessary need to be boxed
             if (this->NeedBoxScriptFunction(func))
@@ -607,7 +591,7 @@ namespace Js
         {
             do
             {
-                StackScriptFunction *func = StackScriptFunction::FromVar(curr);
+                StackScriptFunction *func = VarTo<StackScriptFunction>(curr);
                 fn(func);
                 curr = *(Js::Var *)(func + 1);
             }
@@ -697,9 +681,9 @@ namespace Js
         for (uint i = 0; i < count; i++)
         {
             Js::Var slotValue = scopeSlots.Get(i);
-            if (ScriptFunction::Is(slotValue))
+            if (VarIs<ScriptFunction>(slotValue))
             {
-                ScriptFunction * stackFunction = ScriptFunction::FromVar(slotValue);
+                ScriptFunction * stackFunction = VarTo<ScriptFunction>(slotValue);
                 slotValue = BoxStackFunction(stackFunction);
             }
             boxedScopeSlots.Set(i, slotValue);
@@ -718,7 +702,7 @@ namespace Js
             return scriptFunction;
         }
 
-        StackScriptFunction * stackFunction = StackScriptFunction::FromVar(scriptFunction);
+        StackScriptFunction * stackFunction = VarTo<StackScriptFunction>(scriptFunction);
         ScriptFunction * boxedFunction = stackFunction->boxedScriptFunction;
         if (boxedFunction != nullptr)
         {

@@ -411,5 +411,12 @@ endif
         rex_jmp_reg rax
 ?DeferredDeserializeThunk@JavascriptFunction@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
 
+align 16
+BreakSpeculation PROC
+        cmp rcx, rcx
+        cmove rax, rcx
+        ret
+BreakSpeculation ENDP
+
         _TEXT ENDS
         end

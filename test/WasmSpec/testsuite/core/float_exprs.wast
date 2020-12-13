@@ -1022,7 +1022,7 @@
 (assert_return (invoke "f32.no_fold_lt_select_to_abs" (f32.const 0.0)) (f32.const 0.0))
 (assert_return (invoke "f32.no_fold_lt_select_to_abs" (f32.const -0.0)) (f32.const -0.0))
 (assert_return (invoke "f32.no_fold_le_select_to_abs" (f32.const nan:0x200000)) (f32.const nan:0x200000))
-(assert_return (invoke "f32.no_fold_le_select_to_abs" (f32.const -nan))(f32.const -nan))
+(assert_return (invoke "f32.no_fold_le_select_to_abs" (f32.const -nan)) (f32.const -nan))
 (assert_return (invoke "f32.no_fold_le_select_to_abs" (f32.const 0.0)) (f32.const -0.0))
 (assert_return (invoke "f32.no_fold_le_select_to_abs" (f32.const -0.0)) (f32.const 0.0))
 (assert_return (invoke "f32.no_fold_gt_select_to_abs" (f32.const nan:0x200000)) (f32.const -nan:0x200000))

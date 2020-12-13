@@ -115,6 +115,14 @@ size_t LexerSourceBuffer::Fill(void* dest, Offset size) {
   return read_size;
 }
 
+Result LexerSourceBuffer::Seek(Offset offset) {
+  if (offset < size_) {
+    read_offset_ = offset;
+    return Result::Ok;
+  }
+  return Result::Error;
+}
+
 Result LexerSourceBuffer::ReadRange(OffsetRange range,
                                     std::vector<char>* out_data) {
   OffsetRange clamped = range;

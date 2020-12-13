@@ -8,9 +8,10 @@ const fs = require("fs-extra");
 const Bluebird = require("bluebird");
 const {spawn} = require("child_process");
 const slash = require("slash");
+const json5 = require("json5");
 
 Bluebird.promisifyAll(fs);
-const config = require("./config.json");
+const config = json5.parse(fs.readFileSync(path.join(__dirname, "config.json5")));
 const rlRoot = path.resolve(__dirname, "..");
 const folders = config.folders.map(folder => path.resolve(rlRoot, folder));
 const baselineDir = path.join(rlRoot, "baselines");
@@ -28,7 +29,9 @@ const argv = require("yargs")
 
 // Make sure all arguments are valid
 for (const folder of folders) {
-  fs.statSync(folder).isDirectory();
+  if (!fs.statSync(folder).isDirectory()) {
+    throw new Error(`${folder} is not a folder`);
+  }
 }
 
 function hostFlags(specFile) {
@@ -36,7 +39,7 @@ function hostFlags(specFile) {
 }
 
 function getBaselinePath(specFile) {
-  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.basename)))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.relative.replace(specFile.ext, ""))))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -51,27 +54,27 @@ function removePossiblyEmptyFolder(folder) {
   });
 }
 
-function generateChakraTests() {
+async function generateChakraTests() {
   const chakraTestsDestination = path.join(rlRoot, "chakra_generated");
 
   const chakraTests = require("./generateTests");
-  return removePossiblyEmptyFolder(chakraTestsDestination)
-    .then(() => fs.ensureDirAsync(chakraTestsDestination))
-    .then(() => Promise.all(chakraTests.map(test => test.getContent(rlRoot)
-      .then(content => {
-        if (!content) {
-          return;
-        }
-        const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
-        const copyrightHeader =
+  await removePossiblyEmptyFolder(chakraTestsDestination);
+  await fs.ensureDirAsync(chakraTestsDestination);
+  await fs.writeFileAsync(path.join(chakraTestsDestination, ".keep"), "Committing an empty directory on the Windows side to work around a GVFS issue\n");
+  for (const test of chakraTests) {
+    const content = await test.getContent(rlRoot);
+    if (!content) {
+      return;
+    }
+    const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
+    const copyrightHeader =
 `;;-------------------------------------------------------------------------------------------------------
 ;; Copyright (C) Microsoft. All rights reserved.
 ;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;;-------------------------------------------------------------------------------------------------------
 `;
-        return fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
-      })
-    )));
+    await fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
+  }
 }
 
 function main() {
@@ -82,19 +85,18 @@ function main() {
     fs.walk(folder)
       .on("data", item => {
         const ext = path.extname(item.path);
-        const basename = path.basename(item.path, ext);
+        const relative = path.relative(rlRoot, item.path);
         if ((
             (ext === ".wast" && item.path.indexOf(".fail") === -1) ||
             (ext === ".js")
           ) &&
-          !config.excludes.includes(basename)
+          !config.excludes.includes(slash(relative))
         ) {
           specFiles.push({
             path: item.path,
-            basename,
             ext,
             dirname: path.dirname(item.path),
-            relative: path.relative(rlRoot, item.path)
+            relative
           });
         }
       })
@@ -103,33 +105,23 @@ function main() {
       });
   }), [])
   ).then(specFiles => {
-    // Verify that no 2 file have the same name. We use the name as key even if they're in different folders
-    const map = {};
-    for (const file of specFiles) {
-      if (map[file.basename]) {
-        throw new Error(`Duplicate filename entry
-original : ${map[file.basename].path}
-duplicate: ${file.path}`);
-      }
-      map[file.basename] = file;
-    }
-    return specFiles;
-  }).then(specFiles => {
     const runners = {
       ".wast": "spec.js",
       ".js": "jsapi.js",
     };
     runs = specFiles.map(specFile => {
-      const ext = specFile.ext;
-      const basename = specFile.basename;
+      const {
+        ext,
+        relative
+      } = specFile;
       const dirname = path.dirname(specFile.path);
 
       const useFeature = (allowRequired, feature) => !(allowRequired ^ feature.required) && (
-        (feature.files || []).includes(basename) ||
+        (feature.files || []).includes(slash(relative)) ||
         (feature.folders || []).map(folder => path.join(rlRoot, folder)).includes(dirname)
       );
 
-      const isXplatExcluded = config["xplat-excludes"].indexOf(basename) !== -1;
+      const isXplatExcluded = config["xplat-excludes"].indexOf(slash(relative)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const runner = runners[ext];
@@ -189,6 +181,7 @@ duplicate: ${file.path}`);
     fs.ensureDirSync(baselineDir);
     const startRuns = runs.map(run => () => new Bluebird((resolve, reject) => {
       const test = run[0];
+      fs.ensureDirSync(path.dirname(test.baseline));
       const baseline = fs.createWriteStream(test.baseline);
       baseline.on("open", () => {
         const args = [path.resolve(rlRoot, test.runner)].concat(test.flags);

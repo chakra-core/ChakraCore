@@ -20,14 +20,14 @@ $copyright=@"
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
-// This file was generated with core\tools\update_bytecode_version.ps1
+// This file was generated with tools\update_bytecode_version.ps1
 
 "@
 
-$version=[Guid]::NewGuid().ToString()
+$version=[Guid]::NewGuid().ToString().ToUpper()
 
 Write-Header $copyright
-Write-Header "// $version"
+Write-Header "// {$version}"
 Write-Header "const GUID byteCodeCacheReleaseFileVersion ="
 
 $version -match "^(\w{8})-(\w{4})-(\w{4})-(\w{4}-\w{12})$" | Out-Null

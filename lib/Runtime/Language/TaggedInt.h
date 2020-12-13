@@ -80,6 +80,11 @@ namespace Js {
         static const int k_nMaxValue = INT_MAX / AtomTag_Multiply;
     };
 
+    template <> inline bool VarIs<TaggedInt>(Var aValue)
+    {
+        return TaggedInt::Is(aValue);
+    }
+
     // Helper representing operations and checks on TaggedInteger
     // and JavascriptNumber ( aka TaggedFloat) - JavascriptNumber is a Tagged value
     // only for 64-bit platforms.

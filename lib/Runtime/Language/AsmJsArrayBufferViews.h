@@ -17,6 +17,7 @@
 #endif
 
 //                  (Name            , Align , RegType, MemType , irSuffix )
+//                                     (log2)
 ARRAYBUFFER_VIEW_INT(INT8            , 0     , int32  , int8    , Int8     )
 ARRAYBUFFER_VIEW_INT(UINT8           , 0     , int32  , uint8   , Uint8    )
 ARRAYBUFFER_VIEW_INT(INT16           , 1     , int32  , int16   , Int16    )

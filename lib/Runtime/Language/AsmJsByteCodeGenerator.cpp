@@ -2192,7 +2192,7 @@ namespace Js
         return EmitExpressionInfo( AsmJsType::Void );
     }
 
-    Js::EmitExpressionInfo AsmJSByteCodeGenerator::EmitLoop( ParseNodeLoop *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile /*= false */ )
+    Js::EmitExpressionInfo AsmJSByteCodeGenerator::EmitLoop( ParseNodeStmt *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile /*= false */ )
     {
         // Need to increment loop count whether we are going to profile or not for HasLoop()
         StartStatement(loopNode);
@@ -2200,7 +2200,6 @@ namespace Js
         Js::ByteCodeLabel continuePastLoop = mWriter.DefineLabel();
 
         uint loopId = mWriter.EnterLoop( loopEntrance );
-        loopNode->loopId = loopId;
         EndStatement(loopNode);
         if( doWhile )
         {

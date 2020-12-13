@@ -51,6 +51,14 @@ namespace Js
         auxSlots(instance->auxSlots),
         objectArray(instance->objectArray)  // copying the array should copy the array flags and array call site index as well
     {
+        if (deepCopy)
+        {
+            if (!instance->GetDynamicType()->ShareType())
+            {
+                this->type = instance->DuplicateTypeAndTypeHandler();
+            }
+        }
+
         DynamicTypeHandler * typeHandler = this->GetTypeHandler();
 
         // TODO: stack allocate aux Slots
@@ -118,9 +126,9 @@ namespace Js
             // While the objectArray can be any array type, a DynamicObject that is created on the
             // stack will only have one of these three types (as these are also the only array types
             // that can be allocated on the stack).
-            Assert(Js::JavascriptArray::Is(instance->GetObjectArrayOrFlagsAsArray())
-                || Js::JavascriptNativeIntArray::Is(instance->GetObjectArrayOrFlagsAsArray())
-                || Js::JavascriptNativeFloatArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+            Assert(Js::JavascriptArray::IsNonES5Array(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::VarIs<Js::JavascriptNativeIntArray>(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::VarIs<Js::JavascriptNativeFloatArray>(instance->GetObjectArrayOrFlagsAsArray())
             );
 
             // Since a deep copy was requested for this DynamicObject, deep copy the object array as well
@@ -128,7 +136,7 @@ namespace Js
         }
         else
         {
-            // Otherwise, assert that there is either 
+            // Otherwise, assert that there is either
             // - no object array to deep copy
             // - an object array, but no deep copy needed
             // - data in the objectArray member, but it is inline slot data
@@ -149,25 +157,21 @@ namespace Js
         return NewObject<DynamicObject>(recycler, type);
     }
 
-    bool DynamicObject::Is(Var aValue)
+    bool DynamicObject::IsBaseDynamicObject(Var aValue)
     {
-        return RecyclableObject::Is(aValue) && (RecyclableObject::UnsafeFromVar(aValue)->GetTypeId() == TypeIds_Object);
+        return VarIs<RecyclableObject>(aValue) && (UnsafeVarTo<RecyclableObject>(aValue)->GetTypeId() == TypeIds_Object);
     }
 
-    DynamicObject* DynamicObject::FromVar(Var aValue)
+    DynamicObject* DynamicObject::TryVarToBaseDynamicObject(Var aValue)
     {
-        RecyclableObject* obj = RecyclableObject::FromVar(aValue);
-        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
-        AssertOrFailFast(DynamicType::Is(obj->GetTypeId()));
-        return static_cast<DynamicObject*>(obj);
+        return IsBaseDynamicObject(aValue) ? UnsafeVarTo<DynamicObject>(aValue) : nullptr;
     }
 
-    DynamicObject* DynamicObject::UnsafeFromVar(Var aValue)
+    template <> bool VarIsImpl<DynamicObject>(RecyclableObject* obj)
     {
-        RecyclableObject* obj = RecyclableObject::UnsafeFromVar(aValue);
-        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
-        Assert(DynamicType::Is(obj->GetTypeId()));
-        return static_cast<DynamicObject*>(obj);
+        bool result = DynamicType::Is(obj->GetTypeId());
+        Assert(result == obj->DbgIsDynamicObject());
+        return result;
     }
 
     ArrayObject* DynamicObject::EnsureObjectArray()
@@ -209,16 +213,27 @@ namespace Js
         return HasObjectArray() && GetObjectArrayOrFlagsAsArray()->GetLength() > 0;
     }
 
+    // Check if a Var is either a JavascriptArray* or ES5Array*.
+    bool DynamicObject::IsAnyTypedArray(const Var aValue)
+    {
+        return TypedArrayBase::Is(JavascriptOperators::GetTypeId(aValue));
+    }
+
     // Check if a typeId is of any array type (JavascriptArray or ES5Array).
     bool DynamicObject::IsAnyArrayTypeId(TypeId typeId)
     {
-        return JavascriptArray::Is(typeId) || typeId == TypeIds_ES5Array;
+        return JavascriptArray::IsNonES5Array(typeId) || typeId == TypeIds_ES5Array;
     }
 
     // Check if a Var is either a JavascriptArray* or ES5Array*.
     bool DynamicObject::IsAnyArray(const Var aValue)
     {
         return IsAnyArrayTypeId(JavascriptOperators::GetTypeId(aValue));
+    }
+
+    bool DynamicObject::IsAnyArray(DynamicObject* obj)
+    {
+        return IsAnyArrayTypeId(JavascriptOperators::GetTypeId(obj));
     }
 
     BOOL DynamicObject::HasObjectArrayItem(uint32 index)
@@ -526,6 +541,18 @@ namespace Js
         return RecyclerNew(GetRecycler(), DynamicType, this->GetDynamicType());
     }
 
+    DynamicType* DynamicObject::DuplicateTypeAndTypeHandler()
+    {
+        DynamicType * newType = DuplicateType();
+        newType->typeHandler = newType->DuplicateTypeHandler();
+        return newType;
+    }
+
+    void DynamicObject::PrepareForConversionToNonPathType()
+    {
+        // Nothing to do in base class
+    }
+
     /*
     *   DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining
     *   -   Checks if the TypeHandlers are compatible for transition from oldTypeHandler to newTypeHandler
@@ -782,6 +809,16 @@ namespace Js
             mutationBpValue = nullptr;
         }
 
+        Var embedderData = nullptr;
+        if (this->GetInternalProperty(this, InternalPropertyIds::EmbedderData,  &embedderData, nullptr, this->GetScriptContext()))
+        {
+          this->SetInternalProperty(InternalPropertyIds::EmbedderData, nullptr, PropertyOperation_Force, nullptr);
+        }
+        else
+        {
+          embedderData = nullptr;
+        }
+
         // If value of TypeOfPrototypeObjectDictionary was set undefined above, reset it to nullptr so we don't type cast it wrongly to TypeTransitionMap* or we don't marshal the non-Var dictionary below
         Var typeTransitionMap = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::TypeOfPrototypeObjectDictionary, &typeTransitionMap, nullptr, this->GetScriptContext()))
@@ -805,6 +842,10 @@ namespace Js
             {
                 this->SetInternalProperty(InternalPropertyIds::MutationBp, mutationBpValue, PropertyOperation_Force, nullptr);
             }
+            if (embedderData)
+            {
+              this->SetInternalProperty(InternalPropertyIds::EmbedderData, embedderData, PropertyOperation_Force, nullptr);
+            }
         }
     }
 
@@ -825,11 +866,11 @@ namespace Js
             }
             return false;
         }
-        if (!from->GetTypeHandler()->IsPathTypeHandler())
+        if (!from->GetTypeHandler()->IsObjectCopyable())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
-                Output::Print(_u("ObjectCopy: Can't copy: Don't have PathTypeHandler\n"));
+                Output::Print(_u("ObjectCopy: Can't copy: from obj does not have copyable type handler\n"));
             }
             return false;
         }
@@ -849,27 +890,11 @@ namespace Js
             }
             return false;
         }
-        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
-        {
-            if (PHASE_TRACE1(ObjectCopyPhase))
-            {
-                Output::Print(_u("ObjectCopy: Can't copy: type handler has accessors\n"));
-            }
-            return false;
-        }
         if (this->GetPrototype() != from->GetPrototype())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
                 Output::Print(_u("ObjectCopy: Can't copy: Prototypes don't match\n"));
-            }
-            return false;
-        }
-        if (!from->GetTypeHandler()->AllPropertiesAreEnumerable())
-        {
-            if (PHASE_TRACE1(ObjectCopyPhase))
-            {
-                Output::Print(_u("ObjectCopy: Can't copy: from obj has non-enumerable properties\n"));
             }
             return false;
         }
@@ -966,7 +991,7 @@ namespace Js
         {
             return false;
         }
-        if (HasObjectArray() || (JavascriptArray::Is(this) && JavascriptArray::FromVar(this)->GetLength() != 0))
+        if (HasObjectArray() || (JavascriptArray::IsNonES5Array(this) && VarTo<JavascriptArray>(this)->GetLength() != 0))
         {
             return false;
         }
@@ -1004,6 +1029,20 @@ namespace Js
     }
 
     DynamicObject *
+    DynamicObject::Copy(bool deepCopy)
+    {
+        size_t inlineSlotsSize = this->GetTypeHandler()->GetInlineSlotsSize();
+        if (inlineSlotsSize)
+        {
+            return RecyclerNewPlusZ(GetRecycler(), inlineSlotsSize, DynamicObject, this, deepCopy);
+        }
+        else
+        {
+            return RecyclerNew(GetRecycler(), DynamicObject, this, deepCopy);
+        }
+    }
+
+    DynamicObject *
     DynamicObject::BoxStackInstance(DynamicObject * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
@@ -1015,15 +1054,7 @@ namespace Js
             return boxedInstance;
         }
 
-        size_t inlineSlotsSize = instance->GetTypeHandler()->GetInlineSlotsSize();
-        if (inlineSlotsSize)
-        {
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, DynamicObject, instance, deepCopy);
-        }
-        else
-        {
-            boxedInstance = RecyclerNew(instance->GetRecycler(), DynamicObject, instance, deepCopy);
-        }
+        boxedInstance = instance->Copy(deepCopy);
 
         *boxedInstanceRef = boxedInstance;
         return boxedInstance;

@@ -214,7 +214,7 @@ HRESULT BGParseManager::QueueBackgroundParse(LPCUTF8 pszSrc, size_t cbLength, ch
 
 // Returns the data provided when the parse was queued
 // Note: runs on any thread, but the buffer lifetimes are not guaranteed after parse results are returned
-HRESULT BGParseManager::GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_t* pcbLength)
+HRESULT BGParseManager::GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_t* pcbLength, WCHAR** sourceUrl)
 {
     HRESULT hr = E_FAIL;
 
@@ -222,8 +222,19 @@ HRESULT BGParseManager::GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_
     BGParseWorkItem* workitem = FindJob(cookie, false /*waitForResults*/, false /*removeJob*/);
     if (workitem != nullptr)
     {
-        (*ppszSrc) = workitem->GetScriptSrc();
-        (*pcbLength) = workitem->GetScriptLength();
+        if (ppszSrc != nullptr)
+        {
+            (*ppszSrc) = workitem->GetScriptSrc();
+        }
+        if (pcbLength != nullptr)
+        {
+            (*pcbLength) = workitem->GetScriptLength();
+        }
+        if (sourceUrl != nullptr)
+        {
+            (*sourceUrl) = workitem->GetScriptPath();
+        }
+
         hr = S_OK;
     }
 
@@ -237,7 +248,7 @@ HRESULT BGParseManager::GetParseResults(
     DWORD cookie,
     LPCUTF8 pszSrc,
     SRCINFO const * pSrcInfo,
-    Js::ParseableFunctionInfo** ppFunc,
+    Js::FunctionBody** ppFunc,
     CompileScriptException* pse,
     size_t& srcLength,
     Js::Utf8SourceInfo* utf8SourceInfo,
@@ -260,7 +271,10 @@ HRESULT BGParseManager::GetParseResults(
         Js::FunctionBody* functionBody = nullptr;
         hr = workitem->DeserializeParseResults(scriptContextUI, pszSrc, pSrcInfo, utf8SourceInfo, &functionBody, srcLength, sourceIndex);
         (*ppFunc) = functionBody;
-        workitem->TransferCSE(pse);
+        if (pse != nullptr)
+        {
+            workitem->TransferCSE(pse);
+        }
 
         if (hr == S_OK)
         {
@@ -572,6 +586,18 @@ HRESULT BGParseWorkItem::DeserializeParseResults(
     HRESULT hr = this->parseHR;
     if (hr == S_OK)
     {
+        if (utf8SourceInfo == nullptr)
+        {
+            scriptContextUI->MakeUtf8SourceInfo(
+                this->script,
+                this->cb,
+                pSrcInfo,
+                &utf8SourceInfo,
+                LoadScriptFlag_Utf8Source,
+                nullptr // Var scriptSource
+            );
+        }
+
         srcLength = this->parseSourceLength;
         sourceIndex = scriptContextUI->SaveSourceNoCopy(utf8SourceInfo, (int)srcLength, false /*isCesu8*/);
         Assert(sourceIndex != Js::Constants::InvalidSourceIndex);

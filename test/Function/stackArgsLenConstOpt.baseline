@@ -1,0 +1,5 @@
+Inlined function x_min have replaced opcode LdLen_A with opcode Ld_A for stack arg optimization. 
+Inlined function x_min have replaced opcode LdElemI_A with opcode Ld_A for stack arg optimization. 
+Inlined function x_min have replaced opcode LdElemI_A with opcode Ld_A for stack arg optimization. 
+Inlined function x_min have replaced opcode LdElemI_A with opcode Ld_A for stack arg optimization. 
+pass

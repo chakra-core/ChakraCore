@@ -161,16 +161,17 @@ bool DynamicProfileStorageReaderWriter::WriteArray(T * t, size_t len)
 bool DynamicProfileStorageReaderWriter::WriteUtf8String(char16 const * str)
 {
     charcount_t len = static_cast<charcount_t>(wcslen(str));
-    utf8char_t * tempBuffer = NoCheckHeapNewArray(utf8char_t, len * 3);
+    const size_t cbTempBuffer = UInt32Math::Mul<3>(len);
+    utf8char_t * tempBuffer = NoCheckHeapNewArray(utf8char_t, cbTempBuffer);
     if (tempBuffer == nullptr)
     {
         Output::Print(_u("ERROR: DynamicProfileStorage: Out of memory writing to file '%s'\n"), filename);
         Output::Flush();
         return false;
     }
-    DWORD cbNeeded = (DWORD)utf8::EncodeInto(tempBuffer, str, len);
+    DWORD cbNeeded = (DWORD)utf8::EncodeInto<utf8::Utf8EncodingKind::Cesu8>(tempBuffer, cbTempBuffer, str, len);
     bool success = Write(cbNeeded) && WriteArray(tempBuffer, cbNeeded);
-    NoCheckHeapDeleteArray(len * 3, tempBuffer);
+    NoCheckHeapDeleteArray(cbTempBuffer, tempBuffer);
     return success;
 }
 

@@ -23,7 +23,7 @@ namespace TTD
 
             if(replayVar != nullptr && TTD::JsSupport::IsVarPtrValued(replayVar))
             {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(replayVar);
+                Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(replayVar);
                 executeContext->AddLocalRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar), obj);
             }
         }

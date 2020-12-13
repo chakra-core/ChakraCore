@@ -26,6 +26,9 @@ namespace Js
             static Var Decrement_Full(Var aRight,ScriptContext* scriptContext);
             static Var Decrement_InPlace(Var aRight,ScriptContext* scriptContext, JavascriptNumber* result);
 
+            static Var Increment_Numeric(Var aRight, ScriptContext* scriptContext);
+            static Var Decrement_Numeric(Var aRight, ScriptContext* scriptContext);
+
             static Var Negate(Var aRight,ScriptContext* scriptContext);
             static Var Negate_Full(Var aRight,ScriptContext* scriptContext);
             static Var Negate_InPlace(Var aRight,ScriptContext* scriptContext, JavascriptNumber* result);

@@ -26,11 +26,12 @@ public:
 
     BailOutInfo(uint32 bailOutOffset, Func* bailOutFunc) :
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
-        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
-        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false),
+        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr), bailInInstr(nullptr),
+        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false), canDeadStore(true),
         outParamInlinedArgSlot(nullptr), liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
         branchConditionOpnd(nullptr),
-        stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr)
+        stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr),
+        clearedDstByteCodeUpwardExposedUseId(SymID_Invalid)
     {
         Assert(bailOutOffset != Js::Constants::NoByteCodeOffset);
 #ifdef _M_IX86
@@ -41,9 +42,26 @@ public:
 #endif
         this->capturedValues = JitAnew(bailOutFunc->m_alloc, CapturedValues);
         this->capturedValues->refCount = 1;
-        this->usedCapturedValues.argObjSyms = nullptr;
+
+        this->usedCapturedValues = JitAnew(bailOutFunc->m_alloc, CapturedValues);
+        this->usedCapturedValues->argObjSyms = nullptr;
     }
+
+    void PartialDeepCopyTo(BailOutInfo *const bailOutInfo) const;
     void Clear(JitArenaAllocator * allocator);
+
+    // Lazy bailout
+    // 
+    // Workaround for dealing with use of destination register of `call` instructions with postop lazy bailout.
+    // As an example, in globopt, we have s1 = Call and s1 is in byteCodeUpwardExposedUse,
+    // but after lowering, the instructions are: s3 = Call, s1 = s3.
+    // If we add a postop lazy bailout to s3 = call, we will create a use of s1 right at that instructions.
+    // However, s1 at that point is not initialized yet.
+    // As a workaround, we will clear the use of s1 and restore it if we determine that lazy bailout is not needed.
+    void ClearUseOfDst(SymID id);
+    void RestoreUseOfDst();
+    bool NeedsToRestoreUseOfDst() const;
+    SymID GetClearedUseOfDstId() const;
 
     void FinalizeBailOutRecord(Func * func);
 #ifdef MD_GROW_LOCALS_AREA_UP
@@ -64,22 +82,44 @@ public:
             kindMinusBits == IR::BailOutOnImplicitCallsPreOp;
     }
 
+    static bool OnlyHasLazyBailOut(IR::BailOutKind kind)
+    {
+        return kind == IR::LazyBailOut;
+    }
+
+    static bool HasLazyBailOut(IR::BailOutKind kind)
+    {
+        return (kind & IR::LazyBailOut) != 0;
+    }
+
+    static IR::BailOutKind WithoutLazyBailOut(IR::BailOutKind kind)
+    {
+        return kind & ~IR::LazyBailOut;
+    }
+
+    static IR::BailOutKind WithLazyBailOut(IR::BailOutKind kind)
+    {
+        return kind | IR::LazyBailOut;
+    }
+
 #if DBG
     static bool IsBailOutHelper(IR::JnHelperMethod helper);
 #endif
     bool wasCloned;
     bool isInvertedBranch;
+    bool canDeadStore;
     bool sharedBailOutKind;
     bool isLoopTopBailOutInfo;
 
 #if DBG
     bool wasCopied;
 #endif
+    SymID clearedDstByteCodeUpwardExposedUseId;
     uint32 bailOutOffset;
     BailOutRecord * bailOutRecord;
-    CapturedValues* capturedValues;                                      // Values we know about after forward pass
-    CapturedValues usedCapturedValues;                                  // Values that need to be restored in the bail out
-    BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;            // Non-constant stack syms that needs to be restored in the bail out
+    CapturedValues * capturedValues;                                      // Values we know about after forward pass
+    CapturedValues * usedCapturedValues;                                  // Values that need to be restored in the bail out
+    BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;              // Non-constant stack syms that needs to be restored in the bail out
     uint polymorphicCacheIndex;
     uint startCallCount;
     uint totalOutParamCount;
@@ -119,6 +159,8 @@ public:
     //   while other instrs sharing bailout info will just have checks and JMP to BailTarget).
     // 2) After we generated bailout, this becomes label instr. In case of shared bailout other instrs JMP to this label.
     IR::Instr * bailOutInstr;
+
+    IR::GeneratorBailInInstr * bailInInstr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     Js::OpCode bailOutOpcode;
@@ -209,6 +251,8 @@ public:
     void SetType(BailoutRecordType type) { this->type = type; }
     bool IsShared() const { return type == Shared || type == SharedForLoopTop; }
     bool IsForLoopTop() const { return type == SharedForLoopTop; }
+
+    Js::FunctionEntryPointInfo *GetFunctionEntryPointInfo() const;
 protected:
     struct BailOutReturnValue
     {
@@ -235,9 +279,11 @@ protected:
     static uint32 BailOutFromLoopBodyHelper(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord,
         uint32 bailOutOffset, IR::BailOutKind bailOutKind, Js::Var branchValue, Js::Var * registerSaves, BailOutReturnValue * returnValue = nullptr);
 
+    static void SetHasBailedOutBit(BailOutRecord const * bailOutRecord, Js::ScriptContext * scriptContext);
+
     static void UpdatePolymorphicFieldAccess(Js::JavascriptFunction *  function, BailOutRecord const * bailOutRecord);
 
-    static void ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, 
+    static void ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind,
                                         uint32 actualBailOutOffset, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress);
     static void ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind);
     static void CheckPreemptiveRejit(Js::FunctionBody* executeFunction, IR::BailOutKind bailOutKind, BailOutRecord* bailoutRecord, uint8& callsOrIterationsCount, int loopNumber);
@@ -416,6 +462,7 @@ struct GlobalBailOutRecordDataTable
     // The offset to 'registerSaveSpace' is hard-coded in LinearScanMD::SaveAllRegisters, so let this be the first member variable
     Js::Var *registerSaveSpace;
     GlobalBailOutRecordDataRow *globalBailOutRecordDataRows;
+    Js::EntryPointInfo *entryPointInfo;
     uint32 length;
     uint32 size;
     int32  firstActualStackOffset;

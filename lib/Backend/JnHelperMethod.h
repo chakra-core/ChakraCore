@@ -57,4 +57,6 @@ bool IsInVariant(IR::JnHelperMethod helper);
 
 bool CanBeReentrant(IR::JnHelperMethod helper);
 
+bool TempObjectProducing(IR::JnHelperMethod helper);
+
 } // namespace HelperMethodAttributes.

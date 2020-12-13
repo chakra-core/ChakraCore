@@ -7,7 +7,7 @@ in nested setter2
 11
 test3: nested setter and setter from this
 in nested setter3
-[object Object]
+[object global]
 12
 test4: closure and with
 in nested setter3

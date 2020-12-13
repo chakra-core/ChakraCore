@@ -400,7 +400,33 @@ var tests = [
 			//note exclusion of testScript case intentional - running the code from a script loads the module
 			//then the test from Module uses the one loaded by the script - do not add testScript here
         }
-	},
+    },
+    {
+        name : "Test 'new import()' throws - Bug Issue 5797",
+        body: function() {
+            assert.throws(()=>{eval('new import("ModuleSimpleExport.js")')}, SyntaxError);
+        }
+    },
+    {
+        name : "Test that import() always gives different promise objects - Bug Issue #5795",
+        body: function () {
+            WScript.RegisterModuleSource("testModule", "export const a = 5;");
+            let functionBody =
+                `testDynamicImport(function () {
+                    const first = import ('ModuleSimpleExport.js');
+                    const second = import ('ModuleSimpleExport.js');
+                    assert.isTrue(first !== second, 'import() should not return the same promise');
+                    return Promise.all([first, second]).then ((results) => ({first, second, results}));
+                }, function (imports) {
+                    assert.isTrue(imports.first !== imports.second, 'import() should not return the same promise after resolution');
+                    assert.isTrue(imports.results[0] === imports.results[1], 'import() should return the same namespace object');
+                }, function (e) {
+                    print ("Test should not throw, threw " + e);
+                }, _asyncEnter, _asyncExit);`;
+            testScript(functionBody, "Test that import() always gives different promise objects", false, true);
+            testModuleScript(functionBody, "Test that import() always gives different promise objects", false, true);
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

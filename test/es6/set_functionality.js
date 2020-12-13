@@ -110,6 +110,28 @@ var tests = [
     },
 
     {
+        name : "Set constructor caches next method from iterator",
+        body: function () {
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : iterCount,
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            s = new Set(iter);
+            assert.areEqual(3, s.size, "s is initialized with three entries");
+            assert.isTrue(s.has(0), "s has value '0'");
+            assert.isTrue(s.has(1), "s has value '1'");
+            assert.isTrue(s.has(2), "s has value '2'");
+        }
+    },
+
+    {
         name: "Set constructor throws exceptions for non- and malformed iterable arguments",
         body: function () {
             var iterableNoIteratorMethod = { [Symbol.iterator]: 123 };
@@ -740,6 +762,15 @@ var tests = [
             value -= 0.1; // value is now 1.0, a double, rather than an int
 
             assert.isTrue(set.has(value), "1.0 should be equal to the value 1 and set has it");
+        }
+    },
+    {
+        name: "-NaN and +NaN in set should not assert (github #6063)",
+        body: function() {
+            let set = new Set([+NaN, -NaN, "asdf"]);
+            assert.isTrue(set.has(-NaN));
+            assert.isTrue(set.has(NaN));
+            assert.isTrue(set.has("asdf"));
         }
     },
 ];

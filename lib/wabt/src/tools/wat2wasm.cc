@@ -25,7 +25,7 @@
 
 #include "src/binary-writer.h"
 #include "src/common.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
 #include "src/feature.h"
 #include "src/filenames.h"
 #include "src/ir.h"
@@ -131,25 +131,23 @@ int ProgramMain(int argc, char** argv) {
     WABT_FATAL("unable to read file: %s\n", s_infile);
   }
 
-  ErrorHandlerFile error_handler(Location::Type::Text);
+  Errors errors;
   std::unique_ptr<Module> module;
   WastParseOptions parse_wast_options(s_features);
   Result result =
-      ParseWatModule(lexer.get(), &module, &error_handler, &parse_wast_options);
+      ParseWatModule(lexer.get(), &module, &errors, &parse_wast_options);
 
   if (Succeeded(result)) {
-    result = ResolveNamesModule(lexer.get(), module.get(), &error_handler);
+    result = ResolveNamesModule(module.get(), &errors);
 
     if (Succeeded(result) && s_validate) {
       ValidateOptions options(s_features);
-      result =
-          ValidateModule(lexer.get(), module.get(), &error_handler, &options);
+      result = ValidateModule(module.get(), &errors, options);
     }
 
     if (Succeeded(result)) {
       MemoryStream stream(s_log_stream.get());
-      result =
-          WriteBinaryModule(&stream, module.get(), &s_write_binary_options);
+      result = WriteBinaryModule(&stream, module.get(), s_write_binary_options);
 
       if (Succeeded(result)) {
         if (s_outfile.empty()) {
@@ -159,6 +157,9 @@ int ProgramMain(int argc, char** argv) {
       }
     }
   }
+
+  auto line_finder = lexer->MakeLineFinder();
+  FormatErrorsToFile(errors, Location::Type::Text, line_finder.get());
 
   return result != Result::Ok;
 }

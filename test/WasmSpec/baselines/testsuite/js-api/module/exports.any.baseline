@@ -1,0 +1,9 @@
+Harness Status: OK
+Found 7 tests: Pass = 6 Fail = 1
+Pass Missing arguments  
+Pass Non-Module arguments  
+Pass Branding  
+Pass Empty module  
+Pass Empty module: array caching  
+Fail exports  Object doesn't support property or method 'setFunctionTableLength'
+Pass Stray argument  

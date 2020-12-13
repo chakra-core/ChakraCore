@@ -64,7 +64,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TypePath.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TypePropertyCache.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WithScopeObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UnscopablesWrapperObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ActivationObject.h" />
@@ -99,7 +99,7 @@
     <ClInclude Include="TypeId.h" />
     <ClInclude Include="TypePath.h" />
     <ClInclude Include="TypePropertyCache.h" />
-    <ClInclude Include="WithScopeObject.h" />
+    <ClInclude Include="UnscopablesWrapperObject.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RecyclableObject.inl" />

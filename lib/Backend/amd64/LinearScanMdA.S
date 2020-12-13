@@ -51,23 +51,23 @@ LEAF_ENTRY _ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord, _TEXT
     mov [rax + 15 * 8], r15
 
     // Save all XMM regs (full width)
-    movups xmmword ptr [rax + 80h], xmm0         // [rax + 16 * 8 + 0 * 16] = xmm0
-    movups xmmword ptr [rax + 90h], xmm1         // [rax + 16 * 8 + 1 * 16] = xmm1
-    movups xmmword ptr [rax + 0a0h], xmm2        //  ...
-    // movups xmmword ptr [rax + 0b0h], xmm3    // xplat: WHY this one fails to compile...
+    movups xmmword ptr [rax + 0x80], xmm0         // [rax + 16 * 8 + 0 * 16] = xmm0
+    movups xmmword ptr [rax + 0x90], xmm1         // [rax + 16 * 8 + 1 * 16] = xmm1
+    movups xmmword ptr [rax + 0x0a0], xmm2        //  ...
+    // movups xmmword ptr [rax + 0x0b0], xmm3    // xplat: WHY this one fails to compile...
     movups xmmword ptr [rax + 11 * 16], xmm3
-    movups xmmword ptr [rax + 0c0h], xmm4
-    movups xmmword ptr [rax + 0d0h], xmm5
-    movups xmmword ptr [rax + 0e0h], xmm6
-    movups xmmword ptr [rax + 0f0h], xmm7
-    movups xmmword ptr [rax + 100h], xmm8
-    movups xmmword ptr [rax + 110h], xmm9
-    movups xmmword ptr [rax + 120h], xmm10
-    movups xmmword ptr [rax + 130h], xmm11
-    movups xmmword ptr [rax + 140h], xmm12
-    movups xmmword ptr [rax + 150h], xmm13
-    movups xmmword ptr [rax + 160h], xmm14
-    movups xmmword ptr [rax + 170h], xmm15       // [rax + 16 * 8 + 15 * 16] = xmm15
+    movups xmmword ptr [rax + 0x0c0], xmm4
+    movups xmmword ptr [rax + 0x0d0], xmm5
+    movups xmmword ptr [rax + 0x0e0], xmm6
+    movups xmmword ptr [rax + 0x0f0], xmm7
+    movups xmmword ptr [rax + 0x100], xmm8
+    movups xmmword ptr [rax + 0x110], xmm9
+    movups xmmword ptr [rax + 0x120], xmm10
+    movups xmmword ptr [rax + 0x130], xmm11
+    movups xmmword ptr [rax + 0x140], xmm12
+    movups xmmword ptr [rax + 0x150], xmm13
+    movups xmmword ptr [rax + 0x160], xmm14
+    movups xmmword ptr [rax + 0x170], xmm15       // [rax + 16 * 8 + 15 * 16] = xmm15
 
     ret
 
@@ -91,12 +91,12 @@ NESTED_ENTRY _ZN12LinearScanMD26SaveAllRegistersAndBailOutEP13BailOutRecord, _TE
 
     mov [rsp + 3 * 8], rsi
 
-    sub rsp, 28h        // use the same as Windows x64 so register locations are the same
+    sub rsp, 0x28        // use the same as Windows x64 so register locations are the same
     .cfi_adjust_cfa_offset 0x28
 
     call C_FUNC(_ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord)
 
-    add rsp, 28h        // deallocate stack space
+    add rsp, 0x28        // deallocate stack space
     .cfi_adjust_cfa_offset -0x28
 
     jmp C_FUNC(_ZN13BailOutRecord7BailOutEPKS_)
@@ -117,12 +117,12 @@ NESTED_ENTRY _ZN12LinearScanMD32SaveAllRegistersAndBranchBailOutEP19BranchBailOu
     // rdi == bailOutRecord
     // rsi == condition
 
-    sub rsp, 28h        // use the same as Windows x64 so register locations are the same
+    sub rsp, 0x28        // use the same as Windows x64 so register locations are the same
     .cfi_adjust_cfa_offset 0x28
 
     call C_FUNC(_ZN12LinearScanMD26SaveAllRegistersEP13BailOutRecord)
 
-    add rsp, 28h        // deallocate stack space
+    add rsp, 0x28        // deallocate stack space
     .cfi_adjust_cfa_offset -0x28
 
     jmp C_FUNC(_ZN19BranchBailOutRecord7BailOutEPKS_i)

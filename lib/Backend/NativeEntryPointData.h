@@ -13,7 +13,7 @@ namespace Js
 };
 
 typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
-typedef JsUtil::List<LazyBailOutRecord, HeapAllocator> BailOutRecordMap;
+typedef JsUtil::List<LazyBailOutRecord, HeapAllocator> NativeLazyBailOutRecordList;
 
 class JitTransferData;
 
@@ -71,6 +71,7 @@ public:
 
 #if PDATA_ENABLED
     XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
+    void CleanupXDataInfo();
     void SetXDataInfo(XDataAllocation* xdataInfo) { this->xdataInfo = xdataInfo; }   
 #endif
 private:
@@ -79,9 +80,6 @@ private:
     void FreePropertyGuards();
 
     void FreeNativeCode(Js::ScriptContext * scriptContext, bool isShutdown);
-#if PDATA_ENABLED
-    void CleanupXDataInfo();
-#endif
 
     FieldNoBarrier(Js::JavascriptMethod) nativeAddress;
     FieldNoBarrier(Js::JavascriptMethod) thunkAddress;
@@ -158,8 +156,14 @@ public:
     InlineeFrameMap * GetInlineeFrameMap();
     void RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap);
 
-    BailOutRecordMap * GetBailOutRecordMap();
-    void RecordBailOutMap(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* bailoutMap);
+    NativeLazyBailOutRecordList * GetSortedLazyBailOutRecordList() const;
+    void SetSortedLazyBailOutRecordList(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* sortedLazyBailOutRecordList);
+
+    void SetLazyBailOutRecordSlotOffset(int32 argSlotOffset);
+    int32 GetLazyBailOutRecordSlotOffset() const;
+
+    void SetLazyBailOutThunkOffset(uint32 thunkOffset);
+    uint32 GetLazyBailOutThunkOffset() const;
 
 #if !FLOATVAR
     void SetNumberChunks(CodeGenNumberChunk* chunks)
@@ -167,11 +171,14 @@ public:
         numberChunks = chunks;
     }
 #endif
+
     void OnCleanup();
 private:
     FieldNoBarrier(NativeCodeData *) nativeCodeData;
-    FieldNoBarrier(InlineeFrameMap*) inlineeFrameMap;
-    FieldNoBarrier(BailOutRecordMap*) bailoutRecordMap;
+    FieldNoBarrier(InlineeFrameMap *) inlineeFrameMap;
+    FieldNoBarrier(NativeLazyBailOutRecordList *) sortedLazyBailoutRecordList;
+    FieldNoBarrier(int32) lazyBailOutRecordSlotOffset;
+    FieldNoBarrier(uint32) lazyBailOutThunkOffset;
 #if !FLOATVAR
     Field(CodeGenNumberChunk*) numberChunks;
 #endif

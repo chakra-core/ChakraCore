@@ -40,6 +40,7 @@ namespace Js
 
     public:
         DynamicTypeHandler * GetTypeHandler() const { return typeHandler; }
+        DynamicTypeHandler * DuplicateTypeHandler();
 
         void SetPrototype(RecyclableObject* newPrototype) { this->prototype = newPrototype; }
         bool GetIsLocked() const { return this->isLocked; }

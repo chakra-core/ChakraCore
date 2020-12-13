@@ -2,6 +2,20 @@
 <regress-exe>
   <test>
     <default>
+      <files>NegativeNaN.js</files>
+      <baseline>NegativeNaN.baseline</baseline>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>NegativeNaN.js</files>
+      <baseline>NegativeNaN.baseline</baseline>
+      <compile-flags>-NoNative</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>toString.js</files>
       <baseline>toString_3.baseline</baseline>
     </default>
@@ -47,6 +61,12 @@
     <default>
       <files>property_and_index_of_number.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>NumericSeparator.js</files>
+      <compile-flags>-ESNumericSeparator -args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

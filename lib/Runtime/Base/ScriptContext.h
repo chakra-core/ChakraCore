@@ -124,7 +124,15 @@ enum LoadScriptFlag
     LoadScriptFlag_Utf8Source = 0x40,                   // input buffer is utf8 encoded.
     LoadScriptFlag_LibraryCode = 0x80,                  // for debugger, indicating 'not my code'
     LoadScriptFlag_ExternalArrayBuffer = 0x100,         // for ExternalArrayBuffer
-    LoadScriptFlag_CreateParserState = 0x200            // create the parser state cache while parsing.
+    LoadScriptFlag_CreateParserState = 0x200,           // create the parser state cache while parsing.
+    LoadScriptFlag_StrictMode = 0x400                   // parse using strict mode semantics
+};
+
+enum class ScriptContextPrivilegeLevel
+{
+    Low,
+    Medium,
+    High
 };
 
 #ifdef INLINE_CACHE_STATS
@@ -176,6 +184,9 @@ public:
     virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT FetchImportedModuleFromScript(DWORD_PTR dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
+    virtual HRESULT InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject) = 0;
+
+    virtual HRESULT ThrowIfFailed(HRESULT hr) = 0;
 
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
 
@@ -188,6 +199,19 @@ public:
 #endif
 private:
     Js::ScriptContext* scriptContext;
+};
+
+class HostStream
+{
+public:
+    virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) = 0;
+    virtual bool WriteHostObject(void* data) = 0;
+};
+
+class HostReadStream
+{
+public:
+    virtual Js::Var ReadHostObject() = 0;
 };
 
 #if ENABLE_TTD
@@ -501,7 +525,9 @@ namespace Js
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
 #endif
 
-        void SetIsDiagnosticsScriptContext(bool set) { this->isDiagnosticsScriptContext = set; }
+        void SetPrivilegeLevel(ScriptContextPrivilegeLevel level) { this->scriptContextPrivilegeLevel = level; }
+        ScriptContextPrivilegeLevel GetPrivilegeLevel() { return this->scriptContextPrivilegeLevel; }
+        void SetIsDiagnosticsScriptContext(bool);
         bool IsDiagnosticsScriptContext() const { return this->isDiagnosticsScriptContext; }
         bool IsScriptContextInNonDebugMode() const;
         bool IsScriptContextInDebugMode() const;
@@ -832,12 +858,12 @@ private:
         DateTime::Utility dateTimeUtility;
 
 public:
-        inline const WCHAR *const GetStandardName(size_t *nameLength, DateTime::YMD *ymd = NULL)
+        inline const WCHAR *GetStandardName(size_t *nameLength, DateTime::YMD *ymd = NULL)
         {
             return dateTimeUtility.GetStandardName(nameLength, ymd);
         }
 
-        inline const WCHAR *const GetDaylightName(size_t *nameLength, DateTime::YMD *ymd = NULL)
+        inline const WCHAR *GetDaylightName(size_t *nameLength, DateTime::YMD *ymd = NULL)
         {
             return dateTimeUtility.GetDaylightName(nameLength, ymd);
         }
@@ -879,6 +905,9 @@ private:
         bool isPerformingNonreentrantWork;
         bool isDiagnosticsScriptContext;   // mentions that current script context belongs to the diagnostics OM.
 
+        // Privilege levels are a way of enforcing a relationship hierarchy between two script contexts
+        // A less privileged script context is not allowed to marshal in objects that live in a more privileged context
+        ScriptContextPrivilegeLevel scriptContextPrivilegeLevel;
         size_t sourceSize;
 
         void CleanSourceListInternal(bool calledDuringMark);
@@ -933,7 +962,7 @@ private:
         void EnsureSourceContextInfoMap();
         void EnsureDynamicSourceContextInfoMap();
 
-        void AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript);
+        void AddToEvalMapHelper(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pFuncScript);
 
         uint moduleSrcInfoCount;
 #ifdef RUNTIME_DATA_COLLECTION
@@ -1077,12 +1106,14 @@ private:
         ScriptConfiguration const * GetConfig(void) const { return &config; }
         CharClassifier const * GetCharClassifier(void) const;
 
+        static bool ExceedsStackNestedFuncCount(uint count);
+
         ThreadContext * GetThreadContext() const { return threadContext; }
 
         static const int MaxEvalSourceSize = 400;
 
         bool IsInEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction **ppFuncScript);
-        void AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript);
+        void AddToEvalMap(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pFuncScript);
 
         template <typename TCacheType>
         void CleanDynamicFunctionCache(TCacheType* cacheType);
@@ -1436,6 +1467,7 @@ private:
         uint SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8);
 
         Utf8SourceInfo* GetSource(uint sourceIndex);
+        void RemoveSource(uint sourceIndex);
 
         uint SourceCount() const { return (uint)sourceList->Count(); }
         void CleanSourceList() { CleanSourceListInternal(false); }
@@ -1816,6 +1848,8 @@ private:
         virtual intptr_t GetLibraryAddr() const override;
         virtual intptr_t GetGlobalObjectAddr() const override;
         virtual intptr_t GetGlobalObjectThisAddr() const override;
+        virtual intptr_t GetObjectPrototypeAddr() const;
+        virtual intptr_t GetFunctionPrototypeAddr() const;
         virtual intptr_t GetNumberAllocatorAddr() const override;
         virtual intptr_t GetRecyclerAddr() const override;
         virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;

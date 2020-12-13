@@ -3,19 +3,19 @@
   <test>
     <default>
       <files>asyncawait-syntax.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
+      <compile-flags>-nodeferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>asyncawait-syntax.js</files>
-      <compile-flags>-es6experimental -forcedeferparse -args summary -endargs</compile-flags>
+      <compile-flags>-forcedeferparse -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>asyncawait-functionality.js</files>
-      <compile-flags>-es6experimental -nodeferparse -args summary -endargs</compile-flags>
+      <compile-flags>-nodeferparse -args summary -endargs</compile-flags>
       <baseline>asyncawait-functionality.baseline</baseline>
     </default>
   </test>
@@ -93,6 +93,54 @@
       <compile-flags>-TrackRejectedPromises -args summary -endargs -nodeferparse</compile-flags>
       <baseline>PromiseRejectionTracking.baseline</baseline>
       <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>symboldescription.js</files>
+      <compile-flags>-ESSymbolDescription -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>globalThis.js</files>
+      <compile-flags>-ESGlobalThis -args summary -endargs</compile-flags>
+        </default>
+  </test>
+  <test>
+    <default>
+      <files>async-generator-apis.js</files>
+      <compile-flags>-ES2018AsyncIteration -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async-generator-functionality.js</files>
+      <compile-flags>-ES2018AsyncIteration -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>for-await-of.js</files>
+      <compile-flags>-ES2018AsyncIteration -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>wellformedJSON.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>json_superset.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>deferparseclass.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

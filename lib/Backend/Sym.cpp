@@ -48,6 +48,7 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isTypeSpec = false;
     stackSym->m_isArgSlotSym = false;
     stackSym->m_isArgSlotRegSym = false;
+    stackSym->m_nonEscapingArgObjAlias = false;
     stackSym->m_isParamSym = false;
     stackSym->m_isImplicitParamSym = false;
     stackSym->m_isBailOutReferenced = false;
@@ -379,6 +380,12 @@ StackSym::SetIsStrConst()
     this->m_isSimd128Const = false;
     this->m_isStrConst = true;
     this->m_isNotNumber = true;
+}
+
+bool
+StackSym::GetIsStrConst()
+{
+    return this->m_isStrConst;
 }
 
 Js::RegSlot

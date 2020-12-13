@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>TryCatchStackOverflow.js</files>
+    </default>
+  </test>
+</regress-exe>
