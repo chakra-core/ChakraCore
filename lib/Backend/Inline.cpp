@@ -3830,11 +3830,9 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
         callInstr->ForEachCallDirectArgOutInstrBackward([&](IR::Instr *argOutInstr, uint argNum)
         {
             IR::Instr * newInstr = nullptr;
-            bool isPreOpBailOutNeeded = false;
             if (argNum == 0)
             {
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
-                isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
                 newInstr->SetSrc2(IR::AddrOpnd::New(newInstr->m_func->GetThreadContextInfo()->GetStringMatchNameAddr(), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
@@ -3842,13 +3840,15 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
             else if (argNum == 1)
             {
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Regex);
-                isPreOpBailOutNeeded = true;
             }
-            if (isPreOpBailOutNeeded)
+            else
             {
-                newInstr->SetByteCodeOffset(argOutInstr);
-                newInstr->forcePreOpBailOutIfNeeded = true;
+                return false;
             }
+
+            newInstr->SetByteCodeOffset(argOutInstr);
+            newInstr->forcePreOpBailOutIfNeeded = true;
+
             return false;
         }, 2);
         break;
@@ -3857,25 +3857,25 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
         callInstr->ForEachCallDirectArgOutInstrBackward([&](IR::Instr *argOutInstr, uint argNum)
         {
             IR::Instr * newInstr = nullptr;
-            bool isPreOpBailOutNeeded = false;
             if (argNum == 0)
             {
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Str);
-                isPreOpBailOutNeeded = true;
                 newInstr->GetDst()->SetValueType(ValueType::String);
                 newInstr->SetSrc2(IR::AddrOpnd::New(newInstr->m_func->GetThreadContextInfo()->GetStringReplaceNameAddr(), IR::AddrOpndKindSz, newInstr->m_func));
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
             }
-            if (argNum == 1)
+            else if (argNum == 1)
             {
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_StrOrRegex);
-                isPreOpBailOutNeeded = true;
             }
-            if (isPreOpBailOutNeeded)
+            else
             {
-                newInstr->SetByteCodeOffset(argOutInstr);
-                newInstr->forcePreOpBailOutIfNeeded = true;
+                return false;
             }
+
+            newInstr->SetByteCodeOffset(argOutInstr);
+            newInstr->forcePreOpBailOutIfNeeded = true;
+            
             return false;
         }, 3);
         break;
@@ -3883,24 +3883,24 @@ Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInst
         callInstr->ForEachCallDirectArgOutInstrBackward([&](IR::Instr *argOutInstr, uint argNum)
         {
             IR::Instr * newInstr = nullptr;
-            bool isPreOpBailOutNeeded = false;
             if (argNum == 0)
             {
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Coerce_Regex);
-                isPreOpBailOutNeeded = true;
             }
             else if (argNum == 1)
             {
                 newInstr = argOutInstr->HoistSrc1(Js::OpCode::Conv_Str);
                 newInstr->GetDst()->SetValueType(ValueType::String);
                 argOutInstr->GetSrc1()->SetValueType(ValueType::String);
-                isPreOpBailOutNeeded = true;
             }
-            if (isPreOpBailOutNeeded)
+            else
             {
-                newInstr->SetByteCodeOffset(argOutInstr);
-                newInstr->forcePreOpBailOutIfNeeded = true;
+                return false;
             }
+
+            newInstr->SetByteCodeOffset(argOutInstr);
+            newInstr->forcePreOpBailOutIfNeeded = true;
+
             return false;
         }, 2);
         break;
