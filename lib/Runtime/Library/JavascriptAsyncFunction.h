@@ -29,6 +29,9 @@ public:
         RecyclableObject* function,
         CallInfo callInfo, ...);
     
+    static JavascriptPromise* BeginAsyncFunctionExecution(
+        JavascriptGenerator* generator);
+
     static Var EntryAsyncSpawnExecutorFunction(
         RecyclableObject* function,
         CallInfo callInfo, ...);

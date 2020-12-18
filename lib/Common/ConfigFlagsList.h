@@ -693,6 +693,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESImportMeta            (true)
 #define DEFAULT_CONFIG_ESExportNsAs            (true)
 #define DEFAULT_CONFIG_ES2018AsyncIteration    (true)
+#define DEFAULT_CONFIG_ESTopLevelAwait         (true)
 
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
 
@@ -1159,6 +1160,7 @@ FLAGPR           (Boolean, ES6, ES6RegExSticky         , "Enable ES6 RegEx stick
 FLAGPR           (Boolean, ES6, ES2018RegExDotAll      , "Enable ES2018 RegEx dotAll flag"                          , DEFAULT_CONFIG_ES2018RegExDotAll)
 FLAGPR           (Boolean, ES6, ESExportNsAs           , "Enable ES experimental export * as name"                  , DEFAULT_CONFIG_ESExportNsAs)
 FLAGPR           (Boolean, ES6, ES2018AsyncIteration   , "Enable ES2018 Async Iteration"                            , DEFAULT_CONFIG_ES2018AsyncIteration)
+FLAGPR           (Boolean, ES6, ESTopLevelAwait        , "Enable Top Level Await in modules"                        , DEFAULT_CONFIG_ESTopLevelAwait)
 
 #ifndef COMPILE_DISABLE_ES6RegExPrototypeProperties
     #define COMPILE_DISABLE_ES6RegExPrototypeProperties 0

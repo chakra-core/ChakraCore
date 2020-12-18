@@ -48,6 +48,14 @@ Var JavascriptAsyncFunction::EntryAsyncFunctionImplementation(
     auto* asyncFn = VarTo<JavascriptAsyncFunction>(function);
     auto* scriptFn = asyncFn->GetGeneratorVirtualScriptFunction();
     auto* generator = library->CreateGenerator(args, scriptFn, library->GetNull());
+
+    return BeginAsyncFunctionExecution(generator);
+}
+
+JavascriptPromise* JavascriptAsyncFunction::BeginAsyncFunctionExecution(JavascriptGenerator* generator)
+{
+    auto* library = generator->GetLibrary();
+    auto* scriptContext = generator->GetScriptContext();
     auto* promise = library->CreatePromise();
 
     auto* stepFn = library->CreateAsyncSpawnStepFunction(

@@ -65,7 +65,7 @@ using namespace Js;
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(scriptFunction, EtwTrace::GetFunctionId(functionProxy)));
 
         JavascriptGeneratorFunction* genFunc = nullptr;
-        if (functionProxy->IsAsync())
+        if (functionProxy->IsAsync() && !functionProxy->IsModule())
         {
             if (functionProxy->IsGenerator())
             {

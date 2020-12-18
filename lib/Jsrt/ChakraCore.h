@@ -115,7 +115,11 @@ typedef enum JsModuleHostInfoKind
     /// <summary>
     ///     Callback to allow host to initialize import.meta object properties.
     /// </summary>
-    JsModuleHostInfo_InitializeImportMetaCallback = 0x7
+    JsModuleHostInfo_InitializeImportMetaCallback = 0x7,
+    /// <summary>
+    ///     Callback to report module completion or exception thrown when evaluating a module.
+    /// </summary>
+    JsModuleHostInfo_ReportModuleCompletionCallback = 0x8
 } JsModuleHostInfoKind;
 
 /// <summary>
@@ -206,6 +210,27 @@ typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModu
 ///     Returns a JsErrorCode - note, the return value is ignored.
 /// </returns>
 typedef JsErrorCode(CHAKRA_CALLBACK * InitializeImportMetaCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar);
+
+/// <summary>
+///     User implemented callback to report completion of module execution.
+/// </summary>
+/// <remarks>
+///     This callback is used to report the completion of module execution and to report any runtime exceptions.
+///     Note it is not used for dynamicly imported modules import() as the reuslt from those are handled with a
+///     promise.
+///     If this callback is not set and a module produces an exception:
+///     a) a purely synchronous module tree with an exception will set the exception on the runtime
+///        (this is not done if this callback is set)
+///     b) an exception in an asynchronous module tree will not be reported directly.
+///
+///     However in all cases the exception will be set on the JsModuleRecord.
+/// </remarks>
+/// <param name="module">The root module that has completed either with an exception or normally.</param>
+/// <param name="exception">The exception object which was thrown or nullptr if the module had a normal completion.</param>
+/// <returns>
+///     Returns a JsErrorCode: JsNoError if successful.
+/// </returns>
+typedef JsErrorCode(CHAKRA_CALLBACK * ReportModuleCompletionCallback)(_In_ JsModuleRecord module, _In_opt_ JsValueRef exception);
 
 /// <summary>
 ///     A structure containing information about a native function callback.

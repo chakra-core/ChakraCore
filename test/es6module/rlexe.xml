@@ -211,4 +211,11 @@
       <tags>exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>top-level-await.js</files>
+      <compile-flags>-ESDynamicImport -ESTopLevelAwait -module</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

@@ -149,10 +149,9 @@ JsSetModuleHostInfo(
     Js::SourceTextModuleRecord* moduleRecord;
     if (!Js::SourceTextModuleRecord::Is(requestModule))
     {
-        if (moduleHostInfo != JsModuleHostInfo_FetchImportedModuleCallback &&
-            moduleHostInfo != JsModuleHostInfo_FetchImportedModuleFromScriptCallback &&
-            moduleHostInfo != JsModuleHostInfo_NotifyModuleReadyCallback &&
-            moduleHostInfo != JsModuleHostInfo_InitializeImportMetaCallback)
+        if (moduleHostInfo == JsModuleHostInfo_Exception ||
+            moduleHostInfo == JsModuleHostInfo_HostDefined ||
+            moduleHostInfo == JsModuleHostInfo_Url)
         {
             return JsErrorInvalidArgument;
         }
@@ -187,6 +186,9 @@ JsSetModuleHostInfo(
             break;
         case JsModuleHostInfo_InitializeImportMetaCallback:
             currentContext->GetHostScriptContext()->SetInitializeImportMetaCallback(reinterpret_cast<InitializeImportMetaCallback>(hostInfo));
+            break;
+        case JsModuleHostInfo_ReportModuleCompletionCallback:
+            currentContext->GetHostScriptContext()->SetReportModuleCompletionCallback(reinterpret_cast<ReportModuleCompletionCallback>(hostInfo));
             break;
         case JsModuleHostInfo_Url:
             moduleRecord->SetSpecifier(hostInfo);
@@ -237,6 +239,9 @@ JsGetModuleHostInfo(
             break;
         case JsModuleHostInfo_InitializeImportMetaCallback:
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetInitializeImportMetaCallback());
+            break;
+        case JsModuleHostInfo_ReportModuleCompletionCallback:
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetReportModuleCompletionCallback());
             break;
         case JsModuleHostInfo_Url:
             *hostInfo = reinterpret_cast<void*>(moduleRecord->GetSpecifier());
