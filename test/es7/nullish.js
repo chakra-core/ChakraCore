@@ -5,10 +5,16 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+const o = {
+    get prop() {
+        assert.fail("Should not be called");
+    }
+}
+
 var tests = [
     {
         name: "Object properties used as left-side for nullish operator",
-        body: function () {
+        body () {
             const obj = {
                 nullvalue: null,
                 undefinedvalue: undefined,
@@ -31,7 +37,7 @@ var tests = [
     },
     {
         name: "Primitive values used as left-side for nullish operator",
-        body: function () {
+        body () {
             const other = 'other';
 
             assert.areEqual(other, null ?? other);
@@ -45,7 +51,7 @@ var tests = [
     },
     {
         name: "Names used as left-side for nullish operator",
-        body: function () {
+        body () {
             const nullvalue = null;
             const undefinedvalue = undefined;
             const number = 123;
@@ -65,20 +71,53 @@ var tests = [
     },
     {
         name: "Right-hand side is evaluated only if needed (short-circuiting)",
-        body: function () {
-            const o = {
-                get prop() {
-                    assert.fail("Should not be called");
-                }
-            }
-
+        body () {
             assert.areEqual('not null', 'not null' ?? o.prop);
         }
     },
     {
-        name: "?? has lower precedence than ||",
-        body: function () {
-            assert.areEqual('ok', null ?? 0 || 'ok');
+        name : "?? interaction with ||",
+        body () {
+            assert.areEqual(5, null ?? (5 || 4));
+            assert.areEqual(5, 5 ?? (1 || 4));
+            assert.areEqual(5, (null ?? 5) || 4);
+            assert.areEqual(5, (5 ?? null) || 4);
+            assert.areEqual(5, (5 ?? null) || o.prop);
+        }
+    },
+    {
+        name : "?? interaction with &&",
+        body() {
+            assert.areEqual(5, null ?? (2 && 5));
+            assert.areEqual(5, (null ?? 2) && 5);
+            assert.areEqual(5, 2 && (5 ?? o.prop ?? o.prop));
+            assert.areEqual(5, 2 && (3 ?? o.prop) && 5);
+            assert.areEqual(null, null && (null ?? 5));
+        }  
+    },
+    {
+        name: "?? cannot be used within || or && without parentheses",
+        body() {
+            function parse (code) {
+                try {
+                    eval ("function test() {" + code + "}");
+                    return true;
+                } catch {
+                    return false;
+                }
+            }
+            assert.isFalse(parse("a ?? b || c"));
+            assert.isFalse(parse("a || b ?? c"));
+            assert.isFalse(parse("a ?? b && c"));
+            assert.isFalse(parse("a && b ?? c"));
+            assert.isTrue(parse("a && (b ?? c)"));
+            assert.isTrue(parse("(a && b) ?? c"));
+            assert.isTrue(parse("a && (b ?? c)"));
+            assert.isTrue(parse("a || (b ?? c)"));
+            assert.isTrue(parse("(a || b) ?? c"));
+            assert.isTrue(parse("a || (b ?? c)"));
+            assert.isFalse(parse("a ?? (b ?? c) || a"));
+            assert.isTrue(parse("(a ?? b ?? c) || a"));
         }
     },
 ];

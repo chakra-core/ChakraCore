@@ -3238,7 +3238,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
     _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/,
-    _Inout_opt_ charcount_t *plastRParen /*= nullptr*/)
+    _Inout_opt_ charcount_t *plastRParen /*= nullptr*/,
+    _Out_opt_ bool* looseCoalesce /*= nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     PidRefStack *savedTopAsyncRef = nullptr;
@@ -3431,7 +3432,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         AutoDeferErrorsRestore deferErrorRestore(this);
 
         this->m_funcParenExprDepth++;
-        pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen);
+        pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen, looseCoalesce);
         this->m_funcParenExprDepth--;
 
         if (buildAST && plastRParen)
@@ -3440,6 +3441,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         }
 
         ChkCurTok(tkRParen, ERRnoRparen);
+
+        if (looseCoalesce != nullptr)
+        {
+            *looseCoalesce = false;
+        }
 
         GetCurrentBlock()->blockId = saveCurrBlockId;
         if (m_token.tk == tkDArrow)
@@ -8807,7 +8813,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     _Inout_opt_ IdentToken* pToken,
     bool fUnaryOrParen,
     _Inout_opt_ bool* pfLikelyPattern,
-    _Inout_opt_ charcount_t *plastRParen)
+    _Inout_opt_ charcount_t *plastRParen,
+    _Out_opt_ bool* looseCoalesce)
 {
     Assert(pToken == nullptr || pToken->tk == tkNone); // Must be empty initially
     int opl;
@@ -8823,6 +8830,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     uint32 hintLength = 0;
     uint32 hintOffset = 0;
     BOOL fLikelyPattern = FALSE;
+    bool localCoalesce = false;
 
     ParserState parserState;
 
@@ -9038,7 +9046,12 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     else
     {
         ichMin = this->GetScanner()->IchMinTok();
-        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, &fLikelyPattern, &fIsDotOrIndex, plastRParen);
+        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, &fLikelyPattern, &fIsDotOrIndex, plastRParen, &localCoalesce);
+        if (looseCoalesce != nullptr)
+        {
+            *looseCoalesce = localCoalesce;
+        }
+
         if (pfLikelyPattern != nullptr)
         {
             *pfLikelyPattern = !!fLikelyPattern;
@@ -9300,8 +9313,26 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
             // Parse the operand, make a new node, and look for more
             IdentToken token;
+            bool coalescing = false;
+
             ParseNode* pnode2 = ParseExpr<buildAST>(
-                opl, nullptr, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen);
+                opl, nullptr, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen, &coalescing);
+
+            if (nop == knopLogAnd || nop == knopLogOr)
+            {
+                if (localCoalesce || coalescing)
+                {
+                    Error(ERRCoalesce);
+                }
+            }
+            else if (nop == knopCoalesce)
+            {
+                localCoalesce = true;
+                if (looseCoalesce != nullptr)
+                {
+                    *looseCoalesce = true;
+                }
+            }
 
             // Detect nested function escapes of the pattern "o.f = function(){...}" or "o[s] = function(){...}".
             // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape

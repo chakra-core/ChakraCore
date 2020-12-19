@@ -9385,7 +9385,7 @@ void EmitBooleanExpression(
 }
 
 void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, bool truefallthrough, Js::ByteCodeLabel falseLabel, bool falsefallthrough, Js::RegSlot writeto,
-    bool reuseLoc, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool nullishfallthrough = false)
+    bool reuseLoc, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
 {
     switch (expr->nop)
     {
@@ -9411,20 +9411,6 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftTrue);
         EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, true, byteCodeGenerator, funcInfo);
-        funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
-        byteCodeGenerator->EndStatement(expr);
-        break;
-    }
-
-    case knopCoalesce:
-    {
-        byteCodeGenerator->StartStatement(expr);
-        Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
-        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, leftTrue, false, falseLabel, false, writeto, byteCodeGenerator, funcInfo, true);
-        funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
-        byteCodeGenerator->Writer()->Br(falseLabel);
-        byteCodeGenerator->Writer()->MarkLabel(leftTrue);
-        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, true, falseLabel, true, writeto, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         byteCodeGenerator->EndStatement(expr);
         break;
@@ -9510,15 +9496,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
             Emit(expr, byteCodeGenerator, funcInfo, false);
             byteCodeGenerator->Writer()->Reg2(reuseLoc ? Js::OpCode::Ld_A_ReuseLoc : Js::OpCode::Ld_A, writeto, expr->location);
             // The inliner likes small bytecode
-            if (nullishfallthrough)
-            {
-                Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
-                byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, tmpReg);
-                byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrSrEq_A, trueLabel, expr->location, tmpReg);
-                funcInfo->ReleaseTmpRegister(tmpReg);
-                byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrSrEq_A, trueLabel, expr->location, funcInfo->nullConstantRegister);
-            }
-            else if (!(truefallthrough || falsefallthrough))
+            if (!(truefallthrough || falsefallthrough))
             {
                 byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
                 byteCodeGenerator->Writer()->Br(falseLabel);
@@ -9536,15 +9514,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
             Emit(expr, byteCodeGenerator, funcInfo, false);
             byteCodeGenerator->Writer()->Reg2(reuseLoc ? Js::OpCode::Ld_A_ReuseLoc : Js::OpCode::Ld_A, writeto, expr->location);
             // The inliner likes small bytecode
-            if (nullishfallthrough)
-            {
-                Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
-                byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, tmpReg);
-                byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrSrEq_A, trueLabel, expr->location, tmpReg);
-                funcInfo->ReleaseTmpRegister(tmpReg);
-                byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrSrEq_A, trueLabel, expr->location, funcInfo->nullConstantRegister);
-            }
-            else if (!(truefallthrough || falsefallthrough))
+            if (!(truefallthrough || falsefallthrough))
             {
                 byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
                 byteCodeGenerator->Writer()->Br(falseLabel);
@@ -11754,14 +11724,28 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
+    // The Coalescing operator resolves to the left hand side if it is not null or undefined
+    // In that case the right hand side is not evaluated
+    // If the left hand side is null or undefined it resolves to the right hand side
+    // PTNODE(knopCoalesce     , "??"        ,None    ,Bin  ,fnopBin)
     case knopCoalesce:
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
-        // We use a single dest here for the whole generating boolean expr, because we were poorly
-        // optimizing the previous version where we had a dest for each level
         funcInfo->AcquireLoc(pnode);
-        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, byteCodeGenerator, funcInfo);
+
+        // LHS
+        Emit(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeBin()->pnode1->location);
+        funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
+        // check for null/undefined with != null
+        byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, doneLabel, pnode->location, funcInfo->nullConstantRegister);
+
+        // RHS
+        Emit(pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo, false);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnode->location, pnode->AsParseNodeBin()->pnode2->location);
+        funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
+
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
