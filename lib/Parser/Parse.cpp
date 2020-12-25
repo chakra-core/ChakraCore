@@ -10780,6 +10780,13 @@ LRestart:
             pnodeIf->ichLim = this->GetScanner()->IchLimTok();
             pnodeIf->pnodeCond = pnodeCond;
         }
+
+        if (m_deferCommaError)
+        {
+            this->GetScanner()->SeekTo(m_deferCommaErrorLoc);
+            Error(ERRnoRparen);
+        }
+
         ChkCurTok(tkRParen, ERRnoRparen);
 
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
