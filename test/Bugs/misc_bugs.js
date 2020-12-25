@@ -314,8 +314,13 @@ var tests = [
         assert.areEqual("A", f2.name);
         assert.areEqual("A", f3.name);
       }
+  },
+  {
+    name: "should throw syntax error when expression within if is comma-terminated",
+    body: function () {
+        assert.throws(()=> { eval('var f = function () { var f = 0; if (f === 0,) print("run_here"); }; f();'); }, SyntaxError);
+      }
   }
-
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
