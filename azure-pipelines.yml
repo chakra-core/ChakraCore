@@ -27,9 +27,10 @@ jobs:
         cmake -GNinja -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
       displayName: CMake
       env:
-        BUILD_TYPE: ${build_type}
+        BUILD_TYPE: $(build_type)
 
     - script: |
         cd build
+        ninja
         ninja check
       displayName: 'Build and test'
