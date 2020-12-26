@@ -1,10 +1,15 @@
 trigger:
-- main
+- master
+- release/*
 
 pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+- script:
+  sudo apt-get install -y clang libicu-dev
+  displayName: 'Install dependencies'
+  
 - script: |
     mkdir -p build.debug
   displayName: 'Create build directories'
@@ -12,7 +17,7 @@ steps:
 - task: CMake@1
   inputs:
     workingDirectory: 'build.debug'
-    cmakeArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DEMBED_ICU=ON ..'
+    cmakeArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..'
 
 - script: |
     cd build.debug
