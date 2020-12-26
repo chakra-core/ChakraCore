@@ -6,8 +6,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script:
-  sudo apt-get install -y clang libicu-dev
+- script: sudo apt-get install -y clang libicu-dev
   displayName: 'Install dependencies'
   
 - script: |
