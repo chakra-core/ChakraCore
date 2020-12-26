@@ -1,0 +1,21 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+    mkdir -p build.debug
+  displayName: 'Create build directories'
+
+- task: CMake@1
+  inputs:
+    workingDirectory: 'build.debug'
+    cmakeArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DEMBED_ICU=ON'
+
+- script: |
+    cd build.debug
+    ninja
+    ninja check
+  displayName: 'Build and test debug'
