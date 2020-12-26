@@ -1,21 +1,28 @@
 trigger:
-- main
+- master
+- release/*
 
-pool:
-  vmImage: 'ubuntu-latest'
+jobs:
+  - job: Linux
+    timeoutInMinutes: 0
+    pool:
+      vmImage: 'ubuntu-latest'
 
-steps:
-- script: |
-    mkdir -p build.debug
-  displayName: 'Create build directories'
+    steps:
+    - script: sudo apt-get install -y ninja-build clang libicu-dev
+      displayName: 'Install dependencies'
+  
+    - script: |
+        mkdir -p build.debug
+      displayName: 'Create build directories'
 
-- task: CMake@1
-  inputs:
-    workingDirectory: 'build.debug'
-    cmakeArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DEMBED_ICU=ON ..'
+    - task: CMake@1
+      inputs:
+        workingDirectory: 'build.debug'
+        cmakeArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..'
 
-- script: |
-    cd build.debug
-    ninja
-    ninja check
-  displayName: 'Build and test debug'
+    - script: |
+        cd build.debug
+        ninja
+        ninja check
+      displayName: 'Build and test debug'
