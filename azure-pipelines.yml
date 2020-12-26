@@ -7,11 +7,12 @@ jobs:
     timeoutInMinutes: 0
     pool:
       vmImage: 'ubuntu-latest'
-    matrix:
-      debug:
-        build_type: 'Debug'
-      release_with_debug:
-        build_type: 'RelWithDebInfo'
+    strategy:
+      matrix:
+        debug:
+          build_type: 'Debug'
+        release_with_debug:
+          build_type: 'RelWithDebInfo'
 
     steps:
     - script: sudo apt-get install -y ninja-build clang libicu-dev
