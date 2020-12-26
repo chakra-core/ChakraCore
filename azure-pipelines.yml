@@ -6,7 +6,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script: sudo apt-get install -y ninja clang libicu-dev
+- script: sudo apt-get install -y ninja-build clang libicu-dev
   displayName: 'Install dependencies'
   
 - script: |
