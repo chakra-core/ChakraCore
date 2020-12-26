@@ -11724,6 +11724,32 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
+    // The Coalescing operator resolves to the left hand side if it is not null or undefined
+    // In that case the right hand side is not evaluated
+    // If the left hand side is null or undefined it resolves to the right hand side
+    // PTNODE(knopCoalesce     , "??"        ,None    ,Bin  ,fnopBin)
+    case knopCoalesce:
+    {
+        STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
+        Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
+        funcInfo->AcquireLoc(pnode);
+
+        // LHS
+        Emit(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeBin()->pnode1->location);
+        funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
+        // check for null/undefined with != null
+        byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, doneLabel, pnode->location, funcInfo->nullConstantRegister);
+
+        // RHS
+        Emit(pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo, false);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnode->location, pnode->AsParseNodeBin()->pnode2->location);
+        funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
+
+        byteCodeGenerator->Writer()->MarkLabel(doneLabel);
+        ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
+        break;
+    }
     // PTNODE(knopQmark      , "?"            ,None    ,Tri  ,fnopBin)
     case knopQmark:
     {

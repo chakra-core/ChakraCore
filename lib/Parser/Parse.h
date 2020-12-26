@@ -22,6 +22,7 @@ enum
     koplQue,    // ?:
     koplLor,    // ||
     koplLan,    // &&
+    koplLco,    // ??
     koplBor,    // |
     koplXor,    // ^
     koplBan,    // &
@@ -941,7 +942,8 @@ private:
         _Inout_opt_ IdentToken* pToken = NULL,
         bool fUnaryOrParen = false,
         _Inout_opt_ bool* pfLikelyPattern = nullptr,
-        _Inout_opt_ charcount_t *plastRParen = nullptr);
+        _Inout_opt_ charcount_t *plastRParen = nullptr,
+        _Out_opt_ bool* looseCoalesce = nullptr);
 
     template<bool buildAST> ParseNodePtr ParseTerm(
         BOOL fAllowCall = TRUE,
@@ -954,7 +956,8 @@ private:
         _Out_opt_ BOOL* pfCanAssign = nullptr,
         _Inout_opt_ BOOL* pfLikelyPattern = nullptr,
         _Out_opt_ bool* pfIsDotOrIndex = nullptr,
-        _Inout_opt_ charcount_t *plastRParen = nullptr);
+        _Inout_opt_ charcount_t *plastRParen = nullptr,
+        _Out_opt_ bool* looseCoalesce = nullptr);
 
     template<bool buildAST> ParseNodePtr ParsePostfixOperators(
         ParseNodePtr pnode,
