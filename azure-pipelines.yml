@@ -7,22 +7,30 @@ jobs:
     timeoutInMinutes: 0
     pool:
       vmImage: 'ubuntu-latest'
+    strategy:
+      matrix:
+        debug:
+          build_type: 'Debug'
+        release_with_debug:
+          build_type: 'RelWithDebInfo'
 
     steps:
     - script: sudo apt-get install -y ninja-build clang libicu-dev
       displayName: 'Install dependencies'
   
     - script: |
-        mkdir -p build.debug
+        mkdir -p build
       displayName: 'Create build directories'
 
-    - task: CMake@1
-      inputs:
-        workingDirectory: 'build.debug'
-        cmakeArgs: '-GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..'
+    - script: |
+        cd build
+        cmake -GNinja -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
+      displayName: CMake
+      env:
+        BUILD_TYPE: $(build_type)
 
     - script: |
-        cd build.debug
+        cd build
         ninja
         ninja check
-      displayName: 'Build and test debug'
+      displayName: 'Build and test'
