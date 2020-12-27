@@ -11,8 +11,13 @@ jobs:
       matrix:
         debug:
           build_type: 'Debug'
+          test_target: 'check'
         release_with_debug:
           build_type: 'RelWithDebInfo'
+          test_target: 'check'
+        release:
+          build_type: 'Release'
+          test_target: 'all'
 
     steps:
     - script: sudo apt-get install -y ninja-build clang libicu-dev
@@ -31,5 +36,7 @@ jobs:
 
     - script: |
         cd build
-        ninja check
+        ninja $TARGET
       displayName: 'Build and test'
+      env:
+        TARGET: $(test_target)
