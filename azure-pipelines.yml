@@ -3,24 +3,47 @@ trigger:
 - release/*
 
 jobs:
-  - job: Linux
+  - job: CMake
     timeoutInMinutes: 0
-    pool:
-      vmImage: 'ubuntu-latest'
     strategy:
       matrix:
-        debug:
+        Linux.Debug:
+          image_name: 'ubuntu-latest'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Debug'
           test_target: 'check'
-        release_with_debug:
+        Linux.ReleaseWithDebug:
+          image_name: 'ubuntu-latest'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
           test_target: 'check'
-        release:
+        Linux.Release:
+          image_name: 'ubuntu-latest'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'Release'
+          test_target: 'all'
+      matrix:
+        OSX.Debug:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
+          build_type: 'Debug'
+          test_target: 'check'
+        OSX.ReleaseWithDebug:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
+          build_type: 'RelWithDebInfo'
+          test_target: 'check'
+        OSX.Release:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
           build_type: 'Release'
           test_target: 'all'
 
+    pool:
+      vmImage: $(image_name)
+      
     steps:
-    - script: sudo apt-get install -y ninja-build clang libicu-dev
+    - script: $(deps)
       displayName: 'Install dependencies'
   
     - script: |
