@@ -31,6 +31,5 @@ jobs:
 
     - script: |
         cd build
-        ninja
         ninja check
       displayName: 'Build and test'
