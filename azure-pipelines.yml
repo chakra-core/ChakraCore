@@ -12,37 +12,37 @@ jobs:
           image_name: 'ubuntu-latest'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Debug'
-          test_target: 'check'
+          do_test: true
           libtype_flag: ''
         Linux.ReleaseWithDebug:
           image_name: 'ubuntu-latest'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
-          test_target: 'check'
+          do_test: true
           libtype_flag: ''
         Linux.Release:
           image_name: 'ubuntu-latest'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
-          test_target: 'all'
+          do_test: false
           libtype_flag: ''
         OSX.Debug:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'Debug'
-          test_target: 'check'
+          do_test: true
           libtype_flag: '-DSTATIC_LIBRARY=ON'
         OSX.ReleaseWithDebug:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'RelWithDebInfo'
-          test_target: 'check'
+          do_test: true
           libtype_flag: ''
         OSX.Release:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'Release'
-          test_target: 'all'
+          do_test: false
           libtype_flag: ''
 
     pool:
@@ -66,10 +66,14 @@ jobs:
 
     - script: |
         cd build
-        ninja $TARGET
-      displayName: 'Build and test'
-      env:
-        TARGET: $(test_target)
+        ninja
+      displayName: 'Build'
+
+    - script: |
+        cd build
+        ninja check
+      displayName: 'Test'
+      condition: eq(variables['do_test'], true)
 
   - job: MSVC
     timeoutInMinutes: 120
