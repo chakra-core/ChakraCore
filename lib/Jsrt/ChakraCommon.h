@@ -1036,7 +1036,7 @@ typedef unsigned short uint16_t;
     /// </returns>
     CHAKRA_API
         JsSetCurrentContext(
-            _In_ JsContextRef context);
+            _In_opt_ JsContextRef context);
 
     /// <summary>
     ///     Gets the script context that the object belongs to.
