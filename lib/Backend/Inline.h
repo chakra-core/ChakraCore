@@ -118,7 +118,7 @@ private:
     IR::Instr * InlineSpread(IR::Instr *spreadCall);
 
     void        SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* inlineInstr, IR::Instr* argoutInstr);
-    void        WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* inlineInstr);
+    void        WrapArgsOutWithCoerce(Js::BuiltinFunction builtInId, IR::Instr* inlineInstr);
     void        SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot actualCount, IR::Opnd *functionObject);
     void        FixupExtraActualParams(IR::Instr * instr, IR::Instr *argOuts[], IR::Instr *argOutsExtra[], uint index, uint actualCount, Js::ProfileId callSiteId);
     void        RemoveExtraFixupArgouts(IR::Instr* instr, uint argoutRemoveCount, Js::ProfileId callSiteId);

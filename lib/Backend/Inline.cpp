@@ -2120,7 +2120,7 @@ Inline::InlineBuiltInFunction(
         callInstr->m_opcode = inlineCallOpCode;
         SetupInlineInstrForCallDirect(builtInFunctionId, callInstr, argoutInstr);
 
-        WrapArgsOutWithCoerse(builtInFunctionId, callInstr);
+        WrapArgsOutWithCoerce(builtInFunctionId, callInstr);
 
         // Generate ByteCodeArgOutCaptures and move the ArgOut_A/ArgOut_A_Inline close to the call instruction
         callInstr->MoveArgs(/*generateByteCodeCapture*/ true);
@@ -3822,7 +3822,7 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
 }
 
 void
-Inline::WrapArgsOutWithCoerse(Js::BuiltinFunction builtInId, IR::Instr* callInstr)
+Inline::WrapArgsOutWithCoerce(Js::BuiltinFunction builtInId, IR::Instr* callInstr)
 {
     switch (builtInId)
     {
