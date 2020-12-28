@@ -15,3 +15,7 @@ add_custom_target(check
     DEPENDS ch
     )
 
+if (NOT STATIC_LIBRARY)
+    add_dependencies(check ChakraCore)
+endif()
+
