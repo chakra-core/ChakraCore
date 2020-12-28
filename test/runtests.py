@@ -50,8 +50,6 @@ parser.add_argument('-d', '--debug', action='store_true',
                     help='use debug build');
 parser.add_argument('-t', '--test', '--test-build', action='store_true',
                     help='use test build')
-parser.add_argument('-f', '--full', '--chakrafull', action='store_true',
-                    help='test chakrafull instead of chakracore')
 parser.add_argument('--static', action='store_true',
                     help='mark that we are testing a static build')
 parser.add_argument('--variants', metavar='variant', nargs='+',
@@ -74,8 +72,6 @@ parser.add_argument('--swb', action='store_true',
                     help='use binary from VcBuild.SWB to run the test')
 parser.add_argument('--lldb', default=None,
                     help='run test suit with lldb batch mode to get call stack for crashing processes (ignores baseline matching)', action='store_true')
-parser.add_argument('-l', '--logfile', metavar='logfile',
-                    help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true',
                     help='use x86 build')
 parser.add_argument('--x64', action='store_true',
@@ -94,6 +90,8 @@ parser.add_argument('--extra-flags', type=str,
                     help='add extra flags to all executed tests')
 parser.add_argument('--orc','--only-return-code', action='store_true',
                     help='only consider test return 0/non-0 for pass-fail (no baseline checks)')
+parser.add_argument('--show-passes', action='store_true',
+                    help='display passed tests, when false only failures and the result summary are shown')
 args = parser.parse_args()
 
 test_root = os.path.dirname(os.path.realpath(__file__))
@@ -130,7 +128,7 @@ if flavor == None:
 flavor_alias = 'chk' if flavor == 'Debug' else 'fre'
 
 # handling for extra flags
-extra_flags = []
+extra_flags = ['-WERExceptionSupport']
 if args.extra_flags:
     extra_flags = args.extra_flags.split()
 
@@ -138,20 +136,10 @@ if args.extra_flags:
 if not args.variants:
     args.variants = ['interpreted', 'dynapogo']
 
-# target binary variants
-binary_name_noext = "ch"
-if args.full:
-    binary_name_noext = "jshost"
-    repo_root = os.path.dirname(repo_root)
-    # we need this to have consistent error message formatting with ch
-    extra_flags.append("-bvt")
-else:
-    extra_flags.append('-WERExceptionSupport')
-
 # append exe to the binary name on windows
-binary_name = binary_name_noext
+binary_name = "ch"
 if sys.platform == 'win32':
-    binary_name = binary_name + ".exe"
+    binary_name = "ch.exe"
 
 # binary: full ch path
 binary = args.binary
@@ -185,9 +173,13 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
 # verbosity
 verbose = False
+show_passes = False
 if args.verbose:
     verbose = True
+    show_passes = True
     print("Emitting verbose output...")
+elif args.show_passes:
+    show_passes = True
 
 # xplat: temp hard coded to exclude unsupported tests
 if sys.platform != 'win32':
@@ -200,9 +192,6 @@ else:
 # exclude tests that depend on features not supported on a platform
 if arch == 'arm' or arch == 'arm64':
     not_tags.add('require_asmjs')
-
-# exclude tests that exclude the current binary
-not_tags.add('exclude_' + binary_name_noext)
 
 # exclude tests known to fail under certain sanitizers
 if args.sanitize != None:
@@ -247,45 +236,6 @@ _empty_set = set()
 def split_tags(text):
     return set(x.strip() for x in text.lower().split(',')) if text \
             else _empty_set
-
-class LogFile(object):
-    def __init__(self, log_file_path = None):
-        self.file = None
-
-        if log_file_path is None:
-            # Set up the log file paths
-            # Make sure the right directory exists and the log file doesn't
-            log_file_name = "testrun.{0}{1}.log".format(arch, flavor)
-            log_file_directory = os.path.join(test_root, "logs")
-
-            if not os.path.exists(log_file_directory):
-                os.mkdir(log_file_directory)
-
-            self.log_file_path = os.path.join(log_file_directory, log_file_name)
-
-            if os.path.exists(self.log_file_path):
-                os.remove(self.log_file_path)
-        else:
-            self.log_file_path = log_file_path
-
-        self.file = open(self.log_file_path, "w")
-
-    def log(self, args):
-        self.file.write(args)
-
-    def __del__(self):
-        if not (self.file is None):
-            self.file.close()
-
-if __name__ == '__main__':
-    log_file = LogFile(args.logfile)
-
-def log_message(msg = ""):
-    log_file.log(msg + "\n")
-
-def print_and_log(msg = ""):
-    print(msg)
-    log_message(msg)
 
 # remove carriage returns at end of line to avoid platform difference
 def normalize_new_line(text):
@@ -409,7 +359,10 @@ class TestVariant(object):
 
     # queue a test result from multi-process runs
     def _log_result(self, test, fail):
-        output = u'\n'.join(self._print_lines).encode('utf-8') # collect buffered _print output
+        if fail or show_passes:
+            output = u'\n'.join(self._print_lines).encode('utf-8') # collect buffered _print output
+        else:
+            output = ''
         self._print_lines = []
         self.msg_queue.put((test.filename, fail, test.elapsed_time, output))
 
@@ -417,18 +370,18 @@ class TestVariant(object):
     def _process_msg(self, msg):
         filename, fail, elapsed_time, output = msg
         self.test_result.log(filename, fail=fail)
-        line = '[{}/{} {:4.2f}] {} -> {}'.format(
-            self.test_result.total_count(),
-            self.test_count,
-            elapsed_time,
-            'Failed' if fail else 'Passed',
-            self._short_name(filename))
-        padding = self._last_len - len(line)
-        print(line + ' ' * padding, end='\n' if fail else '\r')
-        log_message(line)
-        self._last_len = len(line) if not fail else 0
-        if len(output) > 0:
-            print_and_log(output)
+        if fail or show_passes:
+            line = '[{}/{} {:4.2f}] {} -> {}'.format(
+                self.test_result.total_count(),
+                self.test_count,
+                elapsed_time,
+                'Failed' if fail else 'Passed',
+                self._short_name(filename))
+            padding = self._last_len - len(line)
+            print(line + ' ' * padding, end='\n' if fail else '\r')
+            self._last_len = len(line) if not fail else 0
+            if len(output) > 0:
+                print(output)
 
     # get a shorter test file path for display only
     def _short_name(self, filename):
@@ -491,7 +444,7 @@ class TestVariant(object):
                     path, files[i]))
                 return os.path.join(folder, files[i])
 
-        # cann't find the file, just return the path and let it error out
+        # can't find the file, just return the path and let it error out
         return path
 
     # run one test under this variant
@@ -565,7 +518,7 @@ class TestVariant(object):
             return self._show_failed(timedout=True, **fail_args)
 
         # check ch failed
-        if exit_code != 0 and binary_name_noext == 'ch':
+        if exit_code != 0:
             return self._show_failed(**fail_args)
 
         if not return_code_only:
@@ -606,34 +559,37 @@ class TestVariant(object):
 
     # run tests under this variant, using given multiprocessing Pool
     def _run(self, tests, pool):
-        print_and_log('\n############# Starting {} variant #############'\
-                        .format(self.name))
-        if self.tags:
-            print_and_log('  tags: {}'.format(self.tags))
-        for x in self.not_tags:
-            print_and_log('  exclude: {}'.format(x))
-        print_and_log()
-
         # filter tests to run
         tests = [x for x in tests if self._should_test(x)]
         self.test_count += len(tests)
 
         # run tests in parallel
-        result = pool.map_async(run_one, [(self,test) for test in tests])
+        pool.map_async(run_one, [(self,test) for test in tests])
         while self.test_result.total_count() != self.test_count:
             self._process_one_msg()
 
     # print test result summary
-    def print_summary(self):
-        print_and_log('\n######## Logs for {} variant ########'\
+    def print_summary(self, time):
+        print('\n############ Results for {} tests ###########'\
                         .format(self.name))
         for folder, result in sorted(self.test_result.folders.items()):
-            print_and_log('{}: {}'.format(folder, result))
-        print_and_log("----------------------------")
-        print_and_log('Total: {}'.format(self.test_result))
+            print('{}: {}'.format(folder, result))
+        print("----------------------------")
+        print('Total: {}'.format(self.test_result))
+        print('Time taken for {} tests: {} seconds\n'.format(self.name, round(time.total_seconds(),2)))
+        sys.stdout.flush()
 
     # run all tests from testLoader
     def run(self, testLoader, pool, sequential_pool):
+        print('\n############# Starting {} tests #############'\
+                        .format(self.name))
+        if self.tags:
+            print('  tags: {}'.format(self.tags))
+        for x in self.not_tags:
+            print('  exclude: {}'.format(x))
+        sys.stdout.flush()
+
+        start_time = datetime.now()        
         tests, sequential_tests = [], []
         for folder in testLoader.folders():
             if folder.tags.isdisjoint(self.not_tags):
@@ -643,6 +599,8 @@ class TestVariant(object):
             self._run(tests, pool)
         if sequential_tests:
             self._run(sequential_tests, sequential_pool)
+
+        self.print_summary(datetime.now() - start_time)
 
 # global run one test function for multiprocessing, used by TestVariant
 def run_one(data):
@@ -689,7 +647,7 @@ class TestLoader(object):
         try:
             xml = ET.parse(xmlpath).getroot()
         except IOError:
-            print_and_log('ERROR: failed to read {}'.format(xmlpath))
+            print('ERROR: failed to read {}'.format(xmlpath))
             exit(-1)
 
         folder_tags = {}
@@ -795,6 +753,9 @@ def main():
     for f in glob.glob(test_root + '/*/profile.dpl.*'):
         os.remove(f)
 
+    print('############# ChakraCore Test Suite #############')
+    print('Testing {} build'.format('Test' if flavor is 'Test' else 'Debug'))
+    print('Using {} threads'.format(processcount))
     # run each variant
     pool, sequential_pool = Pool(processcount), Pool(1)
     start_time = datetime.now()
@@ -802,14 +763,9 @@ def main():
         variant.run(testLoader, pool, sequential_pool)
     elapsed_time = datetime.now() - start_time
 
-    # print summary
-    for variant in variants:
-        variant.print_summary()
-    print()
-
     failed = any(variant.test_result.fail_count > 0 for variant in variants)
-    print('[{}] {}'.format(
-        str(elapsed_time), 'Success!' if not failed else 'Failed!'))
+    print('[{} seconds] {}'.format(
+        round(elapsed_time.total_seconds(),2), 'Success!' if not failed else 'Failed!'))
 
     return 1 if failed else 0
 

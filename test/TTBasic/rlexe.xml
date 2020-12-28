@@ -5,7 +5,7 @@
       <files>accessor.js</files>
       <compile-flags>-TTRecord=accessorTest -TTSnapInterval=0</compile-flags>
       <baseline>accessorRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -13,7 +13,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=accessorTest -TTDStartEvent=2</compile-flags>
       <baseline>accessorReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -21,7 +21,7 @@
       <files>arguments.js</files>
       <compile-flags>-TTRecord=argumentsTest -TTSnapInterval=0</compile-flags>
       <baseline>argumentsRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -29,7 +29,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=argumentsTest -TTDStartEvent=2</compile-flags>
       <baseline>argumentsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -37,7 +37,7 @@
       <files>array.js</files>
       <compile-flags>-TTRecord=arrayTest -TTSnapInterval=0</compile-flags>
       <baseline>arrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -45,7 +45,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=arrayTest -TTDStartEvent=2</compile-flags>
       <baseline>arrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -53,7 +53,7 @@
       <files>bind.js</files>
       <compile-flags>-TTRecord=bindTest -TTSnapInterval=0</compile-flags>
       <baseline>bindRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -61,7 +61,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=bindTest -TTDStartEvent=2</compile-flags>
       <baseline>bindReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -69,7 +69,7 @@
       <files>boolean.js</files>
       <compile-flags>-TTRecord=booleanTest -TTSnapInterval=0</compile-flags>
       <baseline>booleanRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -77,7 +77,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=booleanTest -TTDStartEvent=2</compile-flags>
       <baseline>booleanReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -85,7 +85,7 @@
       <files>boundFunction.js</files>
       <compile-flags>-TTRecord=boundFunctionTest -TTSnapInterval=0</compile-flags>
       <baseline>boundFunctionRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -93,7 +93,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=boundFunctionTest -TTDStartEvent=2</compile-flags>
       <baseline>boundFunctionReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -101,7 +101,7 @@
       <files>boxedObject.js</files>
       <compile-flags>-TTRecord=boxedObjectTest -TTSnapInterval=0</compile-flags>
       <baseline>boxedObjectRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -109,7 +109,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=boxedObjectTest -TTDStartEvent=2</compile-flags>
       <baseline>boxedObjectReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -117,7 +117,7 @@
       <files>crossSiteMain.js</files>
       <compile-flags>-TTRecord=crossSiteTest -TTSnapInterval=0</compile-flags>
       <baseline>crossSiteRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -125,7 +125,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=crossSiteTest</compile-flags>
       <baseline>crossSiteReplay1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -133,7 +133,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=crossSiteTest -TTDStartEvent=2</compile-flags>
       <baseline>crossSiteReplay2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -141,7 +141,7 @@
       <files>constructor.js</files>
       <compile-flags>-TTRecord=constructorTest -TTSnapInterval=0</compile-flags>
       <baseline>constructorRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -149,7 +149,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=constructorTest -TTDStartEvent=2</compile-flags>
       <baseline>constructorReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -157,7 +157,7 @@
       <files>dateBasic.js</files>
       <compile-flags>-TTRecord=dateBasicTest -TTSnapInterval=0</compile-flags>
       <baseline>dateBasicRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -165,7 +165,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=dateBasicTest</compile-flags>
       <baseline>dateBasicReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -173,7 +173,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=dateBasicTest -TTDStartEvent=2</compile-flags>
       <baseline>dateBasicReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -181,7 +181,7 @@
       <files>deleteArray.js</files>
       <compile-flags>-TTRecord=deleteArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>deleteArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -189,7 +189,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=deleteArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>deleteArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -197,7 +197,7 @@
       <files>es5Array.js</files>
       <compile-flags>-TTRecord=es5ArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>es5ArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -205,7 +205,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=es5ArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>es5ArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -213,7 +213,7 @@
       <files>es5Arguments.js</files>
       <compile-flags>-TTRecord=es5ArgumentsTest -TTSnapInterval=0</compile-flags>
       <baseline>es5ArgumentsRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -221,7 +221,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=es5ArgumentsTest -TTDStartEvent=2</compile-flags>
       <baseline>es5ArgumentsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -229,7 +229,7 @@
       <files>eval.js</files>
       <compile-flags>-TTRecord=evalTest -TTSnapInterval=0</compile-flags>
       <baseline>evalRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -237,7 +237,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=evalTest -TTDStartEvent=2</compile-flags>
       <baseline>evalReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -245,7 +245,7 @@
       <files>extensible.js</files>
       <compile-flags>-TTRecord=extensibleTest -TTSnapInterval=0</compile-flags>
       <baseline>extensibleRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -253,7 +253,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=extensibleTest -TTDStartEvent=2</compile-flags>
       <baseline>extensibleReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -261,7 +261,7 @@
       <files>forInShadowing.js</files>
       <compile-flags>-TTRecord=forInShadowingTest -TTSnapInterval=0</compile-flags>
       <baseline>forInShadowingRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -269,7 +269,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=forInShadowingTest -TTDStartEvent=2</compile-flags>
       <baseline>forInShadowingReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -277,7 +277,7 @@
       <files>freeze.js</files>
       <compile-flags>-TTRecord=freezeTest -TTSnapInterval=0</compile-flags>
       <baseline>freezeRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -285,7 +285,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=freezeTest -TTDStartEvent=2</compile-flags>
       <baseline>freezeReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -293,7 +293,7 @@
       <files>function.js</files>
       <compile-flags>-TTRecord=functionTest -TTSnapInterval=0</compile-flags>
       <baseline>functionRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -301,7 +301,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=functionTest -TTDStartEvent=2</compile-flags>
       <baseline>functionReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -309,7 +309,7 @@
       <files>largeAuxArray.js</files>
       <compile-flags>-TTRecord=largeAuxArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>largeAuxArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -317,7 +317,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=largeAuxArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>largeAuxArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -325,7 +325,7 @@
       <files>loadReEntrant.js</files>
       <compile-flags>-TTRecord=loadReEntrantTest -TTSnapInterval=0</compile-flags>
       <baseline>loadReEntrantRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -333,7 +333,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=loadReEntrantTest</compile-flags>
       <baseline>loadReEntrantReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -341,7 +341,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=loadReEntrantTest -TTDStartEvent=2</compile-flags>
       <baseline>loadReEntrantReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -349,7 +349,7 @@
       <files>map.js</files>
       <compile-flags>-TTRecord=mapTest -TTSnapInterval=0</compile-flags>
       <baseline>mapRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -357,7 +357,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=mapTest -TTDStartEvent=2</compile-flags>
       <baseline>mapReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -365,7 +365,7 @@
       <files>missingArray.js</files>
       <compile-flags>-TTRecord=missingArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>missingArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -373,7 +373,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=missingArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>missingArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -381,7 +381,7 @@
       <files>nativeArray.js</files>
       <compile-flags>-TTRecord=nativeArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>nativeArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -389,7 +389,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=nativeArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>nativeArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -397,7 +397,7 @@
       <files>newFromArgs.js</files>
       <compile-flags>-TTRecord=newFromArgsTest -TTSnapInterval=0</compile-flags>
       <baseline>newFromArgsRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -405,7 +405,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=newFromArgsTest -TTDStartEvent=2</compile-flags>
       <baseline>newFromArgsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -413,7 +413,7 @@
       <files>newFunction.js</files>
       <compile-flags>-TTRecord=newFunctionTest -TTSnapInterval=0</compile-flags>
       <baseline>newFunctionRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -421,7 +421,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=newFunctionTest -TTDStartEvent=2</compile-flags>
       <baseline>newFunctionReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -429,7 +429,7 @@
       <files>number.js</files>
       <compile-flags>-TTRecord=numberTest -TTSnapInterval=0</compile-flags>
       <baseline>numberRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -437,7 +437,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=numberTest -TTDStartEvent=2</compile-flags>
       <baseline>numberReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -445,7 +445,7 @@
       <files>numericPropertyIsEnumerable.js</files>
       <compile-flags>-TTRecord=numericPropertyIsEnumerableTest -TTSnapInterval=0</compile-flags>
       <baseline>numericPropertyIsEnumerableRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -453,7 +453,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=numericPropertyIsEnumerableTest -TTDStartEvent=2</compile-flags>
       <baseline>numericPropertyIsEnumerableReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -461,7 +461,7 @@
       <files>object.js</files>
       <compile-flags>-TTRecord=objectTest -TTSnapInterval=0</compile-flags>
       <baseline>objectRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -469,7 +469,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=objectTest -TTDStartEvent=2</compile-flags>
       <baseline>objectReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -477,7 +477,7 @@
       <files>popArrayImplicitCall.js</files>
       <compile-flags>-TTRecord=popArrayImplicitCallTest -TTSnapInterval=0</compile-flags>
       <baseline>popArrayImplicitCallRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -485,7 +485,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=popArrayImplicitCallTest -TTDStartEvent=2</compile-flags>
       <baseline>popArrayImplicitCallReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -493,7 +493,7 @@
       <files>promise.js</files>
       <compile-flags>-TTRecord=promiseTest -TTSnapInterval=0</compile-flags>
       <baseline>promiseRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -501,7 +501,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promiseTest</compile-flags>
       <baseline>promiseReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -509,7 +509,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promiseTest -TTDStartEvent=2</compile-flags>
       <baseline>promiseReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -517,7 +517,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promiseTest -TTDStartEvent=4</compile-flags>
       <baseline>promiseReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -525,7 +525,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promiseTest -TTDStartEvent=6</compile-flags>
       <baseline>promiseReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -533,7 +533,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promiseTest -TTDStartEvent=7</compile-flags>
       <baseline>promiseReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -541,7 +541,7 @@
       <files>promise_MultipleThenCalls.js</files>
       <compile-flags>-TTRecord=promise_MultipleThenCallsTest -TTSnapInterval=0</compile-flags>
       <baseline>promise_MultipleThenCallsRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -549,7 +549,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=1</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -557,7 +557,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=2</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -565,7 +565,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=3</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -573,7 +573,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=4</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -581,7 +581,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=5</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -589,7 +589,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=6</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -597,7 +597,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=7</compile-flags>
       <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -605,7 +605,7 @@
       <files>proxy.js</files>
       <compile-flags>-TTRecord=proxyTest -TTSnapInterval=0</compile-flags>
       <baseline>proxyRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -613,7 +613,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=proxyTest -TTDStartEvent=2</compile-flags>
       <baseline>proxyReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -621,7 +621,7 @@
       <files>regex.js</files>
       <compile-flags>-TTRecord=regexTest -TTSnapInterval=0</compile-flags>
       <baseline>regexRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -629,7 +629,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=regexTest -TTDStartEvent=2</compile-flags>
       <baseline>regexReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -637,7 +637,7 @@
       <files>seal.js</files>
       <compile-flags>-TTRecord=sealTest -TTSnapInterval=0</compile-flags>
       <baseline>sealRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -645,7 +645,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=sealTest -TTDStartEvent=2</compile-flags>
       <baseline>sealReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -653,7 +653,7 @@
       <files>scopedAccessors.js</files>
       <compile-flags>-TTRecord=scopedAccessorsTest -TTSnapInterval=0</compile-flags>
       <baseline>scopedAccessorsRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -661,7 +661,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=scopedAccessorsTest -TTDStartEvent=2</compile-flags>
       <baseline>scopedAccessorsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -669,7 +669,7 @@
       <files>scopeFunction.js</files>
       <compile-flags>-TTRecord=scopeFunctionTest -TTSnapInterval=0</compile-flags>
       <baseline>scopeFunctionRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -677,7 +677,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=scopeFunctionTest -TTDStartEvent=2</compile-flags>
       <baseline>scopeFunctionReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -685,7 +685,7 @@
       <files>set.js</files>
       <compile-flags>-TTRecord=setTest -TTSnapInterval=0</compile-flags>
       <baseline>setRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -693,7 +693,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=setTest -TTDStartEvent=2</compile-flags>
       <baseline>setReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -701,7 +701,7 @@
       <files>shadowPrototype.js</files>
       <compile-flags>-TTRecord=shadowPrototypeTest -TTSnapInterval=0</compile-flags>
       <baseline>shadowPrototypeRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -709,7 +709,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=shadowPrototypeTest -TTDStartEvent=2</compile-flags>
       <baseline>shadowPrototypeReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -717,7 +717,7 @@
       <files>sparseArray.js</files>
       <compile-flags>-TTRecord=sparseArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>sparseArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -725,7 +725,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=sparseArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>sparseArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -733,7 +733,7 @@
       <files>string.js</files>
       <compile-flags>-TTRecord=stringTest -TTSnapInterval=0</compile-flags>
       <baseline>stringRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -741,7 +741,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=stringTest -TTDStartEvent=2</compile-flags>
       <baseline>stringReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -749,7 +749,7 @@
       <files>symbol.js</files>
       <compile-flags>-TTRecord=symbolTest -TTSnapInterval=0</compile-flags>
       <baseline>symbolRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -757,7 +757,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=symbolTest</compile-flags>
       <baseline>symbolReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -765,7 +765,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=symbolTest -TTDStartEvent=2</compile-flags>
       <baseline>symbolReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -773,7 +773,7 @@
       <files>typeConversions.js</files>
       <compile-flags>-TTRecord=typeConversionTest -TTSnapInterval=0</compile-flags>
       <baseline>typeConversionsRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -781,7 +781,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=typeConversionTest -TTDStartEvent=2</compile-flags>
       <baseline>typeConversionsReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -789,7 +789,7 @@
       <files>typedArray.js</files>
       <compile-flags>-TTRecord=typedArrayTest -TTSnapInterval=0</compile-flags>
       <baseline>typedArrayRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -797,7 +797,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=typedArrayTest -TTDStartEvent=2</compile-flags>
       <baseline>typedArrayReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -805,7 +805,7 @@
       <files>typePromotion.js</files>
       <compile-flags>-TTRecord=typePromotionTest -TTSnapInterval=0</compile-flags>
       <baseline>typePromotionRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -813,7 +813,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=typePromotionTest -TTDStartEvent=2</compile-flags>
       <baseline>typePromotionReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -821,7 +821,7 @@
       <files>generatorBasic.js</files>
       <compile-flags>-TTRecord=generatorBasicTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorBasicRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -829,7 +829,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=1</compile-flags>
       <baseline>generatorBasicReplay_1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -837,7 +837,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=2</compile-flags>
       <baseline>generatorBasicReplay_2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -845,7 +845,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=3</compile-flags>
       <baseline>generatorBasicReplay_3.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -853,7 +853,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=4</compile-flags>
       <baseline>generatorBasicReplay_4.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -861,7 +861,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorBasicTest -TTDStartEvent=5</compile-flags>
       <baseline>generatorBasicReplay_5.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -869,7 +869,7 @@
       <files>generatorReturnYieldResult.js</files>
       <compile-flags>-TTRecord=generatorReturnYieldResult -TTSnapInterval=0</compile-flags>
       <baseline>generatorReturnYieldResultRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -877,7 +877,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=1</compile-flags>
       <baseline>generatorReturnYieldResultReplay_1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -885,7 +885,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=2</compile-flags>
       <baseline>generatorReturnYieldResultReplay_2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -893,7 +893,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=3</compile-flags>
       <baseline>generatorReturnYieldResultReplay_3.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -901,7 +901,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorReturnYieldResult -TTDStartEvent=4</compile-flags>
       <baseline>generatorReturnYieldResultReplay_4.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -909,7 +909,7 @@
       <files>generatorIntParam.js</files>
       <compile-flags>-TTRecord=generatorIntParamTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorIntParamRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -917,7 +917,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorIntParamTest -TTDStartEvent=4</compile-flags>
       <baseline>generatorIntParamReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -925,7 +925,7 @@
       <files>generatorObjectParam.js</files>
       <compile-flags>-TTRecord=generatorObjectParamTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorObjectParamRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -933,7 +933,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorObjectParamTest -TTDStartEvent=4</compile-flags>
       <baseline>generatorObjectParamReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -941,7 +941,7 @@
       <files>generatorClassMethod.js</files>
       <compile-flags>-TTRecord=generatorClassMethodTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorClassMethodRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -949,7 +949,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorClassMethodTest -TTDStartEvent=4</compile-flags>
       <baseline>generatorClassMethodReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -957,7 +957,7 @@
       <files>generatorNested.js</files>
       <compile-flags>-TTRecord=generatorNestedTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorNestedRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -965,7 +965,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorNestedTest -TTDStartEvent=4</compile-flags>
       <baseline>generatorNestedReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -973,7 +973,7 @@
       <files>generatorRestoreCompletedGenerator.js</files>
       <compile-flags>-TTRecord=generatorRestoreCompletedGeneratorTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorRestoreCompletedGeneratorRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -981,7 +981,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorRestoreCompletedGeneratorTest -TTDStartEvent=6</compile-flags>
       <baseline>generatorRestoreCompletedGeneratorReplay.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -989,7 +989,7 @@
       <files>generatorWriteLogDuringGeneratorExecution.js</files>
       <compile-flags>-TTRecord=generatorWriteLogDuringGeneratorExecutionTest -TTSnapInterval=0</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -997,7 +997,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=1</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1005,7 +1005,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=2</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1013,7 +1013,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=3</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_3.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1021,7 +1021,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=4</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_4.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1029,7 +1029,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=5</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_5.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1037,7 +1037,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=generatorWriteLogDuringGeneratorExecutionTest -TTDStartEvent=6</compile-flags>
       <baseline>generatorWriteLogDuringGeneratorExecutionReplay_6.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1045,7 +1045,7 @@
       <files>asyncAwaitBasic.js</files>
       <compile-flags>-TTRecord=asyncAwaitBasicTest -TTSnapInterval=0</compile-flags>
       <baseline>asyncAwaitBasicRecord.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1053,7 +1053,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=1</compile-flags>
       <baseline>asyncAwaitBasicReplay_1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
     <test>
@@ -1061,7 +1061,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=2</compile-flags>
       <baseline>asyncAwaitBasicReplay_2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
     <test>
@@ -1069,7 +1069,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=3</compile-flags>
       <baseline>asyncAwaitBasicReplay_3.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
     <test>
@@ -1077,7 +1077,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=4</compile-flags>
       <baseline>asyncAwaitBasicReplay_4.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
     <test>
@@ -1085,7 +1085,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwaitBasicTest -TTDStartEvent=5</compile-flags>
       <baseline>asyncAwaitBasicReplay_5.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1093,7 +1093,7 @@
       <files>asyncAwait2.js</files>
       <compile-flags>-TTRecord=asyncAwait2Test -TTSnapInterval=0</compile-flags>
       <baseline>asyncAwait2Record.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1101,7 +1101,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwait2Test -TTDStartEvent=1</compile-flags>
       <baseline>asyncAwait2Replay_1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
     <test>
@@ -1109,7 +1109,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwait2Test -TTDStartEvent=5</compile-flags>
       <baseline>asyncAwait2Replay_2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1117,7 +1117,7 @@
       <files>asyncAwait3.js</files>
       <compile-flags>-TTRecord=asyncAwait3Test -TTSnapInterval=0</compile-flags>
       <baseline>asyncAwait3Record.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1125,7 +1125,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwait3Test -TTDStartEvent=1</compile-flags>
       <baseline>asyncAwait3Replay_1.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
     <test>
@@ -1133,7 +1133,7 @@
       <files>ttdSentinal.js</files>
       <compile-flags>-TTReplay=asyncAwait3Test -TTDStartEvent=5</compile-flags>
       <baseline>asyncAwait3Replay_2.baseline</baseline>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+      <tags>exclude_dynapogo,exclude_snap,exclude_serialized</tags>
     </default>
   </test>
 </regress-exe>

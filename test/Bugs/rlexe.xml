@@ -492,14 +492,12 @@
   <test>
     <default>
       <files>bug_OS17530048.js</files>
-      <tags>exclude_jshost</tags>
       <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>skipping_nested_deferred_incorrect_function_id.js</files>
-      <tags>exclude_jshost</tags>
       <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
     </default>
   </test>
@@ -533,7 +531,6 @@
   <test>
     <default>
       <files>deferredStubBugs.js</files>
-      <tags>exclude_jshost</tags>
       <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
     </default>
   </test>
@@ -541,21 +538,18 @@
     <default>
       <files>SuperAccessInGlobalLambda.js</files>
       <baseline>SuperAccessInGlobalLambda.baseline</baseline>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
     <default>
       <files>bug_5572_wscript_loadscript_loadmodule.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
     <default>
       <files>function_id_destructured_reparse.js</files>
       <compile-flags>-useparserstatecache -parserstatecache -force:deferparse</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>

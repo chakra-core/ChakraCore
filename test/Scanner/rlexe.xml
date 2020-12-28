@@ -16,7 +16,6 @@
     <default>
       <files>Hashbang.js</files>
       <compile-flags>-args summary -endargs -ESHashbang</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
 </regress-exe>
