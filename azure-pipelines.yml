@@ -57,6 +57,7 @@ jobs:
 
     - script: |
         cd build
+        echo Library flag $(LIBTYPE)
         cmake -GNinja -DCMAKE_BUILD_TYPE=$BUILD_TYPE $(LIBTYPE) -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
       displayName: CMake
       env:
