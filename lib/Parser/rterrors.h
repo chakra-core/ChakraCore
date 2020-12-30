@@ -161,7 +161,7 @@ RT_ERROR_MSG(JSERR_NonExtensibleObject, 5046, "", "Cannot create property for a 
 RT_ERROR_MSG(JSERR_Property_CannotSet_NullOrUndefined, 5047, "Unable to set property '%s' of undefined or null reference", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_CannotGet_NullOrUndefined, 5048, "Unable to get property '%s' of undefined or null reference", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_CannotDelete_NullOrUndefined, 5049, "Unable to delete property '%s' of undefined or null reference", "Object expected", kjstTypeError, JSERR_NeedObject)
-RT_ERROR_MSG(JSERR_Property_VarDate, 5050, "Unable to access property '%s': type 'VarDate' does not support user-defined properties", "Object expected", kjstTypeError, JSERR_NeedObject)
+// 5050 - Removed
 RT_ERROR_MSG(JSERR_Property_NeedFunction, 5051, "The value of the property '%s' is not a Function object", "Function expected", kjstTypeError, JSERR_NeedFunction)
 RT_ERROR_MSG(JSERR_Property_NeedFunction_NullOrUndefined, 5052, "The value of the property '%s' is null or undefined, not a Function object", "Function expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Invalid property descriptor: cannot both specify accessors and a 'value' attribute", kjstTypeError, VBSERR_ActionNotSupported)

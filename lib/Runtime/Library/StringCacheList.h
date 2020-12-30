@@ -54,7 +54,6 @@ PROPERTY_STRING(FunctionTypeDisplay, _u("function"))
 PROPERTY_STRING(BooleanTypeDisplay, _u("boolean"))
 PROPERTY_STRING(NumberTypeDisplay, _u("number"))
 PROPERTY_STRING(ModuleTypeDisplay, _u("Module"))
-PROPERTY_STRING(VariantDateTypeDisplay, _u("date"))
 PROPERTY_STRING(SymbolTypeDisplay, _u("symbol"))
 
 #ifdef ENABLE_INTL_OBJECT

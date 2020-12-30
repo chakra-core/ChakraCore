@@ -235,16 +235,12 @@ var dateList = [
 
     ["toUTCString",0],
 
-    // not in ECMA spec
-
     ["toGMTString",0],
     ["toLocaleTimeString",0 ],
     ["toUTCString",0],
 
     ["setYear",1],
     ["getYear",0]
-
-    // TODO ["getVarDate",0]
 ]
 
 // static date functions

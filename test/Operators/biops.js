@@ -33,7 +33,7 @@ var all = [ undefined, null,
             new Object(), new Object(),
             [1,2,3], [1,2,3],
             new Array(3), Array(3), new Array(1, 2, 3), Array(1),
-            foo, d, 1281011400000 , d.getVarDate()
+            foo, d, 1281011400000, d
           ];
 
 var biops = [    
@@ -46,10 +46,19 @@ var biops = [
     "&&", "||"                    // 11.11 Binary logical operators    
 ];
 
+function fixDate(output)
+{
+    if (output instanceof Date)
+    {
+        return output.toUTCString();
+    }
+    return output;
+}
+
 for (var op in biops) {
     for (var i=0; i<all.length; ++i) {
         for (var j=0; j<all.length; ++j) {
-            write("a["+i+"]("+all[i]+") "+biops[op]+" a["+j+"]("+all[j]+") = " + eval("all[i] " + biops[op] + " all[j];"));            
+            write("a["+i+"]("+fixDate(all[i])+") "+biops[op]+" a["+j+"]("+fixDate(all[j])+") = " + fixDate(eval("all[i] " + biops[op] + " all[j];")));            
         }
     }
 }

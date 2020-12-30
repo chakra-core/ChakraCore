@@ -34,7 +34,6 @@
 
 #include "Types/TypePropertyCache.h"
 #include "Library/JavascriptAsyncFromSyncIterator.h"
-#include "Library/JavascriptVariantDate.h"
 #ifdef _CHAKRACOREBUILD
 #include "Library/CustomExternalWrapperObject.h"
 #endif

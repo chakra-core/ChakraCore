@@ -622,7 +622,6 @@ namespace Js
         // Initialize Date types
         dateType = DynamicType::New(scriptContext, TypeIds_Date, datePrototype, nullptr,
             PathTypeHandlerNoAttr::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
-        variantDateType = StaticType::New(scriptContext, TypeIds_VariantDate, nullValue, nullptr);
 
         //  Initialize function types
 
@@ -2979,7 +2978,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeDatePrototype(DynamicObject* datePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(datePrototype, mode, 51);
+        typeHandler->Convert(datePrototype, mode, 48);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterDate
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = datePrototype->GetScriptContext();
@@ -3021,11 +3020,6 @@ namespace Js
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::getUTCMonth, &JavascriptDate::EntryInfo::GetUTCMonth, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::GetUTCSeconds.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::getUTCSeconds, &JavascriptDate::EntryInfo::GetUTCSeconds, 0));
-        if (scriptContext->GetConfig()->SupportsES3Extensions())
-        {
-            scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::GetVarDate.GetOriginalEntryPoint(),
-                library->AddFunctionToLibraryObject(datePrototype, PropertyIds::getVarDate, &JavascriptDate::EntryInfo::GetVarDate, 0));
-        }
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::GetYear.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::getYear, &JavascriptDate::EntryInfo::GetYear, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::SetDate.GetOriginalEntryPoint(),
@@ -3602,10 +3596,6 @@ namespace Js
 
             case TypeIds_Symbol:
                 typeDisplayStrings[typeId] = GetSymbolTypeDisplayString();
-                break;
-
-            case TypeIds_VariantDate:
-                typeDisplayStrings[typeId] = GetVariantDateTypeDisplayString();
                 break;
 
             case TypeIds_Integer:
@@ -6992,12 +6982,6 @@ namespace Js
         return PropertyString::New(GetStringTypeStatic(), propertyRecord, this->GetRecycler());
     }
 
-    JavascriptVariantDate* JavascriptLibrary::CreateVariantDate(const double value)
-    {
-        AssertMsg(variantDateType, "Where's variantDateType?");
-        return RecyclerNewLeafZ(this->GetRecycler(), JavascriptVariantDate, value, variantDateType);
-    }
-
     JavascriptBooleanObject* JavascriptLibrary::CreateBooleanObject()
     {
         AssertMsg(booleanTypeDynamic, "Where's booleanTypeDynamic?");
@@ -7660,10 +7644,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(getUTCSeconds, JavascriptDate::EntryGetUTCSeconds);
 
         ScriptConfiguration const& config = *(scriptContext->GetConfig());
-        if (config.SupportsES3Extensions())
-        {
-            REG_OBJECTS_LIB_FUNC(getVarDate, JavascriptDate::EntryGetVarDate);
-        }
         REG_OBJECTS_LIB_FUNC(getYear, JavascriptDate::EntryGetYear);
         REG_OBJECTS_LIB_FUNC(setDate, JavascriptDate::EntrySetDate);
         REG_OBJECTS_LIB_FUNC(setFullYear, JavascriptDate::EntrySetFullYear);

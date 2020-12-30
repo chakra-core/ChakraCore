@@ -521,7 +521,6 @@ JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext
 
         // 12. Else if O has a [[DateValue]] internal slot, let builtinTag be "Date".
     case TypeIds_Date:
-    case TypeIds_WinRTDate:
         builtInTag = library->GetObjectDateDisplayString();
         break;
 

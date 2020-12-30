@@ -550,14 +550,8 @@ using namespace Js;
             {
                 return false;
             }
-            else if (VarIs<JavascriptVariantDate>(aLeft) == false) // only need to check on aLeft - since they are the same var, aRight would do the same
-            {
-                return true;
-            }
             else
             {
-                //In ES5 mode strict equals (===) on same instance of object type VariantDate succeeds.
-                //Hence equals needs to succeed.
                 return true;
             }
         }
@@ -2929,14 +2923,6 @@ CommonNumber:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_CannotSet_NullOrUndefined, scriptContext->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return TRUE;
-        }
-        else if (typeId == TypeIds_VariantDate)
-        {
-            if (scriptContext->GetThreadContext()->RecordImplicitException())
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_VarDate, scriptContext->GetPropertyName(propertyId)->GetBuffer());
             }
             return TRUE;
         }
@@ -5557,7 +5543,6 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             case TypeIds_NativeFloatArray:
             case TypeIds_ES5Array:
             case TypeIds_Date:
-            case TypeIds_WinRTDate:
             case TypeIds_RegEx:
             case TypeIds_Error:
             case TypeIds_BooleanObject:

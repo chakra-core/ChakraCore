@@ -220,7 +220,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_UnscopablesWrapperObject:
         case Js::TypeIds_UndeclBlockVar:
         case Js::TypeIds_EngineInterfaceObject:
-        case Js::TypeIds_WinRTDate:
             AssertMsg(false, "Not valid types");
             break;
 
@@ -242,7 +241,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_MapIterator:
         case Js::TypeIds_SetIterator:
         case Js::TypeIds_StringIterator:
-        case Js::TypeIds_VariantDate:
         case Js::TypeIds_Object:
         case Js::TypeIds_Array:
         case Js::TypeIds_Date:
@@ -445,7 +443,6 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
                                             return _u("Array");
 
     case Js::TypeIds_Date:
-    case Js::TypeIds_VariantDate:
                                             return _u("Date");
 
     case Js::TypeIds_RegEx:                 return _u("RegExp");
