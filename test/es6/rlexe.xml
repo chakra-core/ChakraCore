@@ -719,7 +719,6 @@
     <default>
       <files>ProxyPropertiesAPI.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
