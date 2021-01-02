@@ -31,3 +31,7 @@ b) my employer has agreed to these terms and signed the agreement
 
 This agreement has been signed by:
 
+| Name | Github username |
+|---|---|
+|Richard Lawrence| rhuanjl|
+
