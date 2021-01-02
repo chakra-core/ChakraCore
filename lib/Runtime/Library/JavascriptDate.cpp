@@ -11,7 +11,7 @@ namespace Js
     JavascriptDate::JavascriptDate(double value, DynamicType * type)
         : DynamicObject(type), m_date(value)
     {
-        Assert(IsDateTypeId(type->GetTypeId()));
+        Assert(type->GetTypeId() == TypeIds_Date);
     }
 
     JavascriptDate::JavascriptDate(DynamicType * type)
@@ -730,31 +730,6 @@ namespace Js
         JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
 
         return JavascriptDate::GetUTCDateData(date, DateImplementation::DateData::Seconds, scriptContext);
-    }
-
-    Var JavascriptDate::EntryGetVarDate(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-
-        Assert(!(callInfo.Flags & CallFlags_New));
-
-        if (args.Info.Count == 0 || !VarIs<JavascriptDate>(args[0]))
-        {
-            Var result = nullptr;
-            if (TryInvokeRemotely(EntryGetVarDate, scriptContext, args, &result))
-            {
-                return result;
-            }
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDate, _u("Date.prototype.getVarDate"));
-        }
-        JavascriptDate* date = VarTo<JavascriptDate>(args[0]);
-
-        return scriptContext->GetLibrary()->CreateVariantDate(
-            DateImplementation::VarDateFromJsUtcTime(date->GetTime(), scriptContext)
-            );
     }
 
     Var JavascriptDate::EntryParse(RecyclableObject* function, CallInfo callInfo, ...)

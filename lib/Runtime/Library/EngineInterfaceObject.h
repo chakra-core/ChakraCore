@@ -100,10 +100,6 @@ namespace Js
 
         static Var Entry_CallInstanceFunction(RecyclableObject *function, CallInfo callInfo, ...);
 
-#ifdef ENABLE_PROJECTION
-        static Var EntryPromise_EnqueueTask(RecyclableObject *function, CallInfo callInfo, ...);
-#endif
-
 #define BuiltInRaiseException(exceptionType, exceptionID) static Var Entry_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...);
 #define EngineInterfaceBuiltIn2(propId, nativeMethod) static Var Entry_##nativeMethod(RecyclableObject *function, CallInfo callInfo, ...);
 #include "EngineInterfaceObjectBuiltIns.h"

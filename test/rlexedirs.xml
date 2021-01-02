@@ -181,11 +181,6 @@
 </dir>
 <dir>
   <default>
-    <files>VT_DATE</files>
-  </default>
-</dir>
-<dir>
-  <default>
     <files>Lib</files>
   </default>
 </dir>

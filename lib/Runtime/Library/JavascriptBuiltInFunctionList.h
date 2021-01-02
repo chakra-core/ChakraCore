@@ -98,7 +98,6 @@ BUILTIN(JavascriptDate, GetUTCMilliseconds, EntryGetUTCMilliseconds, FunctionInf
 BUILTIN(JavascriptDate, GetUTCMinutes, EntryGetUTCMinutes, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, GetUTCMonth, EntryGetUTCMonth, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, GetUTCSeconds, EntryGetUTCSeconds, FunctionInfo::ErrorOnNew)
-BUILTIN(JavascriptDate, GetVarDate, EntryGetVarDate, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, Now, EntryNow, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, Parse, EntryParse, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptDate, SetDate, EntrySetDate, FunctionInfo::ErrorOnNew)

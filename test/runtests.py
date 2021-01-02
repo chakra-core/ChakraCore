@@ -119,13 +119,11 @@ if sys.platform != 'win32':
 arch_alias = 'amd64' if arch == 'x64' else None
 
 # flavor: debug, test, release
-type_flavor = {'chk':'Debug', 'test':'Test', 'fre':'Release'}
 flavor = 'Debug' if args.debug else ('Test' if args.test else None)
 if flavor == None:
     print("ERROR: Test build target wasn't defined.")
     print("Try '-t' (test build) or '-d' (debug build).")
     sys.exit(1)
-flavor_alias = 'chk' if flavor == 'Debug' else 'fre'
 
 # handling for extra flags
 extra_flags = ['-WERExceptionSupport']
@@ -160,8 +158,6 @@ not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch, 'exclude_' 
 
 if arch_alias:
     not_tags.add('exclude_' + arch_alias)
-if flavor_alias:
-    not_tags.add('exclude_' + flavor_alias)
 if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:

@@ -95,7 +95,6 @@ set(CRLIB_SOURCE_CODES
     JavascriptSymbol.cpp
     JavascriptSymbolObject.cpp
     JavascriptTypedNumber.cpp
-    JavascriptVariantDate.cpp
     JavascriptWeakMap.cpp
     JavascriptWeakSet.cpp
     JsBuiltInEngineInterfaceExtensionObject.cpp

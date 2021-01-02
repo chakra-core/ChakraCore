@@ -14,7 +14,6 @@ namespace Js {
         public DateUtilities
     {
         friend class JavascriptDate;
-        friend class JavascriptVariantDate;
 
         typedef struct tm TM;
         static const short kpstDstRuleChangeYear = 2007;
@@ -91,13 +90,6 @@ namespace Js {
             double &retVal,
             ScriptContext * const scriptContext);
 
-        // Used for VT_DATE conversions
-        //------------------------------------
-        //Convert a utc time to a variant date.
-        //------------------------------------
-        static double VarDateFromJsUtcTime(double dbl, ScriptContext * scriptContext);
-        static double JsUtcTimeFromVarDate(double dbl, ScriptContext *scriptContext);
-
         void SetTvUtc(double tv);
         bool IsModified() { return m_modified; }
         void ClearModified() { m_modified = false; }
@@ -138,7 +130,6 @@ namespace Js {
         // ISO format.
         static bool TryParseIsoString(const char16 *const str, const size_t length, double &timeValue, ScriptContext *scriptContext);
 
-        static JavascriptString* ConvertVariantDateToString(double variantDateDouble, ScriptContext* scriptContext);
         static JavascriptString* GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext);
         static JavascriptString* GetDateGmtString(DateTime::YMD *pymd,ScriptContext* scriptContext);
 #ifdef ENABLE_GLOBALIZATION // todo-xplat: Implement this ICU?
@@ -267,9 +258,6 @@ namespace Js {
         StringBuilder* GetDiagValueString(ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder);
 
         template <class StringBuilder, class ScriptContext, class NewStringBuilderFunc>
-        static StringBuilder* ConvertVariantDateToString(double dbl, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder);
-
-        template <class StringBuilder, class ScriptContext, class NewStringBuilderFunc>
         static StringBuilder* GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd, DateTimeFlag noDateTime, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder);
 
     private:
@@ -361,25 +349,6 @@ namespace Js {
 
         EnsureYmdLcl(scriptContext);
         return GetDateDefaultString<StringBuilder>(&m_ymdLcl, &m_tzd, DateTimeFlag::None, scriptContext, newStringBuilder);
-    }
-
-    template <class StringBuilder, class ScriptContext, class NewStringBuilderFunc>
-    StringBuilder* DateImplementation::ConvertVariantDateToString(double dbl, ScriptContext* scriptContext, NewStringBuilderFunc newStringBuilder)
-    {
-        TZD tzd;
-        DateTime::YMD ymd;
-        double tv = GetTvUtc(JsLocalTimeFromVarDate(dbl), scriptContext);
-
-        tv = GetTvLcl(tv, scriptContext, &tzd);
-        if (JavascriptNumber::IsNan(tv))
-        {
-            StringBuilder* bs = newStringBuilder(0);
-            bs->Append(JS_DISPLAY_STRING_NAN);
-            return bs;
-        }
-
-        GetYmdFromTv(tv, &ymd);
-        return GetDateDefaultString<StringBuilder>(&ymd, &tzd, DateTimeFlag::None, scriptContext, newStringBuilder);
     }
 
     const auto ConvertUInt32ToString_ZeroPad_4 = [](const uint32 value, char16 *const buffer, const CharCount charCapacity)

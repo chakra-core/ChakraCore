@@ -519,9 +519,6 @@ namespace Js
         Var aLeft = this;
         if (aLeft == aRight)
         {
-            //In ES5 mode strict equals (===) on same instance of object type VariantDate succeeds.
-            //Hence equals needs to succeed.
-            //goto ReturnTrue;
             *value = TRUE;
             return TRUE;
         }

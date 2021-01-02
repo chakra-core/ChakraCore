@@ -310,7 +310,6 @@ CommonNumber:
     //    Boolean:  The result equals the input argument (no conversion).
     //    Number:   The result equals the input argument (no conversion).
     //    String:   The result equals the input argument (no conversion).
-    //    VariantDate:Returns the value for variant date by calling ToPrimitive directly.
     //    Object:   Return a default value for the Object.
     //              The default value of an object is retrieved by calling the [[DefaultValue]]
     //              internal method of the object, passing the optional hint PreferredType.
@@ -331,16 +330,6 @@ CommonNumber:
         case TypeIds_Symbol:
         case TypeIds_BigInt:
             return aValue;
-
-        case TypeIds_VariantDate:
-            {
-                Var result = nullptr;
-                if (UnsafeVarTo<JavascriptVariantDate>(aValue)->ToPrimitive(hint, &result, requestContext) != TRUE)
-                {
-                    result = nullptr;
-                }
-                return result;
-            }
 
         case TypeIds_StringObject:
             {
@@ -391,7 +380,6 @@ CommonNumber:
             }
 
         case TypeIds_Date:
-        case TypeIds_WinRTDate:
             {
                 JavascriptDate* dateObject = UnsafeVarTo<JavascriptDate>(aValue);
                 if(hint == JavascriptHint::HintNumber)
@@ -656,8 +644,6 @@ CommonNumber:
                     return UnsafeVarTo<JavascriptString>(CrossSite::MarshalVar(scriptContext,
                       aValue, aValueScriptContext));
                 }
-            case TypeIds_VariantDate:
-                return VarTo<JavascriptVariantDate>(aValue)->GetValueString(scriptContext);
 
             case TypeIds_Symbol:
                 return UnsafeVarTo<JavascriptSymbol>(aValue)->ToString(scriptContext);
@@ -709,10 +695,6 @@ CommonNumber:
 
         case TypeIds_Number:
             return JavascriptNumber::ToLocaleString(JavascriptNumber::GetValue(aValue), scriptContext);
-
-        case TypeIds_VariantDate:
-            // Legacy behavior was to create an empty object and call toLocaleString on it, which would result in this value
-            return scriptContext->GetLibrary()->GetObjectDisplayString();
 
         case TypeIds_Symbol:
             return UnsafeVarTo<JavascriptSymbol>(aValue)->ToString(scriptContext);
@@ -771,7 +753,6 @@ CommonNumber:
         {
         case TypeIds_Undefined:
         case TypeIds_Null:
-        case TypeIds_VariantDate:
             return false;
 
         case TypeIds_Symbol:
@@ -901,9 +882,6 @@ CommonNumber:
             case TypeIds_String:
                 return UnsafeVarTo<JavascriptString>(aValue)->ToDouble();
 
-            case TypeIds_VariantDate:
-                return Js::DateImplementation::GetTvUtc(Js::DateImplementation::JsLocalTimeFromVarDate(UnsafeVarTo<JavascriptVariantDate>(aValue)->GetValue()), scriptContext);
-
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger");
@@ -953,9 +931,6 @@ CommonNumber:
                 return ToInteger((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue());
             case TypeIds_String:
                 return ToInteger(UnsafeVarTo<JavascriptString>(aValue)->ToDouble());
-
-            case TypeIds_VariantDate:
-                return ToInteger(ToNumber_Full(aValue, scriptContext));
 
             default:
                 {
@@ -1042,9 +1017,6 @@ CommonNumber:
             return 0;
         }
 
-        case TypeIds_VariantDate:
-            return ToInt32(ToNumber_Full(aValue, scriptContext));
-
         default:
             AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToInteger32");
             aValue = ToPrimitive<JavascriptHint::HintNumber>(aValue, scriptContext);
@@ -1088,9 +1060,6 @@ CommonNumber:
             // If the string isn't a valid number, ToDouble returns NaN, and ToInt32 of that is 0
             return 0;
         }
-
-        case TypeIds_VariantDate:
-            return ToInt32(ToNumber_Full(aValue, scriptContext));
 
         default:
             AssertMsg(FALSE, "wrong call in ToInteger32_Full, no dynamic objects should get here.");
@@ -1142,9 +1111,6 @@ CommonNumber:
 
             case TypeIds_String:
                 return ToInt32Finite(UnsafeVarTo<JavascriptString>(aValue)->ToDouble(), result);
-
-            case TypeIds_VariantDate:
-                return ToInt32Finite(ToNumber_Full(aValue, scriptContext), result);
 
             default:
                 {
@@ -1280,9 +1246,6 @@ CommonNumber:
                 return 0;
             }
 
-            case TypeIds_VariantDate:
-                return JavascriptMath::ToUInt32(ToNumber_Full(aValue, scriptContext));
-
             default:
                 {
                     AssertMsg(JavascriptOperators::IsObject(aValue), "bad type object in conversion ToUInt32");
@@ -1360,9 +1323,6 @@ CommonNumber:
                 // If the string isn't a valid number, ToDouble is NaN, and ToUInt16 of that is 0
                 return 0;
             }
-
-            case TypeIds_VariantDate:
-                return ToUInt16(ToNumber_Full(aValue, scriptContext));
 
             default:
                 {

@@ -347,24 +347,6 @@ namespace Js {
     }
 
     JavascriptString*
-    DateImplementation::ConvertVariantDateToString(double dbl, ScriptContext* scriptContext)
-    {
-        Js::DateImplementation::TZD tzd;
-        DateTime::YMD ymd;
-        double tv = Js::DateImplementation::GetTvUtc(Js::DateImplementation::JsLocalTimeFromVarDate(dbl), scriptContext);
-
-        tv = Js::DateImplementation::GetTvLcl(tv, scriptContext, &tzd);
-        if (Js::JavascriptNumber::IsNan(tv))
-        {
-            return JavascriptNumber::ToStringNan(scriptContext);
-        }
-
-        Js::DateImplementation::GetYmdFromTv(tv, &ymd);
-
-        return DateImplementation::GetDateDefaultString(&ymd, &tzd, 0, scriptContext);
-    }
-
-    JavascriptString*
     DateImplementation::GetDateDefaultString(DateTime::YMD *pymd, TZD *ptzd,DateTimeFlag noDateTime,ScriptContext* scriptContext)
     {
         return GetDateDefaultString<CompoundString>(pymd, ptzd, noDateTime, scriptContext,
@@ -1594,49 +1576,6 @@ LError:
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
         retVal = tv;
         return true;
-    }
-
-    //------------------------------------
-    //Convert a utc time to a variant date.
-    //------------------------------------
-    double DateImplementation::VarDateFromJsUtcTime(double dbl, ScriptContext * scriptContext)
-    {
-        Assert(scriptContext);
-
-        // Convert to local time.
-        dbl = Js::DateImplementation::GetTvLcl(dbl, scriptContext);
-        if (!Js::NumberUtilities::IsFinite(dbl))
-            return Js::JavascriptNumber::NaN;
-
-        // Convert to an automation date.
-        dbl = dbl / 86400000 + g_kdblJanuary1st1970;
-
-        // dbl is the actual number of days since 0000h 12/30/1899.
-        // Convert this to a true Automation-style date.
-
-        if (dbl < 0.0)
-        {
-            // This works around a bug in OLE Automation.
-            // If a date is negative _and_ less than 500
-            // milliseconds before midnight then Automation will
-            // "round" it to two days earlier.  To work around this
-            // bug, round dates just before midnight to midnight.
-            double dblT;
-
-            dbl = 2.0 * floor(dbl) - dbl;
-            dblT = dbl - floor(dbl);
-            if (dblT <= kdblHalfSecond && 0.0 < dblT)
-                dbl = ceil(dbl) + 1.0;
-        }
-
-        return dbl;
-    }
-
-    double DateImplementation::JsUtcTimeFromVarDate(double dbl, ScriptContext * scriptContext)
-    {
-        Assert(scriptContext);
-
-        return GetTvUtc(JsLocalTimeFromVarDate(dbl), scriptContext);
     }
 
     double DateImplementation::DateFncUTC(ScriptContext* scriptContext, Arguments args)
