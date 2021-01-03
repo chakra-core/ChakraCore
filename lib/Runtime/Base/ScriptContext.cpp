@@ -80,7 +80,6 @@ namespace Js
 #endif
 #if ENABLE_NATIVE_CODEGEN
         nativeCodeGen(nullptr),
-        m_domFastPathHelperMap(nullptr),
         m_remoteScriptContextAddr(nullptr),
         jitFuncRangeCache(nullptr),
 #endif
@@ -366,9 +365,6 @@ namespace Js
         intConstPropsOnGlobalObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
         intConstPropsOnGlobalUserObject = Anew(GeneralAllocator(), PropIdSetForConstProp, GeneralAllocator());
 
-#if ENABLE_NATIVE_CODEGEN
-        m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
-#endif
 #ifdef ENABLE_SCRIPT_DEBUGGING
         this->debugContext = HeapNew(DebugContext, this);
 #endif
@@ -424,13 +420,6 @@ namespace Js
     {
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
         AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
-
-#if ENABLE_NATIVE_CODEGEN
-        if (m_domFastPathHelperMap != nullptr)
-        {
-            HeapDelete(m_domFastPathHelperMap);
-        }
-#endif
 
         // TODO: Can we move this on Close()?
         ClearHostScriptContext();
@@ -5630,24 +5619,6 @@ ScriptContext::GetJitFuncRangeCache()
     {
         return (intptr_t)this;
     }
-
-#if ENABLE_NATIVE_CODEGEN
-    void ScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
-    {
-        m_domFastPathHelperMap->Add(funcInfoAddr, helper);
-    }
-
-    IR::JnHelperMethod ScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
-    {
-        IR::JnHelperMethod helper = IR::HelperInvalid;
-
-        m_domFastPathHelperMap->LockResize();
-        m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
-        m_domFastPathHelperMap->UnlockResize();
-
-        return helper;
-    }
-#endif
 
     intptr_t ScriptContext::GetVTableAddress(VTableValue vtableType) const
     {

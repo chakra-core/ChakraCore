@@ -139,15 +139,6 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                     JITTimeFunctionBody * body = inlineeData->GetBody();
                     if (!body)
                     {
-#ifdef ENABLE_DOM_FAST_PATH
-                        Assert(inlineeData->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathGetter ||
-                            inlineeData->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathSetter);
-                        if (PHASE_OFF1(Js::InlineHostCandidatePhase))
-                        {
-                            break;
-                        }
-                        this->InlineDOMGetterSetterFunction(instr, inlineeData, inlinerData);
-#endif
                         break;
                     }
 
@@ -4180,78 +4171,6 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
     return instrNext;
 }
 
-#ifdef ENABLE_DOM_FAST_PATH
-// we have LdFld, src1 obj, src2: null; dest: return value
-// We need to convert it to inlined method call.
-// We cannot do CallDirect as it requires ArgOut and that cannot be hoisted/copyprop'd
-// Create a new OpCode, DOMFastPathGetter. The OpCode takes three arguments:
-// The function object, the "this" instance object, and the helper routine as we have one for each index
-// A functionInfo->Index# table is created in scriptContext (and potentially movable to threadContext if WS is not a concern).
-// we use the table to identify the helper that needs to be lowered.
-// At lower time we create the call to helper, which is function entrypoint at this time.
-void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData)
-{
-    intptr_t functionInfo = inlineeData->GetFunctionInfoAddr();
-
-    Assert(ldFldInstr->GetSrc1()->IsSymOpnd() && ldFldInstr->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd());
-
-    Assert(ldFldInstr->GetSrc1()->AsPropertySymOpnd()->HasObjTypeSpecFldInfo());
-    Assert(ldFldInstr->GetSrc1()->AsPropertySymOpnd()->GetObjTypeSpecInfo()->UsesAccessor());
-
-    // Find the helper routine for this functionInfo.
-    IR::JnHelperMethod helperMethod = this->topFunc->GetScriptContextInfo()->GetDOMFastPathHelper(functionInfo);
-    if (helperMethod == IR::HelperInvalid)
-    {
-        // abort inlining if helper isn't found
-        return;
-    }
-    // Find the instance object (External object).
-    PropertySym * fieldSym = ldFldInstr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
-    IR::RegOpnd * instanceOpnd = IR::RegOpnd::New(fieldSym->m_stackSym, TyMachPtr, ldFldInstr->m_func);
-
-    // Find the function object from getter inline cache. Need bailout to verify.
-    IR::Instr *ldMethodFld = IR::Instr::New(Js::OpCode::LdMethodFromFlags, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), ldFldInstr->GetSrc1(), ldFldInstr->m_func);
-    ldFldInstr->InsertBefore(ldMethodFld);
-    ldMethodFld = ldMethodFld->ConvertToBailOutInstr(ldFldInstr, IR::BailOutFailedInlineTypeCheck);
-
-    ldFldInstr->ReplaceSrc1(ldMethodFld->GetDst());
-    ldMethodFld->SetByteCodeOffset(ldFldInstr);
-
-    // generate further object/type bailout
-    PrepareInsertionPoint(ldFldInstr, inlineeData, ldFldInstr);
-
-    // We have three arguments to pass to the OpCode. Create a new ExtendArg_A opcode to chain up the argument. It is similar to ArgOut chain
-    // except that it is not argout.
-    // The Opcode sequence is like:
-    // (dst)helpArg1: ExtendArg_A (src1)thisObject (src2)null
-    // (dst)helpArg2: ExtendArg_A (src1)funcObject (src2)helpArg1
-    // method: DOMFastPathGetter (src1)HelperCall (src2)helpArg2
-    IR::Instr* extendArg0 = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), instanceOpnd, ldFldInstr->m_func);
-    ldFldInstr->InsertBefore(extendArg0);
-    IR::Instr* extendArg1 = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), ldMethodFld->GetDst(), extendArg0->GetDst(), ldFldInstr->m_func);
-    ldFldInstr->InsertBefore(extendArg1);
-    ldFldInstr->ReplaceSrc1(IR::HelperCallOpnd::New(helperMethod, ldFldInstr->m_func));
-    ldFldInstr->SetSrc2(extendArg1->GetDst());
-    ldFldInstr->m_opcode = Js::OpCode::DOMFastPathGetter;
-
-    StackSym * tmpSym = StackSym::New(ldFldInstr->GetDst()->GetType(), ldFldInstr->m_func);
-    IR::Opnd * tmpDst = IR::RegOpnd::New(tmpSym, tmpSym->GetType(), ldFldInstr->m_func);
-    // Ensure that the original LdFld's dst profile data is also copied to the new instruction for later
-    // type-specific optimizations. Otherwise, this optimization to reduce calls into the host will also
-    // result in relatively more expensive calls in the runtime.
-    tmpDst->SetValueType(ldFldInstr->GetDst()->GetValueType());
-
-    IR::Opnd * callInstrDst = ldFldInstr->UnlinkDst();
-    ldFldInstr->SetDst(tmpDst);
-
-    IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, callInstrDst, tmpDst, ldFldInstr->m_func);
-    ldFldInstr->InsertAfter(ldInstr);
-
-    this->topFunc->SetHasInlinee();
-
-    InsertStatementBoundary(ldInstr->m_next);
-}
-#endif
 void
 Inline::InsertStatementBoundary(IR::Instr * instrNext)
 {
