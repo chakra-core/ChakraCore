@@ -40,7 +40,6 @@
 #include "Library/JavascriptRegularExpressionResult.h"
 
 #include "Library/JavascriptAsyncFromSyncIterator.h"
-#include "Library/JavascriptVariantDate.h"
 #include "Library/JavascriptPromise.h"
 #include "Library/JavascriptSymbolObject.h"
 #ifdef _CHAKRACOREBUILD

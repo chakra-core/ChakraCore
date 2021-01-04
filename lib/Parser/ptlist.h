@@ -88,6 +88,7 @@ PTNODE(knopNEqv       , "!=="              , OP(SrNeq), Bin         , fnopBin|fn
 PTNODE(knopComma      , ","                , Nop      , Bin         , fnopBin               , "CommaOper"                      )
 PTNODE(knopLogOr      , "||"               , Nop      , Bin         , fnopBin               , "LogOrOper"                      )
 PTNODE(knopLogAnd     , "&&"               , Nop      , Bin         , fnopBin               , "LogAndOper"                     )
+PTNODE(knopCoalesce   , "??"               , Nop      , Bin         , fnopBin               , "NullishCoalescingOper"          )
 PTNODE(knopLsh        , "<<"               , Shl_A    , Bin         , fnopBin               , "LeftShiftOper"                  )
 PTNODE(knopRsh        , ">>"               , Shr_A    , Bin         , fnopBin               , "RightShiftOper"                 )
 PTNODE(knopRs2        , ">>>"              , ShrU_A   , Bin         , fnopBin               , "UnsignedRightShiftOper"         )

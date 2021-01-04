@@ -1,0 +1,122 @@
+trigger:
+- master
+- release/*
+
+jobs:
+  - job: CMake
+    timeoutInMinutes: 120
+    strategy:
+      maxParallel: 6
+      matrix:
+        Linux.Debug:
+          image_name: 'ubuntu-latest'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'Debug'
+          do_test: true
+          libtype_flag: ''
+        Linux.ReleaseWithDebug:
+          image_name: 'ubuntu-latest'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'RelWithDebInfo'
+          do_test: true
+          libtype_flag: ''
+        Linux.Release:
+          image_name: 'ubuntu-latest'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'Release'
+          do_test: false
+          libtype_flag: ''
+        OSX.Debug:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
+          build_type: 'Debug'
+          do_test: true
+          libtype_flag: '-DSTATIC_LIBRARY=ON'
+        OSX.ReleaseWithDebug:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
+          build_type: 'RelWithDebInfo'
+          do_test: true
+          libtype_flag: ''
+        OSX.Release:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
+          build_type: 'Release'
+          do_test: false
+          libtype_flag: ''
+
+    pool:
+      vmImage: $(image_name)
+      
+    steps:
+    - script: $(deps)
+      displayName: 'Install dependencies'
+  
+    - script: |
+        mkdir -p build
+      displayName: 'Create build directories'
+
+    - script: |
+        cd build
+        cmake -GNinja -DCMAKE_BUILD_TYPE=$BUILD_TYPE $LIBTYPE -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
+      displayName: CMake
+      env:
+        BUILD_TYPE: $(build_type)
+        LIBTYPE: $(libtype_flag)
+
+    - script: |
+        cd build
+        ninja
+      displayName: 'Build'
+
+    - script: |
+        cd build
+        ninja check
+      displayName: 'Test'
+      condition: eq(variables['do_test'], true)
+
+  - job: MSVC
+    timeoutInMinutes: 120
+    pool:
+      vmImage: 'windows-latest'
+    strategy:
+      maxParallel: 4
+      matrix:
+        x86.Debug:
+          build_type: 'debug'
+          target: 'x86'
+          do_test: true
+        x86.Test:
+          build_type: 'test'
+          target: 'x86'
+          do_test: true
+        x86.Release:
+          build_type: 'release'
+          target: 'x86'
+          do_test: false
+        x64.Debug:
+          build_type: 'debug'
+          target: 'x64'
+          do_test: true
+        x64.Test:
+          build_type: 'test'
+          target: 'x64'
+          do_test: true
+        x64.Release:
+          build_type: 'release'
+          target: 'x64'
+          do_test: false
+      
+    steps:
+    - script: jenkins\buildone.cmd %TARGET% %BUILD%
+      displayName: 'Build'
+      env:
+        TARGET: $(target)
+        BUILD: $(build_type)
+
+    - script: jenkins\testone.cmd %TARGET% %BUILD%
+      displayName: 'Test'
+      condition: eq(variables['do_test'], true)
+      env:
+        TARGET: $(target)
+        BUILD: $(build_type)

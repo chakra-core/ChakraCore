@@ -309,16 +309,6 @@ namespace Js
         {
         }
 
-        // Version
-        bool SupportsES3()                      const { return true; }
-        bool SupportsES3Extensions()            const {
-#ifdef ENABLE_PROJECTION
-            return HostType != HostTypeApplication;
-#else
-            return true;
-#endif
-        }
-
 #define FORWARD_THREAD_CONFIG(flag) inline bool flag() const { return threadConfig->flag(); }
 #define FLAG(threadFlag, globalFlag) FORWARD_THREAD_CONFIG(threadFlag)
 #define FLAG_RELEASE(threadFlag, globalFlag) FORWARD_THREAD_CONFIG(threadFlag)

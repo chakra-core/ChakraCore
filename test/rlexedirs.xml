@@ -23,7 +23,7 @@
 <dir>
   <default>
     <files>ConfigParsing</files>
-    <tags>exclude_jshost,exclude_xplat</tags>
+    <tags>exclude_xplat</tags>
   </default>
 </dir>
 <dir>
@@ -181,11 +181,6 @@
 </dir>
 <dir>
   <default>
-    <files>VT_DATE</files>
-  </default>
-</dir>
-<dir>
-  <default>
     <files>Lib</files>
   </default>
 </dir>
@@ -315,7 +310,7 @@
 <dir>
   <default>
     <files>WasmSpec</files>
-    <tags>exclude_serialized,require_backend,exclude_jshost,exclude_win7,require_wasm</tags>
+    <tags>exclude_serialized,require_backend,exclude_win7,require_wasm</tags>
   </default>
 </dir>
 <dir>
@@ -333,25 +328,25 @@
 <dir>
   <default>
     <files>Debugger</files>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_sanitize_address</tags>
+    <tags>exclude_serialized,exclude_snap,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>DebuggerCommon</files>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_sanitize_address</tags>
+    <tags>exclude_serialized,exclude_snap,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTExecuteBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
+    <tags>sequential,exclude_dynapogo,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>
   <default>
     <files>TTBasic</files>
-    <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
+    <tags>sequential,exclude_dynapogo,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
 <dir>

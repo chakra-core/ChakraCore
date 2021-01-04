@@ -92,7 +92,6 @@
       <files>PromiseRejectionTracking.js</files>
       <compile-flags>-TrackRejectedPromises -args summary -endargs -nodeferparse</compile-flags>
       <baseline>PromiseRejectionTracking.baseline</baseline>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -141,6 +140,12 @@
     <default>
       <files>deferparseclass.js</files>
       <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>nullish.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

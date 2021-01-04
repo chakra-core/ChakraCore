@@ -67,7 +67,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptRegularExpressionResult.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptString.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptStringEnumerator.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptVariantDate.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JSONStack.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JSON.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)LiteralString.cpp" />
@@ -191,7 +190,6 @@
     <ClInclude Include="JavascriptRegularExpressionResult.h" />
     <ClInclude Include="JavascriptString.h" />
     <ClInclude Include="JavascriptStringEnumerator.h" />
-    <ClInclude Include="JavascriptVariantDate.h" />
     <ClInclude Include="JSONStack.h" />
     <ClInclude Include="JSON.h" />
     <ClInclude Include="LiteralString.h" />

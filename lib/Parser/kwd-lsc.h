@@ -145,6 +145,7 @@ TOK_DCL(tkQMark         ,Que, knopQmark  , No, knopNone   ) // ?
 TOK_DCL(tkColon         , No, knopNone   , No, knopNone   ) // :
 TOK_DCL(tkLogOr         ,Lor, knopLogOr  , No, knopNone   ) // ||
 TOK_DCL(tkLogAnd        ,Lan, knopLogAnd , No, knopNone   ) // &&
+TOK_DCL(tkCoalesce      ,Lco, knopCoalesce,No, knopNone   ) // ??
 TOK_DCL(tkOr            ,Bor, knopOr     , No, knopNone   ) // |
 TOK_DCL(tkXor           ,Xor, knopXor    , No, knopNone   ) // ^
 TOK_DCL(tkAnd           ,Ban, knopAnd    , No, knopNone   ) // &

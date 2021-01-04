@@ -270,7 +270,6 @@ namespace Js
         Field(DynamicType *) bigintTypeDynamic;
         Field(StaticType *) bigintTypeStatic;
         Field(DynamicType *) dateType;
-        Field(StaticType *) variantDateType;
         Field(DynamicType *) symbolTypeDynamic;
         Field(StaticType *) symbolTypeStatic;
         Field(DynamicType *) iteratorResultType;
@@ -788,7 +787,6 @@ namespace Js
         DynamicType * GetArrayBufferType() const { return arrayBufferType; }
         StaticType  * GetStringTypeStatic() const { return stringCache.GetStringTypeStatic(); }
         DynamicType * GetStringTypeDynamic() const { return stringTypeDynamic; }
-        StaticType  * GetVariantDateType() const { return variantDateType; }
         void EnsureDebugObject(DynamicObject* newDebugObject);
         DynamicObject* GetDebugObject() const { Assert(debugObject != nullptr); return debugObject; }
         DynamicType * GetMapType() const { return mapType; }
@@ -1077,8 +1075,6 @@ namespace Js
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[1]) const; // Specialization for empty string
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[2]) const; // Specialization for single-char strings
         PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord);
-
-        JavascriptVariantDate* CreateVariantDate(const double value);
 
         JavascriptBooleanObject* CreateBooleanObject(BOOL value);
         JavascriptBooleanObject* CreateBooleanObject();

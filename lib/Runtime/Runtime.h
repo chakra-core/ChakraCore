@@ -88,7 +88,6 @@ namespace Js
     class ForInObjectEnumerator;
     class JavascriptConversion;
     class JavascriptDate;
-    class JavascriptVariantDate;
     class DateImplementation;
     class BufferString;
     class BufferStringBuilder;
