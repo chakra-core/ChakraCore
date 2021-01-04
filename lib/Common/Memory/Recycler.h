@@ -337,10 +337,6 @@ public:
 #endif
     virtual void DisposeObjects(Recycler * recycler) = 0;
     virtual void PreDisposeObjectsCallBack() = 0;
-#ifdef ENABLE_PROJECTION
-    virtual void MarkExternalWeakReferencedObjects(bool inPartialCollect) = 0;
-    virtual void ResolveExternalWeakReferencedObjects() = 0;
-#endif
 #if DBG || defined(PROFILE_EXEC)
     virtual bool AsyncHostOperationStart(void *) = 0;
     virtual void AsyncHostOperationEnd(bool wasInAsync, void *) = 0;
@@ -440,11 +436,6 @@ public:
 #endif
     virtual void DisposeObjects(Recycler * recycler) override;
     virtual void PreDisposeObjectsCallBack() override {};
-
-#ifdef ENABLE_PROJECTION
-    virtual void MarkExternalWeakReferencedObjects(bool inPartialCollect) override {};
-    virtual void ResolveExternalWeakReferencedObjects() override {};
-#endif
 #if DBG || defined(PROFILE_EXEC)
     virtual bool AsyncHostOperationStart(void *) override { return false; };
     virtual void AsyncHostOperationEnd(bool wasInAsync, void *) override {};
@@ -963,7 +954,6 @@ private:
 
 #if DBG || defined RECYCLER_TRACE
     uint collectionCount;
-    bool inResolveExternalWeakReferences;
 #endif
 
     bool allowDispose;
@@ -1904,9 +1894,6 @@ private:
 #if DBG
     bool allowAllocationDuringHeapEnum;
     bool allowAllocationDuringRenentrance;
-#ifdef ENABLE_PROJECTION
-    bool isInRefCountTrackingForProjection;
-#endif
 #endif
     // There are two scenarios we allow limited allocation but disallow GC during those allocations:
     // in heapenum when we allocate PropertyRecord, and
@@ -2034,15 +2021,6 @@ public:
     public:
         AutoAllowAllocationDuringHeapEnum(Recycler * recycler) : AutoBooleanToggle(&recycler->allowAllocationDuringHeapEnum) {};
     };
-
-#ifdef ENABLE_PROJECTION
-    bool IsInRefCountTrackingForProjection() const { return isInRefCountTrackingForProjection;}
-    class AutoIsInRefCountTrackingForProjection : public AutoBooleanToggle
-    {
-    public:
-        AutoIsInRefCountTrackingForProjection(Recycler * recycler) : AutoBooleanToggle(&recycler->isInRefCountTrackingForProjection) {};
-    };
-#endif
 #endif
 
     class AutoAllowAllocationDuringReentrance : public AutoBooleanToggle

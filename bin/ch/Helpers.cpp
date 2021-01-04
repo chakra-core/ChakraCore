@@ -388,8 +388,6 @@ LPCWSTR Helpers::JsErrorCodeToString(JsErrorCode jsErrorCode)
     case JsErrorAlreadyDebuggingContext:       return _u("JsErrorAlreadyDebuggingContext");
     case JsErrorAlreadyProfilingContext:       return _u("JsErrorAlreadyProfilingContext");
     case JsErrorIdleNotEnabled:                return _u("JsErrorIdleNotEnabled");
-    case JsCannotSetProjectionEnqueueCallback: return _u("JsCannotSetProjectionEnqueueCallback");
-    case JsErrorCannotStartProjection:         return _u("JsErrorCannotStartProjection");
     case JsErrorInObjectBeforeCollectCallback: return _u("JsErrorInObjectBeforeCollectCallback");
     case JsErrorObjectNotInspectable:          return _u("JsErrorObjectNotInspectable");
     case JsErrorPropertyNotSymbol:             return _u("JsErrorPropertyNotSymbol");

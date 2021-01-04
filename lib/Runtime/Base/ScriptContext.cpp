@@ -4905,7 +4905,7 @@ ExitTempAllocator:
             if (cachedFunctionId != functionPropertyId)
             {
                 // This is the scenario where we could be using same function for multiple builtin functions
-                // e.g. Error.toString, WinRTError.toString etc.
+                // e.g. Error.toString etc.
                 // We would ignore these extra entrypoints because while profiling, identifying which object's toString is too costly for its worth
                 return S_OK;
             }

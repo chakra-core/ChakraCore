@@ -52,18 +52,7 @@ DefaultRecyclerCollectionWrapper::IsCollectionDisabled(Recycler * recycler)
     if (collectionDisabled)
     {
         // disabled collection should only happen if we allowed allocation during heap enum
-        if (recycler->IsHeapEnumInProgress())
-        {
-            Assert(recycler->AllowAllocationDuringHeapEnum());
-        }
-        else
-        {
-#ifdef ENABLE_PROJECTION
-            Assert(recycler->IsInRefCountTrackingForProjection());
-#else
-            Assert(false);
-#endif
-        }
+        Assert(recycler->IsHeapEnumInProgress() && recycler->AllowAllocationDuringHeapEnum());
     }
 #endif
     return collectionDisabled;
@@ -310,7 +299,6 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #endif
 #if DBG || defined RECYCLER_TRACE
     this->collectionCount = 0;
-    this->inResolveExternalWeakReferences = false;
 #endif
 #if DBG || defined(RECYCLER_STATS)
     isForceSweeping = false;
@@ -327,9 +315,6 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #if DBG
     allowAllocationDuringRenentrance = false;
     allowAllocationDuringHeapEnum = false;
-#ifdef ENABLE_PROJECTION
-    isInRefCountTrackingForProjection = false;
-#endif
 #endif
     ScheduleNextCollection();
 #if defined(RECYCLER_DUMP_OBJECT_GRAPH) ||  defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
@@ -1856,19 +1841,6 @@ Recycler::FindRoots()
     GCETW(GC_SCANROOTS_START, (this));
 
     RECYCLER_PROFILE_EXEC_BEGIN(this, Js::FindRootPhase);
-
-#ifdef ENABLE_PROJECTION
-    {
-        AUTO_TIMESTAMP(externalWeakReferenceObjectResolve);
-        BEGIN_DUMP_OBJECT(this, _u("External Weak Referenced Roots"));
-        Assert(!this->IsInRefCountTrackingForProjection());
-#if DBG
-        AutoIsInRefCountTrackingForProjection autoIsInRefCountTrackingForProjection(this);
-#endif
-        collectionWrapper->MarkExternalWeakReferencedObjects(this->inPartialCollectMode);
-        END_DUMP_OBJECT(this);
-    }
-#endif
 
     // go through ITracker* stuff. Don't need to do it if we are doing a partial collection
     // as we keep track and mark all trackable objects.
@@ -3440,21 +3412,6 @@ Recycler::DisposeObjects()
     }
 #endif
 
-#ifdef ENABLE_PROJECTION
-    {
-        Assert(!this->inResolveExternalWeakReferences);
-        Assert(!this->allowDispose);
-#if DBG || defined RECYCLER_TRACE
-        AutoRestoreValue<bool> inResolveExternalWeakReferencedObjects(&this->inResolveExternalWeakReferences, true);
-#endif
-        AUTO_TIMESTAMP(externalWeakReferenceObjectResolve);
-
-        // This is where it is safe to resolve external weak references as they can lead to new script entry
-        collectionWrapper->ResolveExternalWeakReferencedObjects();
-    }
-#endif
-
-    Assert(!this->inResolveExternalWeakReferences);
     Assert(this->inDispose);
 
     this->inDispose = false;

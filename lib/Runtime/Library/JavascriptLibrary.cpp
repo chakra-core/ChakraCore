@@ -1477,15 +1477,7 @@ namespace Js
         AddFunctionToLibraryObject(globalObject, PropertyIds::escape, &GlobalObject::EntryInfo::Escape, 1);
         AddFunctionToLibraryObject(globalObject, PropertyIds::unescape, &GlobalObject::EntryInfo::UnEscape, 1);
 
-// for backward compat reasons in non-core builds add CollectGarbage function even if it would do nothing later
-#ifdef _CHAKRACOREBUILD
-        if (scriptContext->GetConfig()->IsCollectGarbageEnabled()
-#ifdef ENABLE_PROJECTION
-            || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeApplication
-            || scriptContext->GetConfig()->GetHostType() == HostType::HostTypeWebview
-#endif
-            )
-#endif
+        if (scriptContext->GetConfig()->IsCollectGarbageEnabled())
         {
             AddFunctionToLibraryObject(globalObject, PropertyIds::CollectGarbage, &GlobalObject::EntryInfo::CollectGarbage, 0);
         }
@@ -1688,7 +1680,7 @@ namespace Js
         }
 #endif
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS)
         engineInterfaceObject = EngineInterfaceObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_EngineInterfaceObject, nullValue, nullptr,
             DeferredTypeHandler<InitializeEngineInterfaceObject>::GetDefaultInstance()));
@@ -5033,7 +5025,7 @@ namespace Js
         return jsonStringifyFunction;
     }
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS)
     bool JavascriptLibrary::InitializeEngineInterfaceObject(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(engineInterface, mode, 3);
@@ -7462,12 +7454,6 @@ namespace Js
         REGISTER_ERROR_OBJECT(TypeError);
         REGISTER_ERROR_OBJECT(URIError);
 
-#ifdef ENABLE_PROJECTION
-        if (config.IsWinRTEnabled())
-        {
-            REGISTER_ERROR_OBJECT(WinRTError);
-        }
-#endif
         return hr;
     }
 

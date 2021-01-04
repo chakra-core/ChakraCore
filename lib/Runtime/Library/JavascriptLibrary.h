@@ -18,18 +18,9 @@ CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
-class ProjectionExternalLibrary;
 class EditAndContinue;
 class ChakraHostScriptContext;
 class JsrtExternalType;
-
-#ifdef ENABLE_PROJECTION
-namespace Projection
-{
-    class ProjectionContext;
-    class WinRTPromiseEngineInterfaceExtensionObject;
-}
-#endif
 
 namespace Js
 {
@@ -178,11 +169,6 @@ namespace Js
         friend class JsBuiltInEngineInterfaceExtensionObject;
 #endif
         friend class ChakraHostScriptContext;
-#ifdef ENABLE_PROJECTION
-        friend class ProjectionExternalLibrary;
-        friend class Projection::WinRTPromiseEngineInterfaceExtensionObject;
-        friend class Projection::ProjectionContext;
-#endif
         static const char16* domBuiltinPropertyNames[];
 
     public:
@@ -1301,9 +1287,6 @@ namespace Js
         static bool __cdecl InitializeIntlObject(DynamicObject* IntlEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif
 
-#ifdef ENABLE_PROJECTION
-        void InitializeWinRTPromiseConstructor();
-#endif
         static bool __cdecl JavascriptLibrary::InitializeAsyncIteratorPrototype(DynamicObject* asyncIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static bool __cdecl InitializeIteratorPrototype(DynamicObject* iteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static bool __cdecl InitializeArrayIteratorPrototype(DynamicObject* arrayIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);

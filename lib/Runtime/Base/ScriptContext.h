@@ -176,9 +176,6 @@ public:
 
     virtual HRESULT GetExternalJitData(ExternalJitData id, void *data) = 0;
     virtual HRESULT SetDispatchInvoke(Js::JavascriptMethod dispatchInvoke) = 0;
-    virtual HRESULT ArrayBufferFromExternalObject(__in Js::RecyclableObject *obj,
-        __out Js::ArrayBuffer **ppArrayBuffer) = 0;
-    virtual Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) = 0;
     virtual HRESULT EnqueuePromiseTask(Js::Var varTask) = 0;
 
     virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
@@ -275,33 +272,10 @@ namespace Js
     };
 #pragma pack(pop)
 
-#ifdef ENABLE_PROJECTION
-    class ProjectionConfiguration
-    {
-    public:
-        ProjectionConfiguration() : targetVersion(0)
-        {
-        }
-
-        DWORD GetTargetVersion() const { return this->targetVersion; }
-        void SetTargetVersion(DWORD version) { this->targetVersion = version; }
-
-        bool IsTargetWindows8() const           { return this->targetVersion == NTDDI_WIN8; }
-        bool IsTargetWindowsBlueOrLater() const { return this->targetVersion >= NTDDI_WINBLUE; }
-
-    private:
-        DWORD targetVersion;
-    };
-#endif // ENABLE_PROJECTION
-
     class ScriptConfiguration
     {
     public:
         ScriptConfiguration(const ThreadConfiguration * const threadConfig, const bool isOptimizedForManyInstances) :
-#ifdef ENABLE_PROJECTION
-            HostType(Configuration::Global.flags.HostType),
-            WinRTConstructorAllowed(Configuration::Global.flags.WinRTConstructorAllowed),
-#endif
             NoNative(Configuration::Global.flags.NoNative),
             NoDynamicThunks(false),
             isOptimizedForManyInstances(isOptimizedForManyInstances),
@@ -331,48 +305,15 @@ namespace Js
         {
             this->NoNative = other.NoNative;
             this->fCanOptimizeGlobalLookup = other.fCanOptimizeGlobalLookup;
-#ifdef ENABLE_PROJECTION
-            this->HostType = other.HostType;
-            this->WinRTConstructorAllowed = other.WinRTConstructorAllowed;
-            this->projectionConfiguration = other.projectionConfiguration;
-#endif
         }
 
-#ifdef ENABLE_PROJECTION
-        Number GetHostType() const    // Returns one of enum HostType values (see ConfigFlagsTable.h).
-        {
-            AssertMsg(this->HostType >= HostTypeMin && this->HostType <= HostTypeMax, "HostType value is out of valid range.");
-            return this->HostType;
-        }
-
-        ProjectionConfiguration const * GetProjectionConfig() const
-        {
-            return &projectionConfiguration;
-        }
-        void SetHostType(int32 hostType) { this->HostType = hostType; }
-        void SetWinRTConstructorAllowed(bool allowed) { this->WinRTConstructorAllowed = allowed; }
-        void SetProjectionTargetVersion(DWORD version)
-        {
-            projectionConfiguration.SetTargetVersion(version);
-        }
-        bool IsWinRTEnabled()           const { return (GetHostType() == Js::HostTypeApplication) || (GetHostType() == Js::HostTypeWebview); }
-
-        bool IsWinRTConstructorAllowed() const { return (GetHostType() != Js::HostTypeWebview) || this->WinRTConstructorAllowed; }
-#endif
     private:
-
         // Per script configurations
         bool NoNative;
         bool NoDynamicThunks;
         BOOL fCanOptimizeGlobalLookup;
         const bool isOptimizedForManyInstances;
         const ThreadConfiguration * const threadConfig;
-
-#ifdef ENABLE_PROJECTION
-        Number HostType;    // One of enum HostType values (see ConfigFlagsTable.h).
-        bool WinRTConstructorAllowed;  // whether allow constructor in webview host type. Also note that this is not a security feature.
-        ProjectionConfiguration projectionConfiguration;
-#endif
     };
 
     struct ScriptEntryExitRecord
@@ -1240,11 +1181,6 @@ private:
         void Initialize();
         bool Close(bool inDestructor);
         void MarkForClose();
-#ifdef ENABLE_PROJECTION
-        void SetHostType(int32 hostType) { config.SetHostType(hostType); }
-        void SetWinRTConstructorAllowed(bool allowed) { config.SetWinRTConstructorAllowed(allowed); }
-        void SetProjectionTargetVersion(DWORD version) { config.SetProjectionTargetVersion(version); }
-#endif
         void SetCanOptimizeGlobalLookupFlag(BOOL f){ config.SetCanOptimizeGlobalLookupFlag(f);}
         BOOL CanOptimizeGlobalLookup(){ return config.CanOptimizeGlobalLookup();}
 

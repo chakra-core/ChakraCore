@@ -46,8 +46,6 @@ namespace Memory
         FILETIME concurrentMarkFinishTime;
         FILETIME disposeStartTime;
         FILETIME disposeEndTime;
-        FILETIME externalWeakReferenceObjectResolveStartTime;
-        FILETIME externalWeakReferenceObjectResolveEndTime;
         FILETIME currentCollectionEndTime;
         FILETIME lastCollectionEndTime;
         DWORD exhaustiveRepeatedCount;
