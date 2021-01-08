@@ -104,7 +104,7 @@ namespace Js
 #ifdef ENABLE_INTL_OBJECT
         DynamicObject* GetIntlObject() { return IntlObject; }
 #endif
-#if defined(ENABLE_INTL_OBJECT)  || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT)  || defined(ENABLE_JS_BUILTINS)
         EngineInterfaceObject* GetEngineInterfaceObject() { return engineInterfaceObject; }
 #endif
 
@@ -225,7 +225,7 @@ namespace Js
 #ifdef ENABLE_INTL_OBJECT
         Field(DynamicObject*) IntlObject;
 #endif
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS)  || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS)
         Field(EngineInterfaceObject*) engineInterfaceObject;
 #endif
         Field(DynamicObject*) reflectObject;

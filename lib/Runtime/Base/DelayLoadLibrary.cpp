@@ -156,26 +156,6 @@ namespace Js
         return E_NOTIMPL;
     }
 
-    HRESULT DelayLoadWinRtTypeResolution::RoParseTypeName(__in HSTRING typeName, __out DWORD *partsCount, __RPC__deref_out_ecount_full_opt(*partsCount) HSTRING **typeNameParts)
-    {
-        if (m_hModule)
-        {
-            if (m_pfnRoParseTypeName == nullptr)
-            {
-                m_pfnRoParseTypeName = (PFNCWRoParseTypeName)GetFunction("RoParseTypeName");
-                if (m_pfnRoParseTypeName == nullptr)
-                {
-                    return E_UNEXPECTED;
-                }
-            }
-
-            Assert(m_pfnRoParseTypeName != nullptr);
-            return m_pfnRoParseTypeName(typeName, partsCount, typeNameParts);
-        }
-
-        return E_NOTIMPL;
-    }
-
 #ifdef INTL_WINGLOB
     bool DelayLoadWindowsGlobalization::HasGlobalizationDllLoaded()
     {
@@ -223,35 +203,6 @@ namespace Js
 
             Assert(m_pfnFNCWRoGetActivationFactory != nullptr);
             return m_pfnFNCWRoGetActivationFactory(activatableClassId, iid, factory);
-        }
-
-        return E_NOTIMPL;
-    }
-
-    HRESULT DelayLoadWinRtTypeResolution::RoResolveNamespace(
-        __in_opt const HSTRING namespaceName,
-        __in_opt const HSTRING windowsMetaDataPath,
-        __in const DWORD packageGraphPathsCount,
-        __in_opt const HSTRING *packageGraphPaths,
-        __out DWORD *metaDataFilePathsCount,
-        HSTRING **metaDataFilePaths,
-        __out DWORD *subNamespacesCount,
-        HSTRING **subNamespaces)
-    {
-        if (m_hModule)
-        {
-            if (m_pfnRoResolveNamespace == nullptr)
-            {
-                m_pfnRoResolveNamespace = (PFNCRoResolveNamespace)GetFunction("RoResolveNamespace");
-                if (m_pfnRoResolveNamespace == nullptr)
-                {
-                    return E_UNEXPECTED;
-                }
-            }
-
-            Assert(m_pfnRoResolveNamespace != nullptr);
-            return m_pfnRoResolveNamespace(namespaceName, windowsMetaDataPath, packageGraphPathsCount, packageGraphPaths,
-                metaDataFilePathsCount, metaDataFilePaths, subNamespacesCount, subNamespaces);
         }
 
         return E_NOTIMPL;
@@ -346,50 +297,6 @@ namespace Js
             return winRTStringLibrary->WindowsDuplicateString(original, newString);
         }
         return DelayLoadWinRtString::WindowsDuplicateString(original, newString);
-    }
-#endif
-
-#ifdef ENABLE_PROJECTION
-    HRESULT DelayLoadWinRtError::RoClearError()
-    {
-        if (m_hModule)
-        {
-            if (m_pfnRoClearError == nullptr)
-            {
-                m_pfnRoClearError = (PFNCRoClearError)GetFunction("RoClearError");
-                if (m_pfnRoClearError == nullptr)
-                {
-                    return E_UNEXPECTED;
-                }
-            }
-
-            Assert(m_pfnRoClearError != nullptr);
-            m_pfnRoClearError();
-
-            return S_OK;
-        }
-
-        return E_NOTIMPL;
-    }
-
-    BOOL DelayLoadWinRtError::RoOriginateLanguageException(__in HRESULT error, __in_opt HSTRING message, __in IUnknown * languageException)
-    {
-        if (m_hModule)
-        {
-            if (m_pfnRoOriginateLanguageException == nullptr)
-            {
-                m_pfnRoOriginateLanguageException = (PFNCRoOriginateLanguageException)GetFunction("RoOriginateLanguageException");
-                if (m_pfnRoOriginateLanguageException == nullptr)
-                {
-                    return FALSE;
-                }
-            }
-
-            Assert(m_pfnRoOriginateLanguageException != nullptr);
-            return m_pfnRoOriginateLanguageException(error, message, languageException);
-        }
-
-        return FALSE;
     }
 #endif
 

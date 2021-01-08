@@ -55,9 +55,6 @@ namespace Js
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
-#ifdef ENABLE_PROJECTION
-            static FunctionInfo NewWinRTErrorInstance;
-#endif
             static FunctionInfo ToString;
         };
 
@@ -71,9 +68,6 @@ namespace Js
         static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyLinkErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
-#ifdef ENABLE_PROJECTION
-        static Var NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
-#endif
 
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
 

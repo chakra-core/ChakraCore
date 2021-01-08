@@ -342,33 +342,6 @@ ServerUpdatePropertyRecordMap(
 }
 
 HRESULT
-ServerAddDOMFastPathHelper(
-    /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    /* [in] */ intptr_t funcInfoAddr,
-    /* [in] */ int helper)
-{
-    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer(scriptContextInfoAddress);
-
-    if (scriptContextInfo == nullptr)
-    {
-        Assert(false);
-        return RPC_S_INVALID_ARG;
-    }
-    if (helper < 0 || helper >= IR::JnHelperMethodCount)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-
-    return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
-    {
-        scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
-        return S_OK;
-    });
-}
-
-HRESULT
 ServerAddModuleRecordInfo(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,

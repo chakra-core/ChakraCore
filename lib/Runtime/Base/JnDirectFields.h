@@ -416,7 +416,7 @@ ENTRY(valueOf)
 ENTRY(values)
 ENTRY(WeakMap)
 ENTRY(WeakSet)
-ENTRY(WinRTError)
+ENTRY(WinRTError) // remove this upon next bytecode regen
 ENTRY(write)
 ENTRY(writeln)
 ENTRY(setNonUserCodeExceptions)

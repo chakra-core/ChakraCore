@@ -335,7 +335,6 @@ PHASE(All)
         PHASE(CloneCacheInCollision)
         PHASE(ConstructorCache)
         PHASE(InlineCandidate)
-        PHASE(InlineHostCandidate)
         PHASE(ScriptFunctionWithInlineCache)
         PHASE(IsConcatSpreadableCache)
         PHASE(Arena)
@@ -376,7 +375,6 @@ PHASE(All)
         PHASE(CFG)
         PHASE(ExceptionStackTrace)
         PHASE(ExtendedExceptionInfoStackTrace)
-        PHASE(ProjectionMetadata)
         PHASE(TypeHandlerTransition)
         PHASE(Debugger)
             PHASE(ENC)
@@ -785,8 +783,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_ForceJITCFGCheck (false)
 #define DEFAULT_CONFIG_UseJITTrampoline (true)
 
-#define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
-
 #define DEFAULT_CONFIG_IsolatePrototypes    (true)
 #define DEFAULT_CONFIG_ChangeTypeOnProto    (true)
 #define DEFAULT_CONFIG_FixPropsOnPathTypes    (true)
@@ -811,12 +807,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_InjectPartiallyInitializedInterpreterFrameErrorType (0)
 
 #define DEFAULT_CONFIG_DeferLoadingAvailableSource  (false)
-#ifdef ENABLE_PROJECTION
-#define DEFAULT_CONFIG_NoWinRTFastSig       (false)
-#define DEFAULT_CONFIG_TargetWinRTVersion   (1)
-#define DEFAULT_CONFIG_WinRTDelegateInterfaces      (false)
-#define DEFAULT_CONFIG_WinRTAdaptiveApps            (true)
-#endif
 
 #define DEFAULT_CONFIG_RecyclerForceMarkInterior (false)
 
@@ -1187,14 +1177,7 @@ FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Objec
 
 FLAGPR_REGOVR_EXP(Boolean, ES6, ESSharedArrayBuffer    , "Enable SharedArrayBuffer"                                 , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
-// /ES6 (BLUE+1) features/flags
-
-
-
-#ifdef ENABLE_PROJECTION
-FLAGNR(Boolean, WinRTDelegateInterfaces , "Treat WinRT Delegates as Interfaces when determining their resolvability.", DEFAULT_CONFIG_WinRTDelegateInterfaces)
-FLAGR(Boolean, WinRTAdaptiveApps        , "Enable the adaptive apps feature, allowing for variable projection."      , DEFAULT_CONFIG_WinRTAdaptiveApps)
-#endif
+// Newer language feature flags
 
 // ES BigInt flag
 FLAGR(Boolean, ESBigInt, "Enable ESBigInt flag", DEFAULT_CONFIG_ESBigInt)
@@ -1417,9 +1400,6 @@ FLAGR (Boolean, NoNative              , "Disable native codegen", false)
 FLAGNR(Number,  NopFrequency          , "Frequency of NOPs inserted by NOP insertion phase.  A NOP is guaranteed to be inserted within a range of (1<<n) instrs (default=8)", DEFAULT_CONFIG_NopFrequency)
 FLAGNR(Boolean, NoStrictMode          , "Disable strict mode checks on all functions", false)
 FLAGNR(Boolean, NormalizeStats        , "When dumping stats, do some normalization (used with -instrument:linearscan)", false)
-#ifdef ENABLE_PROJECTION
-FLAGNR(Boolean, NoWinRTFastSig        , "Disable fast call for common WinRT function signatures", false)
-#endif
 FLAGNR(Phases,  Off                   , "Turn off specific phases or feature.(Might not work for all phases)", )
 FLAGNR(Phases,  OffProfiledByteCode   , "Turn off specific byte code for phases or feature.(Might not work for all phases)", )
 FLAGNR(Phases,  On                    , "Turn on specific phases or feature.(Might not work for all phases)", )
@@ -1554,11 +1534,6 @@ FLAGNR(Boolean, TraceWin8Allocations  , "Trace the win8 memory allocations", fal
 FLAGNR(Boolean, TraceWin8DeallocationsImmediate  , "Trace the win8 memory deallocations immediately", false)
 FLAGNR(Boolean, PrintWin8StatsDetailed  , "Print the detailed memory trace report", false)
 FLAGNR(Boolean, TraceProtectPages     , "Trace calls to protecting pages of custom heap allocated pages", false)
-//TraceProjection flag with optional levels:
-//    Level 1 = error
-//    Level 2 = warning
-//    Level 3 = informational
-FLAGNR(Number, TraceProjection       , "Trace projection related activities, [Levels 1-3, with 3 corresponding to most detailed]", 3)
 #endif
 FLAGNR(Boolean, TraceAsyncDebugCalls  , "Trace calls to async debugging API (default: false)", DEFAULT_CONFIG_TraceAsyncDebugCalls)
 #ifdef TRACK_DISPATCH
@@ -1568,13 +1543,7 @@ FLAGNR(Boolean, Verbose               , "Dump details", DEFAULT_CONFIG_Verbose)
 FLAGNR(Boolean, UseFullName           , "Enable fully qualified name", DEFAULT_CONFIG_UseFullName)
 FLAGNR(Boolean, Utf8                  , "Use UTF8 for file output", false)
 FLAGR (Number,  Version               , "Version in which to run the jscript engine. [one of 1,2,3,4,5,6]. Default is latest for jc/jshost, 1 for IE", 6 )
-#ifdef ENABLE_PROJECTION
-FLAGR (Number,  HostType              , "Host type in which to run the jscript engine. [one of 1,2]. Default is 1 = Browser.", 1)
-#endif
 FLAGR(Boolean, WERExceptionSupport    , "WER feature for extended exception support. Enabled when WinRT is enabled", false)
-#ifdef ENABLE_PROJECTION
-FLAGR (Boolean, WinRTConstructorAllowed, "Whether WinRT constructors is allowed in WebView host type. Constructor is always allowed in other host type ", false)
-#endif
 FLAGNR(Boolean, ExtendedErrorStackForTestHost, "Enable passing extended error stack string to test host.", DEFAULT_CONFIG_ExtendedErrorStackForTestHost)
 FLAGNR(Boolean, errorStackTrace       , "error.StackTrace feature. Remove when feature complete", DEFAULT_CONFIG_errorStackTrace)
 FLAGNR(Boolean, DoHeapEnumOnEngineShutdown, "Perform a heap enumeration whenever shut a script engine down", false)
@@ -1603,12 +1572,6 @@ FLAGNR(Phases,  TestTrace             , "Test trace for the given phase", )
 FLAGNR(Boolean, EnableEvalMapCleanup, "Enable cleaning up the eval map", true)
 #ifdef PROFILE_MEM
 FLAGNR(Boolean, TraceObjectAllocation, "Enable cleaning up the eval map", false)
-#endif
-#ifdef ENABLE_PROJECTION
-FLAGNR(Boolean, EnableThirdPartyGCPressure, "Enable use of GCPressure attribute value on 3rd party WinRT objects (not in Windows namespace) (default: false)", false)
-FLAGNR(Number, TargetWinRTVersion, "Specifies WinRT version number to target. [one of 0,1,2,3,4]. Default is 1 = NTDDI_WIN8", DEFAULT_CONFIG_TargetWinRTVersion)
-FLAGNR(Boolean, EnableVersioningAllAssemblies, "Enable versioning behavior for all assemblies, regardless of host flag (default: false)", false)
-FLAGR(Boolean, FailFastIfDisconnectedDelegate, "When set fail fast if disconnected delegate is invoked", DEFAULT_CONFIG_FailFastIfDisconnectedDelegate)
 #endif
 FLAGNR(Number, Sse, "Virtually disables SSE-based optimizations above the specified SSE level in the Chakra JIT (does not affect CRT SSE usage)", DEFAULT_CONFIG_Sse)
 FLAGNR(Number,  DeletedPropertyReuseThreshold, "Start reusing deleted property indexes after this many properties are deleted. Zero to disable reuse.", DEFAULT_CONFIG_DeletedPropertyReuseThreshold)

@@ -9,7 +9,6 @@
 interface IChakraJIT
 {
     UpdatePropertyRecordMap([context_handle_noserialize] threadContextInfoAddress);
-    AddDOMFastPathHelper([context_handle_noserialize] scriptContextInfoAddress);
     AddModuleRecordInfo([context_handle_noserialize] scriptContextInfoAddress);
     SetWellKnownHostTypeId([context_handle_noserialize] threadContextInfoAddress);
     CloseScriptContext([context_handle_noserialize] scriptContextInfoAddress);

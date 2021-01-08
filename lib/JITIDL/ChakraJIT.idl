@@ -58,12 +58,6 @@ interface IChakraJIT
         [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [in, unique] BVSparseNodeIDL * updatedPropsBVHead);
 
-    HRESULT AddDOMFastPathHelper(
-        [in] handle_t binding,
-        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        [in] CHAKRA_PTR funcInfoAddr,
-        [in] int helper);
-
     HRESULT AddModuleRecordInfo(
         [in] handle_t binding,
         [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,

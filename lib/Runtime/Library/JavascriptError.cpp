@@ -144,21 +144,6 @@ namespace Js
 
 #undef NEW_ERROR
 
-#ifdef ENABLE_PROJECTION
-    Var JavascriptError::NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-
-        ARGUMENTS(args, callInfo);
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetHostScriptContext()->CreateWinRTError(nullptr, nullptr);
-
-        Var newTarget = args.GetNewTarget();
-        Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
-    }
-#endif
-
     Var JavascriptError::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -766,18 +751,7 @@ namespace Js
             ? Js::JavascriptError::GetRuntimeError(Js::VarTo<Js::RecyclableObject>(errorObject), nullptr)
             : S_OK;
 
-        return JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr
-#ifdef ENABLE_PROJECTION
-            // WinRT projected objects can return TYPE_E_ELEMENTNOTFOUND for missing properties
-            // which is not the same code as JSERR_UndefVariable. However, the meaning of the
-            // two error codes is morally equivalent in typeof scenario. Special case this here
-            // because we do not want typeof to leak these exceptions.
-            && !(errorObject != nullptr
-                && Js::VarIs<Js::JavascriptError>(errorObject)
-                && Js::VarTo<Js::JavascriptError>(errorObject)->GetErrorType() == kjstWinRTError
-                && hr == TYPE_E_ELEMENTNOTFOUND)
-#endif
-            ;
+        return JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr;
     }
 
     // Gets the error number associated with the resource ID for an error message.
