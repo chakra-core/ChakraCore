@@ -36,7 +36,7 @@ if [ -s $ERRFILE ]; then # if file exists and is non-empty then there were error
     >&2 echo "--- ERRORS ---"
     >&2 echo ""
 
-    cat $ERRFILE 1>&2 # send output to stderr so it can be redirected as error if desired
+    cat $ERRFILE 1>&2 # tell the caller there was an error (so the CI task will fail)
 
     exit 1
 else
