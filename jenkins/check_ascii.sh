@@ -20,7 +20,7 @@ if [ -e $ERRFILE ]; then # if error file exists then there were errors
     >&2 echo "--------------" # leading >&2 means echo to stderr
     >&2 echo "--- ERRORS ---"
     cat $ERRFILE 1>&2 # send output to stderr so it can be redirected as error if desired
-    exit 1 # tell the caller there was an error (so Jenkins will fail the CI task)
+    exit 1 # tell the caller there was an error (so the CI task will fail)
 else
     echo "--- NO PROBLEMS DETECTED ---"
 fi
