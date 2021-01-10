@@ -22,29 +22,13 @@ If (!(Test-Path $targetNugetExe))
 
     Write-Host "NuGet.exe not found - downloading latest from $sourceNugetExe"
 
-    $sourceNugetExe = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
-
     Invoke-WebRequest $sourceNugetExe -OutFile $targetNugetExe
 }
 
 $versionStr = (Get-Content $packageVersionFile) 
 
-Write-Host "Setting .nuspec version tag to $versionStr"
-
-$compiledNuspec = "$root\nuget\compiled.nuspec"
-
 # Create new packages for any nuspec files that exist in this directory.
 Foreach ($nuspec in $(Get-Item $packageRoot\*.nuspec))
 {
-    $content = (Get-Content $nuspec)
-    $content = $content -replace '\$version\$',$versionStr
-    $content | Out-File $compiledNuspec
-
-    & $targetNugetExe pack $compiledNuspec -outputdirectory $packageArtifacts
-}
-
-# Delete compiled temporary nuspec.
-If (Test-Path $compiledNuspec)
-{
-    Remove-Item $compiledNuspec
+    & $targetNugetExe pack $nuspec -outputdirectory $packageArtifacts -properties version=$versionStr
 }
