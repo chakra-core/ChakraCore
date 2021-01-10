@@ -34,4 +34,5 @@ This agreement has been signed by:
 | Name | Github username |
 |---|---|
 |Richard Lawrence| rhuanjl|
+|Andrey Taritsyn| Taritsyn|
 
