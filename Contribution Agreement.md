@@ -36,4 +36,4 @@ This agreement has been signed by:
 |Richard Lawrence| rhuanjl|
 |Andrey Taritsyn| Taritsyn|
 |Sasha Syrotenko| Fly-Style|
-
+|Yevhen Lukomskyi|ylukomskyi|
