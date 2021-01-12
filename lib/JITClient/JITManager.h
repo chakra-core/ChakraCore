@@ -53,11 +53,6 @@ public:
         __in InterpreterThunkInputIDL * thunkInput,
         __out InterpreterThunkOutputIDL * thunkOutput);
 
-    HRESULT AddDOMFastPathHelper(
-        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        __in intptr_t funcInfoAddr,
-        __in int helper);
-
     HRESULT AddModuleRecordInfo(
             /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
             /* [in] */ unsigned int moduleId,
@@ -179,12 +174,6 @@ public:
     HRESULT UpdatePropertyRecordMap(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __in_opt BVSparseNodeIDL * updatedPropsBVHead)
-        { Assert(false); return E_FAIL; }
-
-    HRESULT AddDOMFastPathHelper(
-        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        __in intptr_t funcInfoAddr,
-        __in int helper)
         { Assert(false); return E_FAIL; }
 
     HRESULT AddModuleRecordInfo(

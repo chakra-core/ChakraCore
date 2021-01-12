@@ -70,10 +70,6 @@ public:
     virtual bool IsRecyclerVerifyEnabled() const override;
     virtual uint GetRecyclerVerifyPad() const override;
 
-    virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
-    virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
-
-
     typedef JsUtil::BaseDictionary<uint, Js::ServerSourceTextModuleRecord*, Memory::HeapAllocator> ServerModuleRecords;
     ServerModuleRecords m_moduleRecords;
 
@@ -97,7 +93,6 @@ public:
     void Release();
 
 private:
-    JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler * codeGenProfiler;
     CriticalSection profilerCS;

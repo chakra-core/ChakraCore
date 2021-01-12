@@ -673,12 +673,6 @@ bool InliningDecider::GetBuiltInInfoCommon(
         *returnType = ValueType::GetObject(ObjectType::CharArray);
         break;
 
-#ifdef ENABLE_DOM_FAST_PATH
-    case Js::JavascriptBuiltInFunction::DOMFastPathGetter:
-        *inlineCandidateOpCode = Js::OpCode::DOMFastPathGetter;
-        break;
-#endif
-
     default:
         return false;
     }

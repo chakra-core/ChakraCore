@@ -3040,13 +3040,7 @@ NativeCodeGenerator::GatherCodeGenData(
                 const auto inlineeFunctionBody = inlinee->GetFunctionBody();
                 if(!inlineeFunctionBody)
                 {
-                    if ((
-#ifdef ENABLE_DOM_FAST_PATH
-                         inlinee->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathGetter ||
-                         inlinee->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathSetter ||
-#endif
-                         (inlineeFunctionInfo->GetAttributes() & Js::FunctionInfo::Attributes::BuiltInInlinableAsLdFldInlinee) != 0) &&
-                        !isJitTimeDataComputed)
+                    if (((inlineeFunctionInfo->GetAttributes() & Js::FunctionInfo::Attributes::BuiltInInlinableAsLdFldInlinee) != 0) && !isJitTimeDataComputed)
                     {
                         jitTimeData->AddLdFldInlinee(recycler, inlineCacheIndex, inlinee);
                     }

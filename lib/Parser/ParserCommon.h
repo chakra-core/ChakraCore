@@ -29,9 +29,6 @@ enum ErrorTypeEnum
     kjstWebAssemblyRuntimeError,
     kjstWebAssemblyLinkError,
     kjstCustomError,
-#ifdef ENABLE_PROJECTION
-    kjstWinRTError,
-#endif
 };
 
 class ParseNode;

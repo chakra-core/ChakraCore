@@ -31,7 +31,6 @@ public:
     void        LegalizeUse(IR::Instr * instr, IR::Opnd * opnd) { /* A nop for x86 */ }
     void        LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd) { /* A nop for x86 */ }
     void        GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCount) StackSym ** registerSaveSyms, uint registerSaveSymsCount);
-    IR::Instr  *GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, BailOutInfo * bailOutInfo);
     void        InsertOpHelperSpillAndRestores(SList<OpHelperBlock> *opHelperBlockList);
     void        EndOfHelperBlock(uint32 helperSpilledLiveranges) { /* NOP */ }
 

@@ -222,20 +222,6 @@ public:
         return E_NOTIMPL;
     }
 
-    HRESULT ArrayBufferFromExternalObject(__in Js::RecyclableObject *obj,
-        __out Js::ArrayBuffer **ppArrayBuffer) override
-    {
-        // there is no IBuffer in chakracore.
-        *ppArrayBuffer = nullptr;
-        return S_FALSE;
-    }
-
-    Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) override
-    {
-        AssertMsg(false, "no winrt support in chakracore");
-        return nullptr;
-    }
-
     HRESULT ThrowIfFailed(HRESULT hr) override
     {
         hr;

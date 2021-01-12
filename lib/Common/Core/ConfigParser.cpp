@@ -238,22 +238,6 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
         }
     }
 
-#ifdef ENABLE_PROJECTION
-    // FailFastIfDisconnectedDelegate
-    // This setting allows enabling fail fast if the delegate invoked is disconnected
-    //     0 - Default return the error RPC_E_DISCONNECTED if disconnected delegate is invoked
-    //     1 - Fail fast if disconnected delegate
-    dwValue = 0;
-    dwSize = sizeof(dwValue);
-    if (NOERROR == RegGetValueW(hk, nullptr, _u("FailFastIfDisconnectedDelegate"), RRF_RT_DWORD, nullptr, (LPBYTE)&dwValue, &dwSize))
-    {
-        if (dwValue == 1)
-        {
-            Js::Configuration::Global.flags.FailFastIfDisconnectedDelegate = true;
-        }
-    }
-#endif
-
     // ES6 feature control
     // This setting allows enabling\disabling es6 features
     //     0 - Enable ES6 flag - Also default behavior

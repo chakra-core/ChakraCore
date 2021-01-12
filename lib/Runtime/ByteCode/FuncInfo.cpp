@@ -49,6 +49,7 @@ FuncInfo::FuncInfo(
     frameDisplayRegister(Js::Constants::NoRegister),
     funcObjRegister(Js::Constants::NoRegister),
     localClosureReg(Js::Constants::NoRegister),
+    awaitRegister(Js::Constants::NoRegister),
     yieldRegister(Js::Constants::NoRegister),
     firstTmpReg(Js::Constants::NoRegister),
     curTmpReg(Js::Constants::NoRegister),

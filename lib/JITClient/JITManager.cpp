@@ -404,28 +404,6 @@ JITManager::CleanupThreadContext(
 }
 
 HRESULT
-JITManager::AddDOMFastPathHelper(
-    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __in intptr_t funcInfoAddr,
-    __in int helper)
-{
-    Assert(IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientAddDOMFastPathHelper(m_rpcBindingHandle, scriptContextInfoAddress, funcInfoAddr, helper);
-    }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-
-HRESULT
 JITManager::SetIsPRNGSeeded(
     __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     __in boolean value)

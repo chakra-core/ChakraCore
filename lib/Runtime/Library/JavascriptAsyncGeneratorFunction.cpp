@@ -49,7 +49,8 @@ Var JavascriptAsyncGeneratorFunction::EntryAsyncGeneratorFunctionImplementation(
 
     auto* asyncGeneratorFn = VarTo<JavascriptAsyncGeneratorFunction>(function);
     auto* library = scriptContext->GetLibrary();
-    auto* prototype = library->CreateAsyncGeneratorConstructorPrototypeObject();
+    auto* prototype = VarTo<DynamicObject>(JavascriptOperators::GetPropertyNoCache(
+            function, Js::PropertyIds::prototype, scriptContext));
     auto* scriptFn = asyncGeneratorFn->GetGeneratorVirtualScriptFunction();
     auto* generator = library->CreateAsyncGenerator(args, scriptFn, prototype);
 
@@ -61,13 +62,6 @@ Var JavascriptAsyncGeneratorFunction::EntryAsyncGeneratorFunctionImplementation(
     END_SAFE_REENTRANT_CALL
 
     generator->SetSuspendedStart();
-
-    // Set the prototype from constructor
-    JavascriptOperators::OrdinaryCreateFromConstructor(
-        function,
-        generator,
-        prototype,
-        scriptContext);
 
     return generator;
 }

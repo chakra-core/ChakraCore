@@ -4,13 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-class DOMFastPathInfo;
 namespace Js
 {
     class CrossSite
     {
         friend class ExternalType;
-        friend class DOMFastPathInfo;
     public:
         static bool IsThunk(JavascriptMethod thunk);
         static BOOL NeedMarshalVar(Var instance, ScriptContext * requestContext);

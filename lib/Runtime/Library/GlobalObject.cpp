@@ -1540,19 +1540,6 @@ LHexError:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         ScriptContext* scriptContext = function->GetScriptContext();
-        if (!scriptContext->GetConfig()->IsCollectGarbageEnabled()
-#ifdef ENABLE_PROJECTION
-            && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeApplication
-            && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeWebview
-#endif
-            )
-        {
-            // We expose the CollectGarbage API with flag for compat reasons.
-            // If CollectGarbage key is not enabled, and if the HostType is neither
-            // HostType::HostTypeApplication nor HostType::HostTypeWebview,
-            // then we do not trigger collection.
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
 
         Recycler* recycler = scriptContext->GetRecycler();
         if (recycler)
@@ -1572,10 +1559,6 @@ LHexError:
         }
 
 #if DBG_DUMP
-#ifdef ENABLE_PROJECTION
-        scriptContext->GetThreadContext()->DumpProjectionContextMemoryStats(_u("Stats after GlobalObject::EntryCollectGarbage call"));
-#endif
-
         if (Js::Configuration::Global.flags.TraceWin8Allocations)
         {
             Output::Print(_u("MemoryTrace: GlobalObject::EntryCollectGarbage Exit\n"));

@@ -625,7 +625,7 @@ MACRO_EXTEND_WMS(       NewScGenFuncHomeObj,       ElementSlot,      OpSideEffec
 MACRO_EXTEND_WMS(       NewInnerScFuncHomeObj,     ElementSlotI3,    OpSideEffect)   // Create new ScriptFunction instance that has home object
 MACRO_EXTEND_WMS(       NewInnerScGenFuncHomeObj,  ElementSlotI3,    OpSideEffect)   // Create new JavascriptGeneratorFunction instance that has home object
 MACRO_EXTEND_WMS(       NewAsyncFromSyncIterator,  Reg2,    OpSideEffect)   // Create new JavascriptAsyncFromSyncOperator instance
-MACRO_EXTEND_WMS(       NewAwaitObject,     Reg2,           OpSideEffect)   // Create new internal await object instance
+MACRO_EXTEND_WMS(       NewAwaitObject,     Reg1,           OpSideEffect)   // Create new internal await object instance
 MACRO_BACKEND_ONLY(     NewScopeObject,     Reg1,           None)                       // Create new NewScopeObject
 MACRO_BACKEND_ONLY(     InitCachedScope,    Reg2Aux,        None)                   // Retrieve cached scope; create if not cached
 MACRO_BACKEND_ONLY(     InitLetCachedScope, Reg2Aux,        OpSideEffect)                   // Retrieve cached scope; create if not cached (formals are let-like instead of var-like)
@@ -803,11 +803,6 @@ MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTe
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     AdjustObjTypeReloadAuxSlotPtr,       Empty,          OpSideEffect)
 
-                                                                                                            // Edge inline built-ins
-#ifdef ENABLE_DOM_FAST_PATH
-MACRO_BACKEND_ONLY(     DOMFastPathGetter,   Empty,          OpCanCSE)  // unlike other builtins, we don't know the return type
-MACRO_BACKEND_ONLY(     DOMFastPathSetter,   Empty,          OpSideEffect)
-#endif
 MACRO_BACKEND_ONLY(     ExtendArg_A,         Empty,          OpCanCSE)  // extend a list of arguments to be passed to functions.
 
 #ifdef _M_X64

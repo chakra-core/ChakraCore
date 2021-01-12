@@ -341,12 +341,6 @@ LinearScanMD::GenerateBailOut(
     instr->ReplaceSrc1(IR::RegOpnd::New(nullptr, RegLR, TyMachPtr, func));
 }
 
-IR::Instr *
-LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, BailOutInfo * bailOutInfo)
-{
-    Js::Throw::NotImplemented();
-}
-
 uint LinearScanMD::GetRegisterSaveIndex(RegNum reg)
 {
     return reg;

@@ -28,6 +28,14 @@ function equal(expected, actual) {
     return expected === actual;
 }
 
+function ErrorPromise(test, promise, errorType, msg) {
+    const resultPromise =
+        promise.then((noError) => { throw new Error (`${test} failed - ${msg}`); },
+        (error) => { if (!(error instanceof errorType)) {
+            throw new Error (`${test} failed - ${msg} - ${error} thrown instead of ${errorType.name}`)}});
+    promises.push(resultPromise);
+}
+
 const tests = [
     {
         name : "Basic functionality",
@@ -223,6 +231,21 @@ const tests = [
             AddPromise(this.name, "yield from generator before promise rejected", gen.next(), {value : param, done : false});
             AddPromise(this.name, "return a rejected promise, should reject", gen.next(), "reason", true);
             AddPromise(this.name, "next after rejected promise - iterator should be closed", gen.next(), {done : true});
+        }
+    },
+    {
+        name : "Attempt to use AsyncGenerator methods with bad input",
+        body() {
+            function* gf () {}
+            async function* agf() {}
+            const ag = agf();
+            const g = gf();
+            const inputs = [g, {}, true, 5, []];
+            for (const input of inputs) {
+                ErrorPromise(this.name, ag.next.call(input), TypeError, `AsyncGenerator.prototype.next should reject with TypeError when called on ${typeof input} ${input}`);
+                ErrorPromise(this.name, ag.throw.call(input), TypeError, `AsyncGenerator.prototype.throw should reject with TypeError when called on ${typeof input} ${input}`);
+                ErrorPromise(this.name, ag.return.call(input), TypeError, `AsyncGenerator.prototype.return should reject with TypeError when called on ${typeof input} ${input}`);
+            }
         }
     }
 ];

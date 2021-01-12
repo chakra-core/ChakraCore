@@ -39,7 +39,6 @@ public:
     void        LegalizeConstantUse(IR::Instr * instr, IR::Opnd * opnd) { /* no op for arm */ }
 
     void        GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCount) StackSym ** registerSaveSyms, uint registerSaveSymsCount);
-    IR::Instr  *GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, BailOutInfo * bailOutInfo);
 private:
     static void SaveAllRegisters(BailOutRecord *const bailOutRecord);
 public:

@@ -205,10 +205,6 @@ const tests = [
 
             agf = new asyncGeneratorFunction('a', 'b', 'c', 'await a; await b; await c;');
             assert.areEqual("async function* anonymous(a,b,c\n) {await a; await b; await c;\n}", agf.toString(), "toString of asyncGeneratorFunction constructed function is named 'anonymous' with specified parameters");
-
-            // Cannot easily verify behavior of async generator functions in conjunction with UnitTestFramework.js
-            // due to callback nature of their execution. Instead, verification of behavior is
-            // found in async-generator-functionality.js test.
         }
     },
     {
@@ -230,7 +226,26 @@ const tests = [
             assert.areEqual(asyncGeneratorFunctionPrototype, Object.getPrototypeOf(cla.scagf), "Async generator class static method should have the same prototype as async generator function");
             assert.areEqual(asyncGeneratorFunctionPrototype, Object.getPrototypeOf(obj.oagf), "Async generator object method should have the same prototype as async generator function");
         }
+    },
+    {
+        name: "Attempt to use Generator methods with AsyncGenerator",
+        body() {
+            function* gf () {}
+            async function* agf() {}
+
+            const ag = agf();
+            const g = gf();
+
+            assert.throws(()=>{g.next.call(ag)}, TypeError, "Generator.prototype.next should throw TypeError when called on an Async Generator");
+            assert.throws(()=>{g.throw.call(ag)}, TypeError, "Generator.prototype.throw should throw TypeError when called on an Async Generator");
+            assert.throws(()=>{g.return.call(ag)}, TypeError, "Generator.prototype.return should throw TypeError when called on an Async Generator");
+        }
     }
 ];
+
+
+// Cannot easily verify behavior of async generator functions in conjunction with UnitTestFramework.js
+// due to callback nature of their execution. Instead, verification of behavior is
+// found in async-generator-functionality.js test.
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

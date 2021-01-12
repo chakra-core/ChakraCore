@@ -400,20 +400,6 @@ var tests = [
             var n = new Number(1);
             var b = new Boolean(2);
             var s = new String("Hi");
-
-            /*
-               Fast DOM and HostDispatch objects are tested in the mshtml test weakset_DOMkey.html
-               WinRT objects are still an open issue; they are CustomExternalObjects so they work,
-               but they are proxied and the proxies are not kept alive by the outside object, only
-               by internal JS references.  Further, allowing objects to be linked to the lifetime
-               of a WinJS object can cause cycles between JS GC objects and WinRT COM ref counted
-               objects, which are not deducible by the GC.  Therefore using WinRT objects with
-               WeakSet is prone to subtle easy to make memory leak bugs.
-            var fd = new FastDOM();
-            var hd = new HostDispatch();
-            var wrt = new WinRT();
-            */
-
             var ab = new ArrayBuffer(32);
 
             weakset.add(n);

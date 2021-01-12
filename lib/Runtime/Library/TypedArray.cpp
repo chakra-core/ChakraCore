@@ -328,35 +328,8 @@ namespace Js
                         Js::Throw::FatalInternalError();
                     }
 
-                    ArrayBuffer *temp = nullptr;
-                    HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
-                    arrayBuffer = static_cast<ArrayBufferBase *> (temp);
-                    switch (hr)
-                    {
-                    case S_OK:
-                        // We found an IBuffer
-                        fromExternalObject = true;
-                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
-                        // We have an ArrayBuffer now, so we can skip all the object probing.
-                        break;
-
-                    case S_FALSE:
-                        // We didn't find an IBuffer - fall through
-                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
-                        break;
-
-                    default:
-                        // Any FAILURE HRESULT or unexpected HRESULT
-                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
-                        break;
-                    }
-
-                    if (!fromExternalObject)
-                    {
-                        Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
-                        elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
-                    }
+                    Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
+                    elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
                 }
             }
         }

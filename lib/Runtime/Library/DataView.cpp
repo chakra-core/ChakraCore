@@ -37,27 +37,6 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("buffer"));
         }
 
-        // Currently the only reason we check for an external object is projection related, so it remains under conditional compilation.
-        RecyclableObject* jsArraySource = NULL;
-        if (JavascriptOperators::IsObject(args[1]) && JavascriptConversion::ToObject(args[1], scriptContext, &jsArraySource))
-        {
-            ArrayBuffer *ab = nullptr;
-            HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &ab);
-            switch (hr)
-            {
-            case S_OK:
-            case S_FALSE:
-                arrayBuffer = ab;
-                // Both of these cases will be handled by the arrayBuffer null check.
-                break;
-
-            default:
-                // Any FAILURE HRESULT or unexpected HRESULT.
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidArgument, _u("buffer"));
-                break;
-            }
-        }
-
         //2.    If Type(buffer) is not Object, throw a TypeError exception.
         //3.    If buffer does not have an [[ArrayBufferData]] internal slot, throw a TypeError exception.
         if (arrayBuffer == nullptr)
