@@ -1,8 +1,32 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
 trigger:
 - master
 - release/*
 
 jobs:
+  - job: Style
+    timeoutInMinutes: 10
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - script: jenkins/check_copyright.sh
+      displayName: "Copyright Check"
+
+    - script: jenkins/check_ascii.sh
+      displayName: "Ascii Check"
+
+    - script: jenkins/check_eol.sh
+      displayName: "EOL Check"
+
+    - script: jenkins/check_tabs.sh
+      displayName: "Tab Check"
+
   - job: CMake
     timeoutInMinutes: 120
     strategy:

@@ -37,3 +37,5 @@ This agreement has been signed by:
 |Andrey Taritsyn| Taritsyn|
 |Sasha Syrotenko| Fly-Style|
 |Yevhen Lukomskyi|ylukomskyi|
+|Petr Penzin| ppenzin|
+
