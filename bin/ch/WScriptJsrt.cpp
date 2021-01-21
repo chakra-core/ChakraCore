@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
@@ -1766,10 +1767,21 @@ Error:
 bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode, JsValueRef exception)
 {
     LPCWSTR errorTypeString = ConvertErrorCodeToMessage(jsErrorCode);
+    JsValueRef metaData = JS_INVALID_REFERENCE;
 
     if (exception == nullptr)
     {
-        ChakraRTInterface::JsGetAndClearException(&exception);
+        if (ChakraRTInterface::JsGetAndClearExceptionWithMetadata(&metaData) == JsNoError)
+        {
+            JsPropertyIdRef exceptionId = JS_INVALID_REFERENCE;
+            IfJsrtErrorFail(CreatePropertyIdFromString("exception", &exceptionId), false);
+            IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(metaData, exceptionId, &exception), false);
+        }
+        else
+        {
+            IfJsrtErrorFail(ChakraRTInterface::JsGetAndClearException(&exception), false);
+        }
+
     }
 
     if (HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
@@ -1783,7 +1795,56 @@ bool WScriptJsrt::PrintException(LPCSTR fileName, JsErrorCode jsErrorCode, JsVal
         {
             AutoString errorMessage;
 
-            IfJsrtErrorFail(errorMessage.Initialize(exception), false);
+            if (errorMessage.Initialize(exception) != JsNoError)
+            {
+                fwprintf(stderr, _u("ERROR attempting to coerce error to string, using alternate handler\n"));
+                bool hasException = false;
+                ChakraRTInterface::JsHasException(&hasException);
+                if (hasException)
+                {
+                    JsValueRef throwAway = JS_INVALID_REFERENCE;
+                    ChakraRTInterface::JsGetAndClearException(&throwAway);
+                }
+                JsPropertyIdRef messagePropertyId = JS_INVALID_REFERENCE;
+                IfJsrtErrorFail(CreatePropertyIdFromString("message", &messagePropertyId), false);
+                JsValueRef message = JS_INVALID_REFERENCE;
+                IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(exception, messagePropertyId, &message), false);
+                IfJsrtErrorFail(errorMessage.Initialize(message), false);
+
+                if (jsErrorCode != JsErrorCode::JsErrorScriptCompile)
+                {
+                    CHAR shortFileName[_MAX_PATH];
+                    CHAR ext[_MAX_EXT];
+                    _splitpath_s(fileName, nullptr, 0, nullptr, 0, shortFileName, _countof(shortFileName), ext, _countof(ext));
+
+                    if (metaData != JS_INVALID_REFERENCE)
+                    {
+                        JsPropertyIdRef linePropertyId = JS_INVALID_REFERENCE;
+                        JsValueRef lineProperty = JS_INVALID_REFERENCE;
+
+                        JsPropertyIdRef columnPropertyId = JS_INVALID_REFERENCE;
+                        JsValueRef columnProperty = JS_INVALID_REFERENCE;
+                        
+                        int line;
+                        int column;
+                        
+                        IfJsrtErrorFail(CreatePropertyIdFromString("line", &linePropertyId), false);
+                        IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(metaData, linePropertyId, &lineProperty), false);
+                        IfJsrtErrorFail(ChakraRTInterface::JsNumberToInt(lineProperty, &line), false);
+
+                        IfJsrtErrorFail(CreatePropertyIdFromString("column", &columnPropertyId), false);
+                        IfJsrtErrorFail(ChakraRTInterface::JsGetProperty(metaData, columnPropertyId, &columnProperty), false);
+                        IfJsrtErrorFail(ChakraRTInterface::JsNumberToInt(columnProperty, &column), false);
+                        fwprintf(stderr, _u("%ls\n        at code (%S%S:%d:%d)\n"),
+                            errorMessage.GetWideString(), shortFileName, ext, line + 1, column + 1);
+                    }
+                    else
+                    {
+                        fwprintf(stderr, _u("%ls\n\tat code (%S%S:\?\?:\?\?)\n"), errorMessage.GetWideString(), shortFileName, ext);
+                    }
+                    return true;
+                }
+            }
 
             if (jsErrorCode == JsErrorCode::JsErrorScriptCompile)
             {
