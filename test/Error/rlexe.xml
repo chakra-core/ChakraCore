@@ -179,4 +179,10 @@
       <files>errorPrototypetoString.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>exceptionInErrorToString.js</files>
+      <baseline>exceptionInErrorToString.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

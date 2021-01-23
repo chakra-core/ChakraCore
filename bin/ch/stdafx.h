@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -197,6 +198,7 @@ public:
 
     JsErrorCode Initialize(JsValueRef value)
     {
+        errorCode = JsNoError;
         JsValueRef strValue;
         JsValueType type;
         ChakraRTInterface::JsGetValueType(value, &type);
