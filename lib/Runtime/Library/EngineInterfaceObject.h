@@ -1,10 +1,33 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS)
+
+
+#pragma warning(push)
+#pragma warning(disable:4309) // truncation of constant value
+#pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
+
+#if DISABLE_JIT
+#if TARGET_64
+#include "InJavascript/JsBuiltIn.nojit.bc.64b.h"
+#else
+#include "InJavascript/JsBuiltIn.nojit.bc.32b.h"
+#endif // TARGET_64
+#else
+#if TARGET_64
+#include "InJavascript/JsBuiltIn.bc.64b.h"
+#else
+#include "InJavascript/JsBuiltIn.bc.32b.h"
+#endif // TARGET_64
+#endif // DISABLE_JIT
+
+#pragma warning(pop)
+
 
 namespace Js
 {

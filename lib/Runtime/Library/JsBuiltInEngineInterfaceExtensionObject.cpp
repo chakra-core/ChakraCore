@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -12,26 +13,6 @@
 #include "errstr.h"
 #include "ByteCode/ByteCodeDumper.h"
 
-#pragma warning(push)
-#pragma warning(disable:4309) // truncation of constant value
-#pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
-
-#if DISABLE_JIT
-#if TARGET_64
-#include "JsBuiltIn/JsBuiltIn.js.nojit.bc.64b.h"
-#else
-#include "JsBuiltIn/JsBuiltIn.js.nojit.bc.32b.h"
-#endif // TARGET_64
-#else
-#if TARGET_64
-#include "JsBuiltIn/JsBuiltIn.js.bc.64b.h"
-#else
-#include "JsBuiltIn/JsBuiltIn.js.bc.32b.h"
-#endif // TARGET_64
-#endif // DISABLE_JIT
-
-#pragma warning(pop)
-
 #define IfFailAssertMsgAndThrowHr(op, msg) \
     if (FAILED(hr=(op))) \
     { \
@@ -39,46 +20,18 @@
     JavascriptError::MapAndThrowError(scriptContext, hr); \
     } \
 
-#define FUNCTIONKIND_VALUES(VALUE) \
-VALUE(Array, values, Prototype) \
-VALUE(Array, keys, Prototype) \
-VALUE(Array, entries, Prototype) \
-VALUE(Array, indexOf, Prototype) \
-VALUE(Array, filter, Prototype) \
-VALUE(Array, flat, Prototype) \
-VALUE(Array, flatMap, Prototype) \
-VALUE(Array, forEach, Prototype) \
-VALUE(Array, some, Prototype) \
-VALUE(Array, sort, Prototype) \
-VALUE(Array, every, Prototype) \
-VALUE(Array, includes, Prototype) \
-VALUE(Array, reduce, Prototype) \
-VALUE(Object, fromEntries, Constructor) \
-VALUE(Math, max, Object) \
-VALUE(Math, min, Object)
-
-enum class FunctionKind
+enum class IsTypeStatic : bool
 {
-#define VALUE(ClassName, methodName, propertyType) ClassName##_##methodName,
-    FUNCTIONKIND_VALUES(VALUE) 
-#undef VALUE
-    Max
-};
-
-enum class IsPropertyTypeStatic : bool
-{
-    Prototype = false,
-    Constructor = true,
-    Object = true
+    prototype = false,
+    constructor = true,
+    object = true
 };
 
 namespace Js
 {
 
     JsBuiltInEngineInterfaceExtensionObject::JsBuiltInEngineInterfaceExtensionObject(ScriptContext * scriptContext) :
-        EngineExtensionObjectBase(EngineInterfaceExtensionKind_JsBuiltIn, scriptContext),
-        jsBuiltInByteCode(nullptr),
-        wasInitialized(false)
+        EngineExtensionObjectBase(EngineInterfaceExtensionKind_JsBuiltIn, scriptContext)
     {
     }
 
@@ -123,24 +76,39 @@ namespace Js
         library->arrayIteratorPrototypeBuiltinNextFunction = VarTo<JavascriptFunction>(JavascriptOperators::GetProperty(library->arrayIteratorPrototype, PropertyIds::next, scriptContext));
     }
 
-    void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext)
+    void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext, JsBuiltInFile file)
     {
         JavascriptExceptionObject *pExceptionObject = nullptr;
-        if (jsBuiltInByteCode != nullptr)
+        FunctionBody* jsBuiltInByteCode = nullptr;
+
+        switch (file)
         {
-            return;
+            #define jsBuiltInByteCodeCase(class, type, obj) \
+            case (JsBuiltInFile::class##_##type): \
+            { \
+                if (jsBuiltIn##class##_##type##Bytecode != nullptr) \
+                    return; \
+                EnsureSourceInfo(); \
+                uint32 flags = fscrJsBuiltIn | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0); \
+                SRCINFO* hsi = sourceInfo; \
+                Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)js::Library_Bytecode_##class##_##type, nullptr, &jsBuiltIn##class##_##type##Bytecode); \
+                jsBuiltInByteCode = jsBuiltIn##class##_##type##Bytecode; \
+                break; \
+            }
+            JsBuiltIns(jsBuiltInByteCodeCase)
+            #undef jsBuiltInByteCodeCase
         }
+        this->SetHasBytecode();
 
         try {
-            EnsureJsBuiltInByteCode(scriptContext);
-            Assert(jsBuiltInByteCode != nullptr);
+            AssertOrFailFast(jsBuiltInByteCode != nullptr);
 
             Js::ScriptFunction *functionGlobal = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode);
 
             // If we are in the debugger and doing a GetProperty of arguments, then Js Builtins code will be injected on-demand
             // Since it is a cross site call, we marshall not only functionGlobal but also its entire prototype chain
             // The prototype of functionGlobal will be shared by a normal Js function,
-            // so marshalling will inadvertantly transition the entrypoint of the prototype to a crosssite entrypoint
+            // so marshalling will inadvertently transition the entrypoint of the prototype to a crosssite entrypoint
             // So we set the prototype to null here
             functionGlobal->SetPrototype(scriptContext->GetLibrary()->nullValue);
 
@@ -177,6 +145,7 @@ namespace Js
             Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
             functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
 
+            current = file;
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             {
                 ThreadContext::AutoRestoreImplicitFlags autoRestoreImplicitFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
@@ -184,7 +153,10 @@ namespace Js
                 JavascriptFunction::CallRootFunctionInScript(functionBuiltins, Js::Arguments(callInfo, args));
             }
 
-            InitializePrototypes(scriptContext);
+            if (file == JsBuiltInFile::Array_prototype)
+            {
+                InitializePrototypes(scriptContext);
+            }
 #if DBG_DUMP
             if (PHASE_DUMP(Js::ByteCodePhase, functionGlobal->GetFunctionProxy()) && Js::Configuration::Global.flags.Verbose)
             {
@@ -199,6 +171,15 @@ namespace Js
 
         if (pExceptionObject)
         {
+            switch (file)
+            {
+                #define clearJsBuiltInByteCodeCase(class, type, obj) \
+            case (JsBuiltInFile::class##_##type): \
+                jsBuiltIn##class##_##type##Bytecode = nullptr;
+                    break;
+            JsBuiltIns(clearJsBuiltInByteCodeCase)
+            #undef clearJsBuiltInByteCodeCase
+            }
             jsBuiltInByteCode = nullptr;
             if (pExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
             {
@@ -210,20 +191,13 @@ namespace Js
 
     bool JsBuiltInEngineInterfaceExtensionObject::InitializeJsBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        int initSlotCapacity = 6; // for register{ChakraLibrary}Function, FunctionKind, POSITIVE_INFINITY, NEGATIVE_INFINITY, and GetIteratorPrototype
+        int initSlotCapacity = 5; // for register{ChakraLibrary}Function, POSITIVE_INFINITY, NEGATIVE_INFINITY, and GetIteratorPrototype
 
         typeHandler->Convert(builtInNativeInterfaces, mode, initSlotCapacity);
 
         ScriptContext* scriptContext = builtInNativeInterfaces->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        DynamicObject * functionKindObj = library->CreateObject();
-
-#define VALUE(ClassName, methodName, propertyType) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
-        FUNCTIONKIND_VALUES(VALUE)
-#undef VALUE
-
-        library->AddMember(builtInNativeInterfaces, PropertyIds::FunctionKind, functionKindObj);
         library->AddMember(builtInNativeInterfaces, PropertyIds::POSITIVE_INFINITY, library->GetPositiveInfinite());
         library->AddMember(builtInNativeInterfaces, PropertyIds::NEGATIVE_INFINITY, library->GetNegativeInfinite());
 
@@ -236,17 +210,37 @@ namespace Js
     }
 
 #if DBG
+    void JsBuiltInEngineInterfaceExtensionObject::DumpByteCode(JsBuiltInFile file)
+    {
+        Output::Print(_u("Dumping JS Built Ins Byte Code:\n"));
+        switch (file)
+        {
+            #define fileCase(class, type, obj) \
+            case class##_##type: \
+                Assert(this->jsBuiltIn##class##_##type##Bytecode != nullptr); \
+                Js::ByteCodeDumper::DumpRecursively(this->jsBuiltIn##class##_##type##Bytecode); \
+                break;
+            JsBuiltIns(fileCase)
+            #undef fileCase
+        }
+    }
+
     void JsBuiltInEngineInterfaceExtensionObject::DumpByteCode()
     {
         Output::Print(_u("Dumping JS Built Ins Byte Code:\n"));
-        Assert(this->jsBuiltInByteCode);
-        Js::ByteCodeDumper::DumpRecursively(jsBuiltInByteCode);
+        #define dumpOne(class, type, obj) \
+        if (this->jsBuiltIn##class##_##type##Bytecode != nullptr) \
+        { \
+            DumpByteCode(JsBuiltInFile::class##_##type); \
+        }
+        JsBuiltIns(dumpOne)
+        #undef dumpOne
     }
 #endif // DBG
 
-    void JsBuiltInEngineInterfaceExtensionObject::EnsureJsBuiltInByteCode(ScriptContext * scriptContext)
+    void JsBuiltInEngineInterfaceExtensionObject::EnsureSourceInfo()
     {
-        if (jsBuiltInByteCode == nullptr)
+        if (sourceInfo == nullptr)
         {
             SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(scriptContext->GetRecycler(), SourceContextInfo);
             sourceContextInfo->dwHostSourceContext = Js::Constants::JsBuiltInSourceContext;
@@ -258,13 +252,7 @@ namespace Js
             SRCINFO si;
             memset(&si, 0, sizeof(si));
             si.sourceContextInfo = sourceContextInfo;
-            SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
-            uint32 flags = fscrJsBuiltIn | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
-
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_JsBuiltIn, nullptr, &jsBuiltInByteCode);
-
-            IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize JsBuiltIn.js bytecode - very probably the bytecode needs to be rebuilt.");
-            this->SetHasBytecode();
+            sourceInfo = scriptContext->AddHostSrcInfo(&si);
         }
     }
 
@@ -299,46 +287,46 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count == 3 && TaggedInt::Is(args.Values[1]) && VarIs<ScriptFunction>(args.Values[2]));
+        AssertOrFailFast(args.Info.Count == 3 && VarIs<ScriptFunction>(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
-        FunctionKind funcKind = static_cast<FunctionKind>(TaggedInt::ToInt32(args.Values[1]));
-        AssertOrFailFast(funcKind >= (FunctionKind)0 && funcKind < FunctionKind::Max);
+        // process function name and get property ID
+        JavascriptString* methodString = VarTo<JavascriptString>(args.Values[1]);
+        PropertyRecord* methodPropertyRecord = nullptr;
+        methodString->GetPropertyRecord((PropertyRecord const **) &methodPropertyRecord, false);
+        PropertyId methodPropID = methodPropertyRecord->GetPropertyId();
 
         DynamicObject *installTarget = nullptr;
         bool isStatic = false;
-        PropertyId methodPropID = PropertyIds::_none;
-        PropertyString *methodPropString = nullptr;
         PropertyString *classPropString = nullptr;
         JavascriptString *fullName = nullptr;
         JavascriptString *dot = library->GetDotString();
-        switch (funcKind)
+        JsBuiltInFile current = (static_cast<JsBuiltInEngineInterfaceExtensionObject*>(scriptContext->GetLibrary()
+            ->GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_JsBuiltIn)))->current;
+
+        // determine what object this function is being added too
+        switch (current)
         {
-#define VALUE(ClassName, methodName, propertyType) \
-        case FunctionKind::ClassName##_##methodName: \
-            isStatic = static_cast<bool>(IsPropertyTypeStatic::##propertyType); \
-            installTarget = library->Get##ClassName##propertyType##(); \
-            methodPropID = PropertyIds::methodName; \
-            methodPropString = scriptContext->GetPropertyString(methodPropID); \
-            classPropString = scriptContext->GetPropertyString(PropertyIds::ClassName); \
-            break;
-FUNCTIONKIND_VALUES(VALUE)
-#undef VALUE
-        default:
-            AssertOrFailFastMsg(false, "funcKind should never be outside the range of projected values");
+            #define file(class, type, obj) \
+            case class##_##type: \
+                isStatic = static_cast<bool>(IsTypeStatic::##type); \
+                installTarget = library->Get##obj##(); \
+                classPropString = scriptContext->GetPropertyString(PropertyIds::class); \
+                break;
+            JsBuiltIns(file)
         }
 
-        Assert(methodPropString && classPropString && installTarget && methodPropID != PropertyIds::_none);
+        Assert(methodString && classPropString && installTarget && methodPropID != PropertyIds::_none);
 
         if (isStatic)
         {
-            fullName = JavascriptString::Concat3(classPropString, dot, methodPropString);
+            fullName = JavascriptString::Concat3(classPropString, dot, methodString);
         }
         else
         {
             JavascriptString *dotPrototypeDot = JavascriptString::Concat3(dot, scriptContext->GetPropertyString(PropertyIds::prototype), dot);
-            fullName = JavascriptString::Concat3(classPropString, dotPrototypeDot, methodPropString);
+            fullName = JavascriptString::Concat3(classPropString, dotPrototypeDot, methodString);
         }
 
         ScriptFunction *func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
@@ -351,59 +339,50 @@ FUNCTIONKIND_VALUES(VALUE)
 
         library->AddMember(installTarget, methodPropID, func);
 
-        // do extra logic here which didnt easily fit into the macro table
-        switch (funcKind)
+        // Make function available to other internal facilities that need it
+        // applicable for specific functions only - this may need review upon moving other functions into JsBuiltins
+        if (current == JsBuiltInFile::Array_prototype)
         {
-        case FunctionKind::Array_entries:
-            library->arrayPrototypeEntriesFunction = func;
-            break;
-        case FunctionKind::Array_values:
-            library->arrayPrototypeValuesFunction = func;
-            library->AddMember(installTarget, PropertyIds::_symbolIterator, func);
-            break;
-        case FunctionKind::Array_keys:
-            library->arrayPrototypeKeysFunction = func;
-            break;
-        case FunctionKind::Array_forEach:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryForEach, func);
-            break;
-        case FunctionKind::Array_filter:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryFilter, func);
-            break;
-        case FunctionKind::Array_indexOf:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryIndexOf, func);
-            break;
-        case FunctionKind::Array_some:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntrySome, func);
-            break;
-        case FunctionKind::Array_every:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryEvery, func);
-            break;
-        case FunctionKind::Array_includes:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryIncludes, func);
-            break;
-        case FunctionKind::Array_reduce:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryReduce, func);
-            break;
-        case FunctionKind::Math_max:
-            library->mathMax = func;
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMax, func);
-            break;
-        case FunctionKind::Math_min:
-            library->mathMin = func;
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMin, func);
-            break;
-        // FunctionKinds with no entry functions
-        case FunctionKind::Array_sort:
-        case FunctionKind::Array_flat:
-        case FunctionKind::Array_flatMap:
-        case FunctionKind::Object_fromEntries:
-            break;
-        default:
-            AssertOrFailFastMsg(false, "funcKind should never be outside the range of projected values");
-            break;
+            switch (methodPropID)
+            {
+                case PropertyIds::entries:
+                    library->arrayPrototypeEntriesFunction = func;
+                    break;
+                case PropertyIds::values:
+                    library->arrayPrototypeValuesFunction = func;
+                    library->AddMember(installTarget, PropertyIds::_symbolIterator, func);
+                    break;
+                case PropertyIds::keys:
+                    library->arrayPrototypeKeysFunction = func;
+                    break;
+                case PropertyIds::forEach:
+                    library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInArray_prototype_forEach, func);
+                    break;
+                case PropertyIds::filter:
+                    library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInArray_prototype_filter, func);
+                    break;
+                case PropertyIds::indexOf:
+                    library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInArray_prototype_indexOf, func);
+                    break;
+                case PropertyIds::reduce:
+                    library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInArray_prototype_reduce, func);
+                    break;
+            }
         }
-
+        else if (current == JsBuiltInFile::Math_object)
+        {
+            switch (methodPropID)
+            {
+                case PropertyIds::max:
+                    library->mathMax = func;
+                    library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMath_object_max, func);
+                    break;
+                case PropertyIds::min:
+                    library->mathMin = func;
+                    library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMath_object_min, func);
+                    break;
+            }
+        }
         //Don't need to return anything
         return library->GetUndefined();
     }

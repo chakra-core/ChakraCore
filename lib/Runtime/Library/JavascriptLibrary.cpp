@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -1904,6 +1905,33 @@ namespace Js
         return true;
     }
 
+#ifdef ENABLE_JS_BUILTINS
+    void EnsureBuiltInEngineIsReady(JsBuiltInFile file, ScriptContext* scriptContext)
+    {
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
+            {
+                EngineInterfaceObject* engineInterfaceObject = scriptContext->GetLibrary()->GetEngineInterfaceObject();
+                Assert(engineInterfaceObject != nullptr);
+                JsBuiltInEngineInterfaceExtensionObject* builtInExtension =
+                    static_cast<JsBuiltInEngineInterfaceExtensionObject*>(engineInterfaceObject->GetEngineExtension(EngineInterfaceExtensionKind_JsBuiltIn));
+                builtInExtension->InjectJsBuiltInLibraryCode(scriptContext, file);
+            }
+        }
+    }
+    
+    void JavascriptLibrary::EnsureArrayBuiltInsAreReady()
+    {
+        EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
+    }
+
+    void JavascriptLibrary::EnsureMathBuiltInsAreReady()
+    {
+        EnsureBuiltInEngineIsReady(JsBuiltInFile::Math_object, scriptContext);
+    }
+#endif
+
     bool JavascriptLibrary::IsDefaultArrayValuesFunction(RecyclableObject * function, ScriptContext *scriptContext)
     {
 #ifdef ENABLE_JS_BUILTINS
@@ -1912,7 +1940,7 @@ namespace Js
             ScriptFunction * scriptFunction = JavascriptOperators::TryFromVar<ScriptFunction>(function);
             if (scriptFunction)
             {
-                scriptContext->GetLibrary()->EnsureBuiltInEngineIsReady();
+                EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
                 return scriptFunction->GetFunctionProxy()->IsJsBuiltInCode();
             }
         }
@@ -1944,7 +1972,7 @@ namespace Js
             }
             else
             {
-                this->EnsureBuiltInEngineIsReady();
+                EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
             }
 #endif
         }
@@ -1964,7 +1992,7 @@ namespace Js
             }
             else
             {
-                this->EnsureBuiltInEngineIsReady();
+                EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
             }
 #endif
         }
@@ -1984,7 +2012,7 @@ namespace Js
             }
             else
             {
-                this->EnsureBuiltInEngineIsReady();
+                EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
             }
 #endif
         }
@@ -2052,7 +2080,7 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            library->EnsureBuiltInEngineIsReady();
+            EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
         }
         else
 #endif
@@ -2284,7 +2312,7 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            library->EnsureBuiltInEngineIsReady();
+            EnsureBuiltInEngineIsReady(JsBuiltInFile::Array_prototype, scriptContext);
         }
 #endif
 
@@ -3203,7 +3231,7 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            library->EnsureBuiltInEngineIsReady();
+            EnsureBuiltInEngineIsReady(JsBuiltInFile::Math_object, scriptContext);
         }
         else
 #endif
@@ -4140,7 +4168,7 @@ namespace Js
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
         {
-            library->EnsureBuiltInEngineIsReady();
+            EnsureBuiltInEngineIsReady(JsBuiltInFile::Object_constructor, scriptContext);
         }
 #endif
 
@@ -5170,44 +5198,6 @@ namespace Js
     }
 
 #ifdef ENABLE_JS_BUILTINS
-
-    bool JavascriptLibrary::InitializeBuiltInObject(DynamicObject* builtInObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
-    {
-        typeHandler->Convert(builtInObject, mode,  /*initSlotCapacity*/ 2);
-
-        if (builtInObject->GetScriptContext()->IsJsBuiltInEnabled())
-        {
-            auto builtInInitializer = [&](JsBuiltInEngineInterfaceExtensionObject* builtInExtension, ScriptContext * scriptContext) -> void
-            {
-                builtInExtension->InjectJsBuiltInLibraryCode(scriptContext);
-            };
-            builtInObject->GetLibrary()->InitializeBuiltInForPrototypes(builtInInitializer);
-        }
-        return true;
-    }
-
-    void JavascriptLibrary::EnsureBuiltInEngineIsReady()
-    {
-        if (scriptContext->IsJsBuiltInEnabled())
-        {
-            auto builtInInitializer = [&](JsBuiltInEngineInterfaceExtensionObject* builtInExtension, ScriptContext * scriptContext) -> void
-            {
-                builtInExtension->InjectJsBuiltInLibraryCode(scriptContext);
-            };
-            scriptContext->GetLibrary()->InitializeBuiltInForPrototypes(builtInInitializer);
-        }
-    }
-
-    template <class Fn>
-    void JavascriptLibrary::InitializeBuiltInForPrototypes(Fn fn)
-    {
-        if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
-        {
-            Assert(engineInterfaceObject != nullptr);
-            JsBuiltInEngineInterfaceExtensionObject* builtInExtension = static_cast<JsBuiltInEngineInterfaceExtensionObject*>(GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_JsBuiltIn));
-            fn(builtInExtension, scriptContext);
-        }
-    }
 
     bool JavascriptLibrary::InitializeChakraLibraryObject(DynamicObject * chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {

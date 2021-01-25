@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -71,7 +72,6 @@ GlobalBuiltIn(JavascriptObject, PreventExtensions)
 GlobalBuiltIn(JavascriptArray, Push) // TODO(jahorto): consider deleting (trivially implementable in JS)
 GlobalBuiltIn(JavascriptArray, Join)
 GlobalBuiltIn(JavascriptArray, Map)
-GlobalBuiltIn(JavascriptArray, Reduce)
 GlobalBuiltIn(JavascriptArray, Slice)
 GlobalBuiltIn(JavascriptArray, Concat)
 

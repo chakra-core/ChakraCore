@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -118,26 +119,6 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
 
 #undef PROJECTED_ENUM
 #undef ENUM_VALUE
-
-#pragma warning(push)
-#pragma warning(disable:4309) // truncation of constant value
-#pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
-
-#if DISABLE_JIT
-#if TARGET_64
-#include "InJavascript/Intl.js.nojit.bc.64b.h"
-#else
-#include "InJavascript/Intl.js.nojit.bc.32b.h"
-#endif
-#else
-#if TARGET_64
-#include "InJavascript/Intl.js.bc.64b.h"
-#else
-#include "InJavascript/Intl.js.bc.32b.h"
-#endif
-#endif
-
-#pragma warning(pop)
 
 #define IfFailAssertAndThrowHr(op) \
     if (FAILED(hr=(op))) \
@@ -529,9 +510,6 @@ namespace Js
         }
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        // Ensure JsBuiltIns are initialized before initializing Intl which uses some of them.
-        library->EnsureBuiltInEngineIsReady();
-
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
         if (scriptContext->IsIntlEnabled())
         {
@@ -722,7 +700,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
             SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
             uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
 
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_Intl, nullptr, &this->intlByteCode);
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)js::Library_Bytecode_Intl, nullptr, &this->intlByteCode);
 
             IfFailAssertMsgAndThrowHr(hr, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
 
@@ -732,6 +710,11 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
 
     void IntlEngineInterfaceExtensionObject::InjectIntlLibraryCode(_In_ ScriptContext * scriptContext, DynamicObject* intlObject, IntlInitializationType intlInitializationType)
     {
+
+        // Ensure JsBuiltIns are initialized before initializing Intl which uses some of them.
+        scriptContext->GetLibrary()->EnsureArrayBuiltInsAreReady();
+        scriptContext->GetLibrary()->EnsureMathBuiltInsAreReady();
+
         JavascriptExceptionObject *pExceptionObject = nullptr;
 #ifdef INTL_WINGLOB
         WindowsGlobalizationAdapter* globAdapter = GetWindowsGlobalizationAdapter(scriptContext);
