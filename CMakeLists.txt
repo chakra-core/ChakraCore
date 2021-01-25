@@ -466,6 +466,9 @@ if(NO_JIT_SH)
     unset(NO_JIT_SH CACHE)      # don't cache
     unset(BuildJIT CACHE)       # also clear it just in case
     add_definitions(-DDISABLE_JIT=1)
+elseif(DISABLE_JIT)
+    set(BuildJIT 0)
+    add_definitions(-DDISABLE_JIT=1)
 else()
     set(BuildJIT 1)
 endif()
