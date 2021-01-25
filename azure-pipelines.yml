@@ -50,6 +50,12 @@ jobs:
           build_type: 'Release'
           do_test: false
           libtype_flag: ''
+        OSX.noJit:
+          image_name: 'macOS-latest'
+          deps: 'brew install ninja icu4c'
+          build_type: 'Debug'
+          do_test: true
+          libtype_flag: '-DSTATIC_LIBRARY=ON -DDISABLE_JIT=1'
         OSX.Debug:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
