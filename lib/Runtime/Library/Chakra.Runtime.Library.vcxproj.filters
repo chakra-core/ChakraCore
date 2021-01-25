@@ -125,8 +125,10 @@
     <ClInclude Include="EngineInterfaceObject.h" />
     <ClInclude Include="ES5ArrayIndexEnumerator.h" />
     <ClInclude Include="HostObjectBase.h" />
-    <ClInclude Include="InJavascript\Intl.js.bc.32b.h" />
-    <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
+    <ClInclude Include="InJavascript\JsBuiltIn.bc.32b.h" />
+    <ClInclude Include="InJavascript\JsBuiltIn.bc.64b.h" />
+    <ClInclude Include="InJavascript\JsBuiltIn.nojit.bc.32b.h" />
+    <ClInclude Include="InJavascript\JsBuiltIn.nojit.bc.64b.h" />
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
     <ClInclude Include="JavascriptAsyncFromSyncIterator.h" />
@@ -231,10 +233,6 @@
     <ClInclude Include="JSONStringifier.h" />
     <ClInclude Include="JSONStringBuilder.h" />
     <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />
-    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.32b.h" />
-    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.bc.64b.h" />
-    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.32b.h" />
-    <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="..\LibraryFunction.h" />
     <ClInclude Include="IntlExtensionObjectBuiltIns.h" />

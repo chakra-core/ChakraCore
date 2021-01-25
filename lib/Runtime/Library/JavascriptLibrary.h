@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -692,13 +693,9 @@ namespace Js
 #endif
 
 #ifdef ENABLE_JS_BUILTINS
-        template <class Fn>
-        void InitializeBuiltInForPrototypes(Fn fn);
-
-        void EnsureBuiltInEngineIsReady();
-
+        void EnsureArrayBuiltInsAreReady();
+        void EnsureMathBuiltInsAreReady();
         static bool __cdecl InitializeChakraLibraryObject(DynamicObject* chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
-        static bool __cdecl InitializeBuiltInObject(DynamicObject* builtInEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
 #endif
 

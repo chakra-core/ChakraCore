@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
@@ -792,7 +793,7 @@ namespace TTD
 #ifdef ENABLE_JS_BUILTINS
         if (ctx->IsJsBuiltInEnabled())
         {
-            ctx->GetLibrary()->EnsureBuiltInEngineIsReady();
+            ctx->GetLibrary()->EnsureArrayBuiltInsAreReady();
         }
 #endif
         this->EnqueueRootPathObject(_u("_arrayIteratorPrototype"), ctx->GetLibrary()->GetArrayIteratorPrototype());

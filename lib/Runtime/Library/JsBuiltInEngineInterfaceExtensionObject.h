@@ -1,18 +1,26 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 #ifdef ENABLE_JS_BUILTINS
 namespace Js
 {
+
+    #define enum_file(class, type, obj) class##_##type,
+    typedef enum {
+        JsBuiltIns(enum_file)
+    } JsBuiltInFile;
+    #undef enum_file
+
     class JsBuiltInEngineInterfaceExtensionObject : public EngineExtensionObjectBase
     {
     public:
         JsBuiltInEngineInterfaceExtensionObject(ScriptContext* scriptContext);
         void Initialize();
         void InitializePrototypes(ScriptContext * scriptContext);
-        void InjectJsBuiltInLibraryCode(ScriptContext * scriptContext);
+        void InjectJsBuiltInLibraryCode(ScriptContext * scriptContext, JsBuiltInFile file);
 
         static bool __cdecl InitializeJsBuiltInNativeInterfaces(DynamicObject* intlNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
@@ -36,11 +44,17 @@ namespace Js
 
     private:
         Field(DynamicObject*) builtInNativeInterfaces;
-        Field(FunctionBody*) jsBuiltInByteCode;
 
-        Field(bool) wasInitialized;
+        #define BuiltInFunctionBody(class, type, obj) Field(FunctionBody*) jsBuiltIn##class##_##type##Bytecode = nullptr;
+        JsBuiltIns(BuiltInFunctionBody)
+        #undef BuiltInFunctionBody
 
-        void EnsureJsBuiltInByteCode(ScriptContext * scriptContext);
+        Field(JsBuiltInFile) current;
+        Field(bool) wasInitialized = false;
+        Field(SRCINFO*) sourceInfo = nullptr;
+
+        void EnsureSourceInfo();
+        void JsBuiltInEngineInterfaceExtensionObject::DumpByteCode(JsBuiltInFile file);
 
         static Var EntryJsBuiltIn_RegisterChakraLibraryFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
