@@ -16,7 +16,7 @@ If you find a security issue in the Master branch of ChakraCore but not in 1.11 
 
 You will need to complete a Contribution Agreement before your pull request can be accepted. This agreement testifies that you are granting us permission to use the source code you are submitting, and that this work is being submitted under appropriate license that we can use it.
 
-You can read the agreement here: [Contribution Agreement](Contribution%20Agreement.md)
+You can read the agreement here: [Contribution Agreement](ContributionAgreement.md)
 
 ## Housekeeping
 
