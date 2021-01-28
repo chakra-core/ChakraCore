@@ -15,15 +15,10 @@
     <copyright>Copyright (C) 2016 Microsoft</copyright>
     <language>en-US</language>
     <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
-    <dependencies>
-      <group targetFramework=".NETStandard1.0" />
-    </dependencies>
   </metadata>
   <files>
-    <file src="_._" target="lib\netstandard1.0\"/>
+    <file src="Microsoft.ChakraCore.Symbols.props" target="build" />
 
-    <file src="Microsoft.ChakraCore.Symbols.props" target="build\netstandard1.0"/>
-    
     <file src="..\VcBuild\bin\x86_release\ChakraCore.pdb" target="runtimes\win7-x86\native\ChakraCore.pdb" />
     <file src="..\VcBuild\bin\x64_release\ChakraCore.pdb" target="runtimes\win7-x64\native\ChakraCore.pdb" />
     <file src="..\VcBuild\bin\arm_release\ChakraCore.pdb" target="runtimes\win8-arm\native\ChakraCore.pdb" />
