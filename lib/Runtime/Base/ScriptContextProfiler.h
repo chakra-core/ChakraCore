@@ -1,17 +1,19 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
 class ServerScriptContext;
+class NativeCodeGenerator;
 namespace Js
 {
     class ScriptContextProfiler
     {
 #ifdef PROFILE_EXEC
-        friend class NativeCodeGenerator;
-        friend class ServerScriptContext;
+        friend class ::NativeCodeGenerator;
+        friend class ::ServerScriptContext;
 
     public:
         ScriptContextProfiler();

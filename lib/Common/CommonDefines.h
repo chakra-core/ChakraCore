@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -378,11 +379,7 @@
 #define RUNTIME_DATA_COLLECTION
 #define SECURITY_TESTING
 
-// xplat-todo: Temporarily disable profile output on non-Win32 builds
-#ifdef _WIN32
 #define PROFILE_EXEC
-#endif
-
 #define BGJIT_STATS
 #define REJIT_STATS
 #define PERF_HINT
