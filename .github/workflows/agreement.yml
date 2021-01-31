@@ -1,0 +1,17 @@
+name: "Contribution Agreement"
+on:
+  pull_request
+
+jobs:
+  AgreementCheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: |
+          echo Looking up contributor
+          tail -n +36 ContributionAgreement.md | awk -F\| '{print $3}' | grep -w $USER
+        env:
+          USER: ${{ github.actor }}

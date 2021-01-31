@@ -1599,7 +1599,8 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
                 // Do not always push to higherBound
                 // See Js::NumberUtilities::FDblToStr for the exception
                 // i.e. we shouldn't push digits beyond interest to higherBound
-                prgb[ib++] = bT + (byte)(nDigits == -1 || ib < nDigits ? 1 : 0);
+                prgb[ib] = bT + (byte)(nDigits == -1 || ib < nDigits ? 1 : 0);
+                ++ib;
                 break;
             }
 LRoundUp9:

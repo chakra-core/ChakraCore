@@ -21,28 +21,21 @@
 CHAKRA_API
 JsInitializeModuleRecord(
     _In_opt_ JsModuleRecord referencingModule,
-    _In_ JsValueRef normalizedSpecifier,
+    _In_opt_ JsValueRef normalizedSpecifier,
     _Outptr_result_maybenull_ JsModuleRecord* moduleRecord)
 {
     PARAM_NOT_NULL(moduleRecord);
 
-    Js::SourceTextModuleRecord* childModuleRecord = nullptr;
+    Js::SourceTextModuleRecord* newModuleRecord = nullptr;
 
     JsErrorCode errorCode = ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        childModuleRecord = Js::SourceTextModuleRecord::Create(scriptContext);
-        if (referencingModule == nullptr)
-        {
-            childModuleRecord->SetIsRootModule();
-        }
-        if (normalizedSpecifier != JS_INVALID_REFERENCE)
-        {
-            childModuleRecord->SetSpecifier(normalizedSpecifier);
-        }
+        newModuleRecord = Js::SourceTextModuleRecord::Create(scriptContext);
+        newModuleRecord->SetSpecifier(normalizedSpecifier);
         return JsNoError;
     });
     if (errorCode == JsNoError)
     {
-        *moduleRecord = childModuleRecord;
+        *moduleRecord = newModuleRecord;
     }
     else
     {
@@ -85,9 +78,9 @@ JsParseModuleSource(
         {
             const char16 *moduleUrlSz = nullptr;
             size_t moduleUrlLen = 0;
-            if (moduleRecord->GetModuleUrl())
+            if (moduleRecord->GetSpecifier())
             {
-                Js::JavascriptString *moduleUrl = Js::VarTo<Js::JavascriptString>(moduleRecord->GetModuleUrl());
+                Js::JavascriptString *moduleUrl = Js::VarTo<Js::JavascriptString>(moduleRecord->GetSpecifier());
                 moduleUrlSz = moduleUrl->GetSz();
                 moduleUrlLen = moduleUrl->GetLength();
             }
@@ -156,10 +149,9 @@ JsSetModuleHostInfo(
     Js::SourceTextModuleRecord* moduleRecord;
     if (!Js::SourceTextModuleRecord::Is(requestModule))
     {
-        if (moduleHostInfo != JsModuleHostInfo_FetchImportedModuleCallback &&
-            moduleHostInfo != JsModuleHostInfo_FetchImportedModuleFromScriptCallback &&
-            moduleHostInfo != JsModuleHostInfo_NotifyModuleReadyCallback &&
-            moduleHostInfo != JsModuleHostInfo_InitializeImportMetaCallback)
+        if (moduleHostInfo == JsModuleHostInfo_Exception ||
+            moduleHostInfo == JsModuleHostInfo_HostDefined ||
+            moduleHostInfo == JsModuleHostInfo_Url)
         {
             return JsErrorInvalidArgument;
         }
@@ -195,8 +187,11 @@ JsSetModuleHostInfo(
         case JsModuleHostInfo_InitializeImportMetaCallback:
             currentContext->GetHostScriptContext()->SetInitializeImportMetaCallback(reinterpret_cast<InitializeImportMetaCallback>(hostInfo));
             break;
+        case JsModuleHostInfo_ReportModuleCompletionCallback:
+            currentContext->GetHostScriptContext()->SetReportModuleCompletionCallback(reinterpret_cast<ReportModuleCompletionCallback>(hostInfo));
+            break;
         case JsModuleHostInfo_Url:
-            moduleRecord->SetModuleUrl(hostInfo);
+            moduleRecord->SetSpecifier(hostInfo);
             break;
         default:
             return JsInvalidModuleHostInfoKind;
@@ -245,8 +240,11 @@ JsGetModuleHostInfo(
         case JsModuleHostInfo_InitializeImportMetaCallback:
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetInitializeImportMetaCallback());
             break;
+        case JsModuleHostInfo_ReportModuleCompletionCallback:
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetReportModuleCompletionCallback());
+            break;
         case JsModuleHostInfo_Url:
-            *hostInfo = reinterpret_cast<void*>(moduleRecord->GetModuleUrl());
+            *hostInfo = reinterpret_cast<void*>(moduleRecord->GetSpecifier());
             break;
         default:
             return JsInvalidModuleHostInfoKind;

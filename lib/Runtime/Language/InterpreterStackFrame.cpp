@@ -314,6 +314,52 @@
 
 #define PROCESS_U1toINNERMemNonVar(name, func) PROCESS_U1toINNERMemNonVar_COMMON(name, func,)
 
+#define PROCESS_XXtoA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg2U, suffix); \
+        SetReg(playout->R0, \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_XXtoA2_FB(name, func) PROCESS_XXtoA2_FB_COMMON(name, func,)
+
+#define PROCESS_A1toA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg3U, suffix); \
+        SetReg(playout->R0, \
+               func((FrameDisplay*)GetNonVarReg(playout->R2), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_A1toA2_FB(name, func) PROCESS_A1toA2_FB_COMMON(name, func,)
+
+#define PROCESS_A2toA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg4U, suffix); \
+        SetReg(playout->R0, \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), \
+               GetReg(playout->R2), GetReg(playout->R3), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_A2toA2_FB(name, func) PROCESS_A2toA2_FB_COMMON(name, func,)
+
+#define PROCESS_A3toA2_FB_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg5U, suffix); \
+        SetReg(playout->R0, \
+               func((FrameDisplay*)GetNonVarReg(playout->R4), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), \
+               GetReg(playout->R2), GetReg(playout->R3), playout->R1)); \
+        break; \
+    }
+
+#define PROCESS_A3toA2_FB(name, func) PROCESS_A3toA2_FB_COMMON(name, func,)
+
 #define PROCESS_XXINNERtoA1MemNonVar_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
@@ -687,6 +733,19 @@
     }
 
 #define PROCESS_BRCMem(name, func) PROCESS_BRCMem_COMMON(name, func,)
+
+#define PROCESS_BR_AtoA2_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, BrReg3, suffix); \
+        if (func(playout->R0, playout->R1, playout->R2)) \
+        { \
+            ip = m_reader.SetCurrentRelativeOffset(ip, playout->RelativeJumpOffset); \
+        } \
+        break; \
+    }
+
+#define PROCESS_BR_AtoA2(name, func) PROCESS_BR_AtoA2_COMMON(name, func,)
 
 #define PROCESS_BRPROP(name, func) \
     case OpCode::name: \
@@ -1970,18 +2029,17 @@ skipThunk:
             // If the FunctionBody is a generator then this call is being made by one of the three
             // generator resuming methods: next(), throw(), or return().  They all pass the generator
             // object as the first of two arguments.  The real user arguments are obtained from the
-            // generator object.  The second argument is the ResumeYieldData which is only needed
+            // generator object.  The second argument is the resume yield object which is only needed
             // when resuming a generator and so it is only used here if a frame already exists on the
             // generator object.
-            AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+            AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a resume yield object");
 
             JavascriptGenerator* generator = VarTo<JavascriptGenerator>(args[0]);
             newInstance = generator->GetFrame();
 
             if (newInstance != nullptr)
             {
-                ResumeYieldData* resumeYieldData = static_cast<ResumeYieldData*>(args[1]);
-                newInstance->SetNonVarReg(executeFunction->GetYieldRegister(), resumeYieldData);
+                newInstance->SetNonVarReg(executeFunction->GetYieldRegister(), args[1]);
 
                 // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
                 // give the InterpreterStackFrame a legit enough stack address to make this comparison work.
@@ -2484,8 +2542,7 @@ skipThunk:
             if (exception)
             {
                 bool skipException = false;
-                if (!exception->IsGeneratorReturnException() &&
-                    exception != scriptContext->GetThreadContext()->GetPendingSOErrorObject() &&
+                if (exception != scriptContext->GetThreadContext()->GetPendingSOErrorObject() &&
                     exception != scriptContext->GetThreadContext()->GetPendingOOMErrorObject())
                 {
                     skipException = exception->IsDebuggerSkip();
@@ -6711,12 +6768,6 @@ skipThunk:
         // Now that the stack is unwound, let's run the catch block.
         if (exception)
         {
-            if (exception->IsGeneratorReturnException())
-            {
-                // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }
-
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
             // We've got a JS exception. Grab the exception object and assign it to the
             // catch object's location, then call the handler (i.e., we consume the Catch op here).
@@ -6927,11 +6978,6 @@ skipThunk:
         // Now that the stack is unwound, let's run the catch block.
         if (exception)
         {
-            if (exception->IsGeneratorReturnException())
-            {
-                // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }
             if (catchOffset != 0)
             {
                 exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -7193,7 +7239,7 @@ skipThunk:
             SetNonVarReg(regOffset, reinterpret_cast<Js::Var>(currOffset));
         }
 
-        if (pExceptionObject && !pExceptionObject->IsGeneratorReturnException())
+        if (pExceptionObject)
         {
             // Clone static exception object early in case finally block overwrites it
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
@@ -7251,7 +7297,7 @@ skipThunk:
             return;
         }
 
-        if (pExceptionObject && (endOfFinallyBlock || !pExceptionObject->IsGeneratorReturnException()))
+        if (pExceptionObject)
         {
             JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
         }
@@ -7301,7 +7347,7 @@ skipThunk:
         }
 
         Js::JavascriptExceptionObject* exceptionObj = (Js::JavascriptExceptionObject*)GetNonVarReg(exceptionRegSlot);
-        if (exceptionObj && (endOfFinallyBlock || !exceptionObj->IsGeneratorReturnException()))
+        if (exceptionObj)
         {
             JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
         }
@@ -7818,10 +7864,54 @@ skipThunk:
         return m_reader.SetCurrentRelativeOffset((const byte *)(playout + 1), playout->RelativeJumpOffset);
     }
 
-    template <class T>
-    void InterpreterStackFrame::OP_InitClass(const unaligned OpLayoutT_Class<T> * playout)
+    Var InterpreterStackFrame::OP_InitBaseClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RegSlot protoReg)
     {
-        JavascriptOperators::OP_InitClass(GetReg(playout->Constructor), playout->Extends != Js::Constants::NoRegister ? GetReg(playout->Extends) : NULL, GetScriptContext());
+        RecyclableObject * protoParent = scriptContext->GetLibrary()->GetObjectPrototype();
+        RecyclableObject * constructorParent = scriptContext->GetLibrary()->GetFunctionPrototype();
+
+        return InitClassHelper(environment, infoRef, protoParent, constructorParent, protoReg);
+    }
+
+    bool InterpreterStackFrame::OP_CheckExtends(RegSlot regCtorParent, RegSlot regProtoParent, RegSlot regExtends)
+    {
+        Var extends = GetReg(regExtends);
+        if (JavascriptOperators::IsNull(extends))
+        {
+            SetReg(regProtoParent, scriptContext->GetLibrary()->GetNull());
+            SetReg(regCtorParent, scriptContext->GetLibrary()->GetFunctionPrototype());
+            return true;
+        }
+        if (!JavascriptOperators::IsConstructor(extends))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
+        }            
+        return false;
+    }
+
+    Var InterpreterStackFrame::OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var constructorParent, Var protoParent, RegSlot protoReg)
+    {
+        return InitClassHelper(environment, infoRef, VarTo<RecyclableObject>(protoParent), VarTo<RecyclableObject>(constructorParent), protoReg);
+    }
+
+    Var InterpreterStackFrame::InitClassHelper(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RecyclableObject *protoParent, RecyclableObject *constructorParent, RegSlot protoReg)
+    {
+        Assert(protoParent && JavascriptOperators::IsObjectOrNull(protoParent));
+        Assert(constructorParent && (JavascriptOperators::IsConstructor(constructorParent) || constructorParent == scriptContext->GetLibrary()->GetFunctionPrototype()));
+
+        // Create prototype object with the default class prototype object shape {'constructor': W:T, E:F, C:T} and [[Prototype]] == protoParent
+        DynamicObject * proto = scriptContext->GetLibrary()->CreateClassPrototypeObject(protoParent);
+
+        // Create class constructor object for the constructor function, with default constructor shape:
+        //    {'prototype': W:F, E:F, C:F}, {'length': W:F, E:F, C:T}, {'name': W:F, E:F, C:T}
+        //    [[Prototype]] == constructorParent and [[HomeObject]] == proto
+        // The callee initializes the object and the 3 properties.
+        ScriptFunction * constructor = ScriptFunction::OP_NewClassConstructor(environment, infoRef, proto, constructorParent);
+
+        proto->SetSlot(SetSlotArguments(Constants::NoProperty, 0, constructor));
+        constructor->SetSlot(SetSlotArguments(Constants::NoProperty, 0, proto));
+
+        SetReg(protoReg, proto);
+        return constructor;
     }
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
@@ -8161,7 +8251,12 @@ skipThunk:
     void InterpreterStackFrame::OP_SimdLdArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
+
+        if (GetRegRawInt(playout->SlotIndex) < 0) {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
+        }
+
+        const uint64 index = (uint64)GetRegRawInt(playout->SlotIndex) + playout->Offset;
 
         ArrayBufferBase* arr =
 #ifdef ENABLE_WASM_SIMD
@@ -8209,7 +8304,12 @@ skipThunk:
     void InterpreterStackFrame::OP_SimdStArrGeneric(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = ((uint64)(uint32)GetRegRawInt(playout->SlotIndex) + playout->Offset /* WASM only */) & (int64)(int)ArrayBufferView::ViewMask[playout->ViewType];
+
+        if (GetRegRawInt(playout->SlotIndex) < 0)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("Simd typed array access"));
+        }
+        const uint64 index = (uint64)GetRegRawInt(playout->SlotIndex) + playout->Offset;
 
         ArrayBufferBase* arr =
 #ifdef ENABLE_WASM_SIMD
@@ -8570,10 +8670,10 @@ skipThunk:
             this->m_functionBody->GetReferencedPropertyId(propertyIdIndex), scriptContext);
     }
 
-    BOOL InterpreterStackFrame::OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext)
+    BOOL InterpreterStackFrame::OP_BrOnHasEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext)
     {
         Var instance = OP_LdFrameDisplaySlot(envInstance, slotIndex);
-        return !JavascriptOperators::OP_HasProperty(instance,
+        return JavascriptOperators::OP_HasProperty(instance,
             this->m_functionBody->GetReferencedPropertyId(propertyIdIndex), scriptContext);
     }
 
@@ -9467,42 +9567,6 @@ skipThunk:
     void* InterpreterStackFrame::OP_LdArgCnt()
     {
         return (void*)m_inSlotsCount;
-    }
-
-    void InterpreterStackFrame::OP_AsyncYieldStar(Var yieldDataVar, Var value, ScriptContext* scriptContext)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        JavascriptOperators::OP_AsyncYieldStar(yieldData->generator, value, scriptContext);
-    }
-
-    void InterpreterStackFrame::OP_AsyncYield(Var yieldDataVar, Var value, ScriptContext* scriptContext)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        JavascriptOperators::OP_AsyncYield(yieldData->generator, value, scriptContext);
-    }
-
-    void InterpreterStackFrame::OP_Await(Var yieldDataVar, Var value, ScriptContext* scriptContext)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        JavascriptOperators::OP_Await(yieldData->generator, value, scriptContext);
-    }
-
-    Var InterpreterStackFrame::OP_AsyncYieldIsReturn(Var yieldDataVar)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        return JavascriptOperators::OP_AsyncYieldIsReturn(yieldData);
-    }
-
-    Var InterpreterStackFrame::OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-        RecyclableObject* iterator = yieldStarIterator != Constants::NoRegister ? VarTo<RecyclableObject>(GetNonVarReg(yieldStarIterator)) : nullptr;
-
-        return JavascriptOperators::OP_ResumeYield(yieldData, iterator);
     }
 
     void* InterpreterStackFrame::operator new(size_t byteSize, void* previousAllocation) throw()

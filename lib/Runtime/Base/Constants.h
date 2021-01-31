@@ -27,6 +27,7 @@ namespace Js
         static const uint               NoByteCodeOffset            = (uint)-1;
         static const PropertyId         NoProperty                  = -1;
         static const RegSlot            NoRegister                  = (RegSlot)-1;
+        static const ByteCodeLabel      NoByteCodeLabel             = (ByteCodeLabel)-1;
         static const RegSlot            OneByteRegister             = (RegSlot_OneByte)-1;
         static const int32              InvalidOffset               = -1;
         static const unsigned int       PropertyGroupSize           = 512;
@@ -153,6 +154,7 @@ namespace Js
         static const  char16 Empty[];
         static const  char16 FunctionCode[];
         static const  char16 GlobalCode[];
+        static const  char16 ModuleCode[];
         static const  char16 EvalCode[];
         static const  char16 GlobalFunction[];
         static const  char16 UnknownScriptCode[];
@@ -165,11 +167,12 @@ namespace Js
         static const charcount_t FunctionCodeLength      = _countof(_u("Function code")) - 1;
         static const charcount_t GlobalFunctionLength    = _countof(_u("glo")) - 1;
         static const charcount_t GlobalCodeLength        = _countof(_u("Global code")) - 1;
+        static const charcount_t ModuleCodeLength        = _countof(_u("Module code")) - 1;
         static const charcount_t EvalCodeLength          = _countof(_u("eval code")) - 1;
         static const charcount_t UnknownScriptCodeLength = _countof(_u("Unknown script code")) - 1;
-        static const charcount_t NullStringLength = _countof(_u("Null")) - 1;
-        static const charcount_t TrueStringLength = _countof(_u("True")) - 1;
-        static const charcount_t FalseStringLength = _countof(_u("False")) - 1;
+        static const charcount_t NullStringLength        = _countof(_u("Null")) - 1;
+        static const charcount_t TrueStringLength        = _countof(_u("True")) - 1;
+        static const charcount_t FalseStringLength       = _countof(_u("False")) - 1;
     };
 
     extern const FrameDisplay NullFrameDisplay;

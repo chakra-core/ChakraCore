@@ -26,7 +26,7 @@ public:
 
     BailOutInfo(uint32 bailOutOffset, Func* bailOutFunc) :
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
-        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
+        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr), bailInInstr(nullptr),
         totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false), canDeadStore(true),
         outParamInlinedArgSlot(nullptr), liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
         branchConditionOpnd(nullptr),
@@ -159,6 +159,8 @@ public:
     //   while other instrs sharing bailout info will just have checks and JMP to BailTarget).
     // 2) After we generated bailout, this becomes label instr. In case of shared bailout other instrs JMP to this label.
     IR::Instr * bailOutInstr;
+
+    IR::GeneratorBailInInstr * bailInInstr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     Js::OpCode bailOutOpcode;

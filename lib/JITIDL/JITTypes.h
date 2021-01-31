@@ -70,7 +70,7 @@ typedef unsigned char boolean;
 #define __JITTypes_h__
 
 // TODO: OOP JIT, how do we make this better?
-const int VTABLE_COUNT = 59;
+const int VTABLE_COUNT = 60;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
 
 typedef IDL_DEF([context_handle]) void * PTHREADCONTEXT_HANDLE;
@@ -387,6 +387,8 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR charStringCacheAddr;
     CHAKRA_PTR libraryAddr;
     CHAKRA_PTR globalObjectAddr;
+    CHAKRA_PTR objectPrototypeAddr;
+    CHAKRA_PTR functionPrototypeAddr;
     CHAKRA_PTR sideEffectsAddr;
     CHAKRA_PTR arraySetElementFastPathVtableAddr;
     CHAKRA_PTR intArraySetElementFastPathVtableAddr;

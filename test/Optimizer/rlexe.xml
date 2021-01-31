@@ -1213,6 +1213,11 @@
   </test>
   <test>
     <default>
+      <files>PrePassEntanglement.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>missing_len.js</files>
       <baseline>missing_len.baseline</baseline>
     </default>
@@ -1627,6 +1632,13 @@
     <default>
       <files>aux_slot_type_transition_2.js</files>
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_gh6325.js</files>
+      <compile-flags>-off:backend -forcejitloopbody</compile-flags>
+      <tags>exclude_nonative</tags>
     </default>
   </test>
 </regress-exe>

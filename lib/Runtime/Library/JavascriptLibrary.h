@@ -14,21 +14,13 @@ CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
 #include "StringCache.h"
 #include "Library/JavascriptGenerator.h"
+#include "Library/JavascriptAsyncGenerator.h"
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
-class ProjectionExternalLibrary;
 class EditAndContinue;
 class ChakraHostScriptContext;
 class JsrtExternalType;
-
-#ifdef ENABLE_PROJECTION
-namespace Projection
-{
-    class ProjectionContext;
-    class WinRTPromiseEngineInterfaceExtensionObject;
-}
-#endif
 
 namespace Js
 {
@@ -177,11 +169,6 @@ namespace Js
         friend class JsBuiltInEngineInterfaceExtensionObject;
 #endif
         friend class ChakraHostScriptContext;
-#ifdef ENABLE_PROJECTION
-        friend class ProjectionExternalLibrary;
-        friend class Projection::WinRTPromiseEngineInterfaceExtensionObject;
-        friend class Projection::ProjectionContext;
-#endif
         static const char16* domBuiltinPropertyNames[];
 
     public:
@@ -269,10 +256,11 @@ namespace Js
         Field(DynamicType *) bigintTypeDynamic;
         Field(StaticType *) bigintTypeStatic;
         Field(DynamicType *) dateType;
-        Field(StaticType *) variantDateType;
         Field(DynamicType *) symbolTypeDynamic;
         Field(StaticType *) symbolTypeStatic;
         Field(DynamicType *) iteratorResultType;
+        Field(DynamicType *) awaitObjectType;
+        Field(DynamicType *) resumeYieldObjectType;
         Field(DynamicType *) arrayIteratorType;
         Field(DynamicType *) mapIteratorType;
         Field(DynamicType *) setIteratorType;
@@ -295,6 +283,8 @@ namespace Js
         Field(DynamicTypeHandler *) functionTypeHandlerWithLength;
         Field(DynamicTypeHandler *) functionWithPrototypeAndLengthTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
+        Field(DynamicTypeHandler *) classPrototypeTypeHandler;
+
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
         Field(DynamicType *) externalFunctionWithLengthAndDeferredPrototypeType;
         Field(DynamicType *) wrappedFunctionWithDeferredPrototypeType;
@@ -540,6 +530,8 @@ namespace Js
         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
         static SimpleTypeHandler<3> SharedFunctionWithPrototypeLengthAndNameTypeHandler;
         static SimpleTypeHandler<2> SharedFunctionWithPrototypeAndLengthTypeHandler;
+        static SimpleTypeHandler<2> SharedFunctionWithNonWritablePrototypeAndLengthTypeHandler;
+        static SimpleTypeHandler<3> SharedFunctionWithNonWritablePrototypeLengthAndNameTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
@@ -549,7 +541,10 @@ namespace Js
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithPrototypeLengthAndNameTypeDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithPrototypeAndLengthTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithNonWritablePrototypeAndLengthTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithNonWritablePrototypeLengthAndNameTypeDescriptors[3];
         static SimplePropertyDescriptor const ModuleNamespaceTypeDescriptors[1];
+        static SimplePropertyDescriptor const ClassPrototypePropertyDescriptors[1];
 
     public:
 
@@ -746,6 +741,8 @@ namespace Js
         DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
         DynamicType * GetGeneratorConstructorPrototypeObjectType() const { return generatorConstructorPrototypeObjectType; }
         DynamicType * GetAsyncGeneratorConstructorPrototypeObjectType() const { return asyncGeneratorConstructorPrototypeObjectType; }
+        DynamicType * GetResumeYieldObjectType() const { return resumeYieldObjectType; }
+        DynamicType * GetAwaitObjectType() const { return awaitObjectType; }
 
 #ifdef ENABLE_WASM
         JavascriptFunction* GetWebAssemblyQueryResponseFunction() const { return webAssemblyQueryResponseFunction; }
@@ -776,7 +773,6 @@ namespace Js
         DynamicType * GetArrayBufferType() const { return arrayBufferType; }
         StaticType  * GetStringTypeStatic() const { return stringCache.GetStringTypeStatic(); }
         DynamicType * GetStringTypeDynamic() const { return stringTypeDynamic; }
-        StaticType  * GetVariantDateType() const { return variantDateType; }
         void EnsureDebugObject(DynamicObject* newDebugObject);
         DynamicObject* GetDebugObject() const { Assert(debugObject != nullptr); return debugObject; }
         DynamicType * GetMapType() const { return mapType; }
@@ -937,6 +933,7 @@ namespace Js
         JavascriptSymbol* CreateSymbol(const PropertyRecord* propertyRecord);
         JavascriptPromise* CreatePromise();
         JavascriptGenerator* CreateGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype);
+        JavascriptAsyncGenerator* CreateAsyncGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype);
         JavascriptAsyncFromSyncIterator* CreateAsyncFromSyncIterator(RecyclableObject* syncIterator);
         JavascriptFunction* CreateNonProfiledFunction(FunctionInfo * functionInfo);
         template <class MethodType>
@@ -972,6 +969,8 @@ namespace Js
         DynamicTypeHandler* GetDeferredFunctionWithLengthUnsetTypeHandler();
         DynamicTypeHandler * GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
+        DynamicTypeHandler * ClassConstructorTypeHandler();
+        DynamicTypeHandler * AnonymousClassConstructorTypeHandler();
         DynamicTypeHandler * GetDeferredAnonymousFunctionWithLengthTypeHandler();
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
         template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false, bool addLength = isLengthAvailable>
@@ -1007,8 +1006,9 @@ namespace Js
         ScriptFunctionWithInlineCache * CreateScriptFunctionWithInlineCache(FunctionProxy* proxy);
         GeneratorVirtualScriptFunction * CreateGeneratorVirtualScriptFunction(FunctionProxy* proxy);
 
-        DynamicType * CreateGeneratorType(RecyclableObject* prototype);
-        DynamicType * CreateAsyncFromSyncIteratorType();
+        DynamicType* CreateGeneratorType(RecyclableObject* prototype);
+        DynamicType* CreateAsyncGeneratorType(RecyclableObject* prototype);
+        DynamicType* CreateAsyncFromSyncIteratorType();
 
 #if 0
         JavascriptNumber* CreateNumber(double value);
@@ -1017,16 +1017,14 @@ namespace Js
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptAsyncGeneratorFunction* CreateAsyncGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
-        AsyncGeneratorNextProcessor* CreateAsyncGeneratorResumeNextReturnProcessorFunction(JavascriptGenerator* generator, bool isReject);
-        AsyncGeneratorNextProcessor* CreateAsyncGeneratorAwaitFunction(JavascriptGenerator* generator, bool isReject);
-        AsyncGeneratorNextProcessor* CreateAsyncGeneratorAwaitYieldFunction(JavascriptGenerator* generator, bool isYieldStar);
+        AsyncGeneratorCallbackFunction* CreateAsyncGeneratorCallbackFunction(JavascriptMethod entryPoint, JavascriptAsyncGenerator* generator);
+        RuntimeFunction* CreateAsyncModuleCallbackFunction(JavascriptMethod entryPoint, SourceTextModuleRecord* module);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
+        JavascriptAsyncSpawnStepFunction* CreateAsyncSpawnStepFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, PropertyId nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateExternalFunction(ExternalMethod entryPointer, Var nameId, Var signature, UINT64 flags, bool isLengthAvailable = false);
         JavascriptExternalFunction* CreateStdCallExternalFunction(StdCallJavascriptMethod entryPointer, Var name, void *callbackState);
-        JavascriptPromiseAsyncSpawnExecutorFunction* CreatePromiseAsyncSpawnExecutorFunction(JavascriptGenerator* generator, Var target);
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* CreatePromiseAsyncSpawnStepArgumentExecutorFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
         JavascriptPromiseCapabilitiesExecutorFunction* CreatePromiseCapabilitiesExecutorFunction(JavascriptMethod entryPoint, JavascriptPromiseCapability* capability);
         JavascriptPromiseResolveOrRejectFunction* CreatePromiseResolveOrRejectFunction(JavascriptMethod entryPoint, JavascriptPromise* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord);
         JavascriptPromiseReactionTaskFunction* CreatePromiseReactionTaskFunction(JavascriptMethod entryPoint, JavascriptPromiseReaction* reaction, Var argument);
@@ -1046,6 +1044,7 @@ namespace Js
         DynamicObject* CreateGeneratorConstructorPrototypeObject();
         DynamicObject* CreateAsyncGeneratorConstructorPrototypeObject();
         DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor);
+        DynamicObject* CreateClassPrototypeObject(RecyclableObject * protoParent);
         DynamicObject* CreateObject(const bool allowObjectHeaderInlining = false, const PropertyIndex requestedInlineSlotCapacity = 0);
         DynamicObject* CreateObject(DynamicTypeHandler * typeHandler);
         DynamicObject* CreateActivationObject();
@@ -1063,8 +1062,6 @@ namespace Js
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[2]) const; // Specialization for single-char strings
         PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord);
 
-        JavascriptVariantDate* CreateVariantDate(const double value);
-
         JavascriptBooleanObject* CreateBooleanObject(BOOL value);
         JavascriptBooleanObject* CreateBooleanObject();
         JavascriptNumberObject* CreateNumberObjectWithCheck(double value);
@@ -1081,8 +1078,8 @@ namespace Js
         JavascriptRegExp* CreateRegExp(UnifiedRegex::RegexPattern* pattern);
 
         DynamicObject* CreateIteratorResultObject(Var value, Var done);
-        DynamicObject* CreateIteratorResultObjectValueFalse(Var value);
-        DynamicObject* CreateIteratorResultObjectUndefinedTrue();
+        DynamicObject* CreateIteratorResultObject(Var value, bool done = false);
+        DynamicObject* CreateIteratorResultObjectDone();
 
         RecyclableObject* CreateThrowErrorObject(JavascriptError* error);
 
@@ -1290,9 +1287,6 @@ namespace Js
         static bool __cdecl InitializeIntlObject(DynamicObject* IntlEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif
 
-#ifdef ENABLE_PROJECTION
-        void InitializeWinRTPromiseConstructor();
-#endif
         static bool __cdecl JavascriptLibrary::InitializeAsyncIteratorPrototype(DynamicObject* asyncIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static bool __cdecl InitializeIteratorPrototype(DynamicObject* iteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         static bool __cdecl InitializeArrayIteratorPrototype(DynamicObject* arrayIteratorPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);

@@ -220,12 +220,6 @@ ParseNodeFinally * ParseNode::AsParseNodeFinally()
     return reinterpret_cast<ParseNodeFinally*>(this);
 }
 
-ParseNodeLoop * ParseNode::AsParseNodeLoop()
-{
-    Assert(this->nop == knopWhile || this->nop == knopDoWhile || this->nop == knopFor || this->nop == knopForIn || this->nop == knopForOf || this->nop == knopForAwaitOf);
-    return reinterpret_cast<ParseNodeLoop*>(this);
-}
-
 ParseNodeWhile * ParseNode::AsParseNodeWhile()
 {
     Assert(this->nop == knopWhile || this->nop == knopDoWhile);
@@ -536,13 +530,8 @@ ParseNodeJump::ParseNodeJump(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 {
 }
 
-ParseNodeLoop::ParseNodeLoop(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeStmt(nop, ichMin, ichLim)
-{
-}
-
 ParseNodeWhile::ParseNodeWhile(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeLoop(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
 {
 }
 
@@ -562,12 +551,12 @@ ParseNodeIf::ParseNodeIf(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 }
 
 ParseNodeForInOrForOf::ParseNodeForInOrForOf(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeLoop(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
 {
 }
 
 ParseNodeFor::ParseNodeFor(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeLoop(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
 {
 }
 

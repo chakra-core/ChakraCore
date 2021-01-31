@@ -278,11 +278,6 @@ namespace Js
         template <class T> void OP_SimdBool16x8(const unaligned T* playout);
         template <class T> void OP_SimdBool8x16(const unaligned T* playout);
 
-        static void OP_AsyncYield(Var yieldDataVar, Var value, ScriptContext* scriptContext);
-        static void OP_AsyncYieldStar(Var yieldDataVar, Var value, ScriptContext* scriptContext);
-        static void OP_Await(Var yieldDataVar, Var value, ScriptContext* scriptContext);
-        static Var OP_AsyncYieldIsReturn(Var yieldDataVar);
-
         template <typename RegSlotType>
         Var GetRegAllowStackVarEnableOnly(RegSlotType localRegisterID) const;
         template <typename RegSlotType>
@@ -485,7 +480,7 @@ namespace Js
         BOOL OP_BrNotUndecl_A(Var aValue);
         BOOL OP_BrOnHasProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnNoProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
-        BOOL OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
+        BOOL OP_BrOnHasEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
         BOOL OP_BrOnBaseConstructorKind(Var aValue);
 
@@ -790,9 +785,11 @@ namespace Js
         void OP_TryFinallyWithYield(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException, Js::RegSlot regOffset);
         void OP_ResumeCatch();
         void OP_ResumeFinally(const byte* ip, Js::JumpOffset jumpOffset, RegSlot exceptionRegSlot, RegSlot offsetRegSlot);
-        inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
-        template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
+        Var OP_InitBaseClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RegSlot protoReg);
+        Var OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var ctorParent, Var protoParent, RegSlot protoReg);
+        Var InitClassHelper(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RecyclableObject *protoParent, RecyclableObject *constructorParent, RegSlot protoReg);
+        bool OP_CheckExtends(RegSlot ctorParent, RegSlot protoParent, RegSlot extends);
         inline Var OP_LdHomeObj(ScriptContext * scriptContext);
         inline Var OP_LdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);

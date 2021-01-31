@@ -315,7 +315,7 @@ namespace Js
 
     void ByteCodeWriter::CheckLabel(ByteCodeLabel labelID)
     {
-        AssertMsg(labelID < m_labelOffsets->Count(),
+        AssertMsg(labelID >= 0 && labelID < m_labelOffsets->Count(),
             "Label must be previously defined before being marked in the byte-code");
     }
 
@@ -483,6 +483,18 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool ByteCodeWriter::TryWriteReg2U(OpCode op, RegSlot R0, RegSlot R1, uint index)
+    {
+        OpLayoutT_Reg2U<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.SlotIndex, index))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool ByteCodeWriter::TryWriteReg4(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3)
     {
         OpLayoutT_Reg4<SizePolicy> layout;
@@ -507,6 +519,61 @@ namespace Js
         R3 = ConsumeReg(R3);
 
         MULTISIZE_LAYOUT_WRITE(Reg4, op, R0, R1, R2, R3);
+    }
+
+    template <typename SizePolicy>
+    bool ByteCodeWriter::TryWriteReg4U(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, uint index)
+    {
+        OpLayoutT_Reg4U<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2)
+            && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.SlotIndex, index))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    void ByteCodeWriter::Reg4U(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, uint slotIndex)
+    {
+        CheckOpen();
+        CheckOp(op, OpLayoutType::Reg4U);
+        Assert(OpCodeAttr::HasMultiSizeLayout(op));
+
+        R0 = ConsumeReg(R0);
+        R1 = ConsumeReg(R1);
+        R2 = ConsumeReg(R2);
+        R3 = ConsumeReg(R3);
+
+        MULTISIZE_LAYOUT_WRITE(Reg4U, op, R0, R1, R2, R3, slotIndex);
+    }
+
+    template <typename SizePolicy>
+    bool ByteCodeWriter::TryWriteReg5U(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, uint index)
+    {
+        OpLayoutT_Reg5U<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2)
+            && SizePolicy::Assign(layout.R3, R3) && SizePolicy::Assign(layout.R4, R4) && SizePolicy::Assign(layout.SlotIndex, index))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    void ByteCodeWriter::Reg5U(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, uint slotIndex)
+    {
+        CheckOpen();
+        CheckOp(op, OpLayoutType::Reg5U);
+        Assert(OpCodeAttr::HasMultiSizeLayout(op));
+
+        R0 = ConsumeReg(R0);
+        R1 = ConsumeReg(R1);
+        R2 = ConsumeReg(R2);
+        R3 = ConsumeReg(R3);
+        R4 = ConsumeReg(R4);
+
+        MULTISIZE_LAYOUT_WRITE(Reg5U, op, R0, R1, R2, R3, R4, slotIndex);
     }
 
     template <typename SizePolicy>
@@ -805,6 +872,35 @@ namespace Js
         R2 = ConsumeReg(R2);
 
         MULTISIZE_LAYOUT_WRITE(BrReg2, op, labelID, R1, R2);
+    }
+
+    template <typename SizePolicy>
+    bool ByteCodeWriter::TryWriteBrReg3(OpCode op, ByteCodeLabel labelID, RegSlot R0, RegSlot R1, RegSlot R2)
+    {
+        OpLayoutT_BrReg3<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2))
+        {
+            size_t const offsetOfRelativeJumpOffsetFromEnd = sizeof(OpLayoutT_BrReg3<SizePolicy>) - offsetof(OpLayoutT_BrReg3<SizePolicy>, RelativeJumpOffset);
+            layout.RelativeJumpOffset = offsetOfRelativeJumpOffsetFromEnd;
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            AddJumpOffset(op, labelID, offsetOfRelativeJumpOffsetFromEnd);
+            return true;
+        }
+        return false;
+    }
+
+    void ByteCodeWriter::BrReg3(OpCode op, ByteCodeLabel labelID, RegSlot R0, RegSlot R1, RegSlot R2)
+    {
+        CheckOpen();
+        CheckOp(op, OpLayoutType::BrReg3);
+        Assert(OpCodeAttr::HasMultiSizeLayout(op));
+        CheckLabel(labelID);
+
+        R0 = ConsumeReg(R0);
+        R1 = ConsumeReg(R1);
+        R2 = ConsumeReg(R2);
+
+        MULTISIZE_LAYOUT_WRITE(BrReg3, op, labelID, R0, R1, R2);
     }
 
     void ByteCodeWriter::BrProperty(OpCode op, ByteCodeLabel labelID, RegSlot instance, PropertyIdIndexType index)
@@ -1455,6 +1551,7 @@ StoreCommon:
         case OpCode::InitClassMemberSet:
         case OpCode::InitProto:
         case OpCode::DeleteFld:
+        case OpCode::DeleteFld_ReuseLoc:
         case OpCode::DeleteRootFld:
         case OpCode::LdElemUndefScoped:
         case OpCode::StFuncExpr:
@@ -1583,6 +1680,7 @@ StoreCommon:
         switch (op)
         {
             case OpCode::LdEnvObj:
+            case OpCode::LdEnvObj_ReuseLoc:
             case OpCode::StLocalSlot:
             case OpCode::StParamSlot:
             case OpCode::StLocalObjSlot:
@@ -1910,6 +2008,7 @@ StoreCommon:
             break;
 
         case OpCode::LdLocalFld:
+        case OpCode::LdLocalFld_ReuseLoc:
             if (isCtor) // The symbol loaded by this LdFld will be used as a constructor
             {
                 if (registerCacheIdForCall)
@@ -2044,6 +2143,7 @@ StoreCommon:
         }
         case OpCode::LdFldForTypeOf:
         case OpCode::LdFld:
+        case OpCode::LdFld_ReuseLoc:
             if (isCtor) // The symbol loaded by this LdFld will be used as a constructor
             {
                 if (registerCacheIdForCall)
@@ -2195,11 +2295,23 @@ StoreCommon:
         MULTISIZE_LAYOUT_WRITE(ElementScopedC2, op, value, propertyIdIndex, value2);
     }
 
-    template <typename SizePolicy>
-    bool ByteCodeWriter::TryWriteClass(OpCode op, RegSlot constructor, RegSlot extends)
+    void ByteCodeWriter::Reg2U(OpCode op, RegSlot R0, RegSlot R1, uint index)
     {
-        OpLayoutT_Class<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Constructor, constructor) && SizePolicy::Assign(layout.Extends, extends))
+        Assert(OpCodeAttr::HasMultiSizeLayout(op));
+        CheckOp(op, OpLayoutType::Reg2U);
+        CheckOpen();
+
+        R0 = ConsumeReg(R0);
+        R1 = ConsumeReg(R1);
+
+        MULTISIZE_LAYOUT_WRITE(Reg2U, op, R0, R1, index);
+    }
+
+    template <typename SizePolicy>
+    bool ByteCodeWriter::TryWriteReg3U(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, uint index)
+    {
+        OpLayoutT_Reg3U<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2) && SizePolicy::Assign(layout.SlotIndex, index))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
@@ -2207,20 +2319,17 @@ StoreCommon:
         return false;
     }
 
-    void ByteCodeWriter::InitClass(RegSlot constructor, RegSlot extends)
+    void ByteCodeWriter::Reg3U(OpCode op, RegSlot R0, RegSlot R1, RegSlot R2, uint index)
     {
-        Assert(OpCodeAttr::HasMultiSizeLayout(Js::OpCode::InitClass));
-
+        Assert(OpCodeAttr::HasMultiSizeLayout(op));
+        CheckOp(op, OpLayoutType::Reg3U);
         CheckOpen();
 
-        constructor = ConsumeReg(constructor);
+        R0 = ConsumeReg(R0);
+        R1 = ConsumeReg(R1);
+        R2 = ConsumeReg(R2);
 
-        if (extends != Js::Constants::NoRegister)
-        {
-            extends = ConsumeReg(extends);
-        }
-
-        MULTISIZE_LAYOUT_WRITE(Class, Js::OpCode::InitClass, constructor, extends);
+        MULTISIZE_LAYOUT_WRITE(Reg3U, op, R0, R1, R2, index);
     }
 
     void ByteCodeWriter::NewFunction(RegSlot destinationRegister, uint index, bool isGenerator, RegSlot homeObjLocation)

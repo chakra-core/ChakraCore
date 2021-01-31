@@ -49,6 +49,7 @@ FuncInfo::FuncInfo(
     frameDisplayRegister(Js::Constants::NoRegister),
     funcObjRegister(Js::Constants::NoRegister),
     localClosureReg(Js::Constants::NoRegister),
+    awaitRegister(Js::Constants::NoRegister),
     yieldRegister(Js::Constants::NoRegister),
     firstTmpReg(Js::Constants::NoRegister),
     curTmpReg(Js::Constants::NoRegister),
@@ -349,16 +350,19 @@ void FuncInfo::ReleaseReference(ParseNode *pnode)
             }
         }
         // Now release the call target.
-        switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
+        if (!pnode->AsParseNodeCall()->isSuperCall)
         {
-        case knopDot:
-        case knopIndex:
-            this->ReleaseReference(pnode->AsParseNodeCall()->pnodeTarget);
-            this->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+            switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
+            {
+            case knopDot:
+            case knopIndex:
+                this->ReleaseReference(pnode->AsParseNodeCall()->pnodeTarget);
+                this->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+                break;
+            default:
+                this->ReleaseLoad(pnode->AsParseNodeCall()->pnodeTarget);
             break;
-        default:
-            this->ReleaseLoad(pnode->AsParseNodeCall()->pnodeTarget);
-            break;
+            }
         }
         break;
     default:

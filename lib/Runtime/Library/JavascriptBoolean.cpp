@@ -175,12 +175,6 @@ namespace Js
         case TypeIds_Symbol:
             *value = FALSE;
             break;
-        case TypeIds_VariantDate:
-            // == on a variant always returns false. Putting this in a
-            // switch in each .Equals to prevent a perf hit by adding an
-            // if branch to JavascriptOperators::Equal_Full
-            *value = FALSE;
-            break;
         case TypeIds_Undefined:
         case TypeIds_Null:
         default:

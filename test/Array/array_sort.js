@@ -223,6 +223,17 @@ const tests = [
             compareSparseArrays(resultTwo, arrayTwo.sort((x, y) => { delete arrayTwo[0]; return x - y; }), "Compare function delete element effects array");
             compareSparseArrays(resultTwo, arrayTwo, "Compare function delete element effects array");
         }
+    },
+    {
+        name : "Array.prototype.sort default comparison should not call valueOf",
+        body () {
+            valueOf = false;
+            const arr = [{
+                valueOf() { valueOf = true; return 0; }
+            }, 1, 1, 1,];
+            arr.sort();
+            assert.isFalse(valueOf);
+        }
     }
 ];
 

@@ -5176,26 +5176,26 @@ Case0:
     {
         JIT_HELPER_REENTRANT_HEADER(Array_NativeIntPush);
         JIT_HELPER_SAME_ATTRIBUTES(Array_NativeIntPush, Array_VarPush);
-        // Handle non crossSite native int arrays here length within MaxArrayLength.
-        // JavascriptArray::Push will handle other cases.
-        if (JavascriptNativeIntArray::IsNonCrossSite(array))
+
+        // Fast path for case where `array` is a same-site JavascriptNativeIntArray
+        // instance with a length less than MaxArrayLength
+        if (VarIs<JavascriptNativeIntArray>(array) &&
+            VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(array))
         {
-            JavascriptNativeIntArray * nativeIntArray = UnsafeVarTo<JavascriptNativeIntArray>(array);
+            auto* nativeIntArray = UnsafeVarTo<JavascriptNativeIntArray>(array);
             Assert(!nativeIntArray->IsCrossSiteObject());
             uint32 n = nativeIntArray->length;
-
-            if(n < JavascriptArray::MaxArrayLength)
+            if (n < JavascriptArray::MaxArrayLength)
             {
                 nativeIntArray->SetItem(n, value);
-
                 n++;
-
                 AssertMsg(n == nativeIntArray->length, "Wrong update to the length of the native Int array");
-
                 return JavascriptNumber::ToVar(n, scriptContext);
             }
         }
+
         return JavascriptArray::Push(scriptContext, array, JavascriptNumber::ToVar(value, scriptContext));
+
         JIT_HELPER_END(Array_NativeIntPush);
     }
 
@@ -5208,26 +5208,26 @@ Case0:
     {
         JIT_HELPER_REENTRANT_HEADER(Array_NativeFloatPush);
         JIT_HELPER_SAME_ATTRIBUTES(Array_NativeFloatPush, Array_VarPush);
-        // Handle non crossSite native int arrays here length within MaxArrayLength.
-        // JavascriptArray::Push will handle other cases.
-        if(JavascriptNativeFloatArray::IsNonCrossSite(array))
+
+        // Fast path for case where `array` is a same-site JavascriptNativeFloatArray
+        // instance with a length less than MaxArrayLength
+        if (VarIs<JavascriptNativeFloatArray>(array) &&
+            VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(array))
         {
-            JavascriptNativeFloatArray * nativeFloatArray = UnsafeVarTo<JavascriptNativeFloatArray>(array);
+            auto* nativeFloatArray = UnsafeVarTo<JavascriptNativeFloatArray>(array);
             Assert(!nativeFloatArray->IsCrossSiteObject());
             uint32 n = nativeFloatArray->length;
-
-            if(n < JavascriptArray::MaxArrayLength)
+            if( n < JavascriptArray::MaxArrayLength)
             {
                 nativeFloatArray->SetItem(n, value);
-
                 n++;
-
                 AssertMsg(n == nativeFloatArray->length, "Wrong update to the length of the native Float array");
                 return JavascriptNumber::ToVar(n, scriptContext);
             }
         }
 
         return JavascriptArray::Push(scriptContext, array, JavascriptNumber::ToVarNoCheck(value, scriptContext));
+
         JIT_HELPER_END(Array_NativeFloatPush);
     }
 
@@ -8390,7 +8390,7 @@ Case0:
                 }
                 else
                 {
-                    separator = scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
+                    separator = scriptContext->GetLibrary()->GetCommaDisplayString();
                 }
 
                 for (uint32 i = 1; i < length; i++)
@@ -9595,7 +9595,7 @@ Case0:
             )
         }
         // skip the typed array and "pure" array case, we still need to handle special arrays like es5array, remote array, and proxy of array.
-        else if (pArr == nullptr || scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        else
         {
             JS_REENTRANT_NO_MUTATE(jsReentLock, newObj = ArraySpeciesCreate(obj, length, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor));
         }
@@ -9936,13 +9936,13 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
-        
+
 #ifdef ENABLE_JS_BUILTINS
         Assert(!scriptContext->IsJsBuiltInEnabled());
 #endif
-        
+
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
-        
+
         Assert(!(callInfo.Flags & CallFlags_New));
 
         if (args.Info.Count == 0)
@@ -10005,7 +10005,7 @@ Case0:
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("TypedArray.prototype.reduce"));
                 }
-                else 
+                else
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
                 }
@@ -11645,10 +11645,13 @@ Case0:
                     JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(srcArray, propertyObject, j, &element, scriptContext));
                     if (!gotItem)
                     {
-                        // Copy across missing values as undefined as per 12.2.5.2 SpreadElement : ... AssignmentExpression 5f.
-                        element = scriptContext->GetLibrary()->GetUndefined();
+                        // skip elided elements
+                        dstIndex++;
                     }
-                    dstArray->DirectSetItemAt(dstIndex++, element);
+                    else
+                    {
+                        dstArray->DirectSetItemAt(dstIndex++, element);
+                    }
                 }
             };
 
@@ -11951,7 +11954,7 @@ Case0:
         SetHeadAndLastUsedSegment(dst);
         dst->CheckLengthvsSize();
 
-        Assert(IsInlineSegment(src, instance) == IsInlineSegment(dst, static_cast<T*>(this)));
+        Assert(!IsInlineSegment(src, instance) || IsInlineSegment(dst, static_cast<T*>(this)));
 
         CopyArray(dst->elements, dst->size, src->elements, sourceSize);
 
@@ -12270,7 +12273,7 @@ Case0:
     RecyclableObject*
     JavascriptArray::ArraySpeciesCreate(Var originalArray, T length, ScriptContext* scriptContext, bool *pIsIntArray, bool *pIsFloatArray, bool *pIsBuiltinArrayCtor)
     {
-        if (originalArray == nullptr || !scriptContext->GetConfig()->IsES6SpeciesEnabled())
+        if (originalArray == nullptr)
         {
             return nullptr;
         }
@@ -13075,23 +13078,9 @@ Case0:
         return typeId == TypeIds_NativeIntArray;
     }
 
-    bool JavascriptNativeIntArray::IsNonCrossSite(Var aValue)
-    {
-        bool ret = !TaggedInt::Is(aValue) && VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(aValue);
-        Assert(ret == (VarIs<JavascriptNativeIntArray>(aValue) && !VarTo<JavascriptNativeIntArray>(aValue)->IsCrossSiteObject()));
-        return ret;
-    }
-
     bool JavascriptNativeFloatArray::Is(TypeId typeId)
     {
         return typeId == TypeIds_NativeFloatArray;
-    }
-
-    bool JavascriptNativeFloatArray::IsNonCrossSite(Var aValue)
-    {
-        bool ret = !TaggedInt::Is(aValue) && VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(aValue);
-        Assert(ret == (VarIs<JavascriptNativeFloatArray>(aValue) && !VarTo<JavascriptNativeFloatArray>(aValue)->IsCrossSiteObject()));
-        return ret;
     }
 
     template int   Js::JavascriptArray::GetParamForIndexOf<unsigned int>(unsigned int, Js::Arguments const&, void*&, unsigned int&, Js::ScriptContext*);

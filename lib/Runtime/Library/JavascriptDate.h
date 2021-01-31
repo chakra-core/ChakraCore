@@ -45,7 +45,6 @@ namespace Js
             static FunctionInfo GetUTCMinutes;
             static FunctionInfo GetUTCMonth;
             static FunctionInfo GetUTCSeconds;
-            static FunctionInfo GetVarDate;
             static FunctionInfo Now;
             static FunctionInfo Parse;
             static FunctionInfo SetDate;
@@ -98,7 +97,6 @@ namespace Js
         static Var EntryGetUTCMinutes(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetUTCMonth(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetUTCSeconds(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryGetVarDate(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryNow(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryParse(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySetDate(RecyclableObject* function, CallInfo callInfo, ...);
@@ -157,8 +155,7 @@ namespace Js
 
     template <> inline bool VarIsImpl<JavascriptDate>(RecyclableObject* obj)
     {
-        // All WinRT Date's are also implicitly Javascript dates
-        return IsDateTypeId(JavascriptOperators::GetTypeId(obj));
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Date;
     }
 
 } // namespace Js

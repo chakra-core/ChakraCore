@@ -220,7 +220,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_UnscopablesWrapperObject:
         case Js::TypeIds_UndeclBlockVar:
         case Js::TypeIds_EngineInterfaceObject:
-        case Js::TypeIds_WinRTDate:
             AssertMsg(false, "Not valid types");
             break;
 
@@ -242,7 +241,6 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_MapIterator:
         case Js::TypeIds_SetIterator:
         case Js::TypeIds_StringIterator:
-        case Js::TypeIds_VariantDate:
         case Js::TypeIds_Object:
         case Js::TypeIds_Array:
         case Js::TypeIds_Date:
@@ -271,6 +269,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_WeakSet:
         case Js::TypeIds_SymbolObject:
         case Js::TypeIds_Generator:
+        case Js::TypeIds_AsyncGenerator:
         case Js::TypeIds_AsyncFromSyncIterator:
         case Js::TypeIds_Promise:
         case Js::TypeIds_GlobalObject:
@@ -444,7 +443,6 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
                                             return _u("Array");
 
     case Js::TypeIds_Date:
-    case Js::TypeIds_VariantDate:
                                             return _u("Date");
 
     case Js::TypeIds_RegEx:                 return _u("RegExp");
@@ -472,6 +470,7 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_WeakSet:               return _u("WeakSet");
     case Js::TypeIds_SymbolObject:          return _u("Symbol");
     case Js::TypeIds_Generator:             return _u("Generator");
+    case Js::TypeIds_AsyncGenerator:        return _u("AsyncGenerator");
     case Js::TypeIds_AsyncFromSyncIterator: return _u("AsyncFromSyncIterator");
     case Js::TypeIds_Promise:               return _u("Promise");
     case Js::TypeIds_GlobalObject:          return _u("Object");

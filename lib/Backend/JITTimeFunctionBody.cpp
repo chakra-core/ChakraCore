@@ -1080,7 +1080,9 @@ JITTimeFunctionBody::GetCallApplyCallSiteIdForCallSiteId(Js::ProfileId callSiteI
     if (m_bodyData.callSiteToCallApplyCallSiteArray)
     {
         callApplyId = m_bodyData.callSiteToCallApplyCallSiteArray[callSiteId];
-        AssertOrFailFast(callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
+        AssertOrFailFast(
+            callApplyId == Js::Constants::NoProfileId || 
+            callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
     }
     
     return callApplyId;

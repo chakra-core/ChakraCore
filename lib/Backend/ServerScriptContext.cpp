@@ -24,7 +24,6 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory, nullptr),
     m_interpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, threadContextInfo, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
     m_asmJsInterpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, threadContextInfo, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
-    m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_codeGenAlloc(nullptr, nullptr, threadContextInfo, threadContextInfo->GetCodePageAllocators(), threadContextInfo->GetProcessHandle()),
     m_globalThisAddr(0),
@@ -38,13 +37,10 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
 #if !TARGET_64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = threadContextInfo->CanCreatePreReservedSegment();
 #endif
-
-    m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
 
 ServerScriptContext::~ServerScriptContext()
 {
-    HeapDelete(m_domFastPathHelperMap);
     m_moduleRecords.Map([](uint, Js::ServerSourceTextModuleRecord* record)
     {
         HeapDelete(record);
@@ -217,6 +213,18 @@ ServerScriptContext::UpdateGlobalObjectThisAddr(intptr_t globalThis)
 }
 
 intptr_t
+ServerScriptContext::GetObjectPrototypeAddr() const
+{
+    return m_contextData.objectPrototypeAddr;
+}
+
+intptr_t
+ServerScriptContext::GetFunctionPrototypeAddr() const
+{
+    return m_contextData.functionPrototypeAddr;
+}
+
+intptr_t
 ServerScriptContext::GetNumberAllocatorAddr() const
 {
     return m_contextData.numberAllocatorAddr;
@@ -309,13 +317,6 @@ ServerScriptContext::IsClosed() const
     return m_isClosed;
 }
 
-void
-ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
-{
-    AutoCriticalSection cs(&m_cs);
-    m_domFastPathHelperMap->Add(funcInfoAddr, helper);
-}
-
 ArenaAllocator *
 ServerScriptContext::GetSourceCodeArena()
 {
@@ -339,18 +340,6 @@ ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
     {
         return &m_interpreterThunkBufferManager;
     }
-}
-
-IR::JnHelperMethod
-ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
-{
-    AutoCriticalSection cs(&m_cs);
-
-    IR::JnHelperMethod helper = IR::HelperInvalid;
-
-    m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
-
-    return helper;
 }
 
 void

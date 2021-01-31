@@ -8,14 +8,6 @@
 #include "activation.h"
 #include <winstring.h>
 
-#ifdef ENABLE_PROJECTION
-// cor.h includes corhdr.h which is not clean with warning 4091
-#pragma warning(push)
-#pragma warning(disable: 4091) /* warning C4091: 'typedef ': ignored on left of '' when no variable is declared */
-#include <cor.h>
-#pragma warning(pop)
-#endif
-
 #include "RoParameterizedIID.h"
 
 namespace Js
@@ -68,67 +60,6 @@ namespace Js
         virtual HRESULT WindowsCompareStringOrdinal(_In_opt_ HSTRING string1, _In_opt_ HSTRING string2, _Out_ INT32 * result);
         virtual HRESULT WindowsDuplicateString(_In_opt_ HSTRING original, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * newString);
     };
-
-    class DelayLoadWinRtTypeResolution sealed : public DelayLoadLibrary
-    {
-    private:
-        // WinRtTypeResolution specific functions
-        typedef HRESULT FNCWRoParseTypeName(HSTRING, DWORD *, HSTRING **);
-        typedef FNCWRoParseTypeName* PFNCWRoParseTypeName;
-        PFNCWRoParseTypeName m_pfnRoParseTypeName;
-
-        typedef HRESULT FNCRoResolveNamespace(const HSTRING, const HSTRING, const DWORD, const HSTRING*, DWORD*, HSTRING**, DWORD*, HSTRING**);
-        typedef FNCRoResolveNamespace* PFNCRoResolveNamespace;
-        PFNCRoResolveNamespace m_pfnRoResolveNamespace;
-
-    public:
-        DelayLoadWinRtTypeResolution() : DelayLoadLibrary(),
-            m_pfnRoParseTypeName(nullptr) { }
-
-        virtual ~DelayLoadWinRtTypeResolution() { }
-
-        LPCTSTR GetLibraryName() const { return _u("api-ms-win-ro-typeresolution-l1-1-0.dll"); }
-
-        HRESULT RoParseTypeName(__in HSTRING typeName, __out DWORD *partsCount, __RPC__deref_out_ecount_full_opt(*partsCount) HSTRING **typeNameParts);
-
-        HRESULT RoResolveNamespace(
-            __in_opt const HSTRING namespaceName,
-            __in_opt const HSTRING windowsMetaDataPath,
-            __in const DWORD packageGraphPathsCount,
-            __in_opt const HSTRING *packageGraphPaths,
-            __out DWORD *metaDataFilePathsCount,
-            HSTRING **metaDataFilePaths,
-            __out DWORD *subNamespacesCount,
-            HSTRING **subNamespaces);
-
-    };
-
-#ifdef ENABLE_PROJECTION
-    class DelayLoadWinRtRoParameterizedIID sealed : public DelayLoadLibrary
-    {
-    private:
-        // WinRtRoParameterizedIID specific functions
-        typedef HRESULT FNCWRoGetParameterizedTypeInstanceIID(UINT32, PCWSTR*, const IRoMetaDataLocator&, GUID*, ROPARAMIIDHANDLE*);
-
-        typedef FNCWRoGetParameterizedTypeInstanceIID* PFNCWRoGetParameterizedTypeInstanceIID;
-        PFNCWRoGetParameterizedTypeInstanceIID m_pfnRoGetParameterizedTypeInstanceIID;
-
-    public:
-        DelayLoadWinRtRoParameterizedIID() : DelayLoadLibrary(),
-            m_pfnRoGetParameterizedTypeInstanceIID(nullptr) { }
-
-        virtual ~DelayLoadWinRtRoParameterizedIID() { }
-
-        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-roparameterizediid-l1-1-0.dll"); }
-
-        HRESULT RoGetParameterizedTypeInstanceIID(
-            __in UINT32 nameElementCount,
-            __in_ecount(nameElementCount) PCWSTR*   nameElements,
-            __in const IRoMetaDataLocator&          metaDataLocator,
-            __out GUID*                             iid,
-            __deref_opt_out ROPARAMIIDHANDLE*       pExtra = nullptr);
-    };
-#endif
 
 #ifdef INTL_WINGLOB
     class DelayLoadWindowsGlobalization sealed : public DelayLoadWinRtString
@@ -198,33 +129,6 @@ namespace Js
             __out IActivationFactory** factory);
     };
 
-#ifdef ENABLE_PROJECTION
-    class DelayLoadWinRtError sealed : public DelayLoadLibrary
-    {
-    private:
-        // DelayLoadWinRtError specific functions
-        typedef void FNCRoClearError();
-        typedef FNCRoClearError* PFNCRoClearError;
-        PFNCRoClearError m_pfnRoClearError;
-
-        typedef BOOL FNCRoOriginateLanguageException(HRESULT, HSTRING, IUnknown *);
-        typedef FNCRoOriginateLanguageException* PFNCRoOriginateLanguageException;
-        PFNCRoOriginateLanguageException m_pfnRoOriginateLanguageException;
-
-    public:
-        DelayLoadWinRtError() : DelayLoadLibrary(),
-            m_pfnRoClearError(nullptr),
-            m_pfnRoOriginateLanguageException(nullptr) { }
-
-        virtual ~DelayLoadWinRtError() { }
-
-        LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-error-l1-1-1.dll"); }
-
-        HRESULT RoClearError();
-        BOOL RoOriginateLanguageException(__in HRESULT error, __in_opt HSTRING message, __in IUnknown * languageException);
-    };
-#endif
-
     class DelayLoadWinCoreProcessThreads sealed : public DelayLoadLibrary
     {
     private:
@@ -250,32 +154,4 @@ namespace Js
             __in SIZE_T nLength
         );
     };
-
-#ifdef ENABLE_PROJECTION
-    // Implement this function inlined so that WinRT.lib can be used without the runtime.
-    inline HRESULT DelayLoadWinRtRoParameterizedIID::RoGetParameterizedTypeInstanceIID(
-            __in UINT32 nameElementCount,
-            __in_ecount(nameElementCount) PCWSTR*   nameElements,
-            __in const IRoMetaDataLocator&          metaDataLocator,
-            __out GUID*                             iid,
-            __deref_opt_out ROPARAMIIDHANDLE*       pExtra)
-    {
-        if (m_hModule)
-        {
-            if (m_pfnRoGetParameterizedTypeInstanceIID == NULL)
-            {
-                m_pfnRoGetParameterizedTypeInstanceIID = (PFNCWRoGetParameterizedTypeInstanceIID)GetFunction("RoGetParameterizedTypeInstanceIID");
-                if (m_pfnRoGetParameterizedTypeInstanceIID == NULL)
-                {
-                    return E_UNEXPECTED;
-                }
-            }
-
-            Assert(m_pfnRoGetParameterizedTypeInstanceIID != NULL);
-            return m_pfnRoGetParameterizedTypeInstanceIID(nameElementCount, nameElements, metaDataLocator, iid, pExtra);
-        }
-
-        return E_NOTIMPL;
-    }
-#endif
  }

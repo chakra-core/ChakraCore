@@ -16,4 +16,4 @@ Inner foobaz 2
 	Finally bar 2
 Except foobaz 2 thrown
 english (passed)
-ReferenceError: Invalid left-hand side in assignment
+SyntaxError: Invalid left-hand side in assignment.

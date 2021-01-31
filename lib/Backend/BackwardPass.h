@@ -45,7 +45,6 @@ private:
     bool ProcessByteCodeUsesInstr(IR::Instr * instr);
     bool ProcessBailOutInfo(IR::Instr * instr);
     void ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo);
-    IR::Instr* ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr);
     IR::Instr* ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr);
     void ClearDstUseForPostOpLazyBailOut(IR::Instr *instr);
     void ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed);
@@ -155,6 +154,11 @@ private:
     void InsertTypeTransitionAfterInstr(IR::Instr *instr, int symId, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
     void InsertTypeTransitionsAtPotentialKills();
     bool TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const;
+
+    void SetTypeIDWithFinalType(int symId, BasicBlock *block);
+    void ClearTypeIDWithFinalType(int symId, BasicBlock *block);
+    bool HasTypeIDWithFinalType(BasicBlock *block) const;
+    void CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc);
 
     template<class Fn> void ForEachAddPropertyCacheBucket(Fn fn);
     static ObjTypeGuardBucket MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBucket bucket2);

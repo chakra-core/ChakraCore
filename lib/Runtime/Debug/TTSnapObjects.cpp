@@ -18,7 +18,7 @@ namespace TTD
             TTDAssert(!obj->IsExternal(), "We are not prepared for custom external objects yet");
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
-            sobj->SnapObjectTag = obj->GetSnapTag_TTD();
+            sobj->SnapObjectTag = obj->GetTypeId() == Js::TypeId::TypeIds_AwaitObject ? SnapObjectType::SnapAwaitObject : obj->GetSnapTag_TTD();
 
             TTD_WELLKNOWN_TOKEN lookupToken = isWellKnown ? obj->GetScriptContext()->TTDWellKnownInfo->ResolvePathForKnownObject(obj) : TTD_INVALID_WELLKNOWN_TOKEN;
             sobj->OptWellKnownToken = alloc.CopyRawNullTerminatedStringInto(lookupToken);
@@ -39,7 +39,10 @@ namespace TTD
                 NSSnapObjects::StdPropertyExtract_DynamicType(sobj, static_cast<Js::DynamicObject*>(obj), alloc);
             }
 
-            obj->ExtractSnapObjectDataInto(sobj, alloc);
+            if (sobj->SnapObjectTag != SnapObjectType::SnapAwaitObject)
+            {
+                obj->ExtractSnapObjectDataInto(sobj, alloc);
+            }
         }
 
         void StdPropertyExtract_StaticType(SnapObject* snpObject, Js::RecyclableObject* obj)
@@ -680,6 +683,21 @@ namespace TTD
             }
         }
 #endif
+
+        Js::RecyclableObject* DoObjectInflation_SnapAwaitObject(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
+            if(rcObj != nullptr)
+            {
+                return rcObj;
+            }
+            else
+            {
+                Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+
+                return Js::DynamicObject::New(ctx->GetRecycler(), ctx->GetLibrary()->GetAwaitObjectType());
+            }
+        }
 
         Js::RecyclableObject* DoObjectInflation_SnapDynamicObject(const SnapObject* snpObject, InflateMap* inflator)
         {
@@ -2545,55 +2563,10 @@ namespace TTD
 
         ////////////////////
 
-        Js::RecyclableObject* DoObjectInflation_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject *snpObject, InflateMap *inflator)
+        Js::RecyclableObject *DoObjectInflation_SnapJavascriptAsyncSpawnStepFunctionInfo(const SnapObject *snpObject, InflateMap *inflator)
         {
             Js::ScriptContext *ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
-            SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo *, SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(snpObject);
-            Js::Var target = (info->target!= nullptr) ? inflator->InflateTTDVar(info->target) : nullptr;
-
-            Js::JavascriptGenerator* generator = nullptr;
-            if (info->generator != TTD_INVALID_PTR_ID)
-            {
-                generator = reinterpret_cast<Js::JavascriptGenerator*>(inflator->LookupObject(info->generator));
-            }
-
-            // TODO; why do we need to cast here??
-            Js::RecyclableObject* res = reinterpret_cast<Js::RecyclableObject*>(ctx->GetLibrary()->CreatePromiseAsyncSpawnExecutorFunction(generator, target));
-            return res;
-        }
-
-        void DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
-        {
-        }
-
-        void EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject* snpObject, FileWriter* writer)
-        {
-            SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(snpObject);
-            writer->WriteAddr(NSTokens::Key::objectId, info->generator, NSTokens::Separator::CommaSeparator);
-            writer->WriteKey(NSTokens::Key::target, NSTokens::Separator::CommaSeparator);
-            NSSnapValues::EmitTTDVar(info->target, writer, NSTokens::Separator::NoSeparator);
-        }
-
-        void ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnExecutorFunction(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
-        {
-            SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo* info = alloc.SlabAllocateStruct<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo>();
-            info->generator = reader->ReadAddr(NSTokens::Key::objectId, true);
-            reader->ReadKey(NSTokens::Key::target, true);
-            info->target= NSSnapValues::ParseTTDVar(false, reader);
-            SnapObjectSetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnExecutorFunction>(snpObject, info);
-        }
-#if ENABLE_SNAPSHOT_COMPARE
-        void AssertSnapEquiv_SnapJavascriptPromiseAsyncSpawnExecutorFunction(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
-        {
-        }
-#endif
-
-        ////////////////////
-
-        Js::RecyclableObject *DoObjectInflation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject *snpObject, InflateMap *inflator)
-        {
-            Js::ScriptContext *ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
-            SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo *, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject);
+            SnapJavascriptAsyncSpawnStepFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptAsyncSpawnStepFunctionInfo *, SnapObjectType::JavascriptAsyncSpawnStepFunction>(snpObject);
             Js::Var reject = (info->reject != nullptr) ? inflator->InflateTTDVar(info->reject) : nullptr;
             Js::Var resolve = (info->resolve != nullptr) ? inflator->InflateTTDVar(info->resolve) : nullptr;
             Js::Var argument = (info->argument != nullptr) ? inflator->InflateTTDVar(info->argument) : nullptr;
@@ -2609,28 +2582,28 @@ namespace TTD
             switch (info->entryPoint)
             {
             case 1:
-                entryPoint = Js::JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction;
+                entryPoint = Js::JavascriptAsyncFunction::EntryAsyncSpawnStepNextFunction;
                 break;
             case 2:
-                entryPoint = Js::JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction;
+                entryPoint = Js::JavascriptAsyncFunction::EntryAsyncSpawnStepThrowFunction;
                 break;
             case 3:
-                entryPoint = Js::JavascriptPromise::EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction;
+                entryPoint = Js::JavascriptAsyncFunction::EntryAsyncSpawnCallStepFunction;
                 break;
             default:
-                TTDAssert(false, "Unexpected value for entryPoint when inflating JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction");
+                TTDAssert(false, "Unexpected value for entryPoint when inflating JavascriptAsyncSpawnStepFunction");
                 break;
             }
 
-            return ctx->GetLibrary()->CreatePromiseAsyncSpawnStepArgumentExecutorFunction(entryPoint, generator, argument, resolve, reject, isReject);
+            return ctx->GetLibrary()->CreateAsyncSpawnStepFunction(entryPoint, generator, argument, resolve, reject, isReject);
         }
 
-        void DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
+        void DoAddtlValueInstantiation_SnapJavascriptAsyncSpawnStepFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         { }
 
-        void EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
+        void EmitAddtlInfo_SnapJavascriptAsyncSpawnStepFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
         {
-            SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject);
+            SnapJavascriptAsyncSpawnStepFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptAsyncSpawnStepFunctionInfo*, SnapObjectType::JavascriptAsyncSpawnStepFunction>(snpObject);
             writer->WriteAddr(NSTokens::Key::objectId, info->generator, NSTokens::Separator::CommaSeparator);
             writer->WriteKey(NSTokens::Key::reject, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(info->reject, writer, NSTokens::Separator::NoSeparator);
@@ -2642,9 +2615,9 @@ namespace TTD
             writer->WriteBool(NSTokens::Key::boolVal, info->isReject, NSTokens::Separator::CommaSeparator);
         }
 
-        void ParseAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        void ParseAddtlInfo_SnapJavascriptAsyncSpawnStepFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
         {
-            SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = alloc.SlabAllocateStruct<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo>();
+            SnapJavascriptAsyncSpawnStepFunctionInfo* info = alloc.SlabAllocateStruct<SnapJavascriptAsyncSpawnStepFunctionInfo>();
             info->generator = reader->ReadAddr(NSTokens::Key::objectId, true);
             reader->ReadKey(NSTokens::Key::reject, true);
             info->reject = NSSnapValues::ParseTTDVar(false, reader);
@@ -2654,11 +2627,11 @@ namespace TTD
             info->argument = NSSnapValues::ParseTTDVar(false, reader);
             info->entryPoint = reader->ReadUInt32(NSTokens::Key::u32Val, true);
             info->isReject = reader->ReadBool(NSTokens::Key::boolVal, true);
-            SnapObjectSetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject, info);
+            SnapObjectSetAddtlInfoAs<SnapJavascriptAsyncSpawnStepFunctionInfo*, SnapObjectType::JavascriptAsyncSpawnStepFunction>(snpObject, info);
         }
 
 #if ENABLE_SNAPSHOT_COMPARE
-        void AssertSnapEquiv_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        void AssertSnapEquiv_SnapJavascriptAsyncSpawnStepFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
         { }
 #endif
         //////////

@@ -75,7 +75,6 @@
     <ClInclude Include="DynamicObject.h" />
     <ClInclude Include="DynamicObjectPropertyEnumerator.h" />
     <ClInclude Include="DynamicType.h" />
-    <ClInclude Include="EdgeJavascriptTypeId.h" />
     <ClInclude Include="ES5ArrayTypeHandler.h" />
     <ClInclude Include="JavascriptEnumerator.h" />
     <ClInclude Include="JavascriptStaticEnumerator.h" />

@@ -309,7 +309,6 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
         // See ES 2017 14.5.13 Runtime Semantics: ClassDefinitionEvaluation.
         Visit(pnode->AsParseNodeClass()->pnodeExtends, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeName, byteCodeGenerator, prefix, postfix);
-        Visit(pnode->AsParseNodeClass()->pnodeStaticMembers, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeConstructor, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeMembers, byteCodeGenerator, prefix, postfix);
         EndVisitBlock(pnode->AsParseNodeClass()->pnodeBlock, byteCodeGenerator);
@@ -578,6 +577,12 @@ bool MustProduceValue(ParseNode *pnode, const Js::ScriptContext *const scriptCon
 {
     // Determine whether the current statement is guaranteed to produce a value.
 
+    if (pnode->IsPatternDeclaration())
+    {
+        // The pattern declaration are as var declaration they don't produce a value.
+        return false;
+    }
+
     if (IsExpressionStatement(pnode, scriptContext))
     {
         // These are trivially true.
@@ -721,6 +726,7 @@ ByteCodeGenerator::ByteCodeGenerator(Js::ScriptContext* scriptContext, Js::Scope
     scriptContext(scriptContext),
     flags(0),
     funcInfoStack(nullptr),
+    jumpCleanupList(nullptr),
     pRootFunc(nullptr),
     pCurrentFunction(nullptr),
     globalScope(nullptr),
@@ -778,16 +784,6 @@ bool ByteCodeGenerator::IsThis(ParseNode* pnode)
 bool ByteCodeGenerator::IsSuper(ParseNode* pnode)
 {
     return pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper;
-}
-
-bool ByteCodeGenerator::IsES6DestructuringEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6DestructuringEnabled();
-}
-
-bool ByteCodeGenerator::IsES6ForLoopSemanticsEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6ForLoopSemanticsEnabled();
 }
 
 // ByteCodeGenerator debug mode means we are generating debug mode user-code. Library code is always in non-debug mode.
@@ -2203,6 +2199,7 @@ void ByteCodeGenerator::Begin(
     this->funcInfosToFinalize = nullptr;
 
     this->funcInfoStack = Anew(alloc, SList<FuncInfo*>, alloc);
+    this->jumpCleanupList = Anew(alloc, JumpCleanupList, alloc);
 }
 
 HRESULT GenerateByteCode(__in ParseNodeProg *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
@@ -2499,6 +2496,12 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
         // create the new scope for Function expression only in ES5 mode
         //
         funcExprWithName = true;
+    }
+    else if (pnodeFnc->IsModule())
+    {
+        funcName = Js::Constants::ModuleCode;
+        funcNameLength = Js::Constants::ModuleCodeLength;
+        functionNameOffset = 0;
     }
 
     if (byteCodeGenerator->Trace())
@@ -4706,11 +4709,11 @@ void CheckFuncAssignment(Symbol * sym, ParseNode * pnode2, ByteCodeGenerator * b
                     funcParentScope = funcParentScope->GetEnclosingScope();
                 }
 
-            // Need to always detect interleaving dynamic scope ('with') for assignments
-            // as those may end up escaping into the 'with' scope.
+                // Need to always detect interleaving dynamic scope ('with') for assignments
+                // as those may end up escaping into the 'with' scope.
                 // TODO: the with scope is marked as MustInstantiate late during byte code emit
                 // We could detect this using the loop above as well, by marking the with
-            // scope as must instantiate early, this is just less risky of a fix for RTM.
+                // scope as must instantiate early, this is just less risky of a fix for RTM.
 
                 if (byteCodeGenerator->HasInterleavingDynamicScope(sym))
                 {
@@ -4722,6 +4725,21 @@ void CheckFuncAssignment(Symbol * sym, ParseNode * pnode2, ByteCodeGenerator * b
         }
         break;
     };
+}
+
+void AssignYieldResumeRegisters(ByteCodeGenerator* byteCodeGenerator)
+{
+    // On resuming from a yield, we branch based on the ResumeYieldKind
+    // integer value
+    byteCodeGenerator->EnregisterConstant((uint)Js::ResumeYieldKind::Normal);
+    byteCodeGenerator->EnregisterConstant((uint)Js::ResumeYieldKind::Throw);
+}
+
+void AssignAwaitRegisters(ByteCodeGenerator* byteCodeGenerator)
+{
+    // On resuming from an await, we branch based on whether the ResumeYieldKind
+    // is normal or throw
+    byteCodeGenerator->EnregisterConstant((uint)Js::ResumeYieldKind::Normal);
 }
 
 // Assign permanent (non-temp) registers for the function.
@@ -4786,7 +4804,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 CheckMaybeEscapedUse(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator);
             }
 
-            if (byteCodeGenerator->IsES6DestructuringEnabled() && (pnode->AsParseNodeBin()->pnode1->nop == knopArrayPattern || pnode->AsParseNodeBin()->pnode1->nop == knopObjectPattern))
+            if ((pnode->AsParseNodeBin()->pnode1->nop == knopArrayPattern || pnode->AsParseNodeBin()->pnode1->nop == knopObjectPattern))
             {
                 // Destructured arrays may have default values and need undefined.
                 byteCodeGenerator->AssignUndefinedConstRegister();
@@ -4908,8 +4926,10 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         CheckMaybeEscapedUse(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator);
         break;
 
-    case knopForOf:
     case knopForAwaitOf:
+        AssignAwaitRegisters(byteCodeGenerator);
+        // Fall-through
+    case knopForOf:
         {
             ParseNodeForInOrForOf* pnodeForOf = pnode->AsParseNodeForInOrForOf();
             byteCodeGenerator->AssignNullConstRegister();
@@ -4935,6 +4955,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         byteCodeGenerator->EnregisterConstant(1);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
+    case knopCoalesce:
     case knopObject:
         byteCodeGenerator->AssignNullConstRegister();
         break;
@@ -5149,6 +5170,10 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         break;
     case knopReturn:
         {
+            if (byteCodeGenerator->TopFuncInfo()->IsAsyncGenerator())
+            {
+                AssignAwaitRegisters(byteCodeGenerator);
+            }
             ParseNode *pnodeExpr = pnode->AsParseNodeReturn()->pnodeExpr;
             CheckMaybeEscapedUse(pnodeExpr, byteCodeGenerator);
             break;
@@ -5190,16 +5215,29 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             break;
         }
     case knopYieldLeaf:
+        // The done property of the result object is set to false and the
+        // value property is set to undefined
+        byteCodeGenerator->AssignFalseConstRegister();
         byteCodeGenerator->AssignUndefinedConstRegister();
+        AssignYieldResumeRegisters(byteCodeGenerator);
+        break;
+    case knopAwait:
+        AssignAwaitRegisters(byteCodeGenerator);
+        CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     case knopYield:
+        // The done property of the result object is set to false
+        byteCodeGenerator->AssignFalseConstRegister();
+        AssignYieldResumeRegisters(byteCodeGenerator);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     case knopYieldStar:
         // Reserve a local for our YieldStar loop so that the backend doesn't complain
         pnode->location = byteCodeGenerator->NextVarRegister();
-        byteCodeGenerator->AssignNullConstRegister();
         byteCodeGenerator->AssignUndefinedConstRegister();
+        byteCodeGenerator->AssignTrueConstRegister();
+        byteCodeGenerator->AssignFalseConstRegister();
+        AssignYieldResumeRegisters(byteCodeGenerator);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     }

@@ -207,6 +207,7 @@ private:
     void            GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr);
     IR::Instr *     LowerProfiledStFld(IR::JitProfilingInstr * instr, Js::PropertyOperationFlags flags);
     IR::Instr *     LowerStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod polymorphicHelperMethod, bool withInlineCache, IR::LabelInstr *ppBailOutLabel = nullptr, bool isHelper = false, bool withPutFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
+    void            MapStFldHelper(IR::PropertySymOpnd * propertySymOpnd, IR::JnHelperMethod &helperMethod, IR::JnHelperMethod &polymorphicHelperMethod);
     IR::Instr *     LowerScopedStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, bool withInlineCache,
                                 bool withPropertyOperationFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
     void            LowerProfiledLdElemI(IR::JitProfilingInstr *const instr);
@@ -295,9 +296,6 @@ private:
     IR::Instr *     LowerEqualityCompare(IR::Instr* instr, IR::JnHelperMethod helper);
     template <typename ArrayType>
     BOOL            IsSmallObject(uint32 length);
-#ifdef ENABLE_DOM_FAST_PATH
-    void            LowerFastInlineDOMFastPathGetter(IR::Instr* getterInstr);
-#endif
     void            GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef);
     void            GenerateArrayInfoIsNativeIntArrayTest(IR::Instr * instr,  Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, IR::LabelInstr * helperLabel);
     void            GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef);
@@ -601,6 +599,7 @@ private:
     void            PreserveSourcesForBailOnResultCondition(IR::Instr *const instr, IR::LabelInstr *const skipBailOutLabel) const;
     void            LowerInstrWithBailOnResultCondition(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) const;
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
+    void            InsertMoveForPolymorphicCacheIndex(IR::Instr * instr, BailOutInfo * bailOutInfo, int bailOutRecordOffset, uint polymorphicCacheIndexValue);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter, IR::LabelInstr *exitTargetInstr);
     void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);
@@ -665,7 +664,7 @@ private:
     void            GenerateGetCurrentFunctionObject(IR::Instr * instr);
     IR::Opnd *      GetInlineCacheFromFuncObjectForRuntimeUse(IR::Instr * instr, IR::PropertySymOpnd * propSymOpnd, bool isHelper);
 
-    IR::Instr *     LowerInitClass(IR::Instr * instr);
+    IR::Instr *     LowerNewClassConstructor(IR::Instr * instr);
 
     IR::RegOpnd *   GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool loweringCloneStr = false, bool reloadDst = true);
     void            LowerNewConcatStrMulti(IR::Instr * instr);
@@ -842,7 +841,8 @@ private:
     //
     // Generator
     //
-    class LowerGeneratorHelper {
+    class LowerGeneratorHelper
+    {
         Func* const func;
         LowererMD &lowererMD;
         Lowerer* const lowerer;
@@ -851,7 +851,7 @@ private:
         IR::LabelInstr* epilogueForBailOut = nullptr;
 
         void EnsureEpilogueLabels();
-        IR::SymOpnd* CreateResumeYieldDataOpnd() const;
+        IR::SymOpnd* CreateResumeYieldOpnd() const;
 
     public:
         LowerGeneratorHelper(Func* func, Lowerer* lowerer, LowererMD &lowererMD);
@@ -891,9 +891,8 @@ private:
 
         void LowerGeneratorResumeJumpTable(IR::Instr* jumpTableInstr);
         void LowerCreateInterpreterStackFrameForGenerator(IR::Instr* instr);
-        void LowerResumeGenerator(IR::Instr* instr);
         void LowerYield(IR::Instr* instr);
-        void LowerGeneratorLoadResumeYieldData(IR::Instr* instr);
+        void LowerGeneratorResumeYield(IR::Instr* instr);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         void LowerGeneratorTraceBailIn(IR::Instr* instr);

@@ -341,4 +341,10 @@
       <compile-flags>-mic:1 -bgjit- -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_gh6303.js</files>
+      <flags>exclude_nonative</flags>
+    </default>
+  </test>
 </regress-exe>

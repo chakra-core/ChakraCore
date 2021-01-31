@@ -14,7 +14,7 @@ length: [object Object] -->
 
 
 2. Array: normal
-0.00, 1.23, NaN, true, abc, [object Object], , 0.00, 1.00, 2.00
+0.00,1.23,NaN,true,abc,[object Object],,0.00,1.00,2.00
 
 
 3. Array: element toLocaleString not callable
@@ -22,11 +22,11 @@ TypeError : The value of the property 'toLocaleString' is not a Function object
 
 
 4. Array: element toLocaleString
-0.00, anObject, , , another Object, 1.00, a 3rd Object, 2.00
+0.00,anObject,,,another Object,1.00,a 3rd Object,2.00
 
 
 5. Object: normal
-0.00, 1.23, NaN, true, abc, [object Object], , 0.00, 1.00, 2.00
+0.00,1.23,NaN,true,abc,[object Object],,0.00,1.00,2.00
 
 
 6. Object: element toLocaleString not callable
@@ -34,15 +34,15 @@ TypeError : The value of the property 'toLocaleString' is not a Function object
 
 
 7. Object: element toLocaleString
-0.00, anObject, , , another Object, 1.00, a 3rd Object, 2.00
+0.00,anObject,,,another Object,1.00,a 3rd Object,2.00
 
 
 8. TypedArray: toLocaleString should use length from internal slot
-0.00, 31.00
+0.00,31.00
 
 
 9. Array: toLocaleString should use length property
-10.00, 20.00, 30.00, , , 
+10.00,20.00,30.00,,,
 
 
 10. Array: toLocaleString should use toLocaleString accessor on element

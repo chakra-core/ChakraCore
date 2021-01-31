@@ -949,6 +949,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                         blockSucc->couldRemoveNegZeroBailoutForDef = nullptr;
                     }
                 }
+                this->CombineTypeIDsWithFinalType(block, blockSucc);
             }
 
             if (blockSucc->noImplicitCallUses != nullptr)
@@ -1770,9 +1771,17 @@ BackwardPass::ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitAre
     }
     NEXT_SLISTBASE_ENTRY;
 
+    IR::GeneratorBailInInstr* bailInInstr = bailOutInfo->bailInInstr;
+
     // Find other constants that we need to restore
     FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->capturedValues->constantValues, iter)
     {
+        if (bailInInstr)
+        {
+            // Store all captured constant values for the corresponding bailin instr
+            bailInInstr->capturedValues.constantValues.PrependNode(this->func->m_alloc, value);
+        }
+
         if (byteCodeUpwardExposedUsed->TestAndClear(value.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(value.Key()->m_id))
         {
             // Constant need to be restore, move it to the restore list
@@ -1805,6 +1814,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
     JitArenaAllocator * allocator = this->func->m_alloc;
     BasicBlock * block = this->currentBlock;
     BVSparse<JitArenaAllocator> * upwardExposedUses = block->upwardExposedUses;
+    IR::GeneratorBailInInstr* bailInInstr = bailOutInfo->bailInInstr;
 
     // Find other copy prop that we need to restore
     FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->capturedValues->copyPropSyms, iter)
@@ -1814,6 +1824,13 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
         Assert(!copyPropSyms.Value()->IsTypeSpec());
         if (byteCodeUpwardExposedUsed->TestAndClear(copyPropSyms.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(copyPropSyms.Key()->m_id))
         {
+            if (bailInInstr)
+            {
+                // Copy all copyprop syms into the corresponding bail-in instr so that
+                // we can map the correct symbols to restore during bail-in
+                bailInInstr->capturedValues.copyPropSyms.PrependNode(allocator, copyPropSyms);
+            }
+
             // This copy-prop sym needs to be restored; add it to the restore list.
 
             /*
@@ -2261,7 +2278,7 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
 
     // By default, do not do this for stores, as it makes the presence of type checks unpredictable in the forward pass.
     // For instance, we can't predict which stores may cause reallocation of aux slots.
-    if (!PHASE_ON(Js::DeadStoreTypeChecksOnStoresPhase, this->func) && instr->GetDst() && instr->GetDst()->IsSymOpnd())
+    if (instr->GetDst() && instr->GetDst()->IsSymOpnd())
     {
         return;
     }
@@ -2559,30 +2576,6 @@ BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
         }
     }
     return false;
-}
-
-IR::Instr*
-BackwardPass::ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr)
-{
-    Assert(currentInstr->m_opcode == Js::OpCode::Yield);
-    IR::GeneratorBailInInstr* bailInInstr = currentInstr->m_next->m_next->AsGeneratorBailInInstr();
-
-    BailOutInfo* bailOutInfo = currentInstr->GetBailOutInfo();
-
-    // Make a copy of all detected constant values before we actually process
-    // the bailout info since we will then remove any values that don't need
-    // to be restored for the normal bailout cases. As for yields, we still
-    // need them for our bailin code.
-    bailInInstr->SetConstantValues(bailOutInfo->capturedValues->constantValues);
-
-    IR::Instr* ret = this->ProcessPendingPreOpBailOutInfo(currentInstr);
-
-    // We will need list of symbols that have been copy-prop'd to map the correct
-    // symbols to restore during bail-in. Since this list is cleared during
-    // FillBailOutRecord, make a copy of it now.
-    bailInInstr->SetCopyPropSyms(bailOutInfo->usedCapturedValues->copyPropSyms);
-
-    return ret;
 }
 
 IR::Instr*
@@ -3887,17 +3880,10 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         // bail-in
         if (instr->IsGeneratorBailInInstr() && this->currentBlock->upwardExposedUses)
         {
-            instr->AsGeneratorBailInInstr()->SetUpwardExposedUses(*this->currentBlock->upwardExposedUses);
+            instr->AsGeneratorBailInInstr()->upwardExposedUses.Copy(this->currentBlock->upwardExposedUses);
         }
 
-        if (instr->m_opcode == Js::OpCode::Yield)
-        {
-            instrPrev = ProcessPendingPreOpBailOutInfoForYield(instr);
-        }
-        else
-        {
-            instrPrev = ProcessPendingPreOpBailOutInfo(instr);
-        }
+        instrPrev = ProcessPendingPreOpBailOutInfo(instr);
 
 #if DBG_DUMP
         TraceInstrUses(block, instr, false);
@@ -4943,6 +4929,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
 #else
                     block->stackSymToFinalType->Clear(objSym->m_id);
 #endif
+                    this->ClearTypeIDWithFinalType(objSym->m_id, block);
                 }
             }
 
@@ -5419,6 +5406,10 @@ BackwardPass::MayPropertyBeWrittenTo(Js::PropertyId propertyId)
 void
 BackwardPass::ProcessPropertySymOpndUse(IR::PropertySymOpnd * opnd)
 {
+    if (opnd == this->currentInstr->GetDst() && this->HasTypeIDWithFinalType(this->currentBlock))
+    {
+        opnd->SetCantChangeType(true);
+    }
 
     // If this operand doesn't participate in the type check sequence it's a pass-through.
     // We will not set any bits on the operand and we will ignore them when lowering.
@@ -5636,10 +5627,18 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                         // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
                         // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
                         // the initial type check that protects this path.
-                        opnd->SetMonoGuardType(bucket->GetMonoGuardType());
+                        if (!opnd->SetMonoGuardType(bucket->GetMonoGuardType()))
+                        {
+                            // We can't safely check for the required type here. Clear the objtypespec info to disable optimization
+                            // using this inline cache, since there appears to be a mismatch, and re-jit.
+                            // (Dead store pass is too late to generate the bailout points we need to use this type correctly.)
+                            this->currentInstr->m_func->ClearObjTypeSpecFldInfo(opnd->m_inlineCacheIndex);
+                            throw Js::RejitException(RejitReason::FailedEquivalentTypeCheck);
+                        }
                         this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                     }
                     bucket->SetMonoGuardType(nullptr);
+                    this->ClearTypeIDWithFinalType(objSym->m_id, block);
                 }
 
                 if (!opnd->IsTypeAvailable())
@@ -5849,6 +5848,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     }
 
     pBucket->SetInitialType(typeWithoutProperty);
+    this->SetTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
 
     if (!PHASE_OFF(Js::ObjTypeSpecStorePhase, this->func))
     {
@@ -5936,6 +5936,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 #else
         block->stackSymToFinalType->Clear(propertySym->m_stackSym->m_id);
 #endif
+        this->ClearTypeIDWithFinalType(propertySym->m_stackSym->m_id, block);
     }
 }
 
@@ -6105,7 +6106,7 @@ BackwardPass::InsertTypeTransitionsAtPotentialKills()
                     // This is the sym we're tracking. No aliasing to worry about.
                     return false;
                 }
-                if (propertySymOpnd->IsMono() && data->GetInitialType() != propertySymOpnd->GetType())
+                if (propertySymOpnd->NeedsMonoCheck() && data->GetInitialType() != propertySymOpnd->GetType())
                 {
                     // Type mismatch in a monomorphic case -- no aliasing.
                     return false;
@@ -6145,6 +6146,40 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
         }
     }
     NEXT_HASHTABLE_ENTRY;
+}
+
+void
+BackwardPass::SetTypeIDWithFinalType(int symID, BasicBlock *block)
+{
+    BVSparse<JitArenaAllocator> *bv = block->EnsureTypeIDsWithFinalType(this->tempAlloc);
+    bv->Set(symID);
+}
+
+void
+BackwardPass::ClearTypeIDWithFinalType(int symID, BasicBlock *block)
+{
+    BVSparse<JitArenaAllocator> *bv = block->typeIDsWithFinalType;
+    if (bv != nullptr)
+    {
+        bv->Clear(symID);
+    }
+}
+
+bool
+BackwardPass::HasTypeIDWithFinalType(BasicBlock *block) const
+{
+    return block->typeIDsWithFinalType != nullptr && !block->typeIDsWithFinalType->IsEmpty();
+}
+
+void
+BackwardPass::CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc)
+{
+    BVSparse<JitArenaAllocator> *bvSucc = blockSucc->typeIDsWithFinalType;
+    if (bvSucc != nullptr && !bvSucc->IsEmpty())
+    {
+        BVSparse<JitArenaAllocator> *bv = block->EnsureTypeIDsWithFinalType(this->tempAlloc);
+        bv->Or(bvSucc);
+    }
 }
 
 bool
@@ -8314,9 +8349,10 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         return false;
     }
 
-    // For generator functions, we don't want to move the BailOutOnNoProfile above
-    // certain instructions such as ResumeYield/ResumeYieldStar/CreateInterpreterStackFrameForGenerator
-    // This indicates the insertion point for the BailOutOnNoProfile in such cases.
+    // For generator functions, we don't want to move the BailOutOnNoProfile
+    // above certain instructions such as GeneratorResumeYield or
+    // CreateInterpreterStackFrameForGenerator. This indicates the insertion
+    // point for the BailOutOnNoProfile in such cases.
     IR::Instr *insertionPointForGenerator = nullptr;
 
     // Don't hoist if we see calls with profile data (recursive calls)
@@ -8398,7 +8434,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // Now try to move this up the flowgraph to the predecessor blocks
     FOREACH_PREDECESSOR_BLOCK(pred, block)
     {
-        // Don't hoist BailOnNoProfile up past blocks containing ResumeYield/ResumeYieldStar
+        // Don't hoist BailOnNoProfile up past blocks containing GeneratorResumeYield
         bool hoistBailToPred = (insertionPointForGenerator == nullptr);
 
         if (block->isLoopHeader && pred->loop == block->loop)
@@ -8440,7 +8476,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                     // We already have one, we don't need a second.
                     instrCopy->Free();
                 }
-                else if (!predInstr->AsBranchInstr()->m_isSwitchBr)
+                else if (predInstr->IsBranchInstr() && !predInstr->AsBranchInstr()->m_isSwitchBr)
                 {
                     // Don't put a bailout in the middle of a switch dispatch sequence.
                     // The bytecode offsets are not in order, and it would lead to incorrect

@@ -115,7 +115,11 @@ typedef enum JsModuleHostInfoKind
     /// <summary>
     ///     Callback to allow host to initialize import.meta object properties.
     /// </summary>
-    JsModuleHostInfo_InitializeImportMetaCallback = 0x7
+    JsModuleHostInfo_InitializeImportMetaCallback = 0x7,
+    /// <summary>
+    ///     Callback to report module completion or exception thrown when evaluating a module.
+    /// </summary>
+    JsModuleHostInfo_ReportModuleCompletionCallback = 0x8
 } JsModuleHostInfoKind;
 
 /// <summary>
@@ -206,6 +210,27 @@ typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModu
 ///     Returns a JsErrorCode - note, the return value is ignored.
 /// </returns>
 typedef JsErrorCode(CHAKRA_CALLBACK * InitializeImportMetaCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar);
+
+/// <summary>
+///     User implemented callback to report completion of module execution.
+/// </summary>
+/// <remarks>
+///     This callback is used to report the completion of module execution and to report any runtime exceptions.
+///     Note it is not used for dynamicly imported modules import() as the reuslt from those are handled with a
+///     promise.
+///     If this callback is not set and a module produces an exception:
+///     a) a purely synchronous module tree with an exception will set the exception on the runtime
+///        (this is not done if this callback is set)
+///     b) an exception in an asynchronous module tree will not be reported directly.
+///
+///     However in all cases the exception will be set on the JsModuleRecord.
+/// </remarks>
+/// <param name="module">The root module that has completed either with an exception or normally.</param>
+/// <param name="exception">The exception object which was thrown or nullptr if the module had a normal completion.</param>
+/// <returns>
+///     Returns a JsErrorCode: JsNoError if successful.
+/// </returns>
+typedef JsErrorCode(CHAKRA_CALLBACK * ReportModuleCompletionCallback)(_In_ JsModuleRecord module, _In_opt_ JsValueRef exception);
 
 /// <summary>
 ///     A structure containing information about a native function callback.
@@ -319,17 +344,16 @@ JsCreateEnhancedFunction(
 /// <remarks>
 ///     Bootstrap the module loading process by creating a new module record.
 /// </remarks>
-/// <param name="referencingModule">The parent module of the new module - nullptr for a root module.</param>
-/// <param name="normalizedSpecifier">The normalized specifier for the module.</param>
-/// <param name="moduleRecord">The new module record. The host should not try to call this API twice
-///                            with the same normalizedSpecifier.</param>
+/// <param name="referencingModule">Unused parameter - exists for backwards compatability, supply nullptr</param>
+/// <param name="normalizedSpecifier">The normalized specifier or url for the module - used in script errors, optional.</param>
+/// <param name="moduleRecord">The new module record.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
 JsInitializeModuleRecord(
     _In_opt_ JsModuleRecord referencingModule,
-    _In_ JsValueRef normalizedSpecifier,
+    _In_opt_ JsValueRef normalizedSpecifier,
     _Outptr_result_maybenull_ JsModuleRecord* moduleRecord);
 
 /// <summary>
@@ -656,8 +680,8 @@ CHAKRA_API
 ///     </para>
 /// </remarks>
 /// <param name="name">
-///     The name of the property ID to get or create. The name may consist of only digits.
-///     The string is expected to be ASCII / utf8 encoded.
+///     The name of the property ID to get or create. The string is expected to be ASCII / utf8 encoded.
+///     The name can be any JavaScript property identifier, including all digits.
 /// </param>
 /// <param name="length">length of the name in bytes</param>
 /// <param name="propertyId">The property ID in this runtime for the given name.</param>

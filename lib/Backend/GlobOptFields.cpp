@@ -249,7 +249,8 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse
             IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
             Value * baseValue = baseOpnd ? this->currentBlock->globOptData.FindValue(baseOpnd->m_sym) : nullptr;
             ValueInfo * baseValueInfo = baseValue ? baseValue->GetValueInfo() : nullptr;
-            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray())
+            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray() || 
+                (this->IsLoopPrePass() && !this->IsSafeToTransferInPrepass(baseOpnd->m_sym, baseValueInfo)))
             {
                 if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
                 {
@@ -390,6 +391,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
 
     case Js::OpCode::InitSetFld:
     case Js::OpCode::InitGetFld:
+    case Js::OpCode::InitClassMember:
     case Js::OpCode::InitClassMemberGet:
     case Js::OpCode::InitClassMemberSet:
         sym = instr->GetDst()->AsSymOpnd()->m_sym;
@@ -563,7 +565,14 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         }
         break;
 
-    case Js::OpCode::InitClass:
+    case Js::OpCode::NewClassProto:
+        Assert(instr->GetSrc1());
+        if (IR::AddrOpnd::IsEqualAddr(instr->GetSrc1(), (void*)func->GetScriptContextInfo()->GetObjectPrototypeAddr()))
+        {
+            // No extends operand, the proto parent is the Object prototype
+            break;
+        }
+        // Fall through
     case Js::OpCode::InitProto:
     case Js::OpCode::NewScObjectNoCtor:
     case Js::OpCode::NewScObjectNoCtorFull:
@@ -905,7 +914,7 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
 
         SymID opndId = opnd->HasObjectTypeSym() ? opnd->GetObjectTypeSym()->m_id : -1;
 
-        if (!isObjTypeChecked)
+        if (!isObjTypeSpecialized || opnd->IsBeingAdded())
         {
             if (block->globOptData.maybeWrittenTypeSyms == nullptr)
             {
@@ -1193,6 +1202,19 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
         opnd->SetTypeAvailable(true);
     }
 
+    if (opnd->HasTypeMismatch())
+    {
+        if (emitsTypeCheckOut != nullptr)
+        {
+            *emitsTypeCheckOut = false;
+        }
+        if (changesTypeValueOut != nullptr)
+        {
+            *changesTypeValueOut = false;
+        }
+        return false;
+    }
+
     bool doEquivTypeCheck = opnd->HasEquivalentTypeSet() && !opnd->NeedsMonoCheck();
     if (!doEquivTypeCheck)
     {
@@ -1261,7 +1283,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 // a new type value here.
                 isSpecialized = false;
 
-                if (consumeType)
+                if (makeChanges)
                 {
                     opnd->SetTypeMismatch(true);
                 }
@@ -1305,7 +1327,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 // a new type value here.
                 isSpecialized = false;
 
-                if (consumeType)
+                if (makeChanges)
                 {
                     opnd->SetTypeMismatch(true);
                 }
@@ -1356,7 +1378,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             {
                 // Indicates failure/mismatch
                 isSpecialized = false;
-                if (consumeType)
+                if (makeChanges)
                 {
                     opnd->SetTypeMismatch(true);
                 }
@@ -1456,7 +1478,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             // a new type value here.
             isSpecialized = false;
 
-            if (consumeType)
+            if (makeChanges)
             {
                 opnd->SetTypeMismatch(true);
             }

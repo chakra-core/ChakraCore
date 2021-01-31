@@ -31,6 +31,8 @@
 
 #include "Library/BoundFunction.h"
 #include "Library/JavascriptGeneratorFunction.h"
+#include "Library/JavascriptAsyncFunction.h"
+#include "Library/JavascriptAsyncGeneratorFunction.h"
 
 #include "Library/RegexHelper.h"
 #include "Library/JavascriptRegularExpression.h"
@@ -38,7 +40,6 @@
 #include "Library/JavascriptRegularExpressionResult.h"
 
 #include "Library/JavascriptAsyncFromSyncIterator.h"
-#include "Library/JavascriptVariantDate.h"
 #include "Library/JavascriptPromise.h"
 #include "Library/JavascriptSymbolObject.h"
 #ifdef _CHAKRACOREBUILD
@@ -47,6 +48,7 @@
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptReflect.h"
 #include "Library/JavascriptGenerator.h"
+#include "Library/JavascriptAsyncGenerator.h"
 
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"

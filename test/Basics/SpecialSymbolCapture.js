@@ -216,6 +216,26 @@ var tests = [
         }
     },
     {
+        name: "Special names are invalid assignment targets",
+        body: function () {
+            assert.throws(() => eval(`
+                function f() {
+                    if (0) new.target = 1;
+                }
+            `), SyntaxError, "", "Invalid left-hand side in assignment.");
+            assert.throws(() => eval(`
+                function f() {
+                    if (0) this = 1;
+                }
+            `), SyntaxError, "", "Invalid left-hand side in assignment.");
+            assert.throws(() => eval(`
+                function f() {
+                    if (0) super = 1;
+                }
+            `), SyntaxError, "", "Invalid use of the 'super' keyword");
+        }
+    },
+    {
         name: "Global-scope `new.target` keyword is early syntax error",
         body: function () {
             var syntaxError;
@@ -641,7 +661,7 @@ var tests = [
         name: "Assignment to special symbols is invalid",
         body: function() {
             function test(code, message) {
-                assert.throws(() => WScript.LoadScript(code), ReferenceError, message, "Invalid left-hand side in assignment");
+                assert.throws(() => WScript.LoadScript(code), SyntaxError, message, "Invalid left-hand side in assignment.");
             }
             
             function testglobal(symname) {

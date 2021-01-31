@@ -85,7 +85,7 @@
       {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
-        "name": "string ",
+        "name": "string Global code",
         "caller": "object null",
         "arguments": "object null",
         "length": "number -1"
@@ -149,7 +149,7 @@
       {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
-        "name": "string ",
+        "name": "string Global code",
         "caller": "object null",
         "arguments": "object null",
         "length": "number -1"

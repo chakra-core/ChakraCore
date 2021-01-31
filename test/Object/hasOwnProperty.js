@@ -5,6 +5,9 @@
 
 function write(v) { WScript.Echo(v + ""); }
 
+function obj() { return this; }
+
+var z = obj();
 var o = new Object();
 var a = [11,12,13];
 
@@ -42,3 +45,6 @@ write(a.hasOwnProperty());
 write(a.hasOwnProperty(o));
 write(a.hasOwnProperty("o"));
 write(a.hasOwnProperty("[object Object]")); 
+
+write(z.hasOwnProperty());
+write(z.hasOwnProperty(undefined));

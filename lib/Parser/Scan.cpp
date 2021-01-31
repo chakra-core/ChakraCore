@@ -492,6 +492,8 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         break;
     }
 
+    m_lastIdentifierHasEscape = fHasEscape;
+
     Assert(p - pchMin > 0 && p - pchMin <= LONG_MAX);
 
     *pp = p;
@@ -1768,7 +1770,18 @@ LEof:
         case '[': Assert(chType == _C_LBR); token = tkLBrack; break;
         case ']': Assert(chType == _C_RBR); token = tkRBrack; break;
         case '~': Assert(chType == _C_TIL); token = tkTilde;  break;
-        case '?': Assert(chType == _C_QUE); token = tkQMark;  break;
+
+        case '?':
+            Assert(chType == _C_QUE);
+            token = tkQMark;
+            if (m_scriptContext->GetConfig()->IsESNullishCoalescingOperatorEnabled() && this->PeekFirst(p, last) == '?')
+            {
+                p++;
+                token = tkCoalesce;
+                break;
+            }
+            break;
+
         case '{': Assert(chType == _C_LC);  token = tkLCurly; break;
 
         // ES 2015 11.3 Line Terminators

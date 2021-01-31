@@ -15,7 +15,7 @@ function AddPromise(test, Msg, promise, result, shouldFail = false)
         ) :
     promise.then(
         (x)=>{if (! equal(result, x)) {throw new Error(`Test ${test} failed - ${Msg} - ${JSON.stringify(x)} should equal ${JSON.stringify(result)}`);}},
-        ()=>{throw new Error(`Test ${test} failed -  ${Msg}`);}
+        (x)=>{throw new Error(`Test ${test} failed -  ${Msg} - ${x}`);}
     );
     promises.push(resultPromise);
 }
@@ -26,6 +26,14 @@ function equal(expected, actual) {
         return expected.value === actual.value && expected.done === actual.done;
     }
     return expected === actual;
+}
+
+function ErrorPromise(test, promise, errorType, msg) {
+    const resultPromise =
+        promise.then((noError) => { throw new Error (`${test} failed - ${msg}`); },
+        (error) => { if (!(error instanceof errorType)) {
+            throw new Error (`${test} failed - ${msg} - ${error} thrown instead of ${errorType.name}`)}});
+    promises.push(resultPromise);
 }
 
 const tests = [
@@ -124,6 +132,65 @@ const tests = [
         }
     },
     {
+        name : "Yield* should cache next value",
+        body() {
+            async function* agf (a) {
+                yield* a;
+            }
+            const makeIter = function() {
+                return {
+                    i : 0,
+                    next () {
+                        this.next = function () { throw new Error ("This should not be called - next should have been cached")}
+                        return { value: this.i++, done : this.i > 3}
+                    }
+                }
+            }
+            const iterOne = {[Symbol.iterator] : makeIter }
+            const iterTwo = {[Symbol.asyncIterator] : makeIter }
+
+            const genOne = agf(iterOne);
+            const genTwo = agf(iterTwo);
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 0", genOne.next(), {value : 0, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 1", genOne.next(), {value : 1, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 2", genOne.next(), {value : 2, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 0", genTwo.next(), {value : 0, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 1", genTwo.next(), {value : 1, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 2", genTwo.next(), {value : 2, done : false});
+        }
+    },
+    {
+        name : "for await of should cache next value",
+        body() {
+            async function* agf (a) {
+                for await (const item of a)
+                {
+                    yield item;
+                }
+            }
+            const makeIter = function() {
+                return {
+                    i : 0,
+                    next () {
+                        this.next = function () { throw new Error ("This should not be called - next should have been cached")}
+                        return { value: this.i++, done : this.i > 3}
+                    }
+                }
+            }
+            const iterOne = {[Symbol.iterator] : makeIter }
+            const iterTwo = {[Symbol.asyncIterator] : makeIter }
+
+            const genOne = agf(iterOne);
+            const genTwo = agf(iterTwo);
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 0", genOne.next(), {value : 0, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 1", genOne.next(), {value : 1, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 2", genOne.next(), {value : 2, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 0", genTwo.next(), {value : 0, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 1", genTwo.next(), {value : 1, done : false});
+            AddPromise(this.name, "yield* from custom iterator which overwrites next 2", genTwo.next(), {value : 2, done : false});
+        }
+    },
+    {
         name : "Yield* on sync object with early return",
         body() {
             async function* agf (a) {
@@ -164,6 +231,21 @@ const tests = [
             AddPromise(this.name, "yield from generator before promise rejected", gen.next(), {value : param, done : false});
             AddPromise(this.name, "return a rejected promise, should reject", gen.next(), "reason", true);
             AddPromise(this.name, "next after rejected promise - iterator should be closed", gen.next(), {done : true});
+        }
+    },
+    {
+        name : "Attempt to use AsyncGenerator methods with bad input",
+        body() {
+            function* gf () {}
+            async function* agf() {}
+            const ag = agf();
+            const g = gf();
+            const inputs = [g, {}, true, 5, []];
+            for (const input of inputs) {
+                ErrorPromise(this.name, ag.next.call(input), TypeError, `AsyncGenerator.prototype.next should reject with TypeError when called on ${typeof input} ${input}`);
+                ErrorPromise(this.name, ag.throw.call(input), TypeError, `AsyncGenerator.prototype.throw should reject with TypeError when called on ${typeof input} ${input}`);
+                ErrorPromise(this.name, ag.return.call(input), TypeError, `AsyncGenerator.prototype.return should reject with TypeError when called on ${typeof input} ${input}`);
+            }
         }
     }
 ];

@@ -1049,8 +1049,7 @@ bool IR::Instr::IsStElemVariant() const
 
 bool IR::Instr::DontHoistBailOnNoProfileAboveInGeneratorFunction() const
 {
-    return this->m_opcode == Js::OpCode::ResumeYield ||
-        this->m_opcode == Js::OpCode::ResumeYieldStar ||
+    return this->m_opcode == Js::OpCode::GeneratorResumeYield ||
         this->m_opcode == Js::OpCode::GeneratorCreateInterpreterStackFrame;
 }
 
@@ -1904,6 +1903,14 @@ BranchInstr::Invert()
 
     case Js::OpCode::BrOnHasProperty:
         this->m_opcode = Js::OpCode::BrOnNoProperty;
+        break;
+
+    case Js::OpCode::BrOnHasLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnNoLocalProperty;
+        break;
+
+    case Js::OpCode::BrOnNoLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnHasLocalProperty;
         break;
 
     case Js::OpCode::BrOnNoProperty:

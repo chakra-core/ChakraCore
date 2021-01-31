@@ -37,27 +37,6 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("buffer"));
         }
 
-        // Currently the only reason we check for an external object is projection related, so it remains under conditional compilation.
-        RecyclableObject* jsArraySource = NULL;
-        if (JavascriptOperators::IsObject(args[1]) && JavascriptConversion::ToObject(args[1], scriptContext, &jsArraySource))
-        {
-            ArrayBuffer *ab = nullptr;
-            HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &ab);
-            switch (hr)
-            {
-            case S_OK:
-            case S_FALSE:
-                arrayBuffer = ab;
-                // Both of these cases will be handled by the arrayBuffer null check.
-                break;
-
-            default:
-                // Any FAILURE HRESULT or unexpected HRESULT.
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_InvalidArgument, _u("buffer"));
-                break;
-            }
-        }
-
         //2.    If Type(buffer) is not Object, throw a TypeError exception.
         //3.    If buffer does not have an [[ArrayBufferData]] internal slot, throw a TypeError exception.
         if (arrayBuffer == nullptr)
@@ -100,17 +79,17 @@ namespace Js
         //      a.  Let viewByteLength be ToIndex(byteLength).
         //      b.  If offset + viewByteLength > bufferByteLength, throw a RangeError exception.
         if (args.Info.Count > 3 && !JavascriptOperators::IsUndefinedObject(args[3]))
-            {
-                Var thirdArgument = args[3];
-                mappedLength = ArrayBuffer::ToIndex(thirdArgument, JSERR_ArrayLengthConstructIncorrect, scriptContext, ArrayBuffer::MaxArrayBufferLength, false);
-                uint32 viewRange = mappedLength + offset;
+        {
+            Var thirdArgument = args[3];
+            mappedLength = ArrayBuffer::ToIndex(thirdArgument, JSERR_ArrayLengthConstructIncorrect, scriptContext, ArrayBuffer::MaxArrayBufferLength, false);
+            uint32 viewRange = mappedLength + offset;
 
-                if (viewRange > byteLength || viewRange < mappedLength) // overflow indicates out-of-range
-                {
-                    JavascriptError::ThrowRangeError(
-                        scriptContext, JSERR_DataView_InvalidArgument, _u("byteLength"));
-                }
+            if (viewRange > byteLength || viewRange < mappedLength) // overflow indicates out-of-range
+            {
+                JavascriptError::ThrowRangeError(
+                    scriptContext, JSERR_DataView_InvalidArgument, _u("byteLength"));
             }
+        }
         else
         {
             mappedLength = byteLength - offset;
@@ -178,7 +157,7 @@ namespace Js
         }
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
         }
 
         DataView* dataView = VarTo<DataView>(args[0]);
@@ -228,7 +207,7 @@ namespace Js
         }
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
         }
         if (args.Info.Count > 2)
         {
@@ -255,7 +234,7 @@ namespace Js
         }
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
         }
         if (args.Info.Count > 2)
         {
@@ -309,7 +288,7 @@ namespace Js
         }
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
         }
         if (args.Info.Count > 2)
         {
@@ -336,7 +315,7 @@ namespace Js
         }
         if (args.Info.Count < 2)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset"));
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
         }
         if (args.Info.Count > 2)
         {
@@ -344,7 +323,7 @@ namespace Js
         }
 
         DataView* dataView = VarTo<DataView>(args[0]);
-       return dataView->GetValueWithCheck<double>(args[1], _u("DataView.prototype.GetFloat64"), isLittleEndian);
+        return dataView->GetValueWithCheck<double>(args[1], _u("DataView.prototype.GetFloat64"), isLittleEndian);
     }
 
     Var DataView::EntrySetInt8(RecyclableObject* function, CallInfo callInfo, ...)
@@ -356,16 +335,29 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        int8 value = 0;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                value = JavascriptConversion::ToInt8(args[2], scriptContext);
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        int8 value = JavascriptConversion::ToInt8(args[2], scriptContext);
         dataView->SetValue<int8>(args[1], value, _u("DataView.prototype.SetInt8"));
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -379,16 +371,29 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        uint8 value = 0;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                value = JavascriptConversion::ToUInt8(args[2], scriptContext);
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        uint8 value = JavascriptConversion::ToUInt8(args[2], scriptContext);
         dataView->SetValue<uint8>(args[1], value, _u("DataView.prototype.SetUint8"));
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -399,24 +404,40 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        BOOL isLittleEndian = FALSE;
+        int16 value = 0;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                if (!JavascriptOperators::IsUndefined(args[2]))
+                {
+                    value = JavascriptConversion::ToInt16(args[2], scriptContext);
+                }
+                if (args.Info.Count > 3)
+                {
+                    isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
+                }
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        int16 value = JavascriptConversion::ToInt16(args[2], scriptContext);
-        if (args.Info.Count > 3)
-        {
-            isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
-        }
         dataView->SetValue<int16>(args[1], value, _u("DataView.prototype.SetInt16"), isLittleEndian);
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -427,24 +448,40 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        BOOL isLittleEndian = FALSE;
+        uint16 value = 0;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                if (!JavascriptOperators::IsUndefined(args[2]))
+                {
+                    value = JavascriptConversion::ToUInt16(args[2], scriptContext);
+                }
+                if (args.Info.Count > 3)
+                {
+                    isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
+                }
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        uint16 value = JavascriptConversion::ToUInt16(args[2], scriptContext);
-        if (args.Info.Count > 3)
-        {
-            isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
-        }
         dataView->SetValue<uint16>(args[1], value, _u("DataView.prototype.SetUint16"), isLittleEndian);
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -455,24 +492,40 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        BOOL isLittleEndian = FALSE;
+        int32 value = 0;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                if (!JavascriptOperators::IsUndefined(args[2]))
+                {
+                    value = JavascriptConversion::ToInt32(args[2], scriptContext);
+                }
+                if (args.Info.Count > 3)
+                {
+                    isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
+                }
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        int32 value = JavascriptConversion::ToInt32(args[2], scriptContext);
-        if (args.Info.Count > 3)
-        {
-            isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
-        }
         dataView->SetValue<int32>(args[1], value, _u("DataView.prototype.SetInt32"), isLittleEndian);
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -483,24 +536,40 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        BOOL isLittleEndian = FALSE;
+        uint32 value = 0;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                if (!JavascriptOperators::IsUndefined(args[2]))
+                {
+                    value = JavascriptConversion::ToUInt32(args[2], scriptContext);
+                }
+                if (args.Info.Count > 3)
+                {
+                    isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
+                }
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        uint32 value = JavascriptConversion::ToUInt32(args[2], scriptContext);
-        if (args.Info.Count > 3)
-        {
-            isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
-        }
         dataView->SetValue<uint32>(args[1], value, _u("DataView.prototype.SetUint32"), isLittleEndian);
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -511,24 +580,40 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        BOOL isLittleEndian = FALSE;
+        float value = static_cast<float>(JavascriptNumber::NaN);
+        switch (args.Info.Count)
         {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView,  _u("offset or value"));
+        case 0:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                if (!JavascriptOperators::IsUndefined(args[2]))
+                {
+                    value = JavascriptConversion::ToFloat(args[2], scriptContext);
+                }
+                if (args.Info.Count > 3)
+                {
+                    isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
+                }
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument);
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        float value = JavascriptConversion::ToFloat(args[2], scriptContext);
-        if (args.Info.Count > 3)
-        {
-            isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
-        }
         dataView->SetValue<float>(args[1], value, _u("DataView.prototype.SetFloat32"), isLittleEndian);
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -539,24 +624,40 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        BOOL isLittleEndian = FALSE;
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
+        BOOL isLittleEndian = FALSE;
+        double value = JavascriptNumber::NaN;
+        switch (args.Info.Count)
         {
+        case 0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+            break;
+        case 1:
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
+            break;
+        default:
+            if (!VarIs<DataView>(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
+                break;
+            }
+            if (args.Info.Count > 2)
+            {
+                if (!JavascriptOperators::IsUndefined(args[2]))
+                {
+                    value = JavascriptConversion::ToNumber(args[2], scriptContext);
+                }
+                if (args.Info.Count > 3)
+                {
+                    isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
+                }
+            }
+            break;
         }
-        if (args.Info.Count < 3)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
-        }
+
         DataView* dataView = VarTo<DataView>(args[0]);
-        double value = JavascriptConversion::ToNumber(args[2], scriptContext);
-        if (args.Info.Count > 3)
-        {
-            isLittleEndian = JavascriptConversion::ToBoolean(args[3], scriptContext);
-        }
         dataView->SetValue<double>(args[1], value, _u("DataView.prototype.SetFloat64"), isLittleEndian);
         return scriptContext->GetLibrary()->GetUndefined();
     }

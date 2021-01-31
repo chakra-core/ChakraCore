@@ -86,7 +86,7 @@
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
         "length": "number 2",
-        "name": "string ",
+        "name": "string s",
         "caller": "object null",
         "arguments": "object null"
       },

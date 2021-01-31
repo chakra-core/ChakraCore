@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
@@ -398,6 +399,10 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
         IfJsErrorFailLogLabel(ChakraRTInterface::JsCreateString(fullPath,
             strlen(fullPath), &fname), ErrorRunFinalize);
 
+        // memory management for serialized script case - need to define these here
+        SerializedCallbackInfo serializedCallbackInfo;
+        serializedCallbackInfo.freeingHandled = true;
+
         if (bufferValue != nullptr)
         {
             if (fileContents == nullptr)
@@ -414,7 +419,6 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
             else // fileContents != nullptr
             {
                 // Memory management is a little more complex here
-                SerializedCallbackInfo serializedCallbackInfo;
                 serializedCallbackInfo.scriptBody = (void*)fileContents;
                 serializedCallbackInfo.scriptBodyFinalizeCallback = fileContentsFinalizeCallback;
                 serializedCallbackInfo.freeingHandled = false;
@@ -427,15 +431,6 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
                     // Use source ptr as sourceContext
                     fname,
                     nullptr /*result*/);
-                // Now that we're down here, we can free the fileContents if they weren't sent into
-                // a GC-managed object.
-                if (!serializedCallbackInfo.freeingHandled)
-                {
-                    if (fileContentsFinalizeCallback != nullptr)
-                    {
-                        fileContentsFinalizeCallback((void*)fileContents);
-                    }
-                }
             }
         }
         else if (parserStateCache != nullptr)
@@ -519,6 +514,12 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
             {
                 IfFailGo(messageQueue->ProcessAll(fileName));
             } while(!messageQueue->IsEmpty());
+        }
+
+        // free the source for the serialized script case if it's not been handed to a managed object
+        if (!serializedCallbackInfo.freeingHandled && fileContentsFinalizeCallback != nullptr)
+        {
+            fileContentsFinalizeCallback((void*)fileContents);
         }
     }
 

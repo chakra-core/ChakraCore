@@ -835,6 +835,7 @@ FlowGraph::RunPeeps()
         case Js::OpCode::BrSrNeq_A:
         case Js::OpCode::BrOnHasProperty:
         case Js::OpCode::BrOnNoProperty:
+        case Js::OpCode::BrOnHasLocalProperty:
         case Js::OpCode::BrOnNoLocalProperty:
         case Js::OpCode::BrHasSideEffects:
         case Js::OpCode::BrNotHasSideEffects:
@@ -847,6 +848,9 @@ FlowGraph::RunPeeps()
         case Js::OpCode::BrOnObject_A:
         case Js::OpCode::BrOnClassConstructor:
         case Js::OpCode::BrOnBaseConstructorKind:
+        case Js::OpCode::BrOnObjectOrNull_A:
+        case Js::OpCode::BrOnNotNullObj_A:
+        case Js::OpCode::BrOnConstructor_A:
             if (tryUnsignedCmpPeep)
             {
                 this->UnsignedCmpPeep(instr);
@@ -3291,6 +3295,16 @@ BasicBlock::CreateLoopTopBailOutInfo(GlobOpt * globOpt)
     bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
 #endif
     return bailOutInfo;
+}
+
+BVSparse<JitArenaAllocator> *
+BasicBlock::EnsureTypeIDsWithFinalType(JitArenaAllocator *alloc)
+{
+    if (typeIDsWithFinalType == nullptr)
+    {
+         typeIDsWithFinalType = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+    }
+    return typeIDsWithFinalType;
 }
 
 IR::Instr *

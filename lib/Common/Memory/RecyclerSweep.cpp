@@ -160,9 +160,7 @@ RecyclerSweep::FlushPendingTransferDisposedObjects()
 {
     if (this->heapInfo->hasPendingTransferDisposedObjects)
     {
-        // If recycler->inResolveExternalWeakReferences is true, the recycler isn't really disposing anymore
-        // so it's safe to call transferDisposedObjects
-        Assert(!recycler->inDispose || recycler->inResolveExternalWeakReferences);
+        Assert(!recycler->inDispose);
         Assert(!recycler->hasDisposableObject);
         heapInfo->TransferDisposedObjects();
     }

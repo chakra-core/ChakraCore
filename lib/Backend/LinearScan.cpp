@@ -2981,9 +2981,9 @@ LinearScan::ProcessEHRegionBoundary(IR::Instr * instr)
     }
 
     // Spill everything upon entry to the try region and upon a Leave.
-    IR::Instr* insertionInstr = instr->m_opcode != Js::OpCode::Leave ? instr : instr->m_prev;
     FOREACH_SLIST_ENTRY_EDITING(Lifetime *, lifetime, this->activeLiveranges, iter)
     {
+        IR::Instr* insertionInstr = instr->m_opcode != Js::OpCode::Leave ? instr : instr->m_prev;
         this->activeRegs.Clear(lifetime->reg);
         if (lifetime->IsInt())
         {
@@ -5004,7 +5004,7 @@ void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
 //
 IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr)
 {
-    BailOutInfo* bailOutInfo = bailInInstr->GetYieldInstr()->GetBailOutInfo();
+    BailOutInfo* bailOutInfo = bailInInstr->yieldInstr->GetBailOutInfo();
 
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->constantValues.Empty());
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->copyPropSyms.Empty());
@@ -5045,14 +5045,14 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr*
 
     this->BuildBailInSymbolList(
         *bailOutInfo->byteCodeUpwardExposedUsed,
-        bailInInstr->GetUpwardExposedUses(),
-        bailInInstr->GetCapturedValues()
+        bailInInstr->upwardExposedUses,
+        bailInInstr->capturedValues
     );
 
     this->InsertRestoreSymbols(
         *bailOutInfo->byteCodeUpwardExposedUsed,
-        bailInInstr->GetUpwardExposedUses(),
-        bailInInstr->GetCapturedValues(),
+        bailInInstr->upwardExposedUses,
+        bailInInstr->capturedValues,
         insertionPoint
     );
     Assert(!this->func->IsStackArgsEnabled());

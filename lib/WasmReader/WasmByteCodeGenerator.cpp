@@ -1604,11 +1604,11 @@ EmitInfo WasmBytecodeGenerator::EmitSimdMemAccess(Js::OpCodeAsmJs op, const Wasm
     WasmTypes::WasmType type = signature[0];
     SetUsesMemory(0);
 
-    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint32 naturalAlignment = 16;
     const uint alignment = GetReader()->m_currentNode.mem.alignment;
     const uint offset = GetReader()->m_currentNode.mem.offset;
 
-    if ((mask << 1) & (1 << alignment))
+    if (alignment > naturalAlignment)
     {
         throw WasmCompilationException(_u("alignment must not be larger than natural"));
     }

@@ -638,6 +638,7 @@ public:
             bool usesFixedValue: 1;
             bool auxSlotPtrSymAvailable:1;
             bool producesAuxSlotPtr:1;
+            bool cantChangeType: 1;
 
             union
             {
@@ -801,9 +802,17 @@ public:
         return this->monoGuardType;
     }
 
-    void SetMonoGuardType(JITTypeHolder type)
+    bool SetMonoGuardType(JITTypeHolder type)
     {
+        if (!(this->monoGuardType == nullptr || this->monoGuardType == type) ||
+            !((HasEquivalentTypeSet() && GetEquivalentTypeSet()->Contains(type)) ||
+              (!HasEquivalentTypeSet() && GetType() == type)))
+        {
+            // Required type is not in the available set, or we already set the type to something else. Inform the caller.
+            return false;
+        }
         this->monoGuardType = type;
+        return true;
     }
 
     bool NeedsMonoCheck() const
@@ -1049,6 +1058,16 @@ public:
     {
         Assert(IsTypeCheckSeqCandidate());
         this->typeCheckRequired = value;
+    }
+
+    bool CantChangeType() const
+    {
+        return this->cantChangeType;
+    }
+
+    void SetCantChangeType(bool value)
+    {
+        this->cantChangeType = value;
     }
 
     uint16 GetObjTypeSpecFlags() const
@@ -1507,7 +1526,9 @@ public:
 public:
     //Note type: OpndKindAddr
     AddrOpnd *              CopyInternal(Func *func);
-    bool                    IsEqualInternal(Opnd *opnd);
+    bool                    IsEqualInternal(Opnd *opnd) const;
+    bool                    IsEqualAddr(void *addr) const;
+    static bool             IsEqualAddr(IR::Opnd * opnd, void * addr);
     void                    FreeInternal(Func * func);
 
     bool                    IsDynamic() const { return addrOpndKind > AddrOpndKindConstantVar; }

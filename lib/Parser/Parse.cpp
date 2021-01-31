@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -26,11 +27,6 @@ const uint ParseNode::mpnopgrfnop[knopLim] =
 #define PTNODE(nop,sn,pc,nk,grfnop,json) grfnop,
 #include "ptlist.h"
 };
-
-bool Parser::IsES6DestructuringEnabled() const
-{
-    return m_scriptContext->GetConfig()->IsES6DestructuringEnabled();
-}
 
 struct BlockInfoStack
 {
@@ -284,6 +280,7 @@ LPCWSTR Parser::GetTokenString(tokens token)
     case tkColon: return _u(":");
     case tkLogOr: return _u("||");
     case tkLogAnd: return _u("&&");
+    case tkCoalesce: return _u("??");
     case tkOr: return _u("|");
     case tkXor: return _u("^");
     case tkAnd: return _u("&");
@@ -1355,7 +1352,7 @@ Symbol* Parser::AddDeclForPid(ParseNodeVar * pnodeVar, IdentPtr pid, SymbolType 
             case knopLetDecl:
             case knopConstDecl:
                 // Destructuring made possible to have the formals to be the let bind. But that shouldn't throw the error.
-                if (errorOnRedecl && (!IsES6DestructuringEnabled() || sym->GetSymbolType() != STFormal))
+                if (errorOnRedecl && (sym->GetSymbolType() != STFormal))
                 {
                     Error(ERRRedeclaration);
                 }
@@ -1980,6 +1977,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
 
             ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
+            Assert(bodyScope == nullptr || bodyScope->blockType == PnodeBlockType::Function);
 
             if (bodyScope && ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
             {
@@ -2215,7 +2213,6 @@ void Parser::AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast,
     }
     else
     {
-        //
         Assert(*ppnodeList);
         Assert(**pppnodeLast);
 
@@ -2398,7 +2395,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
 
         if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
         {
-            Error(ERRsyntax);
+            Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(GetScanner()->GetPrevious()));
         }
 
         IdentPtr identifierName = m_token.GetIdentifier(this->GetHashTbl());
@@ -2410,9 +2407,9 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         if (m_token.tk == tkID)
         {
             // We have the pattern "IdentifierName as"
-            if (wellKnownPropertyPids.as != m_token.GetIdentifier(this->GetHashTbl()))
+            if (!CheckContextualKeyword(wellKnownPropertyPids.as))
             {
-                Error(ERRsyntax);
+                Error(ERRInvalidIdentifier, m_token.GetIdentifier(this->GetHashTbl())->Psz(), identifierName->Psz());
             }
 
             this->GetScanner()->Scan();
@@ -2437,7 +2434,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         {
             // If we are parsing an import statement and this ImportSpecifier clause did not have
             // 'as ImportedBinding' at the end of it, identifierName must be a BindingIdentifier.
-            Error(ERRsyntax);
+            Error(ERRnoIdent);
         }
 
         if (m_token.tk == tkComma)
@@ -2460,7 +2457,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
     }
 
     // Final token in a named import or export clause must be a '}'
-    ChkCurTokNoScan(tkRCurly, ERRsyntax);
+    ChkCurTokNoScan(tkRCurly, ERRnoRcurly);
 }
 
 IdentPtrList* Parser::GetRequestedModulesList()
@@ -2666,14 +2663,14 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
 
         // Token following * must be the identifier 'as'
         this->GetScanner()->Scan();
-        if (m_token.tk != tkID || wellKnownPropertyPids.as != m_token.GetIdentifier(this->GetHashTbl()))
+        if (!CheckContextualKeyword(wellKnownPropertyPids.as))
         {
-            Error(ERRsyntax);
+            Error(ERRValidIfFollowedBy, _u("import *"), _u("as"));
         }
 
         // Token following 'as' must be a binding identifier.
         this->GetScanner()->Scan();
-        ChkCurTokNoScan(tkID, ERRsyntax);
+        ChkCurTokNoScan(tkID, ERRnoIdent);
 
         if (buildAST)
         {
@@ -2688,7 +2685,7 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
         break;
 
     default:
-        Error(ERRsyntax);
+        Error(ERRTokenAfter, GetTokenString(m_token.tk), GetTokenString(this->GetScanner()->GetPrevious()));
     }
 
     this->GetScanner()->Scan();
@@ -2708,23 +2705,39 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
     }
 }
 
-bool Parser::IsImportOrExportStatementValidHere()
+void Parser::CheckIfImportOrExportStatementValidHere()
 {
     ParseNodeFnc * curFunc = GetCurrentFunctionNode();
 
-    // Import must be located in the top scope of the module body.
-    return curFunc->nop == knopFncDecl
-        && curFunc->IsModule()
-        && this->m_currentBlockInfo->pnodeBlock == curFunc->pnodeBodyScope
-        && (this->m_grfscr & fscrEvalCode) != fscrEvalCode
-        && this->m_tryCatchOrFinallyDepth == 0
-        && !this->m_disallowImportExportStmt;
+    if (curFunc->nop != knopFncDecl || !curFunc->IsModule())
+    {
+        Error(ERRModuleImportOrExportInScript);
+    }
+
+    if (this->m_currentBlockInfo->pnodeBlock != curFunc->pnodeBodyScope
+        || (this->m_grfscr & fscrEvalCode) == fscrEvalCode
+        || this->m_tryCatchOrFinallyDepth != 0
+        || this->m_disallowImportExportStmt)
+    {
+        Error(ERRInvalidModuleImportOrExport);
+    }
 }
 
 bool Parser::IsTopLevelModuleFunc()
 {
     ParseNodeFnc * curFunc = GetCurrentFunctionNode();
     return curFunc->nop == knopFncDecl && curFunc->IsModule();
+}
+
+void Parser::MakeModuleAsync()
+{
+    Assert(IsTopLevelModuleFunc());
+    if (!m_scriptContext->GetConfig()->IsESTopLevelAwaitEnabled())
+    {
+        Error(ERRExperimental);
+    }
+    ParseNodeFnc * curFunc = GetCurrentFunctionNode();
+    curFunc->SetIsAsync();
 }
 
 template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
@@ -2774,10 +2787,7 @@ ParseNodePtr Parser::ParseImport()
 
     this->GetScanner()->SeekTo(parsedImport);
 
-    if (!IsImportOrExportStatementValidHere())
-    {
-        Error(ERRInvalidModuleImportOrExport);
-    }
+    CheckIfImportOrExportStatementValidHere();
 
     // We just parsed an import token. Next valid token is *, {, string constant, or binding identifier.
     this->GetScanner()->Scan();
@@ -2828,12 +2838,12 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
 {
     IdentPtr moduleSpecifier = nullptr;
 
-    if (m_token.tk == tkID && wellKnownPropertyPids.from == m_token.GetIdentifier(this->GetHashTbl()))
+    if (CheckContextualKeyword(wellKnownPropertyPids.from))
     {
         this->GetScanner()->Scan();
 
         // Token following the 'from' token must be a string constant - the module specifier.
-        ChkCurTokNoScan(tkStrCon, ERRsyntax);
+        ChkCurTokNoScan(tkStrCon, ERRValidIfFollowedBy, _u("'from'"), _u("a module specifier."));
 
         if (buildAST)
         {
@@ -2844,7 +2854,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
     }
     else if (throwIfNotFound)
     {
-        Error(ERRsyntax);
+        Error(ERRMissingFrom);
     }
 
     return moduleSpecifier;
@@ -2863,10 +2873,6 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     {
     case tkCLASS:
     {
-        if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            goto LDefault;
-        }
 
         // Before we parse the class itself we need to know if the class has an identifier name.
         // If it does, we'll treat this class as an ordinary class declaration which will bind
@@ -2901,7 +2907,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
         // function token) or it could be an identifier (let async = 0; export default async;).
         // To handle both cases, when we parse an async token we need to keep the parser state
         // and rewind if the next token is not function.
-        if (wellKnownPropertyPids.async == m_token.GetIdentifier(this->GetHashTbl()))
+        if (CheckContextualKeyword(wellKnownPropertyPids.async))
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -2997,10 +3003,7 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
     Assert(m_scriptContext->GetConfig()->IsES6ModuleEnabled());
     Assert(m_token.tk == tkEXPORT);
 
-    if (!IsImportOrExportStatementValidHere())
-    {
-        Error(ERRInvalidModuleImportOrExport);
-    }
+    CheckIfImportOrExportStatementValidHere();
 
     ParseNodePtr pnode = nullptr;
     IdentPtr moduleIdentifier = nullptr;
@@ -3023,26 +3026,22 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 
         if (m_scriptContext->GetConfig()->IsESExportNsAsEnabled())
         {
-            // export * as name
-            if (m_token.tk == tkID)
+            // check for 'as'
+            if (CheckContextualKeyword(wellKnownPropertyPids.as))
             {
-                // check for 'as'
-                if (wellKnownPropertyPids.as == m_token.GetIdentifier(this->GetHashTbl()))
+                // scan to the next token
+                this->GetScanner()->Scan();
+
+                // token after as must be an identifier
+                if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
                 {
-                    // scan to the next token
-                    this->GetScanner()->Scan();
-
-                    // token after as must be an identifier
-                    if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
-                    {
-                        Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
-                    }
-
-                    exportName = m_token.GetIdentifier(this->GetHashTbl());
-                    
-                    // scan to next token
-                    this->GetScanner()->Scan();
+                    Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
                 }
+
+                exportName = m_token.GetIdentifier(this->GetHashTbl());
+
+                // scan to next token
+                this->GetScanner()->Scan();
             }
         }
 
@@ -3122,14 +3121,18 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 
     case tkID:
     {
-        IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
+        IdentPtr pid = nullptr;
+        if (!this->GetScanner()->LastIdentifierHasEscape())
+        {
+            pid = m_token.GetIdentifier(this->GetHashTbl());
+        }
 
-        if (wellKnownPropertyPids.let == pid)
+        if (pid == wellKnownPropertyPids.let)
         {
             declarationType = tkLET;
             goto ParseVarDecl;
         }
-        if (wellKnownPropertyPids.async == pid && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (pid == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             // In module export statements, async token is only valid if it's followed by function.
             // We need to check here because ParseStatement would think 'async = 20' is a var decl.
@@ -3236,7 +3239,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
     _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/,
-    _Inout_opt_ charcount_t *plastRParen /*= nullptr*/)
+    _Inout_opt_ charcount_t *plastRParen /*= nullptr*/,
+    _Out_opt_ bool* looseCoalesce /*= nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     PidRefStack *savedTopAsyncRef = nullptr;
@@ -3267,6 +3271,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         iecpLim = this->GetScanner()->IecpLimTok();
 
         if (pid == wellKnownPropertyPids.async &&
+            !this->GetScanner()->LastIdentifierHasEscape() &&
             m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             isAsyncExpr = true;
@@ -3343,15 +3348,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         ichLim = this->GetScanner()->IchLimTok();
         iecpLim = this->GetScanner()->IecpLimTok();
 
-        if (!m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            goto LUnknown;
-        }
-
         this->GetScanner()->Scan();
 
         pid = ParseSuper<buildAST>(!!fAllowCall);
         isSpecialName = true;
+        fCanAssign = FALSE;
 
         // Super reference and super call need to push a pid ref to 'this' even when not building an AST
         ReferenceSpecialName(wellKnownPropertyPids._this, ichMin, ichLim);
@@ -3376,6 +3377,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
         this->GetScanner()->Scan();
         isSpecialName = true;
+        fCanAssign = FALSE;
 
         goto LIdentifier;
 
@@ -3431,7 +3433,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         AutoDeferErrorsRestore deferErrorRestore(this);
 
         this->m_funcParenExprDepth++;
-        pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen);
+        pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen, looseCoalesce);
         this->m_funcParenExprDepth--;
 
         if (buildAST && plastRParen)
@@ -3440,6 +3442,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         }
 
         ChkCurTok(tkRParen, ERRnoRparen);
+
+        if (looseCoalesce != nullptr)
+        {
+            *looseCoalesce = false;
+        }
 
         GetCurrentBlock()->blockId = saveCurrBlockId;
         if (m_token.tk == tkDArrow)
@@ -3572,7 +3579,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         iecpMin = this->GetScanner()->IecpMinTok();
         this->GetScanner()->Scan();
 
-        if (m_token.tk == tkDot && m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        if (m_token.tk == tkDot)
         {
             pid = ParseMetaProperty<buildAST>(tkNEW, ichMin, &fCanAssign);
 
@@ -3581,6 +3588,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
             this->GetScanner()->Scan();
             isSpecialName = true;
+            fCanAssign = FALSE;
 
             goto LIdentifier;
         }
@@ -3617,14 +3625,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             this->m_funcInArrayDepth = 0;
         }
         ChkCurTok(tkRBrack, ERRnoRbrack);
-        if (!IsES6DestructuringEnabled())
-        {
-            fCanAssign = FALSE;
-        }
-        else if (pfLikelyPattern != nullptr && !IsPostFixOperators())
+        if (pfLikelyPattern != nullptr && !IsPostFixOperators())
         {
             *pfLikelyPattern = TRUE;
         }
+        fCanAssign = FALSE;
         break;
     }
 
@@ -3640,14 +3645,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             pnode->ichLim = this->GetScanner()->IchLimTok();
         }
         ChkCurTok(tkRCurly, ERRnoRcurly);
-        if (!IsES6DestructuringEnabled())
-        {
-            fCanAssign = FALSE;
-        }
-        else if (pfLikelyPattern != nullptr && !IsPostFixOperators())
+        if (pfLikelyPattern != nullptr && !IsPostFixOperators())
         {
             *pfLikelyPattern = TRUE;
         }
+        fCanAssign = FALSE;
         break;
     }
 
@@ -3686,14 +3688,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     }
 
     case tkCLASS:
-        if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
-        {
-            pnode = ParseClassDecl<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
-        }
-        else
-        {
-            goto LUnknown;
-        }
+        pnode = ParseClassDecl<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset);
+
         fCanAssign = FALSE;
         break;
 
@@ -4726,7 +4722,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
     bool seenRest = false;
 
     // we get declaration tkLCurly - when the possible object pattern found under the expression.
-    bool isObjectPattern = (declarationType == tkVAR || declarationType == tkLET || declarationType == tkCONST || declarationType == tkLCurly) && IsES6DestructuringEnabled();
+    bool isObjectPattern = (declarationType == tkVAR || declarationType == tkLET || declarationType == tkCONST || declarationType == tkLCurly);
 
     // Check for an empty list
     if (tkRCurly == m_token.tk)
@@ -4750,7 +4746,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         bool isAsyncMethod = false;
         charcount_t ichMin = this->GetScanner()->IchMinTok();
         size_t iecpMin = this->GetScanner()->IecpMinTok();
-        if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -4792,6 +4788,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         charcount_t idHintIchLim = static_cast<charcount_t>(this->GetScanner()->IecpLimTok());
         bool wrapInBrackets = false;
         bool seenEllipsis = false;
+        bool maybeKeyword = false;
         switch (m_token.tk)
         {
         default:
@@ -4804,6 +4801,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             // fall-through
         case tkID:
             pidHint = m_token.GetIdentifier(this->GetHashTbl());
+            maybeKeyword = !this->GetScanner()->LastIdentifierHasEscape();
             if (buildAST)
             {
                 pnodeName = CreateStrNode(pidHint);
@@ -4992,14 +4990,22 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             {
                 pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
 
-                if (pnodeExpr && pnodeExpr->nop == knopFncDecl)
+                ParseNodeFnc* funcNode = nullptr;
+                if (pnodeExpr)
                 {
-                    ParseNodeFnc* funcNode = pnodeExpr->AsParseNodeFnc();
-                    if (isComputedName)
+                    if (pnodeExpr->nop == knopFncDecl)
+                    {
+                        funcNode = pnodeExpr->AsParseNodeFnc();
+                        funcNode->SetHasHomeObj();
+                    }
+                    else if (pnodeExpr->nop == knopClassDecl)
+                    {
+                        funcNode = pnodeExpr->AsParseNodeClass()->pnodeConstructor;
+                    }
+                    if (funcNode && funcNode->pnodeName == nullptr && isComputedName)
                     {
                         funcNode->SetHasComputedName();
                     }
-                    funcNode->SetHasHomeObj();
                 }
             }
 #if DEBUG
@@ -5069,9 +5075,10 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         {
             Assert(pidHint->Psz() != nullptr);
 
+            // get/set are only pseudo keywords when they are identifiers (i.e. not strings)
             if ((pidHint == wellKnownPropertyPids.get || pidHint == wellKnownPropertyPids.set) &&
-                // get/set are only pseudo keywords when they are identifiers (i.e. not strings)
-                tkHint.tk == tkID && NextTokenIsPropertyNameStart())
+                maybeKeyword &&
+                NextTokenIsPropertyNameStart())
             {
                 if (isObjectPattern)
                 {
@@ -5396,6 +5403,12 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
     pnodeFnc->SetHasNonThisStmt(pnodeFnc->IsClassConstructor());
+
+    if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
+    {
+        pnodeFnc->SetIsDeclaredInParamScope();
+        this->m_currentScope->SetHasNestedParamFunc();
+    }
 
     if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
     {
@@ -6884,7 +6897,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
             
             if (m_token.tk != tkID)
             {
-                if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
+                if (IsPossiblePatternStart())
                 {
                     // Mark that the function has a non simple parameter list before parsing the pattern since the pattern can have function definitions.
                     this->GetCurrentFunctionNode()->SetHasNonSimpleParameterList();
@@ -7011,7 +7024,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
 
                 this->GetScanner()->Scan();
 
-                if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
+                if (m_token.tk == tkAsg)
                 {
                     if (seenRestParameter && m_scriptContext->GetConfig()->IsES6RestEnabled())
                     {
@@ -7157,14 +7170,12 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc = CreateAllowDeferNodeForOpT<knopFncDecl>();
     pnodeFnc->SetNested(NULL != m_currentNodeFunc);
     pnodeFnc->SetStrictMode();
-    pnodeFnc->SetDeclaration(TRUE);
     pnodeFnc->SetIsMethod(TRUE);
     pnodeFnc->SetIsClassMember(TRUE);
     pnodeFnc->SetIsClassConstructor(TRUE);
     pnodeFnc->SetIsBaseClassConstructor(!extends);
     pnodeFnc->SetHasNonThisStmt();
     pnodeFnc->SetIsGeneratedDefault(TRUE);
-    pnodeFnc->SetHasComputedName();
     pnodeFnc->SetHasHomeObj();
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
 
@@ -7321,7 +7332,6 @@ void Parser::ParseExpressionLambdaBody(ParseNodeFnc * pnodeLambda, bool fAllowIn
         // Pushing a statement node with PushStmt<>() normally does this initialization
         // but do it here manually since we know there is no outer statement node.
         pnodeRet->grfnop = 0;
-        pnodeRet->pnodeOuter = nullptr;
 
         pnodeLambda->ichLim = max(pnodeRet->ichLim, lastRParen);
         pnodeLambda->cbLim = this->GetScanner()->IecpLimTokPrevious();
@@ -7381,7 +7391,7 @@ void Parser::CheckStrictFormalParameters()
 
             this->GetScanner()->Scan();
 
-            if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
+            if (m_token.tk == tkAsg)
             {
                 this->GetScanner()->Scan();
                 // We can avoid building the AST since we are just checking the default expression.
@@ -7474,7 +7484,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc, bool fAllowIn)
             for (;;)
             {
                 this->GetScanner()->Scan();
-                if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async)
+                if (CheckContextualKeyword(wellKnownPropertyPids.async))
                 {
                     Assert(pnodeFnc->IsAsync());
                     continue;
@@ -7505,7 +7515,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc, bool fAllowIn)
         Assert(pnodeFnc->IsGenerator());
         this->GetScanner()->ScanNoKeywords();
     }
-    if (fLambda && m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async)
+    if (fLambda && CheckContextualKeyword(wellKnownPropertyPids.async))
     {
         Assert(pnodeFnc->IsAsync());
         this->GetScanner()->ScanNoKeywords();
@@ -7844,8 +7854,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     ParseNodePtr pnodeExtends = nullptr;
     ParseNodePtr pnodeMembers = nullptr;
     ParseNodePtr *lastMemberNodeRef = nullptr;
-    ParseNodePtr pnodeStaticMembers = nullptr;
-    ParseNodePtr *lastStaticMemberNodeRef = nullptr;
     uint32 nameHintLength = pHintLength ? *pHintLength : 0;
     uint32 nameHintOffset = pShortNameOffset ? *pShortNameOffset : 0;
 
@@ -7862,6 +7870,9 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         cbMinConstructor = this->GetScanner()->IecpMinTok();
     }
 
+    BOOL strictSave = m_fUseStrictMode;
+    m_fUseStrictMode = TRUE;
+
     this->GetScanner()->Scan();
     if (m_token.tk == tkID)
     {
@@ -7877,9 +7888,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     {
         GetCurrentFunctionNode()->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
     }
-
-    BOOL strictSave = m_fUseStrictMode;
-    m_fUseStrictMode = TRUE;
 
     ParseNodeVar * pnodeDeclName = nullptr;
     if (isDeclaration)
@@ -7963,13 +7971,14 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         ParseNodePtr pnodeMemberName = nullptr;
         IdentPtr pidHint = nullptr;
         IdentPtr memberPid = nullptr;
+        bool maybeAccessor = false;
         LPCOLESTR pMemberNameHint = nullptr;
-        uint32     memberNameHintLength = 0;
-        uint32     memberNameOffset = 0;
+        uint32 memberNameHintLength = 0;
+        uint32 memberNameOffset = 0;
         bool isComputedName = false;
         bool isAsyncMethod = false;
 
-        if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -8005,6 +8014,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         }
         else // not computed name
         {
+            maybeAccessor = !this->GetScanner()->LastIdentifierHasEscape();
             memberPid = this->ParseClassPropertyName(&pidHint);
             if (pidHint)
             {
@@ -8060,27 +8070,26 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
             pnodeConstructor->hintOffset = constructorShortNameHintOffset;
             pnodeConstructor->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
             pnodeConstructor->SetHasNonThisStmt();
-            pnodeConstructor->SetHasComputedName();
             pnodeConstructor->SetHasHomeObj();
         }
         else
         {
             ParseNodePtr pnodeMember = nullptr;
-
-            bool isMemberNamedGetOrSet = false;
             RestorePoint beginMethodName;
             this->GetScanner()->Capture(&beginMethodName);
-            if (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set)
+
+            if (maybeAccessor && (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set))
             {
                 this->GetScanner()->ScanForcingPid();
             }
+
             if (m_token.tk == tkLParen)
             {
                 this->GetScanner()->SeekTo(beginMethodName);
-                isMemberNamedGetOrSet = true;
+                maybeAccessor = false;
             }
 
-            if ((memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set) && !isMemberNamedGetOrSet)
+            if (maybeAccessor && (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set))
             {
                 bool isGetter = (memberPid == wellKnownPropertyPids.get);
 
@@ -8170,7 +8179,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 pnodeMember->AsParseNodeBin()->pnode2->AsParseNodeFnc()->hintOffset = memberNameOffset;
                 pnodeMember->AsParseNodeBin()->pnode2->AsParseNodeFnc()->pid = memberPid; // Short name
 
-                AddToNodeList(isStatic ? &pnodeStaticMembers : &pnodeMembers, isStatic ? &lastStaticMemberNodeRef : &lastMemberNodeRef, pnodeMember);
+                AddToNodeList(&pnodeMembers, &lastMemberNodeRef, pnodeMember);
             }
         }
     }
@@ -8225,7 +8234,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         pnodeClass->pnodeConstructor = pnodeConstructor;
         pnodeClass->pnodeExtends = pnodeExtends;
         pnodeClass->pnodeMembers = pnodeMembers;
-        pnodeClass->pnodeStaticMembers = pnodeStaticMembers;
         pnodeClass->isDefaultModuleExport = false;
     }
     FinishParseBlock(pnodeBlock);
@@ -8806,7 +8814,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     _Inout_opt_ IdentToken* pToken,
     bool fUnaryOrParen,
     _Inout_opt_ bool* pfLikelyPattern,
-    _Inout_opt_ charcount_t *plastRParen)
+    _Inout_opt_ charcount_t *plastRParen,
+    _Out_opt_ bool* looseCoalesce)
 {
     Assert(pToken == nullptr || pToken->tk == tkNone); // Must be empty initially
     int opl;
@@ -8822,6 +8831,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     uint32 hintLength = 0;
     uint32 hintOffset = 0;
     BOOL fLikelyPattern = FALSE;
+    bool localCoalesce = false;
 
     ParserState parserState;
 
@@ -8866,8 +8876,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentScope->GetScopeType() == ScopeType_Parameter
-                || (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+            if(m_currentScope->AncestorScopeIsParameter()) // Yield is not allowed within any parameter scope
             {
                 Error(ERRsyntax);
             }
@@ -8875,8 +8884,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else if (nop == knopAwait)
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion() ||
-                m_currentScope->GetScopeType() == ScopeType_Parameter ||
-                (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+                m_currentScope->AncestorScopeIsParameter()) // Await is not allowed within any parameter scope
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
                 // but the scanner is not treating await as a keyword (!this->GetScanner()->AwaitIsKeyword())
@@ -8886,7 +8894,14 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // is not a grammar production outside of async functions.
                 //
                 // Further, await expressions are disallowed within parameter scopes.
-                Error(ERRBadAwait);
+                if (IsTopLevelModuleFunc())
+                {
+                    MakeModuleAsync();
+                }
+                else
+                {
+                    Error(ERRBadAwait);
+                }   
             }
         }
 
@@ -8933,7 +8948,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                      ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                      : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
                 {
-                    Error(JSERR_CantAssignTo);
+                    Error(ERRInvalidAsgTarget);
                 }
                 TrackAssignment<buildAST>(pnodeT, &operandToken);
                 if (buildAST)
@@ -9032,7 +9047,12 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     else
     {
         ichMin = this->GetScanner()->IchMinTok();
-        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex, plastRParen);
+        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, &fLikelyPattern, &fIsDotOrIndex, plastRParen, &localCoalesce);
+        if (looseCoalesce != nullptr)
+        {
+            *looseCoalesce = localCoalesce;
+        }
+
         if (pfLikelyPattern != nullptr)
         {
             *pfLikelyPattern = !!fLikelyPattern;
@@ -9055,6 +9075,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             m_nextBlockId = parserState.m_nextBlockId;
 
             ParseDestructuredLiteralWithScopeSave(tkLCurly, false/*isDecl*/, false /*topLevel*/, DIC_ShouldNotParseInitializer);
+            fCanAssign = TRUE;
 
             // Restore the Block ID at the end of the reparsing so it matches the one at the end of the first pass. We need to do this 
             // because we don't parse initializers during reparse and there may be additional blocks (e.g. a class declaration)
@@ -9112,7 +9133,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                  ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                  : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
-                Error(JSERR_CantAssignTo);
+                Error(ERRInvalidAsgTarget);
             }
             TrackAssignment<buildAST>(pnode, &term);
             fCanAssign = FALSE;
@@ -9199,7 +9220,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                  ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                  : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
-                Error(JSERR_CantAssignTo);
+                Error(ERRInvalidAsgTarget);
                 // No recovery necessary since this is a semantic, not structural, error.
             }
         }
@@ -9227,7 +9248,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         // Special case the "?:" operator
         if (nop == knopQmark)
         {
-            pnodeT = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn);
+            pnodeT = ParseExpr<buildAST>(koplAsg, NULL, TRUE);
             ChkCurTok(tkColon, ERRnoColon);
             ParseNodePtr pnodeT2 = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn, 0, nullptr, nullptr, nullptr, nullptr, false, nullptr, plastRParen);
             if (buildAST)
@@ -9246,7 +9267,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             RestoreStateFrom(&parserState);
 
             this->GetScanner()->SeekTo(termStart);
-            if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {
                 ichMin = this->GetScanner()->IchMinTok();
                 iecpMin = this->GetScanner()->IecpMinTok();
@@ -9293,8 +9314,26 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
             // Parse the operand, make a new node, and look for more
             IdentToken token;
+            bool coalescing = false;
+
             ParseNode* pnode2 = ParseExpr<buildAST>(
-                opl, nullptr, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen);
+                opl, nullptr, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen, &coalescing);
+
+            if (nop == knopLogAnd || nop == knopLogOr)
+            {
+                if (localCoalesce || coalescing)
+                {
+                    Error(ERRCoalesce);
+                }
+            }
+            else if (nop == knopCoalesce)
+            {
+                localCoalesce = true;
+                if (looseCoalesce != nullptr)
+                {
+                    *looseCoalesce = true;
+                }
+            }
 
             // Detect nested function escapes of the pattern "o.f = function(){...}" or "o[s] = function(){...}".
             // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
@@ -9575,7 +9614,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
 
     for (;;)
     {
-        if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
+        if (IsPossiblePatternStart())
         {
             pnodeThis = ParseDestructuredLiteral<buildAST>(declarationType, true, !!isTopVarParse, DIC_None, !!fAllowIn, pfForInOk, nativeForOk);
             if (pnodeThis != nullptr)
@@ -9742,7 +9781,6 @@ ParseNodeStmt * Parser::ParseTryCatchFinally()
         if (buildAST)
         {
             pnodeTC = CreateNodeForOpT<knopTryCatch>();
-            pnodeT->pnodeOuter = pnodeTC;
             pnodeTC->pnodeTry = pnodeT;
         }
         PushStmt<buildAST>(&stmt, pnodeTC, knopTryCatch, nullptr);
@@ -9777,14 +9815,11 @@ ParseNodeStmt * Parser::ParseTryCatchFinally()
         if (!hasCatch)
         {
             pnodeTF->pnodeTry = pnodeT;
-            pnodeT->pnodeOuter = pnodeTF;
         }
         else
         {
             pnodeTF->pnodeTry = CreateNodeForOpT<knopTry>();
-            pnodeTF->pnodeTry->pnodeOuter = pnodeTF;
             pnodeTF->pnodeTry->pnodeBody = pnodeTC;
-            pnodeTC->pnodeOuter = pnodeTF->pnodeTry;
         }
         pnodeTF->pnodeFinally = pnodeFinally;
     }
@@ -9880,7 +9915,7 @@ ParseNodeCatch * Parser::ParseCatch()
             this->GetScanner()->Scan(); //catch(
             if (tkID != m_token.tk)
             {
-                isPattern = IsES6DestructuringEnabled() && IsPossiblePatternStart();
+                isPattern = IsPossiblePatternStart();
                 if (!isPattern)
                 {
                     IdentifierExpectedError(m_token);
@@ -10015,6 +10050,15 @@ ParseNodeCatch * Parser::ParseCatch()
         if (pnodeCatchScope->GetCallsEval() || pnodeCatchScope->GetChildCallsEval())
         {
             GetCurrentBlock()->SetChildCallsEval(true);
+        }
+
+        if (pnodeCatchScope->GetCallsEval())
+        {
+            pnodeBody->AsParseNodeBlock()->SetCallsEval(true);
+        }
+        if (pnodeCatchScope->GetChildCallsEval())
+        {
+            pnodeBody->AsParseNodeBlock()->SetChildCallsEval(true);
         }
 
         if (buildAST)
@@ -10206,19 +10250,16 @@ LRestart:
         {
             Error(ERRLabelBeforeClassDeclaration);
         }
-        else if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        else
         {
             pnode = ParseClassDecl<buildAST>(TRUE, nullptr, nullptr, nullptr);
         }
-        else
-        {
-            goto LDefaultToken;
-        }
+
         break;
 
     case tkID:
     case tkLET:
-        if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
+        if (tok == tkLET || CheckContextualKeyword(wellKnownPropertyPids.let))
         {
             // We see "let" at the start of a statement. This could either be a declaration or an identifier
             // reference. The next token determines which.
@@ -10243,7 +10284,7 @@ LRestart:
             }
             this->GetScanner()->SeekTo(parsedLet);
         }
-        else if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        else if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -10288,11 +10329,18 @@ LRestart:
         ichMin = this->GetScanner()->IchMinTok();
 
         this->GetScanner()->Scan();
-        if (m_token.tk == tkAWAIT || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.await))
+        if (m_token.tk == tkAWAIT || CheckContextualKeyword(wellKnownPropertyPids.await))
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion())
             {
-                Error(ERRBadAwait); // for await () in a non-async function
+                if (IsTopLevelModuleFunc())
+                {
+                    MakeModuleAsync();
+                }
+                else
+                {
+                    Error(ERRBadAwait); // for await () in a non-async function
+                }
             }
             if (!m_scriptContext->GetConfig()->IsES2018AsyncIterationEnabled())
             {
@@ -10319,7 +10367,7 @@ LRestart:
         switch (tok)
         {
         case tkID:
-            if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
+            if (CheckContextualKeyword(wellKnownPropertyPids.let))
             {
                 // We see "let" in the init part of a for loop. This could either be a declaration or an identifier
                 // reference. The next token determines which.
@@ -10383,7 +10431,7 @@ LRestart:
                 this->GetScanner()->Capture(&startExprOrIdentifier);
             }
             bool fLikelyPattern = false;
-            if (IsES6DestructuringEnabled() && (beforeToken == tkLBrack || beforeToken == tkLCurly))
+            if (beforeToken == tkLBrack || beforeToken == tkLCurly)
             {
                 pnodeT = ParseExpr<buildAST>(koplNo,
                     &fCanAssign,
@@ -10409,6 +10457,7 @@ LRestart:
             {
                 this->GetScanner()->SeekTo(exprStart);
                 ParseDestructuredLiteralWithScopeSave(tkNone, false/*isDecl*/, false /*topLevel*/, DIC_None, false /*allowIn*/);
+                fCanAssign = TRUE;
 
                 if (buildAST)
                 {
@@ -10427,7 +10476,7 @@ LRestart:
         if (TokIsForInOrForOf())
         {
             bool isForOf = (m_token.tk != tkIN);
-            Assert(!isForOf || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of));
+            Assert(!isForOf || CheckContextualKeyword(wellKnownPropertyPids.of));
 
             if (isForAwait && !isForOf)
             {
@@ -10764,6 +10813,13 @@ LRestart:
             pnodeIf->ichLim = this->GetScanner()->IchLimTok();
             pnodeIf->pnodeCond = pnodeCond;
         }
+
+        if (m_deferCommaError)
+        {
+            this->GetScanner()->SeekTo(m_deferCommaErrorLoc);
+            Error(ERRnoRparen);
+        }
+
         ChkCurTok(tkRParen, ERRnoRparen);
 
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
@@ -11322,9 +11378,7 @@ LNeedTerminator:
 BOOL
 Parser::TokIsForInOrForOf()
 {
-    return m_token.tk == tkIN ||
-        (m_token.tk == tkID &&
-            m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of);
+    return m_token.tk == tkIN || CheckContextualKeyword(wellKnownPropertyPids.of);
 }
 
 /***************************************************************************
@@ -12693,6 +12747,7 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     case knopComma:
     case knopLogOr:
     case knopLogAnd:
+    case knopCoalesce:
     case knopLsh:
     case knopRsh:
     case knopRs2:
@@ -13981,6 +14036,12 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
         PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode2, indentAmt + INDENT_SIZE);
         break;
+    case knopCoalesce:
+        Indent(indentAmt);
+        Output::Print(_u("??\n"));
+        PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1, indentAmt + INDENT_SIZE);
+        PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode2, indentAmt + INDENT_SIZE);
+        break;
         //PTNODE(knopLsh        , "<<"        ,Lsh     ,Bin  ,fnopBin)
     case knopLsh:
         Indent(indentAmt);
@@ -14358,7 +14419,6 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
 
         PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeConstructor, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeMembers, indentAmt + INDENT_SIZE);
-        PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeStaticMembers, indentAmt + INDENT_SIZE);
         break;
     case knopStrTemplate:
         Indent(indentAmt);

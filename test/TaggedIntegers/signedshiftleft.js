@@ -11298,4 +11298,5 @@ test15();
 test16();
 test17();
 test18();
-WScript.Echo("done");
+
+print("pass");
