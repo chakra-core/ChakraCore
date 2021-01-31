@@ -114,6 +114,7 @@ public:
     Js::RegSlot frameDisplayRegister; // location, if any, of the display of nested frames
     Js::RegSlot funcObjRegister;
     Js::RegSlot localClosureReg;
+    Js::RegSlot awaitRegister;
     Js::RegSlot yieldRegister;
     Js::RegSlot firstTmpReg;
     Js::RegSlot curTmpReg;
@@ -177,6 +178,7 @@ public:
     Symbol *argumentsSymbol;
     Symbol *thisSymbol;
     Symbol *newTargetSymbol;
+    Symbol* importMetaSymbol;
     Symbol *superSymbol;
     Symbol *superConstructorSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
@@ -325,6 +327,17 @@ public:
         return newTargetSymbol;
     }
 
+    void SetImportMetaSymbol(Symbol* sym)
+    {
+        Assert(importMetaSymbol == nullptr || importMetaSymbol == sym);
+        importMetaSymbol = sym;
+    }
+
+    Symbol* GetImportMetaSymbol() const
+    {
+        return importMetaSymbol;
+    }
+
     void SetSuperSymbol(Symbol *sym)
     {
         Assert(superSymbol == nullptr || superSymbol == sym);
@@ -471,6 +484,7 @@ public:
     BOOL IsClassConstructor() const;
     BOOL IsBaseClassConstructor() const;
     BOOL IsDerivedClassConstructor() const;
+    bool IsAsyncGenerator() const;
 
     void RemoveTargetStmt(ParseNodeStmt* pnodeStmt) {
         targetStatements.Remove(pnodeStmt);
@@ -553,6 +567,13 @@ public:
             this->falseConstantRegister = NextConstRegister();
         }
         return this->falseConstantRegister;
+    }
+
+    Js::RegSlot AssignAwaitRegister()
+    {
+        AssertMsg(this->awaitRegister == Js::Constants::NoRegister, "await register should only be assigned once by FinalizeRegisters()");
+        this->awaitRegister = NextVarRegister();
+        return this->awaitRegister;
     }
 
     Js::RegSlot AssignYieldRegister()

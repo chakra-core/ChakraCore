@@ -143,7 +143,7 @@ const tests = [
             assert.areEqual("$1.50", formatCurrency({ currencyDisplay: "symbol" }, 1.504), "Currency display: symbol");
             assert.areEqual("$1.51", formatCurrency({ currencyDisplay: "symbol" }, 1.505), "Currency display: symbol");
             // ICU has a proper "name" currency display, while WinGlob falls back to "code"
-            if (WScript.Platform.ICU_VERSION === 62) {
+            if (WScript.Platform.ICU_VERSION >= 62) {
                 // In ICU 62, there is a mismatch between "1.00 US dollar" and "1.00 US dollars"
                 suppressFormatEqualityCheck = true;
             }

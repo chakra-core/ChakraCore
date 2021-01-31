@@ -12,14 +12,6 @@ import "wtypes.idl";
 #include "sdkddkver.h"
 #endif
 
-
-#if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE // on 8.1+, RPC can marshal process handle for us
-#ifdef __midl
-cpp_quote("#define USE_RPC_HANDLE_MARSHALLING 1")
-#endif
-#define USE_RPC_HANDLE_MARSHALLING 1
-#endif
-
 #if defined(TARGET_32)
 #ifdef __midl
 #define CHAKRA_WB_PTR int
@@ -78,7 +70,7 @@ typedef unsigned char boolean;
 #define __JITTypes_h__
 
 // TODO: OOP JIT, how do we make this better?
-const int VTABLE_COUNT = 51;
+const int VTABLE_COUNT = 60;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
 
 typedef IDL_DEF([context_handle]) void * PTHREADCONTEXT_HANDLE;
@@ -395,6 +387,8 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR charStringCacheAddr;
     CHAKRA_PTR libraryAddr;
     CHAKRA_PTR globalObjectAddr;
+    CHAKRA_PTR objectPrototypeAddr;
+    CHAKRA_PTR functionPrototypeAddr;
     CHAKRA_PTR sideEffectsAddr;
     CHAKRA_PTR arraySetElementFastPathVtableAddr;
     CHAKRA_PTR intArraySetElementFastPathVtableAddr;
@@ -582,6 +576,7 @@ typedef struct FunctionBodyDataIDL
     unsigned int localFrameDisplayReg;
     unsigned int paramClosureReg;
     unsigned int localClosureReg;
+    unsigned int yieldReg;
     unsigned int envReg;
     unsigned int firstTmpReg;
     unsigned int firstInnerScopeReg;
@@ -854,37 +849,42 @@ typedef struct JITOutputIDL
     boolean disableStackArgOpt;
     boolean disableSwitchOpt;
     boolean disableTrackCompoundedIntOverflow;
+    boolean disableMemOp;
+
     boolean isInPrereservedRegion;
-
     boolean hasBailoutInstr;
-
     boolean hasJittedStackClosure;
+    IDL_PAD1(0)
 
     unsigned short pdataCount;
     unsigned short xdataSize;
 
     unsigned short argUsedForBranch;
+    IDL_PAD2(1)
 
     int localVarSlotsOffset; // FunctionEntryPointInfo only
+
     int localVarChangedOffset; // FunctionEntryPointInfo only
     unsigned int frameHeight;
 
-
     unsigned int codeSize;
     unsigned int throwMapOffset;
+
     unsigned int throwMapCount;
     unsigned int inlineeFrameOffsetArrayOffset;
-    unsigned int inlineeFrameOffsetArrayCount;
 
+    unsigned int inlineeFrameOffsetArrayCount;
     unsigned int propertyGuardCount;
+
     unsigned int ctorCachesCount;
+    X64_PAD4(2)
 
 #if TARGET_64
     CHAKRA_PTR xdataAddr;
 #elif defined(_M_ARM)
     unsigned int xdataOffset;
 #else
-    X86_PAD4(0)
+    X86_PAD4(3)
 #endif
     CHAKRA_PTR codeAddress;
     CHAKRA_PTR thunkAddress;

@@ -638,6 +638,7 @@ public:
             bool usesFixedValue: 1;
             bool auxSlotPtrSymAvailable:1;
             bool producesAuxSlotPtr:1;
+            bool cantChangeType: 1;
 
             union
             {
@@ -801,9 +802,17 @@ public:
         return this->monoGuardType;
     }
 
-    void SetMonoGuardType(JITTypeHolder type)
+    bool SetMonoGuardType(JITTypeHolder type)
     {
+        if (!(this->monoGuardType == nullptr || this->monoGuardType == type) ||
+            !((HasEquivalentTypeSet() && GetEquivalentTypeSet()->Contains(type)) ||
+              (!HasEquivalentTypeSet() && GetType() == type)))
+        {
+            // Required type is not in the available set, or we already set the type to something else. Inform the caller.
+            return false;
+        }
         this->monoGuardType = type;
+        return true;
     }
 
     bool NeedsMonoCheck() const
@@ -1051,6 +1060,16 @@ public:
         this->typeCheckRequired = value;
     }
 
+    bool CantChangeType() const
+    {
+        return this->cantChangeType;
+    }
+
+    void SetCantChangeType(bool value)
+    {
+        this->cantChangeType = value;
+    }
+
     uint16 GetObjTypeSpecFlags() const
     {
         return this->objTypeSpecFlags;
@@ -1162,7 +1181,8 @@ public:
     // fall back on live cache.  Similarly, for fixed method checks.
     bool MayHaveImplicitCall() const
     {
-        return !IsRootObjectNonConfigurableFieldLoad() && !UsesFixedValue() && (!IsTypeCheckSeqCandidate() || !IsTypeCheckProtected());
+        return !IsRootObjectNonConfigurableFieldLoad() && !UsesFixedValue() && (!IsTypeCheckSeqCandidate() || !IsTypeCheckProtected()
+            || (IsLoadedFromProto() && NeedsWriteGuardTypeCheck()));
     }
 
     // Is the instruction involving this operand part of a type check sequence? This is different from IsObjTypeSpecOptimized
@@ -1506,7 +1526,9 @@ public:
 public:
     //Note type: OpndKindAddr
     AddrOpnd *              CopyInternal(Func *func);
-    bool                    IsEqualInternal(Opnd *opnd);
+    bool                    IsEqualInternal(Opnd *opnd) const;
+    bool                    IsEqualAddr(void *addr) const;
+    static bool             IsEqualAddr(IR::Opnd * opnd, void * addr);
     void                    FreeInternal(Func * func);
 
     bool                    IsDynamic() const { return addrOpndKind > AddrOpndKindConstantVar; }
@@ -1683,6 +1705,8 @@ public:
     byte                    GetScale() const;
     void                    SetScale(byte scale);
     bool                    TryGetIntConstIndexValue(bool trySym, IntConstType *pValue, bool *pIsNotInt);
+    void                    AllowConversion(bool value) { m_conversionAllowed = value; }
+    bool                    ConversionAllowed() const   { return m_conversionAllowed; }
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     const char16 *         GetDescription();
     IR::AddrOpndKind        GetAddrKind() const;
@@ -1699,6 +1723,7 @@ private:
     RegOpnd *               m_indexOpnd;
     int32                   m_offset;
     byte                    m_scale;
+    bool                    m_conversionAllowed;
     Func *                  m_func;  // We need the allocator to copy the base and index...
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)

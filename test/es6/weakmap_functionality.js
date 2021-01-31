@@ -95,6 +95,29 @@ var tests = [
     },
 
     {
+        name : "WeakMap constructor caches next method from iterator",
+        body: function () {
+            const keys = [ { }, { }, { } ];
+            let iterCount = 0;
+            const iter = {
+                [Symbol.iterator]() { return this; },
+                next() {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {
+                        value : [keys[iterCount], iterCount],
+                        done : iterCount++ > 2
+                    }
+                }
+            }
+            const wm = new WeakMap(iter);
+
+            assert.areEqual(0, wm.get(keys[0]), "wm has key keys[0]");
+            assert.areEqual(1, wm.get(keys[1]), "wm has key keys[1]");
+            assert.areEqual(2, wm.get(keys[2]), "wm has key keys[2]");
+        }
+    },
+
+    {
         name: "WeakMap constructor throws exceptions for non- and malformed iterable arguments",
         body: function () {
             var iterableNoIteratorMethod = { [Symbol.iterator]: 123 };
@@ -416,20 +439,6 @@ var tests = [
             var n = new Number(1);
             var b = new Boolean(2);
             var s = new String("Hi");
-
-            /*
-               Fast DOM and HostDispatch objects are tested in the mshtml test weakmap_DOMkey.html
-               WinRT objects are still an open issue; they are CustomExternalObjects so they work,
-               but they are proxied and the proxies are not kept alive by the outside object, only
-               by internal JS references.  Further, allowing objects to be linked to the lifetime
-               of a WinJS object can cause cycles between JS GC objects and WinRT COM ref counted
-               objects, which are not deducible by the GC.  Therefore using WinRT objects with
-               WeakMap is prone to subtle easy to make memory leak bugs.
-            var fd = new FastDOM();
-            var hd = new HostDispatch();
-            var wrt = new WinRT();
-            */
-
             var ab = new ArrayBuffer(32);
 
             weakmap.set(n, 1);
@@ -500,6 +509,28 @@ var tests = [
             assert.isTrue(wm.has(frozenObj), "First WeakMap still has frozen object as key");
         }
     },
+
+    {
+        name: "WeakMap internal property data is not copied by Object.assign",
+        body: function () {
+            var key1 = {};
+            var key2 = {};
+            var map = new WeakMap(); 
+
+            map.set(key1, 1);
+            map.delete(Object.assign(key2, key1));
+            assert.isFalse(map.has(key2));
+
+            key1 = {};
+            key2 = {};
+            map = new WeakMap(); 
+
+            map.set(key1, 1);
+            key1.a = 1;
+            map.delete(Object.assign(key2, key1));
+            assert.isFalse(map.has(key2));
+        }
+    }
 
 ];
 

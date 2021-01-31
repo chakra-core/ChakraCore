@@ -122,6 +122,7 @@
     JsCreateWeakReference
     JsDetachArrayBuffer
     JsGetArrayBufferExtraInfo
+    JsEnableOOPJIT
     JsExternalizeArrayBuffer
     JsGetAndClearExceptionWithMetadata
     JsGetArrayBufferFreeFunction

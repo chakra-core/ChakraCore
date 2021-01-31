@@ -14,10 +14,6 @@ namespace Js
 #define BUILTIN(c, n, e, i) c ## _ ## n,
 #include "JavascriptBuiltInFunctionList.h"
 #undef BUILTIN
-#ifdef ENABLE_DOM_FAST_PATH
-            DOMFastPathGetter,
-            DOMFastPathSetter,
-#endif
             MaxBuiltInEnum
         };
         static FunctionInfo * GetFunctionInfo(Js::LocalFunctionId builtinId);

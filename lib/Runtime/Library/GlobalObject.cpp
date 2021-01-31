@@ -58,15 +58,25 @@ using namespace Js;
     {
         HRESULT hr = S_OK;
 
+        this->directHostObject = hostObject;
+        this->secureDirectHostObject = secureDirectHostObject;
+
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
         {
             // In fastDOM scenario, we should use the host object to lookup the prototype.
             this->SetPrototype(library->GetNull());
+
+            // Host can call to set the direct host object after the GlobalObject has been initialized but
+            // before user script has run. (This happens even before the previous call to SetPrototype)
+            // If that happens, we'll need to update the 'globalThis' property to point to the secure
+            // host object so that we don't hand a reference to the bare GlobalObject out to user script.
+            if (this->GetScriptContext()->GetConfig()->IsESGlobalThisEnabled())
+            {
+                this->SetProperty(PropertyIds::globalThis, this->ToThis(), PropertyOperation_None, nullptr);
+            }
         }
         END_TRANSLATE_OOM_TO_HRESULT(hr)
 
-        this->directHostObject = hostObject;
-        this->secureDirectHostObject = secureDirectHostObject;
         return hr;
     }
 
@@ -574,7 +584,7 @@ using namespace Js;
         JavascriptString *argString = VarTo<JavascriptString>(evalArg);
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
-        FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
+        FastEvalMapString key(argString, sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
 
 
         // PropertyString's buffer references to PropertyRecord's inline buffer, if both PropertyString and PropertyRecord are collected
@@ -676,41 +686,6 @@ using namespace Js;
             pfuncScript->GetFunctionProxy()->EnsureDeserialized();
         }
 
-        if (pfuncScript->GetFunctionBody()->GetHasThis())
-        {
-            // The eval expression refers to "this"
-            if (args.Info.Flags & CallFlags_ExtraArg)
-            {
-                JavascriptFunction* pfuncCaller = nullptr;
-                // If we are non-hidden call to eval then look for the "this" object in the frame display if the caller is a lambda else get "this" from the caller's frame.
-
-                bool successful = false;
-                if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext))
-                {
-                    FunctionInfo* functionInfo = pfuncCaller->GetFunctionInfo();
-                    if (functionInfo != nullptr && (functionInfo->IsLambda() || functionInfo->IsClassConstructor()))
-                    {
-                        Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
-                        varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
-                        UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
-                        successful = true;
-                    }
-                }
-
-                if (!successful)
-                {
-                    JavascriptStackWalker::GetThis(&varThis, moduleID, scriptContext);
-                    UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
-                }
-            }
-            else
-            {
-                // The expression, which refers to "this", is evaluated by an indirect eval.
-                // Set "this" to the current module root.
-                varThis = JavascriptOperators::OP_GetThis(scriptContext->GetLibrary()->GetUndefined(), moduleID, scriptContext);
-            }
-        }
-
         if (pfuncScript->HasSuperReference())
         {
             // Indirect evals cannot have a super reference.
@@ -723,16 +698,9 @@ using namespace Js;
         return library->GetGlobalObject()->ExecuteEvalParsedFunction(pfuncScript, environment, varThis, scriptContext);
     }
 
-    void GlobalObject::UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode)
+    void GlobalObject::UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext)
     {
-        if (strictMode)
-        {
-            varThis = JavascriptOperators::OP_StrictGetThis(varThis, scriptContext);
-        }
-        else
-        {
-            varThis = JavascriptOperators::OP_GetThisNoFastPath(varThis, moduleID, scriptContext);
-        }
+        varThis = JavascriptOperators::OP_GetThisNoFastPath(varThis, moduleID, scriptContext);
     }
 
 
@@ -1572,19 +1540,6 @@ LHexError:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         ScriptContext* scriptContext = function->GetScriptContext();
-        if (!scriptContext->GetConfig()->IsCollectGarbageEnabled()
-#ifdef ENABLE_PROJECTION
-            && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeApplication
-            && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeWebview
-#endif
-            )
-        {
-            // We expose the CollectGarbage API with flag for compat reasons.
-            // If CollectGarbage key is not enabled, and if the HostType is neither
-            // HostType::HostTypeApplication nor HostType::HostTypeWebview,
-            // then we do not trigger collection.
-            return scriptContext->GetLibrary()->GetUndefined();
-        }
 
         Recycler* recycler = scriptContext->GetRecycler();
         if (recycler)
@@ -1604,10 +1559,6 @@ LHexError:
         }
 
 #if DBG_DUMP
-#ifdef ENABLE_PROJECTION
-        scriptContext->GetThreadContext()->DumpProjectionContextMemoryStats(_u("Stats after GlobalObject::EntryCollectGarbage call"));
-#endif
-
         if (Js::Configuration::Global.flags.TraceWin8Allocations)
         {
             Output::Print(_u("MemoryTrace: GlobalObject::EntryCollectGarbage Exit\n"));

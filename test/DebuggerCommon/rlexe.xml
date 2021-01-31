@@ -737,7 +737,7 @@
   <test>
     <default>
       <files>setframe.js</files>
-      <compile-flags>-EnableJitInDiagMode -debuglaunch -dbgbaseline:setframe.js.dbg.baseline -Intl-</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:setframe.js.dbg.baseline -Intl-</compile-flags>
     </default>
   </test>
   <test>
@@ -750,14 +750,14 @@
   <test>
     <default>
       <files>JIT_localsAtNativeFrame1.js</files>
-      <compile-flags>-forceNative -off:simpleJit -EnableJitInDiagMode -debuglaunch -dbgbaseline:JIT_localsAtNativeFrame1.js.dbg.baseline</compile-flags>
+      <compile-flags>-forceNative -off:simpleJit -debuglaunch -dbgbaseline:JIT_localsAtNativeFrame1.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo,exclude_arm,exclude_nonative</tags>
     </default>
   </test>
   <test>
     <default>
       <files>JIT_localsAtNativeFrame2.js</files>
-      <compile-flags>-forceNative -off:simpleJit -EnableJitInDiagMode -debuglaunch -dbgbaseline:JIT_localsAtNativeFrame2.js.dbg.baseline</compile-flags>
+      <compile-flags>-forceNative -off:simpleJit -debuglaunch -dbgbaseline:JIT_localsAtNativeFrame2.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo,exclude_arm,exclude_nonative</tags>
     </default>
   </test>
@@ -818,21 +818,21 @@
   <test>
     <default>
       <files>jit_exprEval1.js</files>
-      <compile-flags>-EnableJitInDiagMode -debuglaunch -es6functionnamefull -forceNative -off:simpleJit -dbgbaseline:jit_exprEval1.js.dbg.baseline -Intl-</compile-flags>
+      <compile-flags>-debuglaunch -es6functionnamefull -forceNative -off:simpleJit -dbgbaseline:jit_exprEval1.js.dbg.baseline -Intl-</compile-flags>
       <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
   <test>
     <default>
       <files>jit_editvalue1.js</files>
-      <compile-flags>-EnableJitInDiagMode -es6functionnamefull -debuglaunch -forceNative -off:simpleJit -dbgbaseline:jit_editvalue1.js.dbg.baseline</compile-flags>
+      <compile-flags>-es6functionnamefull -debuglaunch -forceNative -off:simpleJit -dbgbaseline:jit_editvalue1.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
   <test>
     <default>
       <files>jitAttach.js</files>
-      <compile-flags> -maxinterpretcount:1 -off:simpleJit -EnableJitInDiagMode -dbgbaseline:jitAttach.js.dbg.baseline</compile-flags>
+      <compile-flags> -maxinterpretcount:1 -off:simpleJit -dbgbaseline:jitAttach.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -893,7 +893,7 @@
   <test>
     <default>
       <files>jitAttach.js</files>
-      <compile-flags> -maxinterpretcount:1 -off:simpleJit -EnableJitInDiagMode -dbgbaseline:jitAttach.js.dbg.baseline</compile-flags>
+      <compile-flags> -maxinterpretcount:1 -off:simpleJit -dbgbaseline:jitAttach.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1060,7 +1060,7 @@
   <test>
     <default>
       <files>qualified_names2.js</files>
-      <compile-flags>-debuglaunch -dbgbaseline:qualified_names2.js.dbg.baseline -es6classes -Intl-</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:qualified_names2.js.dbg.baseline -Intl-</compile-flags>
     </default>
   </test>
   <test>
@@ -1091,7 +1091,7 @@
   <test>
     <default>
       <files>symbols.js</files>
-      <compile-flags>-ES6Species -debuglaunch -dbgbaseline:symbols.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:symbols.js.dbg.baseline</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1218,7 +1218,7 @@
   <test>
     <default>
       <files>rest.js</files>
-      <compile-flags>-dbgbaseline:rest.js.dbg.baseline -ES6Rest -ES6Classes -InspectMaxStringLength:100</compile-flags>
+      <compile-flags>-dbgbaseline:rest.js.dbg.baseline -ES6Rest -InspectMaxStringLength:100</compile-flags>
     </default>
   </test>
   <test>
@@ -1269,7 +1269,7 @@
   <test>
     <default>
       <files>TypedArray.js</files>
-      <compile-flags>-ES6Species -debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
     </default>
   </test>
   <test>
@@ -1301,7 +1301,7 @@
     <default>
       <files>ConsoleScope.js</files>
       <baseline>ConsoleScope.js.baseline</baseline>
-      <compile-flags>-debuglaunch -es6classes -dbgbaseline:consolescope.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:consolescope.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
@@ -1320,7 +1320,7 @@
   <test>
     <default>
       <files>destructuring-debug.js</files>
-      <compile-flags>-es6defaultargs -es6destructuring -debuglaunch -InspectMaxStringLength:100 -dbgbaseline:destructuring-debug.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -InspectMaxStringLength:100 -dbgbaseline:destructuring-debug.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>

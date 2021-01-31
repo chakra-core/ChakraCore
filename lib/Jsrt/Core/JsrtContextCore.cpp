@@ -159,6 +159,40 @@ HRESULT ChakraCoreHostScriptContext::NotifyHostAboutModuleReady(Js::ModuleRecord
     return E_INVALIDARG;
 }
 
+HRESULT ChakraCoreHostScriptContext::InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject)
+{
+    if (initializeImportMetaCallback == nullptr)
+    {
+        return E_INVALIDARG;
+    }
+    {
+        AUTO_NO_EXCEPTION_REGION;
+        JsErrorCode errorCode = initializeImportMetaCallback(referencingModule, importMetaObject);
+        if (errorCode == JsNoError)
+        {
+            return NOERROR;
+        }
+    }
+    return E_INVALIDARG;
+}
+
+bool ChakraCoreHostScriptContext::ReportModuleCompletion(Js::ModuleRecordBase* module, Js::Var exception)
+{
+    if (reportModuleCompletionCallback == nullptr)
+    {
+        return false;
+    }
+    {
+        AUTO_NO_EXCEPTION_REGION;
+        JsErrorCode errorCode = reportModuleCompletionCallback(module, exception);
+        if (errorCode == JsNoError)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 ChakraCoreStreamWriter::~ChakraCoreStreamWriter()
 {
     HeapDelete(m_serializerCore);

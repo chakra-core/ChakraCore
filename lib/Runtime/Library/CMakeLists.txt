@@ -54,6 +54,10 @@ set(CRLIB_SOURCE_CODES
     JavascriptArrayIndexEnumeratorBase.cpp
     JavascriptArrayIndexSnapshotEnumerator.cpp
     JavascriptArrayIterator.cpp
+    JavascriptAsyncFromSyncIterator.cpp
+    JavascriptAsyncFunction.cpp
+    JavascriptAsyncGenerator.cpp
+    JavascriptAsyncGeneratorFunction.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
     JavascriptBuiltInFunctions.cpp
@@ -91,7 +95,6 @@ set(CRLIB_SOURCE_CODES
     JavascriptSymbol.cpp
     JavascriptSymbolObject.cpp
     JavascriptTypedNumber.cpp
-    JavascriptVariantDate.cpp
     JavascriptWeakMap.cpp
     JavascriptWeakSet.cpp
     JsBuiltInEngineInterfaceExtensionObject.cpp

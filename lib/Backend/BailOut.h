@@ -26,8 +26,8 @@ public:
 
     BailOutInfo(uint32 bailOutOffset, Func* bailOutFunc) :
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
-        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
-        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false),
+        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr), bailInInstr(nullptr),
+        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false), canDeadStore(true),
         outParamInlinedArgSlot(nullptr), liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
         branchConditionOpnd(nullptr),
         stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr),
@@ -107,6 +107,7 @@ public:
 #endif
     bool wasCloned;
     bool isInvertedBranch;
+    bool canDeadStore;
     bool sharedBailOutKind;
     bool isLoopTopBailOutInfo;
 
@@ -158,6 +159,8 @@ public:
     //   while other instrs sharing bailout info will just have checks and JMP to BailTarget).
     // 2) After we generated bailout, this becomes label instr. In case of shared bailout other instrs JMP to this label.
     IR::Instr * bailOutInstr;
+
+    IR::GeneratorBailInInstr * bailInInstr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     Js::OpCode bailOutOpcode;
@@ -275,6 +278,8 @@ protected:
         IR::BailOutKind bailOutKind, Js::Var * registerSaves, BailOutReturnValue * returnValue, Js::ScriptFunction ** innerMostInlinee, bool isInLoopBody, Js::Var branchValue = nullptr);
     static uint32 BailOutFromLoopBodyHelper(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord,
         uint32 bailOutOffset, IR::BailOutKind bailOutKind, Js::Var branchValue, Js::Var * registerSaves, BailOutReturnValue * returnValue = nullptr);
+
+    static void SetHasBailedOutBit(BailOutRecord const * bailOutRecord, Js::ScriptContext * scriptContext);
 
     static void UpdatePolymorphicFieldAccess(Js::JavascriptFunction *  function, BailOutRecord const * bailOutRecord);
 

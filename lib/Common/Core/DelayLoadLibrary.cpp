@@ -392,4 +392,41 @@ NtdllLibrary::NTSTATUS NtdllLibrary::UnlockVirtualMemory(
 #endif
 }
 
+static RPCLibrary RPCLibraryObject;
+RPCLibrary* RPCLibrary::Instance = &RPCLibraryObject;
+
+LPCTSTR RPCLibrary::GetLibraryName() const
+{
+    return _u("rpcrt4.dll");
+}
+
+RPC_STATUS RPCLibrary::RpcServerRegisterIf3(
+    _In_ RPC_IF_HANDLE IfSpec,
+    _In_opt_ UUID* MgrTypeUuid,
+    _In_opt_ RPC_MGR_EPV* MgrEpv,
+    _In_ unsigned int Flags,
+    _In_ unsigned int MaxCalls,
+    _In_ unsigned int MaxRpcSize,
+    _In_opt_ RPC_IF_CALLBACK_FN* IfCallback,
+    _In_opt_ void* SecurityDescriptor)
+{
+#if !(NTDDI_VERSION >= NTDDI_WIN8)
+    if (m_hModule)
+    {
+        if (serverRegister == nullptr)
+        {
+            serverRegister = (PFnRpcServerRegisterIf3)GetFunction("RpcServerRegisterIf3");
+            if (serverRegister == nullptr)
+            {
+                Assert(false);
+                return -1;
+            }
+        }
+        return serverRegister(IfSpec, MgrTypeUuid, MgrEpv, Flags, MaxCalls, MaxRpcSize, IfCallback, SecurityDescriptor);
+    }
+    return -1;
+#else
+    return ::RpcServerRegisterIf3(IfSpec, MgrTypeUuid, MgrEpv, Flags, MaxCalls, MaxRpcSize, IfCallback, SecurityDescriptor);
+#endif
+}
 #endif // _WIN32

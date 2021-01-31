@@ -31,7 +31,7 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
 
     block->globOptData.changedSyms->ClearAll();
 
-    FOREACH_GLOBHASHTABLE_ENTRY(bucket, block->globOptData.symToValueMap)
+    FOREACH_VALUEHASHTABLE_ENTRY(GlobHashBucket, bucket, block->globOptData.symToValueMap)
     {
         value = bucket.element;
         valueInfo = value->GetValueInfo();
@@ -48,7 +48,7 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
         }
         block->globOptData.changedSyms->Set(sym->m_id);
     }
-    NEXT_GLOBHASHTABLE_ENTRY;
+    NEXT_VALUEHASHTABLE_ENTRY;
 
     if (argsToCapture)
     {
@@ -239,14 +239,6 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
 void
 GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator>* argsToCapture)
 {
-    if (!this->func->DoGlobOptsForGeneratorFunc())
-    {
-        // TODO[generators][ianhall]: Enable constprop and copyprop for generator functions; see GlobOpt::CopyProp()
-        // Even though CopyProp is disabled for generator functions we must also not put the copy-prop sym into the
-        // bailOutInfo so that the bailOutInfo keeps track of the key sym in its byteCodeUpwardExposed list.
-        return;
-    }
-
     CapturedValues capturedValues;
     SListBase<ConstantStackSymValue>::EditingIterator bailOutConstValuesIter(&capturedValues.constantValues);
     SListBase<CopyPropSyms>::EditingIterator bailOutCopySymsIter(&capturedValues.copyPropSyms);
@@ -482,17 +474,29 @@ GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 void
 GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 {
-    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && 
+    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) &&
         !IsLoopPrePass() &&
-        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled()) &&
-        instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
+        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled()))
     {
-        instr->m_func->hasUnoptimizedArgumentsAccess = false;
-        if (!instr->m_func->m_hasInlineArgsOpt && DoInlineArgsOpt(instr->m_func))
+        if (instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
         {
-            instr->m_func->m_hasInlineArgsOpt = true;
-            Assert(instr->m_func->cachedInlineeFrameInfo);
-            instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+            instr->m_func->hasUnoptimizedArgumentsAccess = false;
+            if (!instr->m_func->m_hasInlineArgsOpt && DoInlineArgsOpt(instr->m_func))
+            {
+                instr->m_func->m_hasInlineArgsOpt = true;
+                Assert(instr->m_func->cachedInlineeFrameInfo);
+                instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+            }
+        }
+        else
+        {
+            instr->m_func->hasUnoptimizedArgumentsAccess = true;
+
+            if (instr->m_func->m_hasInlineArgsOpt && instr->m_func->cachedInlineeFrameInfo)
+            {
+                instr->m_func->m_hasInlineArgsOpt = false;
+                ClearInlineeFrameInfo(instr);
+            }
         }
     }
 
@@ -766,6 +770,24 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         }
         break;
     }
+}
+
+void GlobOpt::ClearInlineeFrameInfo(IR::Instr* inlineeEnd)
+{
+    if (this->IsLoopPrePass())
+    {
+        return;
+    }
+
+    InlineeFrameInfo* frameInfo = inlineeEnd->m_func->frameInfo;
+    inlineeEnd->m_func->frameInfo = nullptr;
+
+    if (!frameInfo || !frameInfo->isRecorded)
+    {
+        return;
+    }
+    frameInfo->function = InlineFrameInfoValue();
+    frameInfo->arguments->Clear();
 }
 
 void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
@@ -1366,6 +1388,7 @@ GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * s
             NeedBailOnImplicitCallForCSE(block, isForwardPass) ||
             NeedBailOnImplicitCallWithFieldOpts(block->loop, hasLiveFields) ||
             NeedBailOnImplicitCallForArrayCheckHoist(block, isForwardPass) ||
+            (instr->HasBailOutInfo() && (instr->GetBailOutKind() & IR::BailOutMarkTempObject) != 0) ||
             mayNeedLazyBailOut
         ) &&
         (!instr->HasTypeCheckBailOut() && MayNeedBailOnImplicitCall(instr, src1Val, src2Val)))
@@ -1498,6 +1521,14 @@ GlobOpt::MayNeedBailOnImplicitCall(IR::Instr const * instr, Value const * src1Va
                 (isLdElem && bailOutKind & IR::BailOutConventionalNativeArrayAccessOnly)
             );
     }
+
+    case Js::OpCode::NewScObjectNoCtor:
+        if (instr->HasBailOutInfo() && (instr->GetBailOutKind() & ~IR::BailOutKindBits) == IR::BailOutFailedCtorGuardCheck)
+        {
+            // No helper call with this bailout.
+            return false;
+        }
+        break;
 
     default:
         break;

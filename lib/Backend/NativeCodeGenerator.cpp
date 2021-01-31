@@ -160,11 +160,7 @@ void NativeCodeGenerator::Close()
     // Close FreeLoopBodyJobManager first, as it depends on NativeCodeGenerator to be open before it's removed
     this->freeLoopBodyManager.Close();
 
-    // Remove only if it is not updated in the debug mode (and which goes to interpreter mode).
-    if (!hasUpdatedQForDebugMode || Js::Configuration::Global.EnableJitInDebugMode())
-    {
-        Processor()->RemoveManager(this);
-    }
+    Processor()->RemoveManager(this);
 
     this->isClosed = true;
 
@@ -1234,6 +1230,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         {
             body->GetAnyDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
         }
+        if (jitWriteData.disableMemOp)
+        {
+            body->GetAnyDynamicProfileInfo()->DisableMemOp();
+        }
     }
 
     if (jitWriteData.disableInlineApply)
@@ -2010,10 +2010,7 @@ NativeCodeGenerator::UpdateQueueForDebugMode()
 
     this->hasUpdatedQForDebugMode = true;
 
-    if (Js::Configuration::Global.EnableJitInDebugMode())
-    {
-        Processor()->AddManager(this);
-    }
+    Processor()->AddManager(this);
 }
 
 void
@@ -3043,13 +3040,7 @@ NativeCodeGenerator::GatherCodeGenData(
                 const auto inlineeFunctionBody = inlinee->GetFunctionBody();
                 if(!inlineeFunctionBody)
                 {
-                    if ((
-#ifdef ENABLE_DOM_FAST_PATH
-                         inlinee->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathGetter ||
-                         inlinee->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathSetter ||
-#endif
-                         (inlineeFunctionInfo->GetAttributes() & Js::FunctionInfo::Attributes::BuiltInInlinableAsLdFldInlinee) != 0) &&
-                        !isJitTimeDataComputed)
+                    if (((inlineeFunctionInfo->GetAttributes() & Js::FunctionInfo::Attributes::BuiltInInlinableAsLdFldInlinee) != 0) && !isJitTimeDataComputed)
                     {
                         jitTimeData->AddLdFldInlinee(recycler, inlineCacheIndex, inlinee);
                     }
@@ -3244,12 +3235,6 @@ NativeCodeGenerator::EnterScriptStart()
     }
 
     if (this->IsClosed())
-    {
-        return;
-    }
-
-    // Don't need to do anything if we're in debug mode
-    if (this->scriptContext->IsScriptContextInDebugMode() && !Js::Configuration::Global.EnableJitInDebugMode())
     {
         return;
     }

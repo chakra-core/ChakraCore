@@ -69,7 +69,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
                     if (instr->AsLabelInstr()->m_isForInExit)
                     {
-                        Assert(this->currentForInDepth != 0);
+                        AssertOrFailFast(this->currentForInDepth != 0);
                         this->currentForInDepth--;
                     }
                 }
@@ -139,15 +139,6 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                     JITTimeFunctionBody * body = inlineeData->GetBody();
                     if (!body)
                     {
-#ifdef ENABLE_DOM_FAST_PATH
-                        Assert(inlineeData->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathGetter ||
-                            inlineeData->GetLocalFunctionId() == Js::JavascriptBuiltInFunction::DOMFastPathSetter);
-                        if (PHASE_OFF1(Js::InlineHostCandidatePhase))
-                        {
-                            break;
-                        }
-                        this->InlineDOMGetterSetterFunction(instr, inlineeData, inlinerData);
-#endif
                         break;
                     }
 
@@ -2081,15 +2072,13 @@ Inline::InlineBuiltInFunction(
     IR::Instr *inlineBuiltInEndInstr = nullptr;
     if (inlineCallOpCode == Js::OpCode::InlineFunctionApply)
     {
-        inlineBuiltInEndInstr = InlineApply(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, inlineCallArgCount - (usesThisArgument ? 1 : 0));
-        return inlineBuiltInEndInstr->m_next;
+        return InlineApply(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, inlineCallArgCount - (usesThisArgument ? 1 : 0));
     }
 
     if (inlineCallOpCode == Js::OpCode::InlineFunctionCall || inlineCallOpCode == Js::OpCode::InlineCallInstanceFunction)
     {
         const bool isCallInstanceFunction = (inlineCallOpCode == Js::OpCode::InlineCallInstanceFunction);
-        inlineBuiltInEndInstr = InlineCall(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, isCallInstanceFunction);
-        return inlineBuiltInEndInstr->m_next;
+        return InlineCall(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, isCallInstanceFunction);
     }
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
@@ -2486,9 +2475,10 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
     // We may still decide not to inline.
     *pIsInlined = false;
 
+    IR::Instr* instrNext = callInstr->m_next;
     if (argsCount == 0)
     {
-        return callInstr;
+        return instrNext;
     }
 
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(applyData->GetLocalFunctionId());
@@ -2530,7 +2520,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
         if (PHASE_OFF1(Js::InlineApplyWithoutArrayArgPhase))
         {
             *pIsInlined = false;
-            return callInstr;
+            return instrNext;
         }
         *pIsInlined = true;
 
@@ -2559,7 +2549,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
         {
             INLINE_TESTTRACE(_u("INLINING: Skip Inline: Supporting inlining func.apply(this, array) or func.apply(this, arguments) with formals in the parent function only when func is a built-in inlinable as apply target \tCaller: %s (%s)\n"),
                 inlinerData->GetBody()->GetDisplayName(), inlinerData->GetDebugNumberSet(debugStringBuffer));
-            return callInstr;
+            return instrNext;
         }
     }
 
@@ -2575,6 +2565,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
 
 IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::Instr * argsObjectArgInstr, const FunctionJITTimeInfo * funcInfo)
 {
+    IR::Instr* instrNext = callInstr->m_next;
     IR::Instr* ldHeapArguments = argsObjectArgInstr->GetSrc1()->GetStackSym()->GetInstrDef();
     argsObjectArgInstr->ReplaceSrc1(ldHeapArguments->GetDst());
 
@@ -2665,7 +2656,7 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
 
     argout = IR::Instr::New(Js::OpCode::ArgOut_A_Dynamic, linkOpnd2, explicitThisArgOut->GetSrc1(), linkOpnd1, callInstr->m_func); // push explicit this as this pointer
     callInstr->InsertBefore(argout);
-    return callInstr;
+    return instrNext;
 }
 
 /*
@@ -2673,6 +2664,7 @@ This method will only do CallDirect style inlining of built-in targets. No scrip
 */
 IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, const FunctionJITTimeInfo * applyInfo, const FunctionJITTimeInfo * builtInInfo, bool * pIsInlined)
 {
+    IR::Instr * instrNext = callInstr->m_next;
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInInfo->GetLocalFunctionId());
     IR::HelperCallOpnd * helperCallOpnd = nullptr;
     switch (builtInId)
@@ -2686,7 +2678,7 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
         break;
 
     default:
-        return callInstr;
+        return instrNext;
     }
 
     IR::Instr * implicitThisArgOut = nullptr;
@@ -2706,7 +2698,7 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     IR::Instr* applyTargetLdInstr = nullptr;
     if (!TryGetCallApplyAndTargetLdInstrs(callInstr, &applyLdInstr, &applyTargetLdInstr))
     {
-        return callInstr;
+        return instrNext;
     }
 
     *pIsInlined = true;
@@ -2757,11 +2749,12 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     callInstr->ReplaceSrc1(helperCallOpnd);
     callInstr->ReplaceSrc2(argOut->GetDst());
 
-    return callInstr;
+    return instrNext;
 }
 
 IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const FunctionJITTimeInfo * applyInfo, const FunctionJITTimeInfo * applyTargetInfo)
 {
+    IR::Instr * instrNext = callInstr->m_next;
     IR::Instr * implicitThisArgOut = nullptr;
     IR::Instr * explicitThisArgOut = nullptr;
     IR::Instr * dummyInstr = nullptr;
@@ -2801,12 +2794,12 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
 
     if (!callTargetStackSym->IsSingleDef())
     {
-        return callInstr;
+        return instrNext;
     }
 
     if (!applyTargetInfo)
     {
-        return callInstr;
+        return instrNext;
     }
 
     bool safeThis = false;
@@ -2818,7 +2811,7 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
         callInstr->InsertBefore(bytecodeUses);
     }
 
-    return callInstr;
+    return instrNext;
 }
 
 void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** implicitThisArgOut, IR::Instr** explicitThisArgOut, IR::Instr** argumentsOrArrayArgOut, uint &argOutCount)
@@ -3086,15 +3079,23 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
         // set src1 to avoid CSE on BailOnNotStackArgs for different arguments object
         bailOutOnNotStackArgs->SetSrc1(argumentsObjArgOut->GetSrc1()->Copy(this->topFunc));
         argumentsObjArgOut->InsertBefore(bailOutOnNotStackArgs);
+
+        // Insert ByteCodeUses instr to ensure that arguments object is available on bailout
+        IR::ByteCodeUsesInstr* bytecodeUses = IR::ByteCodeUsesInstr::New(callInstr);
+        IR::Opnd* argSrc1 = argObjByteCodeArgoutCapture->GetSrc1();
+        bytecodeUses->SetRemovedOpndSymbol(argSrc1->GetIsJITOptimizedReg(), argSrc1->GetStackSym()->m_id);
+        callInstr->InsertBefore(bytecodeUses);
     }
 
     IR::Instr* byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
     byteCodeArgOutUse->SetSrc1(implicitThisArgOut->GetSrc1());
+    callInstr->InsertBefore(byteCodeArgOutUse);
     if (argumentsObjArgOut)
     {
-        byteCodeArgOutUse->SetSrc2(argumentsObjArgOut->GetSrc1());
+        byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
+        byteCodeArgOutUse->SetSrc1(argumentsObjArgOut->GetSrc1());
+        callInstr->InsertBefore(byteCodeArgOutUse);
     }
-    callInstr->InsertBefore(byteCodeArgOutUse);
 
     // don't need the implicit "this" anymore
     explicitThisArgOut->ReplaceSrc2(startCall->GetDst());
@@ -3233,7 +3234,7 @@ Inline::InlineCallApplyTarget_Shared(
     // instrNext
     IR::Instr* instrNext = callInstr->m_next;
 
-    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, funcObjCheckInsertInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget)->m_prev;
+    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, funcObjCheckInsertInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget);
 }
 
 IR::Opnd *
@@ -3247,6 +3248,7 @@ Inline::ConvertToInlineBuiltInArgOut(IR::Instr * argInstr)
 IR::Instr*
 Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth, bool isCallInstanceFunction)
 {
+    IR::Instr* instrNext = callInstr->m_next;
     Func *func = callInstr->m_func;
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
 
@@ -3254,7 +3256,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     if (PHASE_OFF(Js::InlineCallPhase, this->topFunc) || PHASE_OFF(Js::InlineCallPhase, func)
         || !this->topFunc->GetJITFunctionBody()->GetInParamsCount())
     {
-        return callInstr;
+        return instrNext;
     }
 
     // Convert all the current ARG_OUT to  ArgOut_A_InlineBuiltIn
@@ -3263,7 +3265,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     if (!GetDefInstr(linkOpnd)->GetSrc2()->IsSymOpnd())
     {
         // There is no benefit of inlining.call() with no arguments.
-        return callInstr;
+        return instrNext;
     }
 
     *pIsInlined = true;
@@ -3345,7 +3347,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     }
     clonedArgout->SetSrc2(startCall->GetDst());
     Assert(GetDefInstr(orgLinkOpnd) == functionInstr);
-    return callInstr;
+    return instrNext;
 }
 
 bool
@@ -4169,78 +4171,6 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
     return instrNext;
 }
 
-#ifdef ENABLE_DOM_FAST_PATH
-// we have LdFld, src1 obj, src2: null; dest: return value
-// We need to convert it to inlined method call.
-// We cannot do CallDirect as it requires ArgOut and that cannot be hoisted/copyprop'd
-// Create a new OpCode, DOMFastPathGetter. The OpCode takes three arguments:
-// The function object, the "this" instance object, and the helper routine as we have one for each index
-// A functionInfo->Index# table is created in scriptContext (and potentially movable to threadContext if WS is not a concern).
-// we use the table to identify the helper that needs to be lowered.
-// At lower time we create the call to helper, which is function entrypoint at this time.
-void Inline::InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData)
-{
-    intptr_t functionInfo = inlineeData->GetFunctionInfoAddr();
-
-    Assert(ldFldInstr->GetSrc1()->IsSymOpnd() && ldFldInstr->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd());
-
-    Assert(ldFldInstr->GetSrc1()->AsPropertySymOpnd()->HasObjTypeSpecFldInfo());
-    Assert(ldFldInstr->GetSrc1()->AsPropertySymOpnd()->GetObjTypeSpecInfo()->UsesAccessor());
-
-    // Find the helper routine for this functionInfo.
-    IR::JnHelperMethod helperMethod = this->topFunc->GetScriptContextInfo()->GetDOMFastPathHelper(functionInfo);
-    if (helperMethod == IR::HelperInvalid)
-    {
-        // abort inlining if helper isn't found
-        return;
-    }
-    // Find the instance object (External object).
-    PropertySym * fieldSym = ldFldInstr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
-    IR::RegOpnd * instanceOpnd = IR::RegOpnd::New(fieldSym->m_stackSym, TyMachPtr, ldFldInstr->m_func);
-
-    // Find the function object from getter inline cache. Need bailout to verify.
-    IR::Instr *ldMethodFld = IR::Instr::New(Js::OpCode::LdMethodFromFlags, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), ldFldInstr->GetSrc1(), ldFldInstr->m_func);
-    ldFldInstr->InsertBefore(ldMethodFld);
-    ldMethodFld = ldMethodFld->ConvertToBailOutInstr(ldFldInstr, IR::BailOutFailedInlineTypeCheck);
-
-    ldFldInstr->ReplaceSrc1(ldMethodFld->GetDst());
-    ldMethodFld->SetByteCodeOffset(ldFldInstr);
-
-    // generate further object/type bailout
-    PrepareInsertionPoint(ldFldInstr, inlineeData, ldFldInstr);
-
-    // We have three arguments to pass to the OpCode. Create a new ExtendArg_A opcode to chain up the argument. It is similar to ArgOut chain
-    // except that it is not argout.
-    // The Opcode sequence is like:
-    // (dst)helpArg1: ExtendArg_A (src1)thisObject (src2)null
-    // (dst)helpArg2: ExtendArg_A (src1)funcObject (src2)helpArg1
-    // method: DOMFastPathGetter (src1)HelperCall (src2)helpArg2
-    IR::Instr* extendArg0 = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), instanceOpnd, ldFldInstr->m_func);
-    ldFldInstr->InsertBefore(extendArg0);
-    IR::Instr* extendArg1 = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, ldFldInstr->m_func), ldMethodFld->GetDst(), extendArg0->GetDst(), ldFldInstr->m_func);
-    ldFldInstr->InsertBefore(extendArg1);
-    ldFldInstr->ReplaceSrc1(IR::HelperCallOpnd::New(helperMethod, ldFldInstr->m_func));
-    ldFldInstr->SetSrc2(extendArg1->GetDst());
-    ldFldInstr->m_opcode = Js::OpCode::DOMFastPathGetter;
-
-    StackSym * tmpSym = StackSym::New(ldFldInstr->GetDst()->GetType(), ldFldInstr->m_func);
-    IR::Opnd * tmpDst = IR::RegOpnd::New(tmpSym, tmpSym->GetType(), ldFldInstr->m_func);
-    // Ensure that the original LdFld's dst profile data is also copied to the new instruction for later
-    // type-specific optimizations. Otherwise, this optimization to reduce calls into the host will also
-    // result in relatively more expensive calls in the runtime.
-    tmpDst->SetValueType(ldFldInstr->GetDst()->GetValueType());
-
-    IR::Opnd * callInstrDst = ldFldInstr->UnlinkDst();
-    ldFldInstr->SetDst(tmpDst);
-
-    IR::Instr * ldInstr = IR::Instr::New(Js::OpCode::Ld_A, callInstrDst, tmpDst, ldFldInstr->m_func);
-    ldFldInstr->InsertAfter(ldInstr);
-
-    this->topFunc->SetHasInlinee();
-
-    InsertStatementBoundary(ldInstr->m_next);
-}
-#endif
 void
 Inline::InsertStatementBoundary(IR::Instr * instrNext)
 {
@@ -4501,6 +4431,8 @@ Inline::SplitConstructorCallCommon(
     {
         createObjInstr->SetByteCodeOffset(newObjInstr);
         createObjInstr->GetSrc1()->SetIsJITOptimizedReg(true);
+        // We're splitting a single byte code, so the interpreter has to resume from the beginning if we bail out.
+        createObjInstr->forcePreOpBailOutIfNeeded = true;
         newObjInstr->InsertBefore(createObjInstr);
 
         createObjDst->SetValueType(ValueType::GetObject(ObjectType::UninitializedObject));
@@ -4630,7 +4562,7 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
 
-    IR::Instr *checkFuncInfo = IR::BailOutInstr::New(Js::OpCode::CheckFuncInfo, IR::BailOutOnInlineFunction, insertBeforeInstr, callInstr->m_func);
+    IR::Instr* checkFuncInfo = IR::BailOutInstr::New(Js::OpCode::CheckFuncInfo, IR::BailOutOnInlineFunction, insertBeforeInstr, callInstr->m_func);
     checkFuncInfo->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
 
     IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, insertBeforeInstr->m_func);
@@ -4638,6 +4570,10 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
 
     checkFuncInfo->SetByteCodeOffset(insertBeforeInstr);
     insertBeforeInstr->InsertBefore(checkFuncInfo);
+
+    // checkFuncInfo can be hoisted later and then have its BailOutInfo garbage collected. Other instructions (ex: BailOnNotStackArgs) share
+    // checkFuncInfo's BailOutInfo. Explicitly force sharedBailOutKind to be true to stop this BailOutInfo from being garbage collected.
+    checkFuncInfo->ShareBailOut();
 
     return checkFuncInfo;
 }
@@ -5444,7 +5380,6 @@ Inline::MapFormals(Func *inlinee,
 
 
         case Js::OpCode::LdThis:
-        case Js::OpCode::StrictLdThis:
             // Optimization of LdThis may be possible.
             // Verify that this is a use of the "this" passed by the caller (not a nested function).
             if (instr->GetSrc1()->AsRegOpnd()->m_sym == symThis)
@@ -5690,7 +5625,7 @@ Inline::DoCheckThisOpt(IR::Instr * instr)
     // If the instr is an inlined LdThis, try to replace it with a CheckThis
     // that will bail out if a helper call is required to get the real "this" pointer.
 
-    Assert(instr->m_opcode == Js::OpCode::LdThis || instr->m_opcode == Js::OpCode::StrictLdThis);
+    Assert(instr->m_opcode == Js::OpCode::LdThis);
     Assert(instr->IsInlined());
 
     // Create the CheckThis. The target is the original offset, i.e., the LdThis still has to be executed.
@@ -5699,7 +5634,7 @@ Inline::DoCheckThisOpt(IR::Instr * instr)
         instr->FreeSrc2();
     }
     IR::Instr *newInstr =
-        IR::BailOutInstr::New( instr->m_opcode == Js::OpCode::LdThis ? Js::OpCode::CheckThis : Js::OpCode::StrictCheckThis, IR::BailOutCheckThis, instr, instr->m_func);
+        IR::BailOutInstr::New(Js::OpCode::CheckThis, IR::BailOutCheckThis, instr, instr->m_func);
     // Just re-use the original src1 since the LdThis will usually be deleted.
     newInstr->SetSrc1(instr->GetSrc1());
     newInstr->SetByteCodeOffset(instr);

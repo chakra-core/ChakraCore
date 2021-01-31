@@ -73,7 +73,6 @@
     <default>
       <files>dynamic_import_promises_5796.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -144,7 +143,7 @@
       <files>bug_issue_3257.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
       <baseline>bug_issue_3257.baseline</baseline>
-      <tags>exclude_sanitize_address,exclude_jshost</tags>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
@@ -171,23 +170,18 @@
     <default>
       <files>GetModuleNamespace.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
-      <tags>exclude_jshost,exclude_sanitize_address</tags>
+      <tags>exclude_sanitize_address</tags>
     </default>
   </test>
   <test>
     <default>
       <files>module-load-twice.js</files>
-      <!-- This test is designed for ch only. -->
-      <!-- todo: enable using source code copy for jshost? -->
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
     <default>
       <files>passmodule.js</files>
-      <!-- This test is designed for ch only - to test the -module flag. -->
       <compile-flags>-module</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -202,6 +196,18 @@
       <files>bug_OS18460517.js</files>
       <baseline>bug_OS18460517.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:2 -force:rejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ImportMeta.js</files>
+      <compile-flags>-args summary -endargs -esimportmeta</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>top-level-await.js</files>
+      <compile-flags>-ESDynamicImport -ESTopLevelAwait -module</compile-flags>
     </default>
   </test>
 </regress-exe>

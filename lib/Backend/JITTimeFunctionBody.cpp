@@ -162,6 +162,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         }
     }
 
+    jitBody->yieldReg = functionBody->GetYieldRegister();
     jitBody->localFrameDisplayReg = functionBody->GetLocalFrameDisplayRegister();
     jitBody->localClosureReg = functionBody->GetLocalClosureRegister();
     jitBody->envReg = functionBody->GetEnvRegister();
@@ -399,6 +400,12 @@ Js::RegSlot
 JITTimeFunctionBody::GetLocalFrameDisplayReg() const
 {
     return static_cast<Js::RegSlot>(m_bodyData.localFrameDisplayReg);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetYieldReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData.yieldReg);
 }
 
 Js::RegSlot
@@ -817,6 +824,12 @@ JITTimeFunctionBody::NeedScopeObjectForArguments(bool hasNonSimpleParams) const
 }
 
 bool
+JITTimeFunctionBody::RegIsConstant(Js::RegSlot reg) const
+{
+    return reg > 0 && reg < this->GetConstCount();
+}
+
+bool
 JITTimeFunctionBody::GetDoScopeObjectCreation() const
 {
     return !!m_bodyData.doScopeObjectCreation;
@@ -1067,7 +1080,9 @@ JITTimeFunctionBody::GetCallApplyCallSiteIdForCallSiteId(Js::ProfileId callSiteI
     if (m_bodyData.callSiteToCallApplyCallSiteArray)
     {
         callApplyId = m_bodyData.callSiteToCallApplyCallSiteArray[callSiteId];
-        AssertOrFailFast(callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
+        AssertOrFailFast(
+            callApplyId == Js::Constants::NoProfileId || 
+            callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
     }
     
     return callApplyId;

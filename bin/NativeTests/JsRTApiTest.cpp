@@ -2191,13 +2191,18 @@ namespace JsRTApiTest
         return JsNoError;
     }
 
-    static JsErrorCode CALLBACK Succes_NMRC(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
+    static JsErrorCode CALLBACK Success_NMRC(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar)
     {
         if (successTest.mainModule == referencingModule)
         {
             successTest.mainModuleReady = true;
             successTest.mainModuleException = exceptionVar;
         }
+        return JsNoError;
+    }
+
+    static JsErrorCode CALLBACK Success_IIMC(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar)
+    {
         return JsNoError;
     }
 
@@ -2211,7 +2216,8 @@ namespace JsRTApiTest
         successTest.mainModule = requestModule;
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleCallback, Success_FIMC) == JsNoError);
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, Success_FIMC) == JsNoError);
-        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Succes_NMRC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Success_NMRC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_InitializeImportMetaCallback, Success_IIMC) == JsNoError);
 
         JsValueRef errorObject = JS_INVALID_REFERENCE;
         const char* fileContent = "import {x} from 'foo.js'";
@@ -2279,7 +2285,7 @@ namespace JsRTApiTest
         REQUIRE(JsInitializeModuleRecord(nullptr, specifier, &requestModule) == JsNoError);
 
         successTest.mainModule = requestModule;
-        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Succes_NMRC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Success_NMRC) == JsNoError);
 
         // Parsing
         JsValueRef errorObject1 = JS_INVALID_REFERENCE;
@@ -2327,7 +2333,7 @@ namespace JsRTApiTest
         successTest.mainModule = requestModule;
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleCallback, Success_FIMC1) == JsNoError);
         REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_FetchImportedModuleFromScriptCallback, Success_FIMC1) == JsNoError);
-        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Succes_NMRC) == JsNoError);
+        REQUIRE(JsSetModuleHostInfo(requestModule, JsModuleHostInfo_NotifyModuleReadyCallback, Success_NMRC) == JsNoError);
 
         JsValueRef errorObject = JS_INVALID_REFERENCE;
         const char* fileContent = "import {x} from 'foo.js'";

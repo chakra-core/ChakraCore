@@ -24,6 +24,7 @@
     <file src="..\..\lib\Jsrt\ChakraCommon.h" target="build\native\include\ChakraCommon.h"/>
     <file src="..\..\lib\Jsrt\ChakraCommonWindows.h" target="build\native\include\ChakraCommonWindows.h"/>
     <file src="..\..\lib\Jsrt\ChakraCore.h" target="build\native\include\ChakraCore.h"/>
+    <file src="..\..\lib\Jsrt\ChakraCoreWindows.h" target="build\native\include\ChakraCoreWindows.h"/>
     <file src="..\..\lib\Jsrt\ChakraDebug.h" target="build\native\include\ChakraDebug.h"/>
 
     <!--Lib-->

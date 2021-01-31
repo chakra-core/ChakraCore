@@ -144,7 +144,7 @@ ParseNodeStmt * ParseNode::AsParseNodeStmt()
 {
     Assert(this->nop == knopBlock || this->nop == knopBreak || this->nop == knopContinue || this->nop == knopWith || this->nop == knopIf || this->nop == knopSwitch || this->nop == knopCase || this->nop == knopReturn
         || this->nop == knopTryFinally || this->nop == knopTryCatch || this->nop == knopTry || this->nop == knopCatch || this->nop == knopFinally
-        || this->nop == knopWhile || this->nop == knopDoWhile || this->nop == knopFor || this->nop == knopForIn || this->nop == knopForOf);
+        || this->nop == knopWhile || this->nop == knopDoWhile || this->nop == knopFor || this->nop == knopForIn || this->nop == knopForOf || this->nop == knopForAwaitOf);
     return reinterpret_cast<ParseNodeStmt*>(this);
 }
 
@@ -220,12 +220,6 @@ ParseNodeFinally * ParseNode::AsParseNodeFinally()
     return reinterpret_cast<ParseNodeFinally*>(this);
 }
 
-ParseNodeLoop * ParseNode::AsParseNodeLoop()
-{
-    Assert(this->nop == knopWhile || this->nop == knopDoWhile || this->nop == knopFor || this->nop == knopForIn || this->nop == knopForOf);
-    return reinterpret_cast<ParseNodeLoop*>(this);
-}
-
 ParseNodeWhile * ParseNode::AsParseNodeWhile()
 {
     Assert(this->nop == knopWhile || this->nop == knopDoWhile);
@@ -240,7 +234,7 @@ ParseNodeFor * ParseNode::AsParseNodeFor()
 
 ParseNodeForInOrForOf * ParseNode::AsParseNodeForInOrForOf()
 {
-    Assert(this->nop == knopForIn || this->nop == knopForOf);
+    Assert(this->nop == knopForIn || this->nop == knopForOf || this->nop == knopForAwaitOf);
     return reinterpret_cast<ParseNodeForInOrForOf*>(this);
 }
 
@@ -536,13 +530,8 @@ ParseNodeJump::ParseNodeJump(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 {
 }
 
-ParseNodeLoop::ParseNodeLoop(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeStmt(nop, ichMin, ichLim)
-{
-}
-
 ParseNodeWhile::ParseNodeWhile(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeLoop(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
 {
 }
 
@@ -562,12 +551,12 @@ ParseNodeIf::ParseNodeIf(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 }
 
 ParseNodeForInOrForOf::ParseNodeForInOrForOf(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeLoop(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
 {
 }
 
 ParseNodeFor::ParseNodeFor(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeLoop(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim)
 {
 }
 

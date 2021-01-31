@@ -156,8 +156,10 @@ namespace Js
             }
         }
 
-        Js::GlobalObject::UpdateThisForEval(varThis, moduleId, scriptContext, this->IsStrictMode());
-
+        if (!this->IsStrictMode())
+        {
+            Js::GlobalObject::UpdateThisForEval(varThis, moduleId, scriptContext);
+        }
         return varThis;
     }
 

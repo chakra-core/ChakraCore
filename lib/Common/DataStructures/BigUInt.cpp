@@ -125,7 +125,7 @@ namespace Js
         luMul = 1;
         for (*pcchDig = cch; prgch < pchLim; prgch++)
         {
-            if (*prgch == '.')
+            if (*prgch == '.' || *prgch == '_')
             {
                 (*pcchDig)--;
                 continue;

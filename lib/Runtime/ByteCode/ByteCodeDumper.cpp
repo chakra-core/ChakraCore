@@ -606,6 +606,7 @@ namespace Js
             }
 
             case OpCode::DeleteLocalFld:
+            case OpCode::DeleteLocalFld_ReuseLoc:
                 Output::Print(_u(" R%d = %s "), data->Instance, pPropertyName->GetBuffer());
                 break;
 
@@ -693,6 +694,7 @@ namespace Js
         switch (op)
         {
             case OpCode::DeleteFld:
+            case OpCode::DeleteFld_ReuseLoc:
             case OpCode::DeleteRootFld:
             case OpCode::DeleteFldStrict:
             case OpCode::DeleteRootFldStrict:
@@ -767,12 +769,14 @@ namespace Js
                 break;
             }
             case OpCode::StSuperFld:
+            case OpCode::StSuperFldStrict:
             {
                 Output::Print(_u(" R%d.%s(this=R%d) = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                     data->Value2, data->Value, data->PropertyIdIndex);
                 break;
             }
             case OpCode::ProfiledStSuperFld:
+            case OpCode::ProfiledStSuperFldStrict:
             {
                 Output::Print(_u(" R%d.%s(this=R%d) = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                     data->Value2, data->Value, data->PropertyIdIndex);
@@ -893,6 +897,7 @@ namespace Js
             case OpCode::LdLocalSlot:
             case OpCode::LdParamSlot:
             case OpCode::LdEnvObj:
+            case OpCode::LdEnvObj_ReuseLoc:
             case OpCode::LdLocalObjSlot:
             case OpCode::LdParamObjSlot:
                 Output::Print(_u(" R%d = [%d] "), data->Value, data->SlotIndex);
@@ -990,10 +995,12 @@ namespace Js
                 break;
 
             case OpCode::LdLocalFld:
+            case OpCode::LdLocalFld_ReuseLoc:
                 Output::Print(_u(" R%d = %s #%d"), data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 break;
 
             case OpCode::ProfiledLdLocalFld:
+            case OpCode::ProfiledLdLocalFld_ReuseLoc:
                 Output::Print(_u(" R%d = %s #%d"), data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
@@ -1054,6 +1061,7 @@ namespace Js
             case OpCode::LdLen_A:
             case OpCode::LdFldForTypeOf:
             case OpCode::LdFld:
+            case OpCode::LdFld_ReuseLoc:
             case OpCode::LdFldForCallApplyTarget:
             case OpCode::LdMethodFld:
             case OpCode::ScopedLdMethodFld:
@@ -1075,6 +1083,7 @@ namespace Js
             }
             case OpCode::ProfiledLdFldForTypeOf:
             case OpCode::ProfiledLdFld:
+            case OpCode::ProfiledLdFld_ReuseLoc:
             case OpCode::ProfiledLdFldForCallApplyTarget:
             case OpCode::ProfiledLdMethodFld:
             {
@@ -1277,6 +1286,25 @@ namespace Js
     }
 
     template <class T> void
+    ByteCodeDumper::DumpReg2U(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        switch (op)
+        {
+            case Js::OpCode::InitBaseClass:
+            {
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
+                Output::Print(_u(" R%d, R%d = %s()"), data->R0, data->R1, pfuncActual->EnsureDeserialized()->GetDisplayName());
+                break;
+            }
+
+            default:
+                DumpReg(data->R0);
+                DumpReg(data->R1);
+                break;
+        }
+    }
+
+    template <class T> void
     ByteCodeDumper::DumpReg2B1(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpReg(data->R0);
@@ -1294,6 +1322,43 @@ namespace Js
     }
 
     template <class T> void
+    ByteCodeDumper::DumpReg3U(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        switch (op)
+        {
+            case Js::OpCode::InitInnerBaseClass:
+            {
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
+                Output::Print(_u(" R%d, R%d = %s(), env:R%d"), data->R0, data->R1, pfuncActual->EnsureDeserialized()->GetDisplayName(), data->R2);
+                break;
+            }
+
+            default:
+                AssertMsg(false, "Unknown Reg3U opcode");
+                break;
+        }
+    }
+
+    template <class T> void
+    ByteCodeDumper::DumpReg4U(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        switch (op)
+        {
+            case Js::OpCode::InitClass:
+            {
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
+                Output::Print(_u(" R%d, R%d = R%d, R%d, %s()"), data->R0, data->R1, data->R2, data->R3,
+                    pfuncActual->EnsureDeserialized()->GetDisplayName());
+                break;
+            }
+
+            default:
+                AssertMsg(false, "Unknown Reg4U opcode");
+                break;
+        }
+    }
+
+    template <class T> void
     ByteCodeDumper::DumpReg5(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpReg(data->R0);
@@ -1301,6 +1366,25 @@ namespace Js
         DumpReg(data->R2);
         DumpReg(data->R3);
         DumpReg(data->R4);
+    }
+
+    template <class T> void
+    ByteCodeDumper::DumpReg5U(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        switch (op)
+        {
+            case Js::OpCode::InitInnerClass:
+            {
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
+                Output::Print(_u(" R%d, R%d = R%d, R%d, %s(), env:R%d"), data->R0, data->R1, data->R2, data->R3,
+                    pfuncActual->EnsureDeserialized()->GetDisplayName(), data->R4);
+                break;
+            }
+
+            default:
+                AssertMsg(false, "Unknown Reg5U opcode");
+                break;
+        }
     }
 
     void
@@ -1495,17 +1579,6 @@ namespace Js
         }
     }
 
-    template <class T>
-    void ByteCodeDumper::DumpClass(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        DumpReg(data->Constructor);
-        if (data->Extends != Js::Constants::NoRegister)
-        {
-            Output::Print(_u("extends"));
-            DumpReg((RegSlot)data->Extends);
-        }
-    }
-
 #ifdef BYTECODE_BRANCH_ISLAND
     void ByteCodeDumper::DumpBrLong(OpCode op, const unaligned OpLayoutBrLong* data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -1545,6 +1618,24 @@ namespace Js
         DumpOffset(data->RelativeJumpOffset, reader);
         DumpReg(data->R1);
         DumpReg(data->R2);
+    }
+
+    template <class T>
+    void ByteCodeDumper::DumpBrReg3(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        switch (op)
+        {
+            case Js::OpCode::CheckExtends:
+                DumpOffset(data->RelativeJumpOffset, reader);
+                DumpReg(data->R0);
+                DumpReg(data->R1);
+                DumpReg(data->R2);
+                break;
+
+            default:
+                AssertMsg(false, "Unknown BrReg3 opcode");
+                break;
+        }
     }
 
     void ByteCodeDumper::DumpBrProperty(OpCode op, const unaligned OpLayoutBrProperty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)

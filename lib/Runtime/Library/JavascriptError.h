@@ -55,9 +55,6 @@ namespace Js
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
-#ifdef ENABLE_PROJECTION
-            static FunctionInfo NewWinRTErrorInstance;
-#endif
             static FunctionInfo ToString;
         };
 
@@ -71,9 +68,6 @@ namespace Js
         static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyLinkErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
-#ifdef ENABLE_PROJECTION
-        static Var NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
-#endif
 
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
 
@@ -113,6 +107,7 @@ namespace Js
         static void SetErrorMessageProperties(JavascriptError *pError, HRESULT errCode, PCWSTR message, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varName, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList);
+        static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, ...);
         static void SetErrorType(JavascriptError *pError, ErrorTypeEnum errorType);
 
         static bool ThrowCantAssign(PropertyOperationFlags flags, ScriptContext* scriptContext, PropertyId propertyId);

@@ -39,7 +39,7 @@ namespace Js
         if (map == nullptr || !mapIterator.Next())
         {
             iterator->m_map = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         auto entry = mapIterator.Current();
@@ -62,6 +62,6 @@ namespace Js
             result = entry.Value();
         }
 
-        return library->CreateIteratorResultObjectValueFalse(result);
+        return library->CreateIteratorResultObject(result);
     }
 } //namespace Js

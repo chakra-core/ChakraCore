@@ -123,7 +123,6 @@ namespace PerfCounter
     MACRO(FrameDisplay); \
     MACRO(CompoundString); \
     MACRO(RecyclerWeakReferenceBase); \
-    MACRO(ProjectionObjectInstance); \
 
 #define RECYCLER_TRACKER_ARRAY_PERF_COUNTER_TYPE(MACRO) \
     MACRO(Var); \

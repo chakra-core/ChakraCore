@@ -29,6 +29,7 @@ HELPERCALLCHK(ScrFunc_OP_NewScFunc, Js::ScriptFunction::OP_NewScFunc, AttrCanNot
 HELPERCALLCHK(ScrFunc_OP_NewScFuncHomeObj, Js::ScriptFunction::OP_NewScFuncHomeObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrFunc_OP_NewScGenFunc, Js::JavascriptGeneratorFunction::OP_NewScGenFunc, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrFunc_OP_NewScGenFuncHomeObj, Js::JavascriptGeneratorFunction::OP_NewScGenFuncHomeObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(ScrFunc_OP_NewClassConstructor, Js::ScriptFunction::OP_NewClassConstructor, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrFunc_CheckAlignment, Js::JavascriptFunction::CheckAlignment, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrObj_LdHandlerScope, Js::JavascriptOperators::OP_LdHandlerScope, 0)
 HELPERCALLCHK(ScrObj_LdFrameDisplay, Js::JavascriptOperators::OP_LdFrameDisplay, AttrCanNotBeReentrant)
@@ -43,7 +44,9 @@ HELPERCALLCHK(ScrObj_OP_IsInst, Js::JavascriptOperators::OP_IsInst, AttrCanThrow
 
 HELPERCALLCHK(Op_IsIn, Js::JavascriptOperators::IsIn, AttrCanThrow)
 HELPERCALLCHK(Op_IsObject, (BOOL (*) (Js::Var))Js::JavascriptOperators::IsObject, AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_IsObjectOrNull, (BOOL (*) (Js::Var))Js::JavascriptOperators::IsObjectOrNull, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_IsClassConstructor, Js::JavascriptOperators::IsClassConstructor, AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_IsConstructor, (bool (*)(Js::Var))Js::JavascriptOperators::IsConstructor, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_IsBaseConstructorKind, Js::JavascriptOperators::IsBaseConstructorKind, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LoadHeapArguments, Js::JavascriptOperators::LoadHeapArguments, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LoadHeapArgsCached, Js::JavascriptOperators::LoadHeapArgsCached, AttrCanNotBeReentrant)
@@ -60,7 +63,6 @@ HELPERCALLCHK(OP_CloneInnerScopeSlots, Js::JavascriptOperators::OP_CloneScopeSlo
 HELPERCALLCHK(OP_CloneBlockScope, Js::JavascriptOperators::OP_CloneBlockScope, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdThis, Js::JavascriptOperators::OP_GetThis, AttrCanThrow)
 HELPERCALLCHK(LdThisNoFastPath, Js::JavascriptOperators::OP_GetThisNoFastPath, 0)
-HELPERCALLCHK(StrictLdThis, Js::JavascriptOperators::OP_StrictGetThis, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LdElemUndef, Js::JavascriptOperators::OP_LoadUndefinedToElement, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LdElemUndefDynamic, Js::JavascriptOperators::OP_LoadUndefinedToElementDynamic, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LdElemUndefScoped, Js::JavascriptOperators::OP_LoadUndefinedToElementScoped, AttrCanNotBeReentrant)
@@ -135,6 +137,7 @@ HELPERCALL_MATH(Op_MaxInAnArray, Js::JavascriptMath::MaxInAnArray, AttrCanThrow)
 HELPERCALL_MATH(Op_MinInAnArray, Js::JavascriptMath::MinInAnArray, AttrCanThrow)
 
 HELPERCALLCHK(Op_ConvString, Js::JavascriptConversion::ToString, AttrCanThrow)
+HELPERCALLCHK(Op_ConvPropertyKey, Js::JavascriptOperators::OP_ToPropertyKey, AttrCanThrow)
 HELPERCALLCHK(Op_CoerseString, Js::JavascriptConversion::CoerseString, AttrCanThrow)
 HELPERCALLCHK(Op_CoerseRegex, (Js::JavascriptRegExp* (*) (Js::Var aValue, Js::Var options, Js::ScriptContext *scriptContext))Js::JavascriptRegExp::CreateRegEx, AttrCanThrow)
 
@@ -206,6 +209,12 @@ HELPERCALLCHK(Op_SetNativeIntElementI_Int32, Js::JavascriptOperators::OP_SetNati
 HELPERCALLCHK(Op_SetNativeFloatElementI_Int32, Js::JavascriptOperators::OP_SetNativeFloatElementI_Int32, AttrCanThrow)
 HELPERCALLCHK(Op_SetNativeIntElementI_UInt32, Js::JavascriptOperators::OP_SetNativeIntElementI_UInt32, AttrCanThrow)
 HELPERCALLCHK(Op_SetNativeFloatElementI_UInt32, Js::JavascriptOperators::OP_SetNativeFloatElementI_UInt32, AttrCanThrow)
+HELPERCALLCHK(Op_SetNativeIntElementI_NoConvert, Js::JavascriptOperators::OP_SetNativeIntElementI_NoConvert, AttrCanThrow)
+HELPERCALLCHK(Op_SetNativeFloatElementI_NoConvert, Js::JavascriptOperators::OP_SetNativeFloatElementI_NoConvert, AttrCanThrow)
+HELPERCALLCHK(Op_SetNativeIntElementI_Int32_NoConvert, Js::JavascriptOperators::OP_SetNativeIntElementI_Int32_NoConvert, AttrCanThrow)
+HELPERCALLCHK(Op_SetNativeFloatElementI_Int32_NoConvert, Js::JavascriptOperators::OP_SetNativeFloatElementI_Int32_NoConvert, AttrCanThrow)
+HELPERCALLCHK(Op_SetNativeIntElementI_UInt32_NoConvert, Js::JavascriptOperators::OP_SetNativeIntElementI_UInt32_NoConvert, AttrCanThrow)
+HELPERCALLCHK(Op_SetNativeFloatElementI_UInt32_NoConvert, Js::JavascriptOperators::OP_SetNativeFloatElementI_UInt32_NoConvert, AttrCanThrow)
 HELPERCALLCHK(ScrArr_SetNativeIntElementC, Js::JavascriptArray::OP_SetNativeIntElementC, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrArr_SetNativeFloatElementC, Js::JavascriptArray::OP_SetNativeFloatElementC, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_DeleteElementI, Js::JavascriptOperators::OP_DeleteElementI, AttrCanThrow)
@@ -247,6 +256,28 @@ HELPERCALLCHK(Op_PatchPutValueNoLocalFastPathPolymorphic, ((void (*)(Js::Functio
 HELPERCALLCHK(Op_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic, ((void (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPath<true, Js::PolymorphicInlineCache>), AttrCanThrow)
 HELPERCALLCHK(Op_PatchPutRootValueNoLocalFastPath, ((void (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutRootValueNoLocalFastPath<true, Js::InlineCache>), AttrCanThrow)
 HELPERCALLCHK(Op_PatchPutRootValueNoLocalFastPathPolymorphic, ((void (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutRootValueNoLocalFastPath<true, Js::PolymorphicInlineCache>), AttrCanThrow)
+
+HELPERCALLCHK(Op_PatchInitValueCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::RecyclableObject*, Js::PropertyId, Js::Var))Js::JavascriptOperators::PatchInitValueCantChangeType<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchInitValuePolymorphicCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::RecyclableObject*, Js::PropertyId, Js::Var))Js::JavascriptOperators::PatchInitValueCantChangeType<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueCantChangeType<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrCantChangeType<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValuePolymorphicCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueCantChangeType<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrPolymorphicCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrCantChangeType<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueNoLocalFastPathCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueNoLocalFastPathCantChangeType<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrNoLocalFastPathCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCantChangeType<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueNoLocalFastPathPolymorphicCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueNoLocalFastPathCantChangeType<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCantChangeType, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCantChangeType<Js::PolymorphicInlineCache>), AttrCanThrow)
+
+HELPERCALLCHK(Op_PatchInitValueCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::RecyclableObject*, Js::PropertyId, Js::Var))Js::JavascriptOperators::PatchInitValueCheckLayout<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchInitValuePolymorphicCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::RecyclableObject*, Js::PropertyId, Js::Var))Js::JavascriptOperators::PatchInitValueCheckLayout<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueCheckLayout<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrCheckLayout<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValuePolymorphicCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueCheckLayout<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrPolymorphicCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrCheckLayout<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueNoLocalFastPathCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout<Js::InlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueNoLocalFastPathPolymorphicCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout<Js::PolymorphicInlineCache>), AttrCanThrow)
+HELPERCALLCHK(Op_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout, ((bool (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout<Js::PolymorphicInlineCache>), AttrCanThrow)
 
 HELPERCALLCHK(Op_PatchSetPropertyScoped, ((void (*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::FrameDisplay*, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchSetPropertyScoped<true, Js::InlineCache>), AttrCanThrow)
 HELPERCALLCHK(Op_ConsolePatchSetPropertyScoped, ((void(*)(Js::FunctionBody *const, Js::InlineCache *const, const Js::InlineCacheIndex, Js::FrameDisplay*, Js::PropertyId, Js::Var, Js::Var, Js::PropertyOperationFlags))Js::JavascriptOperators::PatchSetPropertyScoped<true, Js::InlineCache>), AttrCanThrow)
@@ -321,7 +352,7 @@ HELPERCALLCHK(NewScObjectNoArgNoCtor, Js::JavascriptOperators::NewScObjectNoArgN
 HELPERCALLCHK(UpdateNewScObjectCache, Js::JavascriptOperators::UpdateNewScObjectCache, AttrCanNotBeReentrant)
 HELPERCALLCHK(EnsureObjectLiteralType, Js::JavascriptOperators::EnsureObjectLiteralType, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(OP_InitClass, Js::JavascriptOperators::OP_InitClass, AttrCanThrow)
+HELPERCALLCHK(Op_NewClassProto, Js::JavascriptOperators::OP_NewClassProto, AttrCanNotBeReentrant)
 
 HELPERCALLCHK(OP_ClearAttributes, Js::JavascriptOperators::OP_ClearAttributes, AttrCanThrow | AttrCanNotBeReentrant)
 
@@ -407,6 +438,7 @@ HELPERCALLCHK(ProfiledLdRootFld, Js::ProfilingHelpers::ProfiledLdRootFld_Jit, 0)
 HELPERCALLCHK(ProfiledLdRootMethodFld, Js::ProfilingHelpers::ProfiledLdRootMethodFld_Jit, 0)
 HELPERCALLCHK(ProfiledStFld, Js::ProfilingHelpers::ProfiledStFld_Jit, 0)
 HELPERCALLCHK(ProfiledStSuperFld, Js::ProfilingHelpers::ProfiledStSuperFld_Jit, 0)
+HELPERCALLCHK(ProfiledStSuperFld_Strict, Js::ProfilingHelpers::ProfiledStSuperFld_Strict_Jit, 0)
 HELPERCALLCHK(ProfiledStFld_Strict, Js::ProfilingHelpers::ProfiledStFld_Strict_Jit, 0)
 HELPERCALLCHK(ProfiledStRootFld, Js::ProfilingHelpers::ProfiledStRootFld_Jit, 0)
 HELPERCALLCHK(ProfiledStRootFld_Strict, Js::ProfilingHelpers::ProfiledStRootFld_Strict_Jit, 0)
@@ -417,7 +449,6 @@ HELPERCALLCHK(SimpleProfileCall_DefaultInlineCacheIndex, Js::SimpleJitHelpers::P
 HELPERCALLCHK(SimpleProfileCall, Js::SimpleJitHelpers::ProfileCall, AttrCanNotBeReentrant)
 HELPERCALLCHK(SimpleProfileReturnTypeCall, Js::SimpleJitHelpers::ProfileReturnTypeCall, AttrCanNotBeReentrant)
 //HELPERCALLCHK(SimpleProfiledLdLen, Js::SimpleJitHelpers::ProfiledLdLen_A, AttrCanThrow) //Can throw because it mirrors OP_GetProperty
-HELPERCALLCHK(SimpleProfiledStrictLdThis, Js::SimpleJitHelpers::ProfiledStrictLdThis, AttrCanNotBeReentrant)
 HELPERCALLCHK(SimpleProfiledLdThis, Js::SimpleJitHelpers::ProfiledLdThis, AttrCanNotBeReentrant)
 HELPERCALLCHK(SimpleProfiledSwitch, Js::SimpleJitHelpers::ProfiledSwitch, AttrCanNotBeReentrant)
 HELPERCALLCHK(SimpleProfiledDivide, Js::SimpleJitHelpers::ProfiledDivide, AttrCanThrow)
@@ -432,7 +463,7 @@ HELPERCALLCHK(SimpleRecordLoopImplicitCallFlags, Js::SimpleJitHelpers::RecordLoo
 
 HELPERCALLCHK(ScriptAbort, Js::JavascriptOperators::ScriptAbort, AttrCanThrow | AttrCanNotBeReentrant)
 
-HELPERCALLCHK(NoSaveRegistersBailOutForElidedYield, BailOutRecord::BailOutForElidedYield, 0)
+HELPERCALLCHK(NoSaveRegistersBailOutForElidedYield, BailOutRecord::BailOutForElidedYield, AttrCanNotBeReentrant)
 
 // We don't want these functions to be valid iCall targets because they can be used to disclose stack addresses
 //   which CFG cannot defend against. Instead, return these addresses in GetNonTableMethodAddress
@@ -518,15 +549,22 @@ HELPERCALL(NewPropIdArrForCompProps, Js::InterpreterStackFrame::OP_NewPropIdArrF
 HELPERCALL(StPropIdArrFromVar, Js::InterpreterStackFrame::OP_StPropIdArrFromVar, 0)
 
 
-HELPERCALLCHK(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
-HELPERCALLCHK(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)
-HELPERCALLCHK(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj, AttrCanNotBeReentrant)
-HELPERCALLCHK(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto, AttrCanNotBeReentrant)
-HELPERCALLCHK(LdFuncObjProto,      Js::JavascriptOperators::OP_LdFuncObjProto, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdHomeObj,                Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdFuncObj,                Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(SetHomeObj,               Js::JavascriptOperators::OP_SetHomeObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdHomeObjProto,           Js::JavascriptOperators::OP_LdHomeObjProto, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdFuncObjProto,           Js::JavascriptOperators::OP_LdFuncObjProto, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(ImportCall,          Js::JavascriptOperators::OP_ImportCall, 0)
+HELPERCALLCHK(ImportCall,               Js::JavascriptOperators::OP_ImportCall, 0)
+HELPERCALLCHK(LdImportMeta,             Js::JavascriptOperators::OP_LdImportMeta, 0)
+HELPERCALLCHK(NewAsyncFromSyncIterator, Js::JavascriptOperators::OP_NewAsyncFromSyncIterator, AttrCanNotBeReentrant)
+HELPERCALLCHK(NewAwaitObject,           Js::JavascriptOperators::OP_NewAwaitObject, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(ResumeYield,   Js::JavascriptOperators::OP_ResumeYield, AttrCanThrow)
+HELPERCALL(CreateInterpreterStackFrameForGenerator, Js::InterpreterStackFrame::CreateInterpreterStackFrameForGenerator, AttrCanNotBeReentrant)
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+HELPERCALL(OutputGeneratorBailInTrace, Js::JavascriptGenerator::OutputBailInTrace, AttrCanNotBeReentrant)
+#endif
 
 #if DBG
 HELPERCALL(IntRangeCheckFailure, Js::JavascriptNativeOperators::IntRangeCheckFailure, AttrCanNotBeReentrant)

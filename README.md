@@ -1,42 +1,36 @@
 # ChakraCore
 
-[![Join the chat at https://gitter.im/Microsoft/ChakraCore](https://badges.gitter.im/Microsoft/ChakraCore.svg)](https://gitter.im/Microsoft/ChakraCore?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Discord Chat](https://img.shields.io/discord/695166668967510077?label=Discord&logo=Discord)](https://discord.gg/3e49Ptz)
 [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 [![PR's Welcome](https://img.shields.io/badge/PRs%20-welcome-brightgreen.svg)](#contribute)
 
-ChakraCore is the core part of Chakra, the high-performance JavaScript engine that powers Microsoft Edge and Windows applications written in HTML/CSS/JS.  ChakraCore supports Just-in-time (JIT) compilation of JavaScript for x86/x64/ARM, garbage collection, and a wide range of the latest JavaScript features.  ChakraCore also supports the [JavaScript Runtime (JSRT) APIs](https://github.com/Microsoft/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Overview), which allows you to easily embed ChakraCore in your applications.
+ChakraCore is a Javascript engine with a C API you can use to add support for Javascript to any C or C compatible project. It can be compiled for x64 processors on Linux macOS and Windows. And x86 and ARM for windows only. It is a future goal to support x86 and ARM processors on Linux and ARM on macOS. 
 
-You can stay up-to-date on progress by following the [MSEdge developer blog](https://blogs.windows.com/msedgedev/).
+## Future of ChakraCore
 
-## Build Status
+As you may have heard Microsoft Edge no longer uses Chakra. Microsoft will continue to provide security updates for ChakraCore 1.11 until 9th March 2021 but do not intend to support it after that.
 
-|                               | __Debug__ | __Test__ | __Release__ |
-|:-----------------------------:|:---------:|:--------:|:-----------:|
-| __Windows 10 (x64)__             | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x64_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x64_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x64_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
-| __Windows 10 (x86)__             | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x86_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x86_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x86_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
-| __Windows 10 (ARM)__             | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
-| __Windows 10 (ARM64)__           | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm64_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm64_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm64_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
-| __Ubuntu 16.04 (x64)<sup>[a]</sup>__     | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=static%20debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=static%20test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=static%20release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) |
-| __Ubuntu 16.04 (x64)<sup>[s]</sup>__     | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=shared%20debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=shared%20test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=shared%20release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) |
-| __Ubuntu 16.04 (x64)<sup>[s][n]</sup>__  | * | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=no%20jit%20shared%20test%20)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | * |
-| __macOS 10.13 (x64)<sup>[a]</sup>__        | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=static%20debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=static%20test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=static%20release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) |
-| __macOS 10.13 (x64)<sup>[s][n]</sup>__     | * | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=no%20jit%20shared%20test%20)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) | * |
+ChakraCore is planned to continue as a community project targeted primarily at embedded use cases. We hope to produce future releases with new features and enhancements to support such use cases. We also would like to invite any interested parties to be involved in this project. For further details please see the following draft planning documents:
+[Overall plan](https://github.com/chakra-core/org/blob/master/ChakraCore%20Future%20Plan.md)
+[Version 1.12 plan](https://github.com/chakra-core/org/blob/master/Release%201.12%20plan.md)
 
-<sup>[a]</sup> Static | <sup>[s]</sup> Shared | <sup>[n]</sup> NoJIT | * Omitted
+Also see discussion in issue [#6384](https://github.com/microsoft/ChakraCore/issues/6384)
 
-Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds and additional details.
+If you'd like to contact the community team please either open an issue or join the discord chat linked above.
 
 ## Security
 
-If you believe you have found a security issue in ChakraCore, please share it with us privately following the guidance at the Microsoft [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
+If you believe you have found a security issue in ChakraCore 1.11, please share it with Microsoft privately following the guidance at the Microsoft [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
+
+If you find a security issue in the Master branch of Chakracore but not in 1.11 please join our discord server and private message one of the Core team members.
 
 ## Documentation
 
-* [ChakraCore Architecture](https://github.com/Microsoft/ChakraCore/wiki/Architecture-Overview)
-* [Quickstart Embedding ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore)
-* [JSRT Reference](https://github.com/Microsoft/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Reference)
+* [ChakraCore Architecture](https://github.com/chakra-core/ChakraCore/wiki/Architecture-Overview)
+* [Quickstart Embedding ChakraCore](https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore)
+* [API Reference](https://github.com/chakra-core/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Reference)
 * [Contribution guidelines](CONTRIBUTING.md)
-* [Blogs, talks and other resources](https://github.com/Microsoft/ChakraCore/wiki/Resources)
+* [Blogs, talks and other resources](https://github.com/chakra-core/ChakraCore/wiki/Resources)
 
 ## Building ChakraCore
 
@@ -46,7 +40,10 @@ You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 o
 * Open `Build\Chakra.Core.sln` in Visual Studio
 * Build Solution
 
-More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
+On macOS you can build ChakraCore with the xcode command line tools and `cmake`.
+On Linux you can build ChakraCore with `cmake` and `ninja`.
+
+More details in [Building ChakraCore](https://github.com/chakra-core/ChakraCore/wiki/Building-ChakraCore).
 
 Alternatively, see [Getting ChakraCore binaries](https://github.com/Microsoft/ChakraCore/wiki/Getting-ChakraCore-binaries) for pre-built ChakraCore binaries.
 
@@ -54,38 +51,32 @@ Alternatively, see [Getting ChakraCore binaries](https://github.com/Microsoft/Ch
 
 Once built, you have a few options for how you can use ChakraCore:
 
-* The most basic is to test the engine is running correctly with the *ch.exe* binary.  This app is a lightweight hosting of JSRT that you can use to run small applications.  After building, you can find this binary in:
-  * `Build\VcBuild\bin\${platform}_${configuration}`
-  * (e.g. `Build\VcBuild\bin\x64_debug`)
-* You can [embed ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore) in your applications - see [documentation](https://github.com/Microsoft/ChakraCore/wiki/Embedding-ChakraCore) and [samples](https://aka.ms/chakracoresamples).
-* Finally, you can also use ChakraCore as the JavaScript engine in Node.  You can learn more by reading how to use [Chakra as Node's JS engine](https://github.com/Microsoft/node)
+* The most basic is to test the engine is running correctly with the application *ch.exe* (ch on linux or macOS).  This app is a lightweight host of ChakraCore that you can use to run small applications.  After building, you can find this binary in:
+  * Windows: `Build\VcBuild\bin\${platform}_${configuration}` (e.g. `Build\VcBuild\bin\x64_debug`)
+  * Mac/Linux: `buildFolder/config/ch` (e.g. `out/Release/ch`)
+* You can [embed ChakraCore](https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore) in your applications - see [documentation](https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore) and [samples](https://aka.ms/chakracoresamples).
 
-_A note about using ChakraCore_: ChakraCore is the foundational JavaScript engine, but it does not include the external APIs that make up the modern JavaScript development experience.  For example, DOM APIs like ```document.write()``` are additional APIs that are not available by default and would need to be provided.  For debugging, you may instead want to use ```print()```.
+_A note about using ChakraCore_: ChakraCore is a JavaScript engine, it does not include the external APIs that are provided by a Web Browser or nodejs.  For example, DOM APIs like ```document.write()``` are additional APIs that are not provided by ChakraCore, when embedding ChakraCore in an application you will need to implement your own input and output APIs.  For debugging, in `ch` you can use ```print()``` to put text to the terminal.
+
+Alternatively, if you are using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager you can download and install ChakraCore with CMake integration in a single command:
+* vcpkg install chakracore
 
 ## Contribute
 
 Contributions to ChakraCore are welcome.  Here is how you can contribute to ChakraCore:
 
-* [Submit bugs](https://github.com/Microsoft/ChakraCore/issues) and help us verify fixes (please refer to [External Issues](https://github.com/Microsoft/ChakraCore/wiki/External-Issues) for anything external, such as Microsoft Edge or Node-ChakraCore issues)
-* [Submit pull requests](https://github.com/Microsoft/ChakraCore/pulls) for bug fixes and features and discuss existing proposals
-* Chat about [@ChakraCore](https://twitter.com/ChakraCore) on Twitter
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+* [Submit bugs](https://github.com/chakra-core/ChakraCore/issues) and help us verify fixes.
+* [Submit pull requests](https://github.com/chakra-core/ChakraCore/pulls) for bug fixes and features and discuss existing proposals
 
 Please refer to [Contribution Guidelines](CONTRIBUTING.md) for more details.
 
 ## License
 
-Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
-
-## Roadmap
-
-For details on our planned features and future direction please refer to our [Roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap).
+Code licensed under the [MIT License](https://github.com/chakra-core/ChakraCore/blob/master/LICENSE.txt).
 
 ## Contact Us
 
 If you have questions about ChakraCore, or you would like to reach out to us about an issue you're having or for development advice as you work on a ChakraCore issue, you can reach us as follows:
 
-* Open an [issue](https://github.com/Microsoft/ChakraCore/issues/new) and prefix the issue title with [Question]. See [Question](https://github.com/Microsoft/ChakraCore/issues?q=label%3AQuestion) tag for already-opened questions.
-* Discuss ChakraCore with the team and the community on our [Gitter Channel](https://gitter.im/Microsoft/ChakraCore).
-* You can also start private messages with individual ChakraCore developers via Gitter.
+* Open an [issue](https://github.com/chakra-core/ChakraCore/issues/new) and prefix the issue title with [Question]. See [Question](https://github.com/chakra-core/ChakraCore/issues?q=label%3AQuestion) tag for already-opened questions.
+* Discuss ChakraCore with the team and the community via the Discord link above

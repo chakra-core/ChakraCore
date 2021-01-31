@@ -84,6 +84,7 @@ public:
 #ifdef BYTECODE_BRANCH_ISLAND
         , longBranchMap(nullptr)
 #endif
+        , m_generatorJumpTable(GeneratorJumpTable(func, this))
     {
         auto loopCount = func->GetJITFunctionBody()->GetLoopCount();
         if (loopCount > 0) {
@@ -121,7 +122,6 @@ private:
     uint                ResolveVirtualLongBranch(IR::BranchInstr * branchInstr, uint offset);
 #endif
     BranchReloc *       CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
-    void                BuildGeneratorPreamble();
     void                LoadNativeCodeData();
     void                BuildConstantLoads();
     void                BuildImplicitArgIns();    
@@ -137,11 +137,18 @@ private:
     void                BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, Js::ProfileId profileId);
     void                BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
                             Js::RegSlot src2RegSlot, Js::ProfileId profileId);
+    void                BuildReg3U(Js::OpCode newOpCode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
+                            Js::RegSlot src2RegSlot, uint slotIndex);
     void                BuildIsIn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot, Js::ProfileId profileId);
     void                BuildReg3C(Js::OpCode newOpCode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
                             Js::RegSlot src2RegSlot, Js::CacheId inlineCacheIndex);
+    void                BuildReg3UC(Js::OpCode newOpCode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
+                            Js::RegSlot src2RegSlot, uint slotIndex, Js::CacheId inlineCacheIndex);
     void                BuildReg4(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
                             Js::RegSlot src2RegSlot, Js::RegSlot src3RegSlot);
+    void                BuildReg4U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2, Js::RegSlot R3, uint slotIndex);
+    void                BuildReg5U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2, Js::RegSlot R3, Js::RegSlot R4, 
+                            uint slotIndex);
     void                BuildReg2B1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, byte index);
     void                BuildReg3B1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
                             Js::RegSlot src2RegSlot, uint8 index);
@@ -151,6 +158,7 @@ private:
     void                BuildReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, int32 C1);
     void                BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, int32 C1, Js::ProfileId profileId);
     void                BuildReg2Int1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot srcRegSlot, int32 value);
+    void                BuildReg2U(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, uint index);
     void                BuildElementC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot fieldRegSlot, Js::RegSlot regSlot,
                             Js::PropertyIdIndexType propertyIdIndex);
     void                BuildElementScopedC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlot,
@@ -201,9 +209,10 @@ private:
                             Js::ArgSlot argCount, Js::CallIExtendedOptions options, uint32 spreadAuxOffset, Js::CallFlags flags = Js::CallFlags_None);
     void                BuildCallCommon(IR::Instr *instr, StackSym *symDst, Js::ArgSlot argCount, Js::CallFlags flags = Js::CallFlags_None);
     void                BuildRegexFromPattern(Js::RegSlot dstRegSlot, uint32 patternIndex, uint32 offset);
-    void                BuildClass(Js::OpCode newOpcode, uint32 offset, Js::RegSlot constructor, Js::RegSlot extends);
+    void                BuildInitClass(uint32 offset, Js::RegSlot constructor, Js::RegSlot proto, IR::Opnd * opndProtoParent, IR::Opnd * opndCtorParent, IR::Opnd * opndEnvironment, uint index);
     void                BuildBrReg1(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot srcRegSlot);
     void                BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot);
+    void                BuildBrReg3(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2);
     void                BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, uint32 forInLoopLevel, uint32 targetOffset);
 
     IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, IR::RegOpnd *indexReg);
@@ -214,7 +223,7 @@ private:
     IR::SymOpnd *       BuildFieldOpnd(Js::OpCode newOpCode, Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, PropertyKind propertyKind, uint inlineCacheIndex = -1);
     PropertySym *       BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, uint inlineCacheIndex, PropertyKind propertyKind);
     SymID               BuildSrcStackSymID(Js::RegSlot regSlot);
-    IR::RegOpnd *       BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type = TyVar, bool isCatchObjectSym = false);
+    IR::RegOpnd *       BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type = TyVar, bool isCatchObjectSym = false, bool reuseTemp = false);
     IR::RegOpnd *       BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type = TyVar);
     IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset);
     IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId);
@@ -247,33 +256,6 @@ private:
         this->tempMap[tempIndex] = tempId;
     }
 
-    BOOL                GetTempUsed(Js::RegSlot reg)
-    {
-        AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
-        AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
-
-        Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
-        return this->fbvTempUsed->Test(tempIndex);
-    }
-
-    void                SetTempUsed(Js::RegSlot reg, BOOL used)
-    {
-        AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
-        AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
-
-        Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
-        if (used)
-        {
-            this->fbvTempUsed->Set(tempIndex);
-        }
-        else
-        {
-            this->fbvTempUsed->Clear(tempIndex);
-        }
-    }
-
     BOOL                RegIsTemp(Js::RegSlot reg)
     {
         return reg >= this->firstTemp;
@@ -281,7 +263,7 @@ private:
 
     BOOL                RegIsConstant(Js::RegSlot reg)
     {
-        return reg > 0 && reg < m_func->GetJITFunctionBody()->GetConstCount();
+        return this->m_func->GetJITFunctionBody()->RegIsConstant(reg);
     }
 
     bool                IsParamScopeDone() const { return m_paramScopeDone; }
@@ -347,7 +329,6 @@ private:
     typedef Pair<uint, bool> handlerStackElementType;
     SList<handlerStackElementType>         *handlerOffsetStack;
     SymID *             tempMap;
-    BVFixed *           fbvTempUsed;
     Js::RegSlot         firstTemp;
     IRBuilderSwitchAdapter m_switchAdapter;
     SwitchIRBuilder     m_switchBuilder;
@@ -380,4 +361,35 @@ private:
     LongBranchMap * longBranchMap;
     static IR::Instr * const VirtualLongBranchInstr;
 #endif
+
+    class GeneratorJumpTable {
+        Func* const m_func;
+        IRBuilder* const m_irBuilder;
+
+        // for-in enumerators are allocated on the heap for jit'd loop body
+        // and on the stack for all other cases (the interpreter frame will
+        // reuses them when bailing out). But because we have the concept of
+        // "bailing in" for generator, reusing enumerators allocated on the stack
+        // would not work. So we have to allocate them on the generator's interpreter
+        // frame instead. This operand is loaded as part of the jump table, before we
+        // jump to any of the resume point.
+        IR::RegOpnd* m_forInEnumeratorArrayOpnd = nullptr;
+
+        IR::RegOpnd* m_generatorFrameOpnd = nullptr;
+
+        // This label is used to insert any initialization code that might be needed
+        // when bailing in and before jumping to any of the resume points.
+        // As of now, we only need to load the operand for for-in enumerator.
+        IR::LabelInstr* m_initLabel = nullptr;
+
+        IR::RegOpnd* CreateForInEnumeratorArrayOpnd();
+
+    public:
+        GeneratorJumpTable(Func* func, IRBuilder* irBuilder);
+        IR::Instr* BuildJumpTable();
+        IR::LabelInstr* GetInitLabel() const;
+        IR::RegOpnd* EnsureForInEnumeratorArrayOpnd();
+    };
+
+    GeneratorJumpTable m_generatorJumpTable;
 };

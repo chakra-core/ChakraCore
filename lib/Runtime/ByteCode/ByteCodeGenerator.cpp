@@ -119,10 +119,10 @@ void EndVisitBlock(ParseNodeBlock *pnode, ByteCodeGenerator *byteCodeGenerator)
         Scope *scope = pnode->scope;
         FuncInfo *func = scope->GetFunc();
 
-        if (!byteCodeGenerator->IsInDebugMode() &&
-            scope->HasInnerScopeIndex())
+        if (!(byteCodeGenerator->IsInDebugMode() || func->byteCodeFunction->IsCoroutine())
+            && scope->HasInnerScopeIndex())
         {
-            // In debug mode, don't release the current index, as we're giving each scope a unique index, regardless
+            // In debug mode (or for the generator/async function), don't release the current index, as we're giving each scope a unique index, regardless
             // of nesting.
             Assert(scope->GetInnerScopeIndex() == func->CurrentInnerScopeIndex());
             func->ReleaseInnerScopeIndex();
@@ -155,12 +155,12 @@ void BeginVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 void EndVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
     Scope *scope = pnode->AsParseNodeCatch()->scope;
+    FuncInfo *func = scope->GetFunc();
 
-    if (scope->HasInnerScopeIndex() && !byteCodeGenerator->IsInDebugMode())
+    if (scope->HasInnerScopeIndex() && !(byteCodeGenerator->IsInDebugMode() || func->byteCodeFunction->IsCoroutine()))
     {
-        // In debug mode, don't release the current index, as we're giving each scope a unique index,
+        // In debug mode (or for the generator/async function), don't release the current index, as we're giving each scope a unique index,
         // regardless of nesting.
-        FuncInfo *func = scope->GetFunc();
 
         Assert(scope->GetInnerScopeIndex() == func->CurrentInnerScopeIndex());
         func->ReleaseInnerScopeIndex();
@@ -309,7 +309,6 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
         // See ES 2017 14.5.13 Runtime Semantics: ClassDefinitionEvaluation.
         Visit(pnode->AsParseNodeClass()->pnodeExtends, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeName, byteCodeGenerator, prefix, postfix);
-        Visit(pnode->AsParseNodeClass()->pnodeStaticMembers, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeConstructor, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeClass()->pnodeMembers, byteCodeGenerator, prefix, postfix);
         EndVisitBlock(pnode->AsParseNodeClass()->pnodeBlock, byteCodeGenerator);
@@ -377,6 +376,7 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
     // PTNODE(knopForIn      , "for in"    ,None    ,ForIn,fnopBreak|fnopContinue|fnopCleanup)
     case knopForIn:
     case knopForOf:
+    case knopForAwaitOf:
         BeginVisitBlock(pnode->AsParseNodeForInOrForOf()->pnodeBlock, byteCodeGenerator);
         Visit(pnode->AsParseNodeForInOrForOf()->pnodeLval, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator, prefix, postfix);
@@ -528,6 +528,7 @@ bool IsJump(ParseNode *pnode)
     case knopIf:
     case knopForIn:
     case knopForOf:
+    case knopForAwaitOf:
     case knopFor:
     case knopSwitch:
     case knopCase:
@@ -575,6 +576,12 @@ bool IsExpressionStatement(ParseNode* stmt, const Js::ScriptContext *const scrip
 bool MustProduceValue(ParseNode *pnode, const Js::ScriptContext *const scriptContext)
 {
     // Determine whether the current statement is guaranteed to produce a value.
+
+    if (pnode->IsPatternDeclaration())
+    {
+        // The pattern declaration are as var declaration they don't produce a value.
+        return false;
+    }
 
     if (IsExpressionStatement(pnode, scriptContext))
     {
@@ -719,6 +726,7 @@ ByteCodeGenerator::ByteCodeGenerator(Js::ScriptContext* scriptContext, Js::Scope
     scriptContext(scriptContext),
     flags(0),
     funcInfoStack(nullptr),
+    jumpCleanupList(nullptr),
     pRootFunc(nullptr),
     pCurrentFunction(nullptr),
     globalScope(nullptr),
@@ -776,16 +784,6 @@ bool ByteCodeGenerator::IsThis(ParseNode* pnode)
 bool ByteCodeGenerator::IsSuper(ParseNode* pnode)
 {
     return pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper;
-}
-
-bool ByteCodeGenerator::IsES6DestructuringEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6DestructuringEnabled();
-}
-
-bool ByteCodeGenerator::IsES6ForLoopSemanticsEnabled() const
-{
-    return scriptContext->GetConfig()->IsES6ForLoopSemanticsEnabled();
 }
 
 // ByteCodeGenerator debug mode means we are generating debug mode user-code. Library code is always in non-debug mode.
@@ -1838,7 +1836,7 @@ FuncInfo *ByteCodeGenerator::FindEnclosingNonLambda()
     return nullptr;
 }
 
-FuncInfo* GetParentFuncInfo(FuncInfo* child)
+FuncInfo* ByteCodeGenerator::GetParentFuncInfo(FuncInfo* child)
 {
     for (Scope* scope = child->GetBodyScope(); scope; scope = scope->GetEnclosingScope())
     {
@@ -1849,6 +1847,19 @@ FuncInfo* GetParentFuncInfo(FuncInfo* child)
     }
     Assert(0);
     return nullptr;
+}
+
+FuncInfo* ByteCodeGenerator::GetEnclosingFuncInfo()
+{
+    FuncInfo* top = this->funcInfoStack->Pop();
+
+    Assert(!this->funcInfoStack->Empty());
+
+    FuncInfo* second = this->funcInfoStack->Top();
+
+    this->funcInfoStack->Push(top);
+
+    return second;
 }
 
 bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
@@ -2096,7 +2107,10 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
     else
     {
         // We have to wait until it is parsed before we populate the stack nested func parent.
-        FuncInfo * parentFunc = top->GetParamScope() ? top->GetParamScope()->GetEnclosingFunc() : top->GetBodyScope()->GetEnclosingFunc();
+        Scope * enclosingScope = top->GetParamScope() ? top->GetParamScope() :
+                                 top->GetBodyScope() ? top->GetBodyScope() :
+                                 top->GetFuncExprScope();
+        FuncInfo * parentFunc = enclosingScope->GetEnclosingFunc();
         if (!parentFunc->IsGlobalFunction())
         {
             Assert(parentFunc->byteCodeFunction != rootFuncBody);
@@ -2185,6 +2199,7 @@ void ByteCodeGenerator::Begin(
     this->funcInfosToFinalize = nullptr;
 
     this->funcInfoStack = Anew(alloc, SList<FuncInfo*>, alloc);
+    this->jumpCleanupList = Anew(alloc, JumpCleanupList, alloc);
 }
 
 HRESULT GenerateByteCode(__in ParseNodeProg *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
@@ -2376,10 +2391,15 @@ void AddVarsToScope(ParseNode *vars, ByteCodeGenerator *byteCodeGenerator)
                 if (sym->IsThis())
                 {
                     funcInfo->SetThisSymbol(sym);
+                    funcInfo->GetParsedFunctionBody()->SetHasThis(true);
                 }
                 else if (sym->IsNewTarget())
                 {
                     funcInfo->SetNewTargetSymbol(sym);
+                }
+                else if (sym->IsImportMeta())
+                {
+                    funcInfo->SetImportMetaSymbol(sym);
                 }
                 else if (sym->IsSuper())
                 {
@@ -2476,6 +2496,12 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
         // create the new scope for Function expression only in ES5 mode
         //
         funcExprWithName = true;
+    }
+    else if (pnodeFnc->IsModule())
+    {
+        funcName = Js::Constants::ModuleCode;
+        funcNameLength = Js::Constants::ModuleCodeLength;
+        functionNameOffset = 0;
     }
 
     if (byteCodeGenerator->Trace())
@@ -2625,7 +2651,7 @@ void AssignFuncSymRegister(ParseNodeFnc * pnodeFnc, ByteCodeGenerator * byteCode
                 Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
                 if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
                 {
-                    Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
+                    Assert(ByteCodeGenerator::GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
                     sym->GetScope()->SetMustInstantiate(true);
                     byteCodeGenerator->ProcessCapturedSym(sym);
                     sym->GetScope()->GetFunc()->SetHasLocalInClosure(true);
@@ -2935,6 +2961,10 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
         {
             byteCodeGenerator->AssignRegister(top->GetSuperConstructorSymbol());
         }
+        if (top->GetImportMetaSymbol())
+        {
+            byteCodeGenerator->AssignRegister(top->GetImportMetaSymbol());
+        }
 
         Assert(!funcExprWithName || sym);
         if (funcExprWithName)
@@ -3110,6 +3140,17 @@ void ByteCodeGenerator::ProcessCapturedSym(Symbol *sym)
     FuncInfo *funcChild = funcHome->GetCurrentChildFunction();
 
     Assert(sym->NeedsSlotAlloc(this, funcHome) || sym->GetIsGlobal() || sym->GetIsModuleImport() || sym->GetIsModuleExportStorage());
+
+    if (sym->GetScope()->GetScopeType() == ScopeType_FuncExpr)
+    {
+        if ((funcHome->GetParamScope() && Scope::HasSymbolName(funcHome->GetParamScope(), sym->GetName())) ||
+            (funcHome->IsBodyAndParamScopeMerged() && funcHome->GetBodyScope() && Scope::HasSymbolName(funcHome->GetBodyScope(), sym->GetName())))
+        {
+            // Make sure the function expression scope gets instantiated, since we can't merge the name symbol into another scope.
+            // Make it an object, since that's the only case the code gen can currently handle.
+            sym->GetScope()->SetIsObject();
+        }
+    }
 
     // If this is not a local property, or not all its references can be tracked, or
     // it's not scoped to the function, or we're in debug mode, disable the delayed capture optimization.
@@ -4668,11 +4709,11 @@ void CheckFuncAssignment(Symbol * sym, ParseNode * pnode2, ByteCodeGenerator * b
                     funcParentScope = funcParentScope->GetEnclosingScope();
                 }
 
-            // Need to always detect interleaving dynamic scope ('with') for assignments
-            // as those may end up escaping into the 'with' scope.
+                // Need to always detect interleaving dynamic scope ('with') for assignments
+                // as those may end up escaping into the 'with' scope.
                 // TODO: the with scope is marked as MustInstantiate late during byte code emit
                 // We could detect this using the loop above as well, by marking the with
-            // scope as must instantiate early, this is just less risky of a fix for RTM.
+                // scope as must instantiate early, this is just less risky of a fix for RTM.
 
                 if (byteCodeGenerator->HasInterleavingDynamicScope(sym))
                 {
@@ -4684,6 +4725,21 @@ void CheckFuncAssignment(Symbol * sym, ParseNode * pnode2, ByteCodeGenerator * b
         }
         break;
     };
+}
+
+void AssignYieldResumeRegisters(ByteCodeGenerator* byteCodeGenerator)
+{
+    // On resuming from a yield, we branch based on the ResumeYieldKind
+    // integer value
+    byteCodeGenerator->EnregisterConstant((uint)Js::ResumeYieldKind::Normal);
+    byteCodeGenerator->EnregisterConstant((uint)Js::ResumeYieldKind::Throw);
+}
+
+void AssignAwaitRegisters(ByteCodeGenerator* byteCodeGenerator)
+{
+    // On resuming from an await, we branch based on whether the ResumeYieldKind
+    // is normal or throw
+    byteCodeGenerator->EnregisterConstant((uint)Js::ResumeYieldKind::Normal);
 }
 
 // Assign permanent (non-temp) registers for the function.
@@ -4748,7 +4804,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 CheckMaybeEscapedUse(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator);
             }
 
-            if (byteCodeGenerator->IsES6DestructuringEnabled() && (pnode->AsParseNodeBin()->pnode1->nop == knopArrayPattern || pnode->AsParseNodeBin()->pnode1->nop == knopObjectPattern))
+            if ((pnode->AsParseNodeBin()->pnode1->nop == knopArrayPattern || pnode->AsParseNodeBin()->pnode1->nop == knopObjectPattern))
             {
                 // Destructured arrays may have default values and need undefined.
                 byteCodeGenerator->AssignUndefinedConstRegister();
@@ -4870,10 +4926,18 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         CheckMaybeEscapedUse(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator);
         break;
 
+    case knopForAwaitOf:
+        AssignAwaitRegisters(byteCodeGenerator);
+        // Fall-through
     case knopForOf:
-        byteCodeGenerator->AssignNullConstRegister();
-        byteCodeGenerator->AssignUndefinedConstRegister();
-        CheckMaybeEscapedUse(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator);
+        {
+            ParseNodeForInOrForOf* pnodeForOf = pnode->AsParseNodeForInOrForOf();
+            byteCodeGenerator->AssignNullConstRegister();
+            byteCodeGenerator->AssignUndefinedConstRegister();
+            pnodeForOf->shouldCallReturnFunctionLocation = byteCodeGenerator->NextVarRegister();
+            pnodeForOf->shouldCallReturnFunctionLocationFinally = byteCodeGenerator->NextVarRegister();
+            CheckMaybeEscapedUse(pnodeForOf->pnodeObj, byteCodeGenerator);
+        }
         break;
 
     case knopTrue:
@@ -4891,6 +4955,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         byteCodeGenerator->EnregisterConstant(1);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
+    case knopCoalesce:
     case knopObject:
         byteCodeGenerator->AssignNullConstRegister();
         break;
@@ -5105,6 +5170,10 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         break;
     case knopReturn:
         {
+            if (byteCodeGenerator->TopFuncInfo()->IsAsyncGenerator())
+            {
+                AssignAwaitRegisters(byteCodeGenerator);
+            }
             ParseNode *pnodeExpr = pnode->AsParseNodeReturn()->pnodeExpr;
             CheckMaybeEscapedUse(pnodeExpr, byteCodeGenerator);
             break;
@@ -5146,14 +5215,29 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             break;
         }
     case knopYieldLeaf:
+        // The done property of the result object is set to false and the
+        // value property is set to undefined
+        byteCodeGenerator->AssignFalseConstRegister();
         byteCodeGenerator->AssignUndefinedConstRegister();
+        AssignYieldResumeRegisters(byteCodeGenerator);
+        break;
+    case knopAwait:
+        AssignAwaitRegisters(byteCodeGenerator);
+        CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     case knopYield:
+        // The done property of the result object is set to false
+        byteCodeGenerator->AssignFalseConstRegister();
+        AssignYieldResumeRegisters(byteCodeGenerator);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     case knopYieldStar:
-        byteCodeGenerator->AssignNullConstRegister();
+        // Reserve a local for our YieldStar loop so that the backend doesn't complain
+        pnode->location = byteCodeGenerator->NextVarRegister();
         byteCodeGenerator->AssignUndefinedConstRegister();
+        byteCodeGenerator->AssignTrueConstRegister();
+        byteCodeGenerator->AssignFalseConstRegister();
+        AssignYieldResumeRegisters(byteCodeGenerator);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     }

@@ -85,6 +85,7 @@ AutoSystemInfo::Initialize()
     allocationGranularityPageCount = dwAllocationGranularity / dwPageSize;
 
     isWindows8OrGreater = IsWindows8OrGreater();
+    isWindows8Point1OrGreater = IsWindows8Point1OrGreater();
 
     binaryName[0] = _u('\0');
 
@@ -363,14 +364,28 @@ AutoSystemInfo::CheckForAtom() const
 bool
 AutoSystemInfo::IsWin8OrLater()
 {
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_WIN8
+    return true;
+#else
     return isWindows8OrGreater;
+#endif
+}
+
+bool
+AutoSystemInfo::IsWin8Point1OrLater()
+{
+#if defined(WINVER) && WINVER >= _WIN32_WINNT_WINBLUE
+    return true;
+#else
+    return isWindows8Point1OrGreater;
+#endif
 }
 
 #if defined(_CONTROL_FLOW_GUARD)
 bool
 AutoSystemInfo::IsWinThresholdOrLater()
 {
-#if defined(_M_ARM64)
+#if defined(_M_ARM64) || (defined(WINVER) && WINVER >= _WIN32_WINNT_WIN10)
     return true;
 #else
     return IsWindowsThresholdOrGreater();

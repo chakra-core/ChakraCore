@@ -95,6 +95,32 @@ var tests = [
         }
     },
     {
+        name: "Issue 6261: Specifier dependent module load order",
+        body: function() {
+            WScript.RegisterModuleSource("dep", `export const obj = {a:false, b: false, c: false};`);
+            WScript.RegisterModuleSource("one",`
+                import {obj} from "dep";
+                assert.isFalse(obj.b);
+                assert.isFalse(obj.c);
+                assert.isFalse(obj.a);
+                obj.a = true;`);
+            WScript.RegisterModuleSource("two",`
+                import {obj} from "dep";
+                assert.isFalse(obj.b);
+                assert.isFalse(obj.c);
+                assert.isTrue(obj.a);
+                obj.b = true;`);
+            WScript.RegisterModuleSource("three",`
+                import {obj} from "dep";
+                assert.isTrue(obj.b);
+                assert.isFalse(obj.c);
+                assert.isTrue(obj.a);
+                obj.c = true;`);
+            const start = 'import "one"; import "two"; import "three";';
+            testRunner.LoadModule(start);
+        }
+    },
+    {
         // https://github.com/Microsoft/ChakraCore/issues/5501
         name : "Issue 5501: Indirect exports excluded from namespace object - POC 1",
         body()
@@ -119,6 +145,53 @@ var tests = [
                 import {aliasName} from 'test5501Part2b';
                 assert.isTrue(aliasName());
             `);
+        }
+    },
+    {
+        name : "Issue 6133: Child module imports non-existant export from another module",
+        body()
+        {
+            WScript.RegisterModuleSource("test6133a", 'import Default from "test6133b";');
+            WScript.RegisterModuleSource("test6133b", 'export function notDefault () {}');
+
+            testRunner.LoadModule('import "test6133a";', undefined, true);
+        }
+    },
+    {
+        name : "Issue 5236: Module function exports not hoisted test",
+        body()
+        {
+            WScript.RegisterModuleSource("test5236a", `
+                import {default as Default, bar, foo} from "test5236b";
+                export default function () {}
+                export function one() {}
+                export var two = function () {}
+
+                bar();
+                assert.isNotUndefined(Default);
+                foo();
+                `);
+            WScript.RegisterModuleSource("test5236b", `
+                import Default from "test5236c";
+
+                export function bar() {}
+                export default class {}
+                export var foo = function () {}
+
+                Default();
+                `);
+            WScript.RegisterModuleSource("test5236c", `
+                import {default as Default, one, two} from "test5236a";
+                import otherDefault from "test5236b";
+                export default function bar() {}
+
+                Default();
+                one();
+                assert.isUndefined(two);
+                assert.isUndefined(otherDefault);
+                `);
+
+            testRunner.LoadModule('import "test5236a";', undefined, false);
         }
     }
 ];

@@ -9,7 +9,6 @@
   <test>
     <default>
       <files>apply.js</files>
-      <baseline>apply.baseline</baseline>
     </default>
   </test>
   <test>
@@ -21,7 +20,6 @@
   <test>
     <default>
       <files>applyArgs.js</files>
-      <baseline>applyArgs.baseline</baseline>
     </default>
   </test>
   <test>
@@ -56,7 +54,7 @@
   <test>
     <default>
       <files>arguments.es5.js</files>
-      <baseline>arguments.es5.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -264,7 +262,6 @@
     <default>
       <files>toStringAll.js</files>
       <baseline>toStringAll.baseline</baseline>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -272,7 +269,6 @@
       <files>toStringAll.js</files>
       <baseline>toStringAll.baseline</baseline>
       <compile-flags>-force:DeferParse</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -280,7 +276,6 @@
       <files>toStringAll.js</files>
       <baseline>toStringAll.baseline</baseline>
       <compile-flags>-force:DeferParse -ForceSerialized</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -288,7 +283,6 @@
       <files>toStringAll.js</files>
       <baseline>toStringAll.baseline</baseline>
       <compile-flags>-force:DeferParse -UseParserStateCache -ParserStateCache</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -455,6 +449,11 @@
   </test>
   <test>
     <default>
+      <files>stackArgsWithInlineeBailOut.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>childCallsEvalJitLoopBody.js</files>
       <baseline />
       <compile-flags>-prejit</compile-flags>
@@ -514,7 +513,6 @@
     <default>
       <files>bug_os17698041.js</files>
       <compile-flags>-off:deferparse -force:redeferral -collectgarbage -parserstatecache -useparserstatecache</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
 </regress-exe>

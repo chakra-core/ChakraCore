@@ -40,6 +40,7 @@ namespace Js {
             Field(bool) isFuncExpr : 1;
             Field(bool) isModuleExportStorage : 1;
             Field(bool) isModuleImport : 1;
+            Field(bool) needDeclaration : 1;
         };
 
     private:
@@ -54,6 +55,7 @@ namespace Js {
         Field(BYTE) hasLocalInClosure : 1;
         Field(BYTE) isGeneratorFunctionBody : 1;
         Field(BYTE) isAsyncFunctionBody : 1;
+        Field(BYTE) isClassConstructor : 1;
 
         FieldNoBarrier(Scope *) scope;
         Field(::ScopeType) scopeType;
@@ -63,7 +65,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionInfo * function, int symbolCount)
-            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), hasLocalInClosure(false), isGeneratorFunctionBody(false), isAsyncFunctionBody(false)/*, parentOnly(false)*/
+            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), hasLocalInClosure(false), isGeneratorFunctionBody(false), isAsyncFunctionBody(false), isClassConstructor(false)/*, parentOnly(false)*/
         {
         }
 
@@ -123,6 +125,13 @@ namespace Js {
             symbols[i].isModuleImport = is;
         }
 
+        void SetNeedDeclaration(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].needDeclaration = is;
+        }
+
         void SetPropertyName(int i, PropertyRecord const* name)
         {
             Assert(!areNamesCached);
@@ -159,6 +168,12 @@ namespace Js {
         {
             Assert(i >= 0 && i < symbolCount);
             return symbols[i].isModuleImport;
+        }
+
+        bool GetNeedDeclaration(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].needDeclaration;
         }
 
         bool GetIsBlockVariable(int i)
@@ -276,6 +291,11 @@ namespace Js {
         bool IsAsyncFunctionBody() const
         {
             return this->isAsyncFunctionBody;
+        }
+
+        bool IsClassConstructor() const
+        {
+            return this->isClassConstructor;
         }
 
         static void SaveEnclosingScopeInfo(ByteCodeGenerator* byteCodeGenerator, /*FuncInfo* parentFunc,*/ FuncInfo* func);

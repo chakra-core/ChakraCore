@@ -17,6 +17,7 @@ namespace Js
     {
     public:
         friend class ModuleNamespace;
+        friend class JavascriptLibrary;
 
         SourceTextModuleRecord(ScriptContext* scriptContext);
         IdentPtrList* GetRequestedModuleList() const { return requestedModuleList; }
@@ -34,6 +35,10 @@ namespace Js
         bool ModuleDeclarationInstantiation() override;
         void GenerateRootFunction();
         Var ModuleEvaluation() override;
+        void FinishModuleEvaluation(bool shouldIncrementAwait);
+        bool ModuleEvaluationPrepass();
+        void DecrementAndEvaluateIfNothingAwaited();
+        void PropogateRejection(Var reason);
         virtual ModuleNamespace* GetNamespace();
         virtual void SetNamespace(ModuleNamespace* moduleNamespace);
 
@@ -50,27 +55,36 @@ namespace Js
 
         void SetSpecifier(Var specifier) { this->normalizedSpecifier = specifier; }
         Var GetSpecifier() const { return normalizedSpecifier; }
-        const char16 *GetSpecifierSz() const { return VarTo<JavascriptString>(this->normalizedSpecifier)->GetSz(); }
-
-        void SetModuleUrl(Var moduleUrl) { this->moduleUrl = moduleUrl; }
-        Var GetModuleUrl() const { return moduleUrl;}
-        const char16 *GetModuleUrlSz() const { return VarTo<JavascriptString>(this->moduleUrl)->GetSz(); }
+        const char16 *GetSpecifierSz() const
+        {
+            return this->normalizedSpecifier != nullptr ? 
+                VarTo<JavascriptString>(this->normalizedSpecifier)->GetSz() : _u("module"); 
+        }
 
         Var GetErrorObject() const { return errorObject; }
 
         bool WasParsed() const { return wasParsed; }
         void SetWasParsed() { wasParsed = true; }
+        bool WasEvaluationPrepassed() const { return wasPrepassed; }
+        void SetEvaluationPrepassed() { wasPrepassed = true; }
+        bool IsEvaluating() const { return evaluating; }
+        void SetEvaluating(bool status) { evaluating = status; }
+        void IncrementAwaited() { ++awaitedModules; }
+        bool DecrementAwaited() { return (--awaitedModules) == 0; }
         bool WasDeclarationInitialized() const { return wasDeclarationInitialized; }
         void SetWasDeclarationInitialized() { wasDeclarationInitialized = true; }
         void SetIsRootModule() { isRootModule = true; }
+        bool GetIsRootModule() { return isRootModule; }
         JavascriptPromise *GetPromise() { return this->promise; }
         void SetPromise(JavascriptPromise *value) { this->promise = value; }
+
+        Var GetImportMetaObject();
 
         void SetImportRecordList(ModuleImportOrExportEntryList* importList) { importRecordList = importList; }
         void SetLocalExportRecordList(ModuleImportOrExportEntryList* localExports) { localExportRecordList = localExports; }
         void SetIndirectExportRecordList(ModuleImportOrExportEntryList* indirectExports) { indirectExportRecordList = indirectExports; }
         void SetStarExportRecordList(ModuleImportOrExportEntryList* starExports) { starExportRecordList = starExports; }
-        void SetrequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
+        void SetRequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
 
         ScriptContext* GetScriptContext() const { return scriptContext; }
         HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
@@ -95,6 +109,14 @@ namespace Js
 
         static SourceTextModuleRecord* Create(ScriptContext* scriptContext);
 
+        static Var EntryAsyncModuleFulfilled(
+            RecyclableObject* function,
+            CallInfo callInfo, ...);
+
+        static Var EntryAsyncModuleRejected(
+            RecyclableObject* function,
+            CallInfo callInfo, ...);
+
         uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
         uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
         Field(Var)* GetLocalExportSlots() const { return localExportSlots; }
@@ -116,15 +138,17 @@ namespace Js
         const static uint InvalidSlotCount = 0xffffffff;
         const static uint InvalidSlotIndex = 0xffffffff;
         // TODO: move non-GC fields out to avoid false reference?
-        // This is the parsed tree resulted from compilation.
         Field(bool) confirmedReady = false;
         Field(bool) notifying = false;
-        Field(bool) wasParsed;
-        Field(bool) wasDeclarationInitialized;
-        Field(bool) parentsNotified;
-        Field(bool) isRootModule;
-        Field(bool) hadNotifyHostReady;
-        Field(ParseNodeProg *) parseTree;
+        Field(bool) wasPrepassed = false;
+        Field(bool) wasParsed = false;
+        Field(bool) wasDeclarationInitialized = false;
+        Field(bool) parentsNotified = false;
+        Field(bool) isRootModule = false;
+        Field(bool) hadNotifyHostReady = false;
+        Field(bool) evaluating = false;
+        Field(JavascriptGenerator*) generator;
+        Field(ParseNodeProg *) parseTree; // This is the parsed tree resulted from compilation.
         Field(Utf8SourceInfo*) pSourceInfo;
         Field(uint) sourceIndex;
         FieldNoBarrier(Parser*) parser;  // we'll need to keep the parser around till we are done with bytecode gen.
@@ -144,7 +168,6 @@ namespace Js
 
         Field(Js::JavascriptFunction*) rootFunction;
         Field(void*) hostDefined;
-        Field(Var) moduleUrl;
         Field(Var) normalizedSpecifier;
         Field(Var) errorObject;
         Field(Field(Var)*) localExportSlots;
@@ -154,12 +177,18 @@ namespace Js
         Field(uint) localExportCount;
         Field(uint) moduleId;
 
+        // for Top level Await
+        Field(uint) awaitedModules;
+
         Field(ModuleNameRecord) namespaceRecord;
         Field(JavascriptPromise*) promise;
+
+        Field(Var) importMetaObject;
 
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();
         void ReleaseParserResources();
+        void ReleaseParserResourcesForHierarchy();
         void ImportModuleListsFromParser();
         HRESULT OnChildModuleReady(SourceTextModuleRecord* childModule, Var errorObj);
         void NotifyParentsAsNeeded();
@@ -180,4 +209,25 @@ namespace Js
         uint moduleId;
         Field(Var)* localExportSlotsAddr;
     };
+
+    class AsyncModuleCallbackFunction : public RuntimeFunction
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(AsyncModuleCallbackFunction, RuntimeFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsyncModuleCallbackFunction);
+
+    public:
+        AsyncModuleCallbackFunction(
+            DynamicType* type,
+            FunctionInfo* functionInfo,
+            SourceTextModuleRecord* module) :
+                RuntimeFunction(type, functionInfo),
+                module(module) {}
+
+        Field(SourceTextModuleRecord*) module;
+    };
+
+    template<>
+    bool VarIsImpl<AsyncModuleCallbackFunction>(RecyclableObject* obj);
+
 }

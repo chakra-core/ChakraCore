@@ -31,16 +31,28 @@ public:
     static uint Get(ExprHash hash)  { return static_cast<uint>(hash); }
 };
 
-#define FOREACH_GLOBHASHTABLE_ENTRY(bucket, hashTable) \
+#define FOREACH_VALUEHASHTABLE_ENTRY(BucketType, bucket, hashTable) \
     for (uint _iterHash = 0; _iterHash < (hashTable)->tableSize; _iterHash++)  \
     {   \
-        FOREACH_SLISTBASE_ENTRY(GlobHashBucket, bucket, &(hashTable)->table[_iterHash]) \
+        FOREACH_SLISTBASE_ENTRY(BucketType, bucket, &(hashTable)->table[_iterHash]) \
         {
 
 
-#define NEXT_GLOBHASHTABLE_ENTRY \
+#define NEXT_VALUEHASHTABLE_ENTRY \
         } \
         NEXT_SLISTBASE_ENTRY; \
+    }
+
+#define FOREACH_VALUEHASHTABLE_ENTRY_EDITING(BucketType, bucket, hashTable, iter) \
+    for (uint _iterHash = 0; _iterHash < (hashTable)->tableSize; _iterHash++)  \
+    {   \
+        FOREACH_SLISTBASE_ENTRY_EDITING(BucketType, bucket, &(hashTable)->table[_iterHash], iter) \
+        {
+
+
+#define NEXT_VALUEHASHTABLE_ENTRY_EDITING \
+        } \
+        NEXT_SLISTBASE_ENTRY_EDITING; \
     }
 
 template<typename TData, typename TElement>
@@ -390,7 +402,7 @@ public:
 #if DBG_DUMP
     void Dump()
     {
-        FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
+        FOREACH_VALUEHASHTABLE_ENTRY(HashBucket, bucket, this)
         {
 
             Output::Print(_u("%4d  =>  "), bucket.value);
@@ -398,20 +410,20 @@ public:
             Output::Print(_u("\n"));
             Output::Print(_u("\n"));
         }
-        NEXT_GLOBHASHTABLE_ENTRY;
+        NEXT_VALUEHASHTABLE_ENTRY;
     }
 
     void Dump(void (*valueDump)(TData))
     {
         Output::Print(_u("\n-------------------------------------------------------------------------------------------------\n"));
-        FOREACH_GLOBHASHTABLE_ENTRY(bucket, this)
+        FOREACH_VALUEHASHTABLE_ENTRY(HashBucket, bucket, this)
         {
             valueDump(bucket.value);
             Output::Print(_u("  =>  "), bucket.value);
             bucket.element->Dump();
             Output::Print(_u("\n"));
         }
-        NEXT_GLOBHASHTABLE_ENTRY;
+        NEXT_VALUEHASHTABLE_ENTRY;
     }
 #endif
 

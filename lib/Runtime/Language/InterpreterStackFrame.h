@@ -47,7 +47,7 @@ namespace Js
         class Setup
         {
         public:
-            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false);
+            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false, bool isGeneratorFrame = false);
             Setup(ScriptFunction * function, Var * inParams, int inSlotsCount);
             size_t GetAllocationVarCount() const { return varAllocCount; }
             size_t GetStackAllocationVarCount() const { return stackVarAllocCount; }
@@ -83,6 +83,11 @@ namespace Js
             Js::CallFlags callFlags;
             bool bailedOut;
             bool bailedOutOfInlinee;
+
+            // Indicate whether this InterpreterStackFrame belongs to a generator function
+            // We use this flag to determine whether we need to allocate more space for
+            // objects such as for-in enumerators in a generator.
+            bool isGeneratorFrame;
         };
 
         struct AsmJsReturnStruct
@@ -310,11 +315,16 @@ namespace Js
         void * GetReturnAddress() { return returnAddress; }
 
         static uint32 GetOffsetOfLocals() { return offsetof(InterpreterStackFrame, m_localSlots); }
-        static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
+
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
         static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
         static uint32 GetOffsetOfForInEnumerators() { return offsetof(InterpreterStackFrame, forInObjectEnumerators); }
+
+        static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
+        static uint32 GetOffsetOfLocalFrameDisplay() { return offsetof(InterpreterStackFrame, localFrameDisplay); }
+        static uint32 GetOffsetOfLocalClosure() { return offsetof(InterpreterStackFrame, localClosure); }
+        static uint32 GetOffsetOfParamClosure() { return offsetof(InterpreterStackFrame, paramClosure); }
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -470,7 +480,7 @@ namespace Js
         BOOL OP_BrNotUndecl_A(Var aValue);
         BOOL OP_BrOnHasProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnNoProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
-        BOOL OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
+        BOOL OP_BrOnHasEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
         BOOL OP_BrOnBaseConstructorKind(Var aValue);
 
@@ -558,9 +568,11 @@ namespace Js
         template <class T> void OP_SetProperty(unaligned T* playout);
         template <class T> void OP_SetLocalProperty(unaligned T* playout);
         template <class T> void OP_SetSuperProperty(unaligned T* playout);
+        template <class T> void OP_SetSuperPropertyStrict(unaligned T* playout);
         template <class T> void OP_ProfiledSetProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetLocalProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetSuperProperty(unaligned T* playout);
+        template <class T> void OP_ProfiledSetSuperPropertyStrict(unaligned T* playout);
         template <class T> void OP_SetRootProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetRootProperty(unaligned T* playout);
         template <class T> void OP_SetPropertyStrict(unaligned T* playout);
@@ -650,6 +662,7 @@ namespace Js
         void OP_StFunctionExpression(Var instance, Var value, PropertyIdIndexType index);
 
         template <class T> inline void OP_LdNewTarget(const unaligned T* playout);
+        template <class T> inline void OP_LdImportMeta(const unaligned T* playout);
 
         inline Var OP_Ld_A(Var aValue);
         inline Var OP_LdLocalObj();
@@ -772,9 +785,11 @@ namespace Js
         void OP_TryFinallyWithYield(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException, Js::RegSlot regOffset);
         void OP_ResumeCatch();
         void OP_ResumeFinally(const byte* ip, Js::JumpOffset jumpOffset, RegSlot exceptionRegSlot, RegSlot offsetRegSlot);
-        inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
-        template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
+        Var OP_InitBaseClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RegSlot protoReg);
+        Var OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var ctorParent, Var protoParent, RegSlot protoReg);
+        Var InitClassHelper(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RecyclableObject *protoParent, RecyclableObject *constructorParent, RegSlot protoReg);
+        bool OP_CheckExtends(RegSlot ctorParent, RegSlot protoParent, RegSlot extends);
         inline Var OP_LdHomeObj(ScriptContext * scriptContext);
         inline Var OP_LdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);

@@ -27,26 +27,29 @@ HRESULT JsInitializeJITServer(
         return status;
     }
 
-#if (NTDDI_VERSION >= NTDDI_WIN8)
-    status = RpcServerRegisterIf3(
-        ServerIChakraJIT_v0_0_s_ifspec,
-        NULL,
-        NULL,
-        RPC_IF_AUTOLISTEN,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (ULONG)-1,
-        NULL,
-        securityDescriptor);
-#else
-    status = RpcServerRegisterIf2(
-        ServerIChakraJIT_v0_0_s_ifspec,
-        NULL,
-        NULL,
-        RPC_IF_AUTOLISTEN,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (ULONG)-1,
-        NULL);
-#endif
+    if (AutoSystemInfo::Data.IsWin8OrLater())
+    {
+        status = RPCLibrary::Instance->RpcServerRegisterIf3(
+            ServerIChakraJIT_v0_0_s_ifspec,
+            NULL,
+            NULL,
+            RPC_IF_AUTOLISTEN,
+            RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+            (ULONG)-1,
+            NULL,
+            securityDescriptor);
+    }
+    else
+    {
+        status = RpcServerRegisterIf2(
+            ServerIChakraJIT_v0_0_s_ifspec,
+            NULL,
+            NULL,
+            RPC_IF_AUTOLISTEN,
+            RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+            (ULONG)-1,
+            NULL);
+    }
     if (status != RPC_S_OK)
     {
         return status;
@@ -120,11 +123,9 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
 }
 
 HRESULT
-ServerConnectProcess(
+ServerConnectProcessWithProcessHandle(
     handle_t binding,
-#ifdef USE_RPC_HANDLE_MARSHALLING
     HANDLE processHandle,
-#endif
     intptr_t chakraBaseAddress,
     intptr_t crtBaseAddress
 )
@@ -135,23 +136,47 @@ ServerConnectProcess(
     {
         return hr;
     }
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE targetHandle;
+    HANDLE targetHandle = nullptr;
+    // RPC handle marshalling is only available on 8.1+
     if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
     {
         Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
-#else
-    HANDLE targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
+    return ProcessContextManager::RegisterNewProcess(clientPid, targetHandle, chakraBaseAddress, crtBaseAddress);
+}
+
+#if !(WINVER >= _WIN32_WINNT_WINBLUE)
+HRESULT
+ServerConnectProcess(
+    handle_t binding,
+    intptr_t chakraBaseAddress,
+    intptr_t crtBaseAddress
+)
+{
+    // Should use ServerConnectProcessWithProcessHandle on 8.1+
+    if (AutoSystemInfo::Data.IsWin8Point1OrLater())
+    {
+        Assert(UNREACHED);
+        return E_ACCESSDENIED;
+    }
+
+    DWORD clientPid;
+    HRESULT hr = HRESULT_FROM_WIN32(I_RpcBindingInqLocalClientPID(binding, &clientPid));
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+    HANDLE targetHandle = nullptr;
+    targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, false, clientPid);
     if (!targetHandle)
     {
         Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
-#endif
     return ProcessContextManager::RegisterNewProcess(clientPid, targetHandle, chakraBaseAddress, crtBaseAddress);
 }
+#endif
 
 #pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
@@ -312,33 +337,6 @@ ServerUpdatePropertyRecordMap(
         CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
         threadContextInfo->UpdateNumericPropertyBV((BVSparseNode*)updatedPropsBVHead);
 
-        return S_OK;
-    });
-}
-
-HRESULT
-ServerAddDOMFastPathHelper(
-    /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    /* [in] */ intptr_t funcInfoAddr,
-    /* [in] */ int helper)
-{
-    ServerScriptContext * scriptContextInfo = (ServerScriptContext*)DecodePointer(scriptContextInfoAddress);
-
-    if (scriptContextInfo == nullptr)
-    {
-        Assert(false);
-        return RPC_S_INVALID_ARG;
-    }
-    if (helper < 0 || helper >= IR::JnHelperMethodCount)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-
-    return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
-    {
-        scriptContextInfo->AddToDOMFastPathHelperMap(funcInfoAddr, (IR::JnHelperMethod)helper);
         return S_OK;
     });
 }

@@ -52,8 +52,8 @@ var o = [
 // 0.toLocaleString() is supposed to be 0. However our baseline has an exception.
 // So, do not break it while supporting cross platform locale output
 var output = Array.prototype.toLocaleString.apply(o);
-if ( output == "0, 1.23, NaN, true, abc, [object Object], , 0, 1, 2" ) {
-    echo("0.00, 1.23, NaN, true, abc, [object Object], , 0.00, 1.00, 2.00");
+if ( output == "0,1.23,NaN,true,abc,[object Object],,0,1,2" ) {
+    echo("0.00,1.23,NaN,true,abc,[object Object],,0.00,1.00,2.00");
 } else {
     echo(output);
 }
@@ -84,8 +84,8 @@ var o = [
 // 0.toLocaleString() is supposed to be 0. However our baseline has an exception.
 // So, do not break it while supporting cross platform locale output
 output = Array.prototype.toLocaleString.apply(o);
-if ( output == "0, anObject, , , another Object, 1, a 3rd Object, 2" ) {
-    echo("0.00, anObject, , , another Object, 1.00, a 3rd Object, 2.00");
+if ( output == "0,anObject,,,another Object,1,a 3rd Object,2" ) {
+    echo("0.00,anObject,,,another Object,1.00,a 3rd Object,2.00");
 } else {
     echo(output);
 }
@@ -109,8 +109,8 @@ var o = {
 // So, do not break it while supporting cross platform locale output
 guarded_call(function () {
     output = Array.prototype.toLocaleString.apply(o);
-    if ( output == "0, 1.23, NaN, true, abc, [object Object], , 0, 1, 2" ) {
-        echo("0.00, 1.23, NaN, true, abc, [object Object], , 0.00, 1.00, 2.00");
+    if ( output == "0,1.23,NaN,true,abc,[object Object],,0,1,2" ) {
+        echo("0.00,1.23,NaN,true,abc,[object Object],,0.00,1.00,2.00");
     } else {
         echo(output);
     }
@@ -148,8 +148,8 @@ var o = {
 // So, do not break it while supporting cross platform locale output
 guarded_call(function () {
     output = Array.prototype.toLocaleString.apply(o);
-    if ( output == "0, anObject, , , another Object, 1, a 3rd Object, 2" ) {
-        echo("0.00, anObject, , , another Object, 1.00, a 3rd Object, 2.00");
+    if ( output == "0,anObject,,,another Object,1,a 3rd Object,2" ) {
+        echo("0.00,anObject,,,another Object,1.00,a 3rd Object,2.00");
     } else {
         echo(output);
     }
@@ -163,8 +163,8 @@ Object.defineProperty(o, 'length', {value : 4});
 guarded_call(function () {
     output = Array.prototype.toLocaleString.apply(o);
     // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
-    if (output == "0, 31") {
-        echo("0.00, 31.00");
+    if (output == "0,31") {
+        echo("0.00,31.00");
     } else {
         echo(output);
     }
@@ -178,8 +178,8 @@ Object.defineProperty(o, 'length', {value : 6});
 guarded_call(function () {
     output = Array.prototype.toLocaleString.apply(o);
     // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
-    if (output == "10, 20, 30, , , ") {
-        echo("10.00, 20.00, 30.00, , , ");
+    if (output == "10,20,30,,,") {
+        echo("10.00,20.00,30.00,,,");
     } else {
         echo(output);
     }

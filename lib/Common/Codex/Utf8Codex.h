@@ -157,6 +157,26 @@ namespace utf8
 
     BOOL IsValidWideChar(char16 ch);
 
+    const char16 WCH_UTF16_HIGH_FIRST = char16(0xd800);
+    const char16 WCH_UTF16_HIGH_LAST = char16(0xdbff);
+    const char16 WCH_UTF16_LOW_FIRST = char16(0xdc00);
+    const char16 WCH_UTF16_LOW_LAST = char16(0xdfff);
+
+    inline BOOL InRange(const char16 ch, const char16 chMin, const char16 chMax)
+    {
+        return (unsigned)(ch - chMin) <= (unsigned)(chMax - chMin);
+    }
+
+    inline BOOL IsHighSurrogateChar(char16 ch)
+    {
+        return InRange(ch, WCH_UTF16_HIGH_FIRST, WCH_UTF16_HIGH_LAST);
+    }
+
+    inline BOOL IsLowSurrogateChar(char16 ch)
+    {
+        return InRange(ch, WCH_UTF16_LOW_FIRST, WCH_UTF16_LOW_LAST);
+    }
+
     // Decode the trail bytes after the UTF8 lead byte c1 but returning 0xFFFD if trail bytes are expected after end.
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))
     char16 DecodeTail(char16 c1, LPCUTF8& ptr, LPCUTF8 end, DecodeOptions& options, bool *chunkEndsAtTruncatedSequence = nullptr);

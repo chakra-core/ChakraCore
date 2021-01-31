@@ -177,17 +177,6 @@
             throw new Error("[runWow64] Failed to retrieve environment variable. " + e.Message);
         }
     }
-    
-    //Get the host of script engine
-    Utils.WWAHOST = "WWA";
-    Utils.IEHOST = "Internet Explorer";
-    Utils.getHOSTType = function () {
-        //navigator.appName will return the host name, e.g. "WWAHost/1.0" or "Microsoft Internet Explorer" 
-        if (typeof navigator != 'undefined' && navigator.appName.indexOf(this.WWAHOST) >= 0) {
-            return this.WWAHOST;
-        }
-        return this.IEHOST;
-    }
 
     //Get localized error message
     Utils.getLocalizedError = function (ID, _default, substitution) {
@@ -301,11 +290,6 @@
 
         this.end = function () {
             loggerObj.CloseLogDevice("", logHandle);
-            //If we're running WTTLogger in a IE environment, we are probably running tests in wwahost,
-            //so we should close the window after we finish in order to write logs and rollup. The timeout
-            //is to ensure the rest of glue shutdown happens
-            //if(typeof document !== "undefined" && Utils.getHOSTType() == Utils.WWAHOST)
-            //    setTimeout(function() { window.close(); }, wwahostTimeout);
         }
 
         this.comment = function (str) {
@@ -806,11 +790,6 @@
         var failCount = 0;
         var verifications = [];
         var verbose = false;
-
-        // Initialize the projection related stuff in JsHost
-        if (Utils.getHOSTType() == Utils.WWAHOST) {
-            WScript.InitializeProjection();
-        }
 
         this.start = function (filename, priority) {
             if (!verbose) { 
@@ -2116,7 +2095,6 @@
     var CrossContextTest = function () {
         var cct = this;
         cct.testIframe = true;
-        cct.testWindow = (Utils.getHOSTType() == Utils.WWAHOST) ? false : true;
 
         var waitingForReady = false;
         var readyCallbacks = [];
@@ -2183,7 +2161,7 @@
         *   Append html, head, body and script content to iframe/popup window
         */
 
-        function AppendChildHtml(doc) {
+        function writeChildContent(doc) {
 
             function createChildTag(tagName, attributes) {
                 tag = doc.createElement(tagName);
@@ -2234,62 +2212,6 @@
             }
             head.appendChild(script);
         }
-
-        /* 
-        * Writes html content to doc. Used for IE
-        * * parentWindow, that refers to either window.parent or window.opener, depending on if this is a
-        *   popup window or an iframe, 
-        */
-
-        function WriteChildHtml(doc) {
-            doc.open();
-            doc.write("<html>\n<head>\n");
-            doc.write("<meta http-equiv=\"X-UA-Compatible\" content=\"IE=" + document.documentMode + "\" />\n");
-            doc.write("<scri" + "pt type='text/javascript'>\n");
-            doc.write("var parentWindow = window.parent == window ? window.opener : window.parent;\n");
-
-            //// function waitForReady will sent to child, to determin if child is ready
-            function waitForReady() {
-                if (document.addEventListener) {
-                    document.addEventListener("DOMContentLoaded", whenDomReady, false);
-                } else {
-                    setTimeout(waitForDomReady, 1);
-                }
-                function waitForDomReady() {
-                    // Otherwise use the oft-used doScroll hack which, according to MSDN, will always thrown an
-                    // error unless the document is ready.
-                    try {
-                        document.documentElement.doScroll("left");
-                    }
-                    catch (e) {
-                        // We're not ready yet. Check again in a bit.
-                        setTimeout(waitForDomReady, 1);
-                        return;
-                    }
-                    whenDomReady();
-                }
-                function whenDomReady() {
-                    parentWindow.childReady.ready();
-                }
-            }
-            //////
-
-            doc.write(waitForReady.toString() + "\n");
-            doc.write("waitForReady();\n");
-
-            for (var i = 0; i < childFunctions.length; i++) {
-                doc.write(childFunctions[i].toString() + "\n");
-            }
-
-            doc.write("</scr" + "ipt>\n</head>\n<body>\n");
-
-            if (cct.childContent !== undefined) doc.write(cct.childContent)
-
-            doc.write("</body></html>");
-            doc.close();
-        }
-
-        var writeChildContent = (Utils.getHOSTType() == Utils.WWAHOST) ? AppendChildHtml : WriteChildHtml;
 
         // Set either of these to control the content of the child windows.
         this.childContent = undefined;
@@ -2410,11 +2332,6 @@
             var run = function () {
 
                 cct.callback = callback;
-
-                if (cct.testWindow) {
-                    // Test with window.open
-                    scheduler.prepend([preparePopWin, runPopWin, cleanupPopWin]);
-                }
 
                 if (cct.testIframe) {
                     // Test with iframe.    

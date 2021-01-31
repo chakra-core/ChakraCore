@@ -36,6 +36,9 @@ private:
     bool ProcessDef(IR::Opnd * opnd);
     void ProcessTransfers(IR::Instr * instr);
     void ProcessFieldKills(IR::Instr * instr);
+    bool SymIsIntconstOrSelf(Sym *sym, IR::Opnd *opnd);
+    bool InstrPreservesNumberValues(IR::Instr *instr, Sym *defSym);
+
     template<typename T> void ClearBucketsOnFieldKill(IR::Instr *instr, HashTable<T> *table);
     StackSym* ProcessByteCodeUsesDst(IR::ByteCodeUsesInstr * byteCodeUsesInstr);
     const BVSparse<JitArenaAllocator>* ProcessByteCodeUsesSrcs(IR::ByteCodeUsesInstr * byteCodeUsesInstr);
@@ -53,6 +56,7 @@ private:
     void ProcessPropertySymOpndUse(IR::PropertySymOpnd *opnd);
     bool ProcessPropertySymUse(PropertySym *propertySym);
     void ProcessNewScObject(IR::Instr* instr);
+    void DisallowMarkTempAcrossYield(BVSparse<JitArenaAllocator>* bytecodeUpwardExposed);
     void MarkTemp(StackSym * sym);
     bool ProcessInlineeStart(IR::Instr* instr);
     void ProcessInlineeEnd(IR::Instr* instr);
@@ -115,6 +119,8 @@ private:
     bool DoByteCodeUpwardExposedUsed() const;
     bool DoCaptureByteCodeUpwardExposedUsed() const;
     void DoSetDead(IR::Opnd * opnd, bool isDead) const;
+
+    bool SatisfyMarkTempObjectsConditions() const;
     bool DoMarkTempObjects() const;
     bool DoMarkTempNumbers() const;
     bool DoMarkTempNumbersOnTempObjects() const;
@@ -148,6 +154,11 @@ private:
     void InsertTypeTransitionAfterInstr(IR::Instr *instr, int symId, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
     void InsertTypeTransitionsAtPotentialKills();
     bool TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const;
+
+    void SetTypeIDWithFinalType(int symId, BasicBlock *block);
+    void ClearTypeIDWithFinalType(int symId, BasicBlock *block);
+    bool HasTypeIDWithFinalType(BasicBlock *block) const;
+    void CombineTypeIDsWithFinalType(BasicBlock *block, BasicBlock *blockSucc);
 
     template<class Fn> void ForEachAddPropertyCacheBucket(Fn fn);
     static ObjTypeGuardBucket MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBucket bucket2);
@@ -191,7 +202,7 @@ private:
     BVSparse<JitArenaAllocator> * intOverflowDoesNotMatterInRangeBySymId;
     BVSparse<JitArenaAllocator> * candidateSymsRequiredToBeInt;
     BVSparse<JitArenaAllocator> * candidateSymsRequiredToBeLossyInt;
-    StackSym * considerSymAsRealUseInNoImplicitCallUses;
+    BVSparse<JitArenaAllocator> * considerSymsAsRealUsesInNoImplicitCallUses;
     bool intOverflowCurrentlyMattersInRange;
     bool isCollectionPass;
     enum class CollectionPassSubPhase

@@ -1091,6 +1091,23 @@ var tests = [
 
             f();
         }
+    },
+    {
+        name: "The constructor property is only accessed once by await",
+        body: function (index) {
+            async function f() {
+                let p = Promise.resolve(0);
+                Object.defineProperty(p, 'constructor', {
+                    get: function() {
+                        echo(`Test #${index} - constructor property accessed`);
+                        return Promise;
+                    }
+                });
+                await p;
+            }
+
+            f();
+        }
     }
 ];
 

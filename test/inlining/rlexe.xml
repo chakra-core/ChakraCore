@@ -109,6 +109,11 @@
   </test>
   <test>
     <default>
+      <files>applyBailoutArgs.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bugs.js</files>
       <compile-flags>-maxinterpretcount:1 -off:simplejit -loopinterpretcount:1</compile-flags>
     </default>
@@ -287,6 +292,11 @@
   </test>
   <test>
     <default>
+      <files>profilingbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug12528802.js</files>
     </default>
   </test>
@@ -323,6 +333,18 @@
   <test>
     <default>
       <files>recursiveCallbacks.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>argoptbugs.js</files>
+      <compile-flags>-mic:1 -bgjit- -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_gh6303.js</files>
+      <flags>exclude_nonative</flags>
     </default>
   </test>
 </regress-exe>

@@ -10,6 +10,10 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)dataview.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)EngineInterfaceObject.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFromSyncIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFunction.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptAsyncGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGeneratorFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
@@ -63,7 +67,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptRegularExpressionResult.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptString.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptStringEnumerator.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptVariantDate.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JSONStack.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JSON.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)LiteralString.cpp" />
@@ -126,6 +129,10 @@
     <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
     <ClInclude Include="JavascriptArrayIndexEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
+    <ClInclude Include="JavascriptAsyncFromSyncIterator.h" />
+    <ClInclude Include="JavascriptAsyncFuction.h" />
+    <ClInclude Include="JavascriptAsyncGenerator.h" />
+    <ClInclude Include="JavascriptAsyncGeneratorFuction.h" />
     <ClInclude Include="JavascriptBuiltInFunctionList.h" />
     <ClInclude Include="JavascriptBuiltInFunctions.h" />
     <ClInclude Include="JavascriptExternalFunction.h" />
@@ -183,7 +190,6 @@
     <ClInclude Include="JavascriptRegularExpressionResult.h" />
     <ClInclude Include="JavascriptString.h" />
     <ClInclude Include="JavascriptStringEnumerator.h" />
-    <ClInclude Include="JavascriptVariantDate.h" />
     <ClInclude Include="JSONStack.h" />
     <ClInclude Include="JSON.h" />
     <ClInclude Include="LiteralString.h" />

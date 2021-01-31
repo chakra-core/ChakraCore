@@ -1740,7 +1740,7 @@ LowererMD::LowerTry(IR::Instr * tryInstr, IR::JnHelperMethod helperMethod)
     if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry() || (this->m_func->IsSimpleJit() && this->m_func->hasBailout))
     {
         // Arg 6 : hasBailedOutOffset
-        IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset + tryInstr->m_func->GetInlineeArgumentStackSize(), TyInt32, this->m_func);
+        IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->GetHasBailedOutSym()->m_offset + tryInstr->m_func->GetInlineeArgumentStackSize(), TyInt32, this->m_func);
         this->LoadHelperArgument(tryAddr, hasBailedOutOffset);
     }
 
@@ -1902,8 +1902,8 @@ LowererMD::LoadStackArgPtr(IR::Instr * instr)
         // t1 = LDR [prm1 + m_inParams]
         // dst = ADD t1, sizeof(var)
 
-        Assert(this->m_func->m_loopParamSym);
-        IR::RegOpnd *baseOpnd = IR::RegOpnd::New(this->m_func->m_loopParamSym, TyMachReg, this->m_func);
+        Assert(this->m_func->GetLoopParamSym());
+        IR::RegOpnd *baseOpnd = IR::RegOpnd::New(this->m_func->GetLoopParamSym(), TyMachReg, this->m_func);
         size_t offset = Js::InterpreterStackFrame::GetOffsetOfInParams();
         IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(baseOpnd, (int32)offset, TyMachReg, this->m_func);
         IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
@@ -1943,8 +1943,8 @@ LowererMD::LoadArgumentsFromFrame(IR::Instr * instr)
     if (this->m_func->IsLoopBody())
     {
         // Get the arguments ptr from the interpreter frame instance that was passed in.
-        Assert(this->m_func->m_loopParamSym);
-        baseOpnd = IR::RegOpnd::New(this->m_func->m_loopParamSym, TyMachReg, this->m_func);
+        Assert(this->m_func->GetLoopParamSym());
+        baseOpnd = IR::RegOpnd::New(this->m_func->GetLoopParamSym(), TyMachReg, this->m_func);
         offset = Js::InterpreterStackFrame::GetOffsetOfArguments();
     }
     else
@@ -1971,8 +1971,8 @@ LowererMD::LoadArgumentCount(IR::Instr * instr)
     {
         // Pull the arg count from the interpreter frame instance that was passed in.
         // (The callinfo in the loop body's frame just shows the single parameter, the interpreter frame.)
-        Assert(this->m_func->m_loopParamSym);
-        baseOpnd = IR::RegOpnd::New(this->m_func->m_loopParamSym, TyMachReg, this->m_func);
+        Assert(this->m_func->GetLoopParamSym());
+        baseOpnd = IR::RegOpnd::New(this->m_func->GetLoopParamSym(), TyMachReg, this->m_func);
         offset = Js::InterpreterStackFrame::GetOffsetOfInSlotsCount();
     }
     else
@@ -2597,6 +2597,8 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
         case Js::OpCode::BrOnNotEmpty:
         case Js::OpCode::BrNotNull_A:
         case Js::OpCode::BrOnObject_A:
+        case Js::OpCode::BrOnObjectOrNull_A:
+        case Js::OpCode::BrOnConstructor_A:
         case Js::OpCode::BrOnClassConstructor:
         case Js::OpCode::BrOnBaseConstructorKind:
             Assert(!opndSrc1->IsFloat64());
@@ -4634,11 +4636,11 @@ LowererMD::GenerateStFldFromLocalInlineCache(
 }
 
 IR::Opnd *
-LowererMD::CreateStackArgumentsSlotOpnd()
+LowererMD::CreateStackArgumentsSlotOpnd(Func *func)
 {
     // Save the newly-created args object to its dedicated stack slot.
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, m_func),
-            -MachArgsSlotOffset, TyMachPtr, m_func);
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, func),
+            -MachArgsSlotOffset, TyMachPtr, func);
 
     return indirOpnd;
 }

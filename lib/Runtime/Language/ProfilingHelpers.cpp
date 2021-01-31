@@ -1122,6 +1122,29 @@ using namespace Js;
         JIT_HELPER_END(ProfiledStSuperFld);
     }
 
+    void ProfilingHelpers::ProfiledStSuperFld_Strict_Jit(
+        const Var instance,
+        const PropertyId propertyId,
+        const InlineCacheIndex inlineCacheIndex,
+        const Var value,
+        void* const framePointer,
+        const Var thisInstance)
+    {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStSuperFld_Strict);
+        ScriptFunction* const scriptFunction =
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        ProfiledStFld<false>(
+            instance,
+            propertyId,
+            GetInlineCache(scriptFunction, inlineCacheIndex),
+            inlineCacheIndex,
+            value,
+            PropertyOperation_StrictMode,
+            scriptFunction,
+            thisInstance);
+        JIT_HELPER_END(ProfiledStSuperFld_Strict);
+    }
+
     void ProfilingHelpers::ProfiledStFld_Strict_Jit(
         const Var instance,
         const PropertyId propertyId,

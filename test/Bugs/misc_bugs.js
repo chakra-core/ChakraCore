@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -139,6 +140,14 @@ var tests = [
     }
   },
   {
+    name: "Using RegExp as newTarget should not assert",
+    body: function() {
+      var v0 = function() { this.a; };
+      var v1 = class extends v0 { constructor() { super(); } };
+      Reflect.construct(v1, [], RegExp);
+    }
+  },
+  {
     name: "getPrototypeOf Should not be called when set as prototype",
     body: function () {
       var p = new Proxy({}, { getPrototypeOf: function() {
@@ -272,6 +281,23 @@ var tests = [
       }
   },
   {
+    name: "issue : 6174 : calling ToNumber for the fill value for typedarray.prototype.fill",
+    body: function () {
+        let arr1 = new Uint32Array(5);
+        let valueOfCalled = false;
+        let p1 = new Proxy([], {
+            get: function(oTarget, sKey) {
+                if (sKey.toString() == 'valueOf') {
+                    valueOfCalled = true;
+                }
+                return Reflect.get(oTarget, sKey);
+            }
+        });
+        Uint32Array.prototype.fill.call(arr1, p1, 5, 1);
+        assert.isTrue(valueOfCalled);
+    }
+  },
+  {
     name: "class name should not change if calling multiple times",
     body: function () {
         function getClass() {
@@ -289,8 +315,13 @@ var tests = [
         assert.areEqual("A", f2.name);
         assert.areEqual("A", f3.name);
       }
+  },
+  {
+    name: "should throw syntax error when expression within if is comma-terminated",
+    body: function () {
+        assert.throws(()=> { eval('var f = function () { var f = 0; if (f === 0,) print("run_here"); }; f();'); }, SyntaxError);
+      }
   }
-
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

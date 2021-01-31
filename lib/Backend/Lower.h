@@ -53,7 +53,8 @@ class Lowerer
 
 public:
     Lowerer(Func * func) : m_func(func), m_lowererMD(func), nextStackFunctionOpnd(nullptr), outerMostLoopLabel(nullptr),
-        initializedTempSym(nullptr), addToLiveOnBackEdgeSyms(nullptr), currentRegion(nullptr)
+        initializedTempSym(nullptr), addToLiveOnBackEdgeSyms(nullptr), currentRegion(nullptr),
+        m_lowerGeneratorHelper(LowerGeneratorHelper(func, this, this->m_lowererMD))
     {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
         m_func->m_lowerer = this;
@@ -75,7 +76,6 @@ public:
     void LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFastPath, bool defaultDoLoopFastPath);
     void LowerPrologEpilog();
     void LowerPrologEpilogAsmJs();
-    void LowerGeneratorResumeJumpTable();
 
     void DoInterruptProbes();
 
@@ -126,7 +126,6 @@ private:
     void            LowerProfiledBeginSwitch(IR::JitProfilingInstr *instr);
     void            LowerFunctionExit(IR::Instr* funcExit);
     void            LowerFunctionEntry(IR::Instr* funcEntry);
-    void            GenerateNullOutGeneratorFrame(IR::Instr* instrInsert);
     void            LowerFunctionBodyCallCountChange(IR::Instr *const insertBeforeInstr);
     IR::Instr*      LowerProfiledNewArray(IR::JitProfilingInstr* instr, bool hasArgs);
     IR::Instr *     LowerProfiledLdSlot(IR::JitProfilingInstr *instr);
@@ -174,7 +173,6 @@ private:
     void            GenerateIsDynamicObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool fContinueLabel = false);
     void            GenerateIsRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true);
     bool            GenerateLdThisCheck(IR::Instr * instr);
-    bool            GenerateLdThisStrict(IR::Instr * instr);
     bool            GenerateFastIsInst(IR::Instr * instr);
     void            GenerateFastArrayIsIn(IR::Instr * instr);
     void            GenerateFastObjectIsIn(IR::Instr * instr);
@@ -193,6 +191,8 @@ private:
         IR::LabelInstr * labelFallThru,
         bool isInlineSlot);
 
+    IR::LabelInstr* EnsureEpilogueLabel() const;
+
     void            GenerateFlagProtoCheck(IR::Instr * insertBeforeInstr, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFail);
     void            GenerateFlagInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
     bool            GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld);
@@ -207,6 +207,7 @@ private:
     void            GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr);
     IR::Instr *     LowerProfiledStFld(IR::JitProfilingInstr * instr, Js::PropertyOperationFlags flags);
     IR::Instr *     LowerStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod polymorphicHelperMethod, bool withInlineCache, IR::LabelInstr *ppBailOutLabel = nullptr, bool isHelper = false, bool withPutFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
+    void            MapStFldHelper(IR::PropertySymOpnd * propertySymOpnd, IR::JnHelperMethod &helperMethod, IR::JnHelperMethod &polymorphicHelperMethod);
     IR::Instr *     LowerScopedStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, bool withInlineCache,
                                 bool withPropertyOperationFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
     void            LowerProfiledLdElemI(IR::JitProfilingInstr *const instr);
@@ -295,9 +296,6 @@ private:
     IR::Instr *     LowerEqualityCompare(IR::Instr* instr, IR::JnHelperMethod helper);
     template <typename ArrayType>
     BOOL            IsSmallObject(uint32 length);
-#ifdef ENABLE_DOM_FAST_PATH
-    void            LowerFastInlineDOMFastPathGetter(IR::Instr* getterInstr);
-#endif
     void            GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef);
     void            GenerateArrayInfoIsNativeIntArrayTest(IR::Instr * instr,  Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, IR::LabelInstr * helperLabel);
     void            GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef);
@@ -601,8 +599,9 @@ private:
     void            PreserveSourcesForBailOnResultCondition(IR::Instr *const instr, IR::LabelInstr *const skipBailOutLabel) const;
     void            LowerInstrWithBailOnResultCondition(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) const;
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
+    void            InsertMoveForPolymorphicCacheIndex(IR::Instr * instr, BailOutInfo * bailOutInfo, int bailOutRecordOffset, uint polymorphicCacheIndexValue);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
-    void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
+    void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter, IR::LabelInstr *exitTargetInstr);
     void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
@@ -665,9 +664,9 @@ private:
     void            GenerateGetCurrentFunctionObject(IR::Instr * instr);
     IR::Opnd *      GetInlineCacheFromFuncObjectForRuntimeUse(IR::Instr * instr, IR::PropertySymOpnd * propSymOpnd, bool isHelper);
 
-    IR::Instr *     LowerInitClass(IR::Instr * instr);
+    IR::Instr *     LowerNewClassConstructor(IR::Instr * instr);
 
-    IR::RegOpnd *   GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool reloadDst = true);
+    IR::RegOpnd *   GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool loweringCloneStr = false, bool reloadDst = true);
     void            LowerNewConcatStrMulti(IR::Instr * instr);
     void            LowerNewConcatStrMultiBE(IR::Instr * instr);
     void            LowerSetConcatStrMultiItem(IR::Instr * instr);
@@ -677,6 +676,8 @@ private:
     void            LowerCoerseStrOrRegex(IR::Instr * instr);
     void            LowerConvPrimStr(IR::Instr * instr);
     void            LowerConvStrCommon(IR::JnHelperMethod helper, IR::Instr * instr);
+
+    void            LowerConvPropertyKey(IR::Instr* instr);
 
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
@@ -764,8 +765,6 @@ private:
     IR::Instr *     LowerLdNativeCodeData(IR::Instr *instr);
     IR::Instr *     LowerFrameDisplayCheck(IR::Instr * instr);
     IR::Instr *     LowerSlotArrayCheck(IR::Instr * instr);
-    void            InsertSlotArrayCheck(IR::Instr * instr, StackSym * dstSym, uint32 slotId);
-    void            InsertFrameDisplayCheck(IR::Instr * instr, StackSym * dstSym, FrameDisplayCheckRecord * record);
     static void     InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr, bool isForStore);
 
     IR::RegOpnd *   LoadIndexFromLikelyFloat(IR::RegOpnd *indexOpnd, const bool skipNegativeCheck, IR::LabelInstr *const notTaggedIntLabel, IR::LabelInstr *const negativeLabel, IR::Instr *const insertBeforeInstr);
@@ -785,8 +784,6 @@ private:
     IR::Instr*      LowerTry(IR::Instr* instr, bool tryCatch);
     IR::Instr *     LowerCatch(IR::Instr *instr);
     IR::Instr *     LowerLeave(IR::Instr *instr, IR::LabelInstr * targetInstr, bool fromFinalLower, bool isOrphanedLeave = false);
-    void            EnsureBailoutReturnValueSym();
-    void            EnsureHasBailedOutSym();
     void            InsertReturnThunkForRegion(Region* region, IR::LabelInstr* restoreLabel);
     void            SetHasBailedOut(IR::Instr * bailoutInstr);
     IR::Instr*      EmitEHBailoutStackRestore(IR::Instr * bailoutInstr);
@@ -840,4 +837,67 @@ private:
     HelperCallCheckState oldHelperCallCheckState;
     Js::OpCode m_currentInstrOpCode;
 #endif
+
+    //
+    // Generator
+    //
+    class LowerGeneratorHelper
+    {
+        Func* const func;
+        LowererMD &lowererMD;
+        Lowerer* const lowerer;
+
+        IR::LabelInstr* epilogueForReturnStatements = nullptr;
+        IR::LabelInstr* epilogueForBailOut = nullptr;
+
+        void EnsureEpilogueLabels();
+        IR::SymOpnd* CreateResumeYieldOpnd() const;
+
+    public:
+        LowerGeneratorHelper(Func* func, Lowerer* lowerer, LowererMD &lowererMD);
+
+        // Insert code to set generator->interpreterFrame to nullptr so that we know the
+        // generator has finished executing and has no more yield points.
+        // This will be inserted at the epilogue of the jitted function.
+        void InsertNullOutGeneratorFrameInEpilogue(IR::LabelInstr* epilogueLabel);
+
+        // Normally, after every bail out, we would do a jump to the epilogue and pop off the current frame.
+        // However, in the case of generator, we also want to null out the interpreter frame to signal that
+        // the generator is completed in the epilogue (i.e: there are no more yield points). This makes
+        // jumping to the epilogue after the bailout call returns not possible because we wouldn't know if
+        // the jump was because we actually want to return or because we have just bailed out.
+        //
+        // To deal with this, generators will have two kinds of epilogue label:
+        //  - one that nulls out the generator's interpreter frame
+        //  - one that doesn't
+        //
+        // Both of them share the register restore code, only the jump point differs:
+        //
+        // $Label_GeneratorEpilogueFrameNullOut: (intended for return statement)
+        //    null out generator's interpreter frame
+        // $Label_GeneratorEpilogueNoFrameNullOut: (intended for jumping after bailout call returns)
+        //    pop ...
+        //    pop ...
+        //    ret
+        //
+        IR::LabelInstr* GetEpilogueForReturnStatements();
+        IR::LabelInstr* GetEpilogueForBailOut();
+
+        // Introduce a BailOutNoSave label if there were yield points that were elided due to optimizations.
+        // They could still be hit if an active generator object had been paused at such a yield point when
+        // the function body was JITed. So safe guard such a case by having the native code simply jump back
+        // to the interpreter for such yield points.
+        IR::LabelInstr* InsertBailOutForElidedYield();
+
+        void LowerGeneratorResumeJumpTable(IR::Instr* jumpTableInstr);
+        void LowerCreateInterpreterStackFrameForGenerator(IR::Instr* instr);
+        void LowerYield(IR::Instr* instr);
+        void LowerGeneratorResumeYield(IR::Instr* instr);
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        void LowerGeneratorTraceBailIn(IR::Instr* instr);
+#endif
+    };
+
+    LowerGeneratorHelper m_lowerGeneratorHelper;
 };

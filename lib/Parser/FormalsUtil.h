@@ -38,5 +38,10 @@ void MapFormalsFromPattern(ParseNodeFnc *pnodeFunc, Fn fn)
             Parser::MapBindIdentifier(pnode->AsParseNodeParamPattern()->pnode1, fn);
         }
     }
-}
 
+    ParseNodePtr rest = pnodeFunc->pnodeRest;
+    if (rest != nullptr && rest->nop == knopParamPattern)
+    {
+        Parser::MapBindIdentifier(rest->AsParseNodeParamPattern()->pnode1, fn);
+    }
+}

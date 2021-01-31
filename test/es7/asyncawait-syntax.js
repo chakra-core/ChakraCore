@@ -46,15 +46,6 @@ var tests = [
         }
     },
     {
-        name: "Async keyword as generator",
-        body: function () {
-            assert.throws(function () { eval("async function* badFunction() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in a statement", "Syntax error");
-            assert.throws(function () { eval("var badVariable = async function*() { }"); }, SyntaxError, "'async' keyword is not allowed with a generator in an expression", "Syntax error");
-            assert.throws(function () { eval("var o { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a object literal member", "Expected ';'");
-            assert.throws(function () { eval("class C { async *badFunction() { } };"); }, SyntaxError, "'async' keyword is not allowed with a generator in a class member", "Syntax error");
-        }
-    },
-    {
         name: "Async classes",
         body: function () {
             assert.throws(function () { eval("class A { async constructor() {} }"); }, SyntaxError, "'async' keyword is not allowed with a constructor", "Syntax error");
@@ -132,6 +123,14 @@ var tests = [
             var c = async x => x;
             var d = async (a, b) => { };
             assert.doesNotThrow(function () { eval("(async function (z) {})[0]"); }, "Should not throw when async function occurs a type conversion");
+        }
+    },
+    {
+        name: "Async keyword cannot contain unicode escapes",
+        body: function () {
+            assert.throws(function () { eval("\\u0061sync function foo() {} }"); }, SyntaxError, "async keyword cannot contain unicode escapes");
+            assert.throws(function () { eval("({ \\u0061sync foo() {} })"); }, SyntaxError, "async keyword cannot contain unicode escapes");
+            assert.throws(function () { eval("class A { \\u0061sync foo() {} }"); }, SyntaxError, "async keyword cannot contain unicode escapes");
         }
     },
     {

@@ -75,7 +75,6 @@
       <files>sourceInfo_01.js</files>
       <baseline>sourceInfo_01.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -90,7 +89,6 @@
       <files>sourceInfo_11.js</files>
       <baseline>sourceInfo_11.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -105,7 +103,6 @@
       <files>sourceInfo_13.js</files>
       <baseline>sourceInfo_13.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -113,7 +110,6 @@
       <files>sourceInfo_20.js</files>
       <baseline>sourceInfo_20.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
-      <tags>exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -176,6 +172,17 @@
       <files>validate_line_column.js</files>
       <baseline>validate_line_column.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost -force:DeferParse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>errorPrototypetoString.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>exceptionInErrorToString.js</files>
+      <baseline>exceptionInErrorToString.baseline</baseline>
     </default>
   </test>
 </regress-exe>

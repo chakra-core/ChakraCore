@@ -30,17 +30,6 @@ namespace Js
         FlagNumberRange
     };
 
-    // Shadow of enum SCRIPTHOSTTYPE defined in activscp.idl.
-    enum HostType
-    {
-        HostTypeDefault = 0,        // Used to detect engines with uninitialized host type.
-        HostTypeBrowser = 1,        // Currently this implies enabled legacy language features, use it for IE.
-        HostTypeApplication = 2,    // Currently this implies legacy-free language features, use it for WWA.
-        HostTypeWebview = 3,        // Webview in a WWA/XAML app with WinRT access.
-        HostTypeMin = HostTypeBrowser,
-        HostTypeMax = HostTypeWebview
-    };
-
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
     ///
@@ -567,7 +556,6 @@ namespace Js
     public:
         ConfigFlagsTable           flags;
         static Configuration        Global;
-        bool EnableJitInDebugMode();
 
         // Public in case the client wants to have
         // a separate config from the global one

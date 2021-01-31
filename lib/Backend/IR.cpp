@@ -1036,7 +1036,8 @@ bool IR::Instr::IsStFldVariant() const
         this->m_opcode == Js::OpCode::StLocalFld ||
         this->m_opcode == Js::OpCode::StRootFld ||
         this->m_opcode == Js::OpCode::StRootFldStrict ||
-        this->m_opcode == Js::OpCode::StSuperFld;
+        this->m_opcode == Js::OpCode::StSuperFld ||
+        this->m_opcode == Js::OpCode::StSuperFldStrict;
 }
 
 bool IR::Instr::IsStElemVariant() const
@@ -1044,6 +1045,12 @@ bool IR::Instr::IsStElemVariant() const
     return this->m_opcode == Js::OpCode::StElemI_A ||
         this->m_opcode == Js::OpCode::StElemI_A_Strict ||
         this->m_opcode == Js::OpCode::StElemC;
+}
+
+bool IR::Instr::DontHoistBailOnNoProfileAboveInGeneratorFunction() const
+{
+    return this->m_opcode == Js::OpCode::GeneratorResumeYield ||
+        this->m_opcode == Js::OpCode::GeneratorCreateInterpreterStackFrame;
 }
 
 bool IR::Instr::CanChangeFieldValueWithoutImplicitCall() const
@@ -1281,7 +1288,7 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
         __assume(UNREACHED);
     }
     
-    if (oldBailOutInfo->bailOutInstr == this)
+    if (oldBailOutInfo->bailOutInstr == this && !oldBailOutInfo->sharedBailOutKind)
     {
         Assert(!oldBailOutInfo->wasCloned && !oldBailOutInfo->wasCopied);
         JitArenaAllocator * alloc = this->m_func->m_alloc;
@@ -1646,9 +1653,6 @@ BranchInstr::New(Js::OpCode opcode, LabelInstr * branchTarget, Func *func)
     branchInstr->m_src1 = nullptr;
     branchInstr->m_src2 = nullptr;
     branchInstr->m_byteCodeReg = Js::Constants::NoRegister;
-#if DBG
-    branchInstr->m_isHelperToNonHelperBranch = false;
-#endif
 
     return branchInstr;
 }
@@ -1899,6 +1903,14 @@ BranchInstr::Invert()
 
     case Js::OpCode::BrOnHasProperty:
         this->m_opcode = Js::OpCode::BrOnNoProperty;
+        break;
+
+    case Js::OpCode::BrOnHasLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnNoLocalProperty;
+        break;
+
+    case Js::OpCode::BrOnNoLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnHasLocalProperty;
         break;
 
     case Js::OpCode::BrOnNoProperty:
@@ -3428,7 +3440,14 @@ bool Instr::TransfersSrcValue()
 
     // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
 
-    return this->GetDst() != nullptr && this->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(this->m_opcode) && !this->CallsAccessor();
+    return
+        this->GetDst() != nullptr &&
+
+        // The lack of a Src2 does not always indicate that the instr is not a transfer instr (ex: StSlotChkUndecl).
+        (this->GetSrc2() == nullptr || OpCodeAttr::NonIntTransfer(this->m_opcode)) &&
+
+        !OpCodeAttr::DoNotTransfer(this->m_opcode) &&
+        !this->CallsAccessor();
 }
 
 
@@ -4233,6 +4252,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRTyp
 
     *pResult = value;
     return true;
+}
+
+GeneratorBailInInstr*
+GeneratorBailInInstr::New(IR::Instr* yieldInstr, Func* func)
+{
+    GeneratorBailInInstr* labelInstr = JitAnew(func->m_alloc, IR::GeneratorBailInInstr, func->m_alloc, yieldInstr);
+    labelInstr->Init(Js::OpCode::GeneratorBailInLabel, InstrKindLabel, func, false /* isOpHelper */);
+    return labelInstr;
 }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS

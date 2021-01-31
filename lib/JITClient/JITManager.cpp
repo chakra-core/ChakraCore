@@ -50,6 +50,21 @@ JITManager::GetJITManager()
     return &s_jitManager;
 }
 
+typedef struct _CHAKRA_RPC_SECURITY_QOS_V5 {
+    unsigned long Version;
+    unsigned long Capabilities;
+    unsigned long IdentityTracking;
+    unsigned long ImpersonationType;
+    unsigned long AdditionalSecurityInfoType;
+    union
+    {
+        RPC_HTTP_TRANSPORT_CREDENTIALS_W* HttpCredentials;
+    } u;
+    void* Sid;
+    unsigned int EffectiveOnly;
+    void* ServerSecurityDescriptor;
+} CHAKRA_RPC_SECURITY_QOS_V5;
+
 // This routine creates a binding with the server.
 HRESULT
 JITManager::CreateBinding(
@@ -67,22 +82,13 @@ JITManager::CreateBinding(
     RPC_BINDING_HANDLE_TEMPLATE_V1 bindingTemplate;
     RPC_BINDING_HANDLE_SECURITY_V1_W bindingSecurity;
 
-#if (NTDDI_VERSION >= NTDDI_WIN8)
-    RPC_SECURITY_QOS_V5 securityQOS;
-    ZeroMemory(&securityQOS, sizeof(RPC_SECURITY_QOS_V5));
+    CHAKRA_RPC_SECURITY_QOS_V5 securityQOS;
+    ZeroMemory(&securityQOS, sizeof(CHAKRA_RPC_SECURITY_QOS_V5));
     securityQOS.Capabilities = RPC_C_QOS_CAPABILITIES_DEFAULT;
     securityQOS.IdentityTracking = RPC_C_QOS_IDENTITY_DYNAMIC;
     securityQOS.ImpersonationType = RPC_C_IMP_LEVEL_IDENTIFY;
-    securityQOS.Version = 5;
+    securityQOS.Version = AutoSystemInfo::Data.IsWin8OrLater() ? 5 : 4;
     securityQOS.ServerSecurityDescriptor = serverSecurityDescriptor;
-#else
-    RPC_SECURITY_QOS_V4 securityQOS;
-    ZeroMemory(&securityQOS, sizeof(RPC_SECURITY_QOS_V4));
-    securityQOS.Capabilities = RPC_C_QOS_CAPABILITIES_DEFAULT;
-    securityQOS.IdentityTracking = RPC_C_QOS_IDENTITY_DYNAMIC;
-    securityQOS.ImpersonationType = RPC_C_IMP_LEVEL_IDENTIFY;
-    securityQOS.Version = 4;
-#endif
 
     ZeroMemory(&bindingTemplate, sizeof(bindingTemplate));
     bindingTemplate.Version = 1;
@@ -296,35 +302,55 @@ HRESULT
 JITManager::ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle)
 {
     Assert(IsOOPJITEnabled());
-
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE processHandle;
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-#endif
-
     HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientConnectProcess(
-            rpcBindingHandle,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-            processHandle,
-#endif
-            (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
-            (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
-    }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
 
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    CloseHandle(processHandle);
+    if (AutoSystemInfo::Data.IsWin8Point1OrLater())
+    {
+        HANDLE processHandle = nullptr;
+        // RPC handle marshalling is only available on 8.1+
+        if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        RpcTryExcept
+        {
+            hr = ClientConnectProcessWithProcessHandle(
+                rpcBindingHandle,
+                processHandle,
+                (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
+                (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
+        }
+            RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+        {
+            hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+        }
+        RpcEndExcept;
+
+        if (processHandle)
+        {
+            CloseHandle(processHandle);
+        }
+    }
+    else
+    {
+#if (WINVER >= _WIN32_WINNT_WINBLUE)
+        AssertOrFailFast(UNREACHED);
+#else
+        RpcTryExcept
+        {
+            hr = ClientConnectProcess(
+                rpcBindingHandle,
+                (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
+                (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
+        }
+            RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+        {
+            hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+        }
+        RpcEndExcept;
 #endif
+    }
 
     return hr;
 }
@@ -367,28 +393,6 @@ JITManager::CleanupThreadContext(
     RpcTryExcept
     {
         hr = ClientCleanupThreadContext(m_rpcBindingHandle, threadContextInfoAddress);
-    }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-
-HRESULT
-JITManager::AddDOMFastPathHelper(
-    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __in intptr_t funcInfoAddr,
-    __in int helper)
-{
-    Assert(IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientAddDOMFastPathHelper(m_rpcBindingHandle, scriptContextInfoAddress, funcInfoAddr, helper);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

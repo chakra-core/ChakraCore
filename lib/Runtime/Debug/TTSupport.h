@@ -250,12 +250,14 @@ namespace TTD
             SnapPromiseResolveOrRejectFunctionObject,
             SnapPromiseReactionTaskFunctionObject,
             SnapPromiseAllResolveElementFunctionObject,
+            SnapPromiseAllSettledResolveOrRejectElementFunctionObject,
             SnapGeneratorFunction,
             SnapGeneratorVirtualScriptFunction,
             SnapAsyncFunction,
             SnapGenerator,
-            JavascriptPromiseAsyncSpawnExecutorFunction,
-            JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction,
+            SnapAwaitObject,
+            JavascriptAsyncSpawnExecutorFunction,
+            JavascriptAsyncSpawnStepFunction,
 
             //objects that should always be well known but which may have other info we want to restore
             SnapWellKnownObject,

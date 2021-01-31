@@ -1,6 +1,3 @@
-NotifyModuleReadyCallback(exception) bug_OS12095746_mod0.js
-NotifyModuleReadyCallback(exception) bug_OS12095746_mod1.js
 mod0 catch:Syntax error
 mod1 catch:Unexpected identifier after numeric literal
-NotifyModuleReadyCallback(exception) bug_OS12095746_mod2.js
 mod2 catch:Unexpected identifier after numeric literal

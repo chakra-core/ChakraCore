@@ -268,4 +268,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>constructorConcat.js</files>
+      <compile-flags>-lic:1 -mic:1 -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

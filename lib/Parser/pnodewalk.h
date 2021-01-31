@@ -407,9 +407,6 @@ private:
         if (!ContinueWalk(result)) return result;
         // Walk all non-static members
         result = WalkList(pnode, pnode->pnodeMembers, context);
-        if (!ContinueWalk(result)) return result;
-        // Walk all static members
-        result = WalkList(pnode, pnode->pnodeStaticMembers, context);
         return result;
     }
 
@@ -481,6 +478,9 @@ private:
             return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
 
         case knopForOf:
+            return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
+
+        case knopForAwaitOf:
             return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
 
         //PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)

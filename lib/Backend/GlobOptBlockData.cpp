@@ -767,12 +767,23 @@ GlobOptBlockData::MergeValueMaps(
 
             if (iter2.IsValid() && bucket.value->m_id == iter2.Data().value->m_id)
             {
+                // Syms that are assigned to within the loop must have unique
+                // value numbers in the loop header after merging; a single
+                // prepass is not adequate to determine that sym values are
+                // equivalent through all possible loop paths.
+                bool forceUniqueValue =
+                    isLoopBackEdge &&
+                    !this->globOpt->IsLoopPrePass() &&
+                    loop &&
+                    loop->symsAssignedToInLoop->Test(bucket.value->m_id);
+
                 newValue =
                     this->MergeValues(
                         bucket.element,
                         iter2.Data().element,
                         iter2.Data().value,
                         isLoopBackEdge,
+                        forceUniqueValue,
                         symsRequiringCompensation,
                         symsCreatedForMerge);
             }
@@ -847,6 +858,7 @@ GlobOptBlockData::MergeValues(
     Value *fromDataValue,
     Sym *fromDataSym,
     bool isLoopBackEdge,
+    bool forceUniqueValue,
     BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
     BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
 {
@@ -879,22 +891,30 @@ GlobOptBlockData::MergeValues(
         return toDataValue;
     }
 
-    // There may be other syms in toData that haven't been merged yet, referring to the current toData value for this sym. If
-    // the merge produced a new value info, don't corrupt the value info for the other sym by changing the same value. Instead,
-    // create one value per source value number pair per merge and reuse that for new value infos.
-    Value *newValue = this->globOpt->valuesCreatedForMerge->Lookup(sourceValueNumberPair, nullptr);
-    if(newValue)
+    Value *newValue = nullptr;
+    if (forceUniqueValue)
     {
-        Assert(sameValueNumber == (newValue->GetValueNumber() == toDataValue->GetValueNumber()));
-
-        // This is an exception where Value::SetValueInfo is called directly instead of GlobOpt::ChangeValueInfo, because we're
-        // actually generating new value info through merges.
-        newValue->SetValueInfo(newValueInfo);
+        newValue = this->globOpt->NewValue(newValueInfo);
     }
     else
     {
-        newValue = this->globOpt->NewValue(sameValueNumber ? sourceValueNumberPair.First() : this->globOpt->NewValueNumber(), newValueInfo);
-        this->globOpt->valuesCreatedForMerge->Add(sourceValueNumberPair, newValue);
+        // There may be other syms in toData that haven't been merged yet, referring to the current toData value for this sym. If
+        // the merge produced a new value info, don't corrupt the value info for the other sym by changing the same value. Instead,
+        // create one value per source value number pair per merge and reuse that for new value infos.
+        newValue = this->globOpt->valuesCreatedForMerge->Lookup(sourceValueNumberPair, nullptr);
+        if (newValue)
+        {
+            Assert(sameValueNumber == (newValue->GetValueNumber() == toDataValue->GetValueNumber()));
+
+            // This is an exception where Value::SetValueInfo is called directly instead of GlobOpt::ChangeValueInfo, because we're
+            // actually generating new value info through merges.
+            newValue->SetValueInfo(newValueInfo);
+        }
+        else
+        {
+            newValue = this->globOpt->NewValue(sameValueNumber ? sourceValueNumberPair.First() : this->globOpt->NewValueNumber(), newValueInfo);
+            this->globOpt->valuesCreatedForMerge->Add(sourceValueNumberPair, newValue);
+        }
     }
 
     // Set symStore if same on both paths.
@@ -974,7 +994,8 @@ GlobOptBlockData::MergeValueInfo(
                 fromDataValueInfo->AsArrayValueInfo(),
                 fromDataSym,
                 symsRequiringCompensation,
-                symsCreatedForMerge);
+                symsCreatedForMerge,
+                isLoopBackEdge);
     }
 
     // Consider: If both values are VarConstantValueInfo with the same value, we could
@@ -1072,7 +1093,8 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
     const ArrayValueInfo *const fromDataValueInfo,
     Sym *const arraySym,
     BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
-    BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
+    BVSparse<JitArenaAllocator> *const symsCreatedForMerge,
+    bool isLoopBackEdge)
 {
     Assert(mergedValueType.IsAnyOptimizedArray());
     Assert(toDataValueInfo);
@@ -1095,7 +1117,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            if (!this->globOpt->IsLoopPrePass())
+            if (!this->globOpt->IsLoopPrePass() && !isLoopBackEdge)
             {
                 // Adding compensation code in the prepass won't help, as the symstores would again be different in the main pass.
                 Assert(symsRequiringCompensation);
@@ -1123,7 +1145,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            if (!this->globOpt->IsLoopPrePass())
+            if (!this->globOpt->IsLoopPrePass() && !isLoopBackEdge)
             {
                 Assert(symsRequiringCompensation);
                 symsRequiringCompensation->Set(arraySym->m_id);
@@ -1150,7 +1172,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            if (!this->globOpt->IsLoopPrePass())
+            if (!this->globOpt->IsLoopPrePass() && !isLoopBackEdge)
             {
                 Assert(symsRequiringCompensation);
                 symsRequiringCompensation->Set(arraySym->m_id);
@@ -1652,60 +1674,82 @@ GlobOptBlockData::IsFloat64TypeSpecialized(Sym const * sym) const
 }
 
 void
-GlobOptBlockData::KillStateForGeneratorYield()
+GlobOptBlockData::KillStateForGeneratorYield(IR::Instr* yieldInstr)
 {
-    /*
-    TODO[generators][ianhall]: Do a ToVar on any typespec'd syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'd values
-    FOREACH_BITSET_IN_SPARSEBV(symId, this->liveInt32Syms)
-    {
-        this->ToVar(instr, , this->globOpt->currentBlock, , );
-    }
-    NEXT_BITSET_IN_SPARSEBV;
-
-    FOREACH_BITSET_IN_SPARSEBV(symId, this->liveInt32Syms)
-    {
-        this->ToVar(instr, , this->globOpt->currentBlock, , );
-    }
-    NEXT_BITSET_IN_SPARSEBV;
-    */
-
-    FOREACH_GLOBHASHTABLE_ENTRY(bucket, this->symToValueMap)
-    {
-        ValueType type = bucket.element->GetValueInfo()->Type().ToLikely();
-        bucket.element = this->globOpt->NewGenericValue(type);
-    }
-    NEXT_GLOBHASHTABLE_ENTRY;
-
-    this->exprToValueMap->ClearAll();
-    this->liveFields->ClearAll();
-    this->liveArrayValues->ClearAll();
-    if (this->maybeWrittenTypeSyms)
-    {
-        this->maybeWrittenTypeSyms->ClearAll();
-    }
-    this->isTempSrc->ClearAll();
+    this->liveInt32Syms->Minus(this->liveVarSyms);
+    this->globOpt->ToVar(liveInt32Syms, this->globOpt->currentBlock, yieldInstr /* insertBeforeInstr */);
     this->liveInt32Syms->ClearAll();
-    this->liveLossyInt32Syms->ClearAll();
+
+    this->liveFloat64Syms->Minus(this->liveVarSyms);
+    this->globOpt->ToVar(liveFloat64Syms, this->globOpt->currentBlock, yieldInstr /* insertBeforeInstr */);
     this->liveFloat64Syms->ClearAll();
+
+    this->liveLossyInt32Syms->ClearAll();
     // Keep this->liveVarSyms as is
     // Keep this->argObjSyms as is
 
-    // MarkTemp should be disabled for generator functions for now
-    Assert(this->maybeTempObjectSyms == nullptr || this->maybeTempObjectSyms->IsEmpty());
-    Assert(this->canStoreTempObjectSyms == nullptr || this->canStoreTempObjectSyms->IsEmpty());
-
-    this->valuesToKillOnCalls->Clear();
-    if (this->inductionVariables)
-    {
-        this->inductionVariables->Clear();
-    }
-    if (this->availableIntBoundChecks)
-    {
-        this->availableIntBoundChecks->Clear();
-    }
-
-    // Keep bailout data as is
     this->hasCSECandidates = false;
+
+    // No need to clear `isTempSrc` (used for in-place string concat)
+
+    this->exprToValueMap->ClearAll();
+
+    this->KillSymToValueMapForGeneratorYield();
+}
+
+void
+GlobOptBlockData::KillSymToValueMapForGeneratorYield()
+{
+    // Remove illegal symToValueMap entries whose symstores don't have bytecode registers
+    // Hash table bucket key-value visualization: { bucket.value: bucket.element }
+    //
+    // Idea:
+    // Multiple symbols can map to the same value which has a symstore
+    // (multiple keys map to same value).
+    // Since the symstore might not have a bytecode register, our first pass
+    // through the map attemps to use the symbol (key) as a symstore for that value.
+    // This allows us to still retain such entries.
+    // After the first pass, any symToValueMap entries whose symstores don't have
+    // bytecode registers will be cleared.
+    FOREACH_VALUEHASHTABLE_ENTRY(GlobHashBucket, bucket, this->symToValueMap)
+    {
+        if (bucket.element == nullptr)
+        {
+            continue;
+        }
+
+        Sym* symStore = bucket.element->GetValueInfo()->GetSymStore();
+        if (symStore != nullptr && symStore->IsStackSym() && symStore->AsStackSym()->HasByteCodeRegSlot())
+        {
+            continue;
+        }
+
+        Sym* sym = bucket.value;
+        if (sym != nullptr && sym->IsStackSym() && sym->AsStackSym()->HasByteCodeRegSlot())
+        {
+            bucket.element->GetValueInfo()->SetSymStore(sym);
+        }
+    }
+    NEXT_VALUEHASHTABLE_ENTRY;
+
+    // Remove illegal entries
+    FOREACH_VALUEHASHTABLE_ENTRY_EDITING(GlobHashBucket, bucket, this->symToValueMap, iter)
+    {
+        Value* value = bucket.element;
+        if (value == nullptr)
+        {
+            iter.RemoveCurrent(this->symToValueMap->alloc);
+        }
+        else
+        {
+            Sym* symStore = value->GetValueInfo()->GetSymStore();
+            if (symStore == nullptr || !symStore->IsStackSym() || !symStore->AsStackSym()->HasByteCodeRegSlot())
+            {
+                iter.RemoveCurrent(this->symToValueMap->alloc);
+            }
+        }
+    }
+    NEXT_VALUEHASHTABLE_ENTRY_EDITING;
 }
 
 #if DBG_DUMP

@@ -3,9 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-if (typeof(WScript) != "undefined") {
-  WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
-}
+WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = {
   // Note: each test has name (string) and body (function) properties.
@@ -639,8 +637,7 @@ var tests = {
         value.toString() + ",undefined"; // IE9 compat mode -- Win8 558490.
       assert.areEqual(expected, accumulator, "Wrong accumulated value");
     }
-  },
+  }
+}
 
-} // tests.
-
-testRunner.runTests(tests);
+testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

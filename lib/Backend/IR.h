@@ -15,6 +15,7 @@ class IRBuilderAsmJs;
 class FlowGraph;
 class GlobOpt;
 class BailOutInfo;
+class GeneratorBailInInfo;
 class SCCLiveness;
 
 struct LazyBailOutRecord;
@@ -53,7 +54,7 @@ struct CapturedValues
         refCount++;
     }
 
-    void CopyTo(JitArenaAllocator *allocator, CapturedValues *other)
+    void CopyTo(JitArenaAllocator *allocator, CapturedValues *other) const
     {
         Assert(other != nullptr);
         this->constantValues.CopyTo(allocator, other->constantValues);
@@ -117,6 +118,7 @@ class ProfiledLabelInstr;
 class MultiBranchInstr;
 class PragmaInstr;
 class ByteCodeUsesInstr;
+class GeneratorBailInInstr;
 
 class Opnd;
 class RegOpnd;
@@ -154,8 +156,8 @@ const int32 InvalidInstrLayout = -1;
 ///     ExitInstr
 ///     PragmaInstr
 ///     BailoutInstr
-///     ByteCoteUsesInstr
-///
+///     ByteCodeUsesInstr
+///     GeneratorBailInInstr
 ///---------------------------------------------------------------------------
 
 class Instr
@@ -220,6 +222,9 @@ public:
     BranchInstr *   AsBranchInstr();
     bool            IsLabelInstr() const;
     LabelInstr *    AsLabelInstr();
+    bool            IsGeneratorBailInInstr() const;
+    GeneratorBailInInstr * AsGeneratorBailInInstr();
+
     bool            IsJitProfilingInstr() const;
     JitProfilingInstr * AsJitProfilingInstr();
     bool            IsProfiledInstr() const;
@@ -335,6 +340,8 @@ public:
     RegOpnd *       FindRegDef(StackSym *sym);
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
     bool            CanAggregateByteCodeUsesAcrossInstr(IR::Instr * instr);
+
+    bool            DontHoistBailOnNoProfileAboveInGeneratorFunction() const;
 
     // LazyBailOut
     bool            AreAllOpndsTypeSpecialized() const;
@@ -798,6 +805,7 @@ public:
     inline void             SetRegion(Region *);
     inline Region *         GetRegion(void) const;
     inline BOOL             IsUnreferenced(void) const;
+    inline BOOL             IsGeneratorEpilogueLabel(void) const;
 
     LabelInstr *            CloneLabel(BOOL fCreate);
 
@@ -868,6 +876,7 @@ public:
     {
 #if DBG
         m_isMultiBranch = false;
+        m_isHelperToNonHelperBranch = false;
         m_leaveConvToBr = false;
 #endif
     }
@@ -1103,6 +1112,25 @@ public:
 #endif
     PragmaInstr * ClonePragma();
     PragmaInstr * CopyPragma();
+};
+
+class GeneratorBailInInstr : public LabelInstr
+{
+private:
+    GeneratorBailInInstr(JitArenaAllocator* allocator, IR::Instr* yieldInstr) :
+        LabelInstr(allocator),
+        yieldInstr(yieldInstr),
+        upwardExposedUses(allocator)
+    {
+        Assert(yieldInstr != nullptr && yieldInstr->m_opcode == Js::OpCode::Yield);
+    }
+
+public:
+    IR::Instr* yieldInstr;
+    CapturedValues capturedValues;
+    BVSparse<JitArenaAllocator> upwardExposedUses;
+
+    static GeneratorBailInInstr* New(IR::Instr* yieldInstr, Func* func);
 };
 
 template <typename InstrType>

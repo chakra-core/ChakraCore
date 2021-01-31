@@ -334,7 +334,7 @@ namespace Js
         static Var StringBracketHelper(Arguments args, ScriptContext *scriptContext, const char16 (&tag)[N1], const char16 (&prop)[N2]);
 
         static void SearchValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptRegExp ** ppSearchRegEx, JavascriptString ** ppSearchString);
-        static void ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptFunction ** ppReplaceFn, JavascriptString ** ppReplaceString);
+        static void ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, RecyclableObject** ppReplaceFn, JavascriptString ** ppReplaceString);
 
         template<bool toUpper>
         static JavascriptString* ToLocaleCaseHelper(JavascriptString* thisObj);

@@ -51,7 +51,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_cloner(nullptr),
     m_cloneMap(nullptr),
     m_loopParamSym(nullptr),
-    m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
     m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
@@ -65,6 +64,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_argSlotsForFunctionsCalled(0),
     m_hasCalls(false),
     m_hasInlineArgsOpt(false),
+    m_hasInlineOverheadRemoved(false),
     m_canDoInlineArgsOpt(true),
     unoptimizableArgumentsObjReference(0),
     unoptimizableArgumentsObjReferenceInInlinees(0),
@@ -139,7 +139,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , vtableMap(nullptr)
 #endif
     , m_yieldOffsetResumeLabelList(nullptr)
-    , m_bailOutNoSaveLabel(nullptr)
+    , m_bailOutForElidedYieldInsertionPoint(nullptr)
     , constantAddressRegOpnd(alloc)
     , lastConstantAddressRegLoadInstr(nullptr)
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
@@ -149,6 +149,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+    , m_forInEnumeratorForGeneratorSym(nullptr)
 #if LOWER_SPLIT_INT64
     , m_int64SymPairMap(nullptr)
 #endif
@@ -354,6 +355,12 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
                 break;
             case RejitReason::TrackIntOverflowDisabled:
                 outputData->disableTrackCompoundedIntOverflow = TRUE;
+                break;
+            case RejitReason::MemOpDisabled:
+                outputData->disableMemOp = TRUE;
+                break;
+            case RejitReason::FailedEquivalentTypeCheck:
+                // No disable flag. The thrower of the re-jit exception must guarantee that objtypespec is disabled where appropriate.
                 break;
             default:
                 Assume(UNREACHED);
@@ -864,13 +871,6 @@ Func::AjustLocalVarSlotOffset()
 #endif
 
 bool
-Func::DoGlobOptsForGeneratorFunc() const
-{
-    // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
-    return !GetJITFunctionBody()->IsCoroutine();
-}
-
-bool
 Func::DoSimpleJitDynamicProfile() const
 {
     return IsSimpleJit() && !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, GetTopFunc()) && !CONFIG_FLAG(NewSimpleJit);
@@ -1110,6 +1110,12 @@ bool
 Func::IsTrackCompoundedIntOverflowDisabled() const
 {
     return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled()) || m_output.IsTrackCompoundedIntOverflowDisabled();
+}
+
+bool
+Func::IsMemOpDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsMemOpDisabled()) || m_output.IsMemOpDisabled();
 }
 
 bool
@@ -1362,6 +1368,30 @@ Func::EndPhase(Js::Phase tag, bool dump)
 }
 
 StackSym *
+Func::EnsureBailoutReturnValueSym()
+{
+    if (m_bailoutReturnValueSym == nullptr)
+    {
+        m_bailoutReturnValueSym = StackSym::New(TyVar, this);
+        StackAllocate(m_bailoutReturnValueSym, sizeof(Js::Var));
+    }
+
+    return m_bailoutReturnValueSym;
+}
+
+StackSym *
+Func::EnsureHasBailedOutSym()
+{
+    if (m_hasBailedOutSym == nullptr)
+    {
+        m_hasBailedOutSym = StackSym::New(TyUint32, this);
+        StackAllocate(m_hasBailedOutSym, MachRegInt);
+    }
+
+    return m_hasBailedOutSym;
+}
+
+StackSym *
 Func::EnsureLoopParamSym()
 {
     if (this->m_loopParamSym == nullptr)
@@ -1502,6 +1532,12 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
     }
 
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
+}
+
+void
+Func::ClearObjTypeSpecFldInfo(const uint index)
+{
+    GetWorkItem()->GetJITTimeInfo()->ClearObjTypeSpecFldInfo(index);
 }
 
 ObjTypeSpecFldInfo*

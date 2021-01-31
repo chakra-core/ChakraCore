@@ -104,11 +104,22 @@ Peeps::PeepFunc()
         }
 
         case IR::InstrKindBranch:
+        {
             if (!peepsEnabled || instr->m_opcode == Js::OpCode::Leave)
             {
                 break;
             }
-            instrNext = Peeps::PeepBranch(instr->AsBranchInstr());
+
+            IR::BranchInstr *branchInstr = instr->AsBranchInstr();
+            IR::LabelInstr* target = branchInstr->GetTarget();
+
+            // Don't remove any branches to the generator's epilogue
+            if (target != nullptr && target->IsGeneratorEpilogueLabel())
+            {
+                break;
+            }
+
+            instrNext = Peeps::PeepBranch(branchInstr);
 #if defined(_M_IX86) || defined(_M_X64)
             Assert(instrNext && instrNext->m_prev);
             if (instrNext->m_prev->IsBranchInstr())
@@ -118,7 +129,7 @@ Peeps::PeepFunc()
 
 #endif
             break;
-
+        }
         case IR::InstrKindPragma:
             if (instr->m_opcode == Js::OpCode::Nop)
             {
@@ -453,6 +464,21 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
             else
             {
                 IR::Instr *instrTmp = instrSkip;
+
+                // Ignore assertion error for cases where we insert an "airlock" helper block
+                // for a Branch instruction's helper path that:
+                //  1) ends up being empty
+                //  2) comes after a helper block from another instruction
+                //  3) is followed by a non-helper block
+                //
+                // Propagating the "isOpHelper" flag can potentially make this block a non-helper,
+                // and that makes this block only reachable through helper blocks, thus failing the assert 
+#if DBG
+                if (instrNext->AsLabelInstr()->isOpHelper != instrSkip->AsLabelInstr()->isOpHelper)
+                {
+                    instrNext->AsLabelInstr()->m_noHelperAssert = true;
+                }
+#endif
                 instrNext->AsLabelInstr()->isOpHelper = instrSkip->AsLabelInstr()->isOpHelper;
                 instrSkip = instrNext;
                 instrNext = instrTmp;

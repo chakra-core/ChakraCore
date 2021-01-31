@@ -1,5 +1,6 @@
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
+# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -18,9 +19,10 @@ rm -f $ERRFILE
 rm -f $ERRFILETEMP
 
 echo "Check Copyright > Begin Checking..."
-git diff --name-only `git merge-base origin/$ghprbTargetBranch HEAD` HEAD |
+git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.git.*' |
     grep -v -E '\.xml$' |
+    grep -v -E '\.yml$' |
     grep -v -E '\.props$' |
     grep -v -E '\.md$' |
     grep -v -E '\.txt$' |
@@ -59,7 +61,7 @@ if [ -e $ERRFILE ]; then # if error file exists then there were errors
     >&2 echo "--- ERRORS ---"
     cat $ERRFILE 1>&2 # send output to stderr so it can be redirected as error if desired
     >&2 echo "--------------"
-    exit 1 # tell the caller there was an error (so Jenkins will fail the CI task)
+    exit 1 # tell the caller there was an error (so the CI task will fail)
 else
     echo "--- NO PROBLEMS DETECTED ---"
 fi

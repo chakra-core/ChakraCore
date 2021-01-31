@@ -140,7 +140,7 @@
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
         "length": "number 0",
-        "name": "string ",
+        "name": "string j1",
         "caller": "object null",
         "arguments": "object null"
       }
@@ -594,7 +594,7 @@
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
         "length": "number 0",
-        "name": "string ",
+        "name": "string startTest",
         "caller": "object null",
         "arguments": "object null"
       },

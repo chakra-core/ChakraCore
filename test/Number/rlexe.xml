@@ -63,4 +63,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>NumericSeparator.js</files>
+      <compile-flags>-ESNumericSeparator -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

@@ -45,6 +45,8 @@ public:
     virtual intptr_t GetLibraryAddr() const override;
     virtual intptr_t GetGlobalObjectAddr() const override;
     virtual intptr_t GetGlobalObjectThisAddr() const override;
+    virtual intptr_t GetObjectPrototypeAddr() const override;
+    virtual intptr_t GetFunctionPrototypeAddr() const override;
     virtual intptr_t GetNumberAllocatorAddr() const override;
     virtual intptr_t GetRecyclerAddr() const override;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const override;
@@ -67,10 +69,6 @@ public:
 
     virtual bool IsRecyclerVerifyEnabled() const override;
     virtual uint GetRecyclerVerifyPad() const override;
-
-    virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
-    virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;
-
 
     typedef JsUtil::BaseDictionary<uint, Js::ServerSourceTextModuleRecord*, Memory::HeapAllocator> ServerModuleRecords;
     ServerModuleRecords m_moduleRecords;
@@ -95,7 +93,6 @@ public:
     void Release();
 
 private:
-    JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler * codeGenProfiler;
     CriticalSection profilerCS;

@@ -60,4 +60,4 @@ verify(~-536870913,536870912,11,"\"Checkings result for Tagged Limits+1 -5368709
 
 verify(~-0,-1,12,"\"Checking result for -0\"");
 
-WScript.Echo("Done");
+print("pass");

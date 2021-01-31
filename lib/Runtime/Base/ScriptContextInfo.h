@@ -33,6 +33,8 @@ public:
     virtual intptr_t GetLibraryAddr() const = 0;
     virtual intptr_t GetGlobalObjectAddr() const = 0;
     virtual intptr_t GetGlobalObjectThisAddr() const = 0;
+    virtual intptr_t GetObjectPrototypeAddr() const = 0;
+    virtual intptr_t GetFunctionPrototypeAddr() const = 0;
     virtual intptr_t GetNumberAllocatorAddr() const = 0;
     virtual intptr_t GetRecyclerAddr() const = 0;
     virtual bool GetRecyclerAllowNativeCodeBumpAllocation() const = 0;
@@ -58,13 +60,5 @@ public:
 #endif
 
     virtual intptr_t GetChakraLibAddr() const = 0;
-
-#if ENABLE_NATIVE_CODEGEN
-    virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) = 0;
-    virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) = 0;
-
-    typedef JsUtil::BaseDictionary<intptr_t, IR::JnHelperMethod, HeapAllocator, PowerOf2SizePolicy,
-        DefaultComparer, JsUtil::SimpleDictionaryEntry, JsUtil::AsymetricResizeLock> JITDOMFastPathHelperMap;
-#endif
 
 };

@@ -28,10 +28,11 @@ FIND_CLANG() {
 }
 
 SAFE_RUN() {
-    local SF_RETURN_VALUE=$($1 2>&1)
+    local SF_OUTPUT
+    SF_OUTPUT=$(eval "( $1 )" 2>&1)
 
     if [[ $? != 0 ]]; then
-        >&2 echo $SF_RETURN_VALUE
+        >&2 echo "$SF_OUTPUT"
         exit 1
     fi
 }
@@ -47,7 +48,7 @@ TEST () {
 }
 
 RES=$(c++ --version)
-if [[ ! $RES =~ "Apple LLVM" ]]; then
+if [[ ! $RES =~ "Apple " ]]; then
     FIND_CLANG
 else
     CC="cc"
@@ -57,16 +58,16 @@ fi
 RUN () {
     TEST_PATH=$1
     echo "Testing $TEST_PATH"
-    SAFE_RUN `cd $TEST_PATH; ${CH_DIR} Platform.js > Makefile`
+    SAFE_RUN "cd $TEST_PATH && ${CH_DIR} Platform.js > Makefile"
     RES=$(cd $TEST_PATH; cat Makefile)
 
     if [[ $RES =~ "# IGNORE_THIS_TEST" ]]; then
         echo "Ignoring $TEST_PATH"
     else
-        SAFE_RUN `cd $TEST_PATH; make CC=${CC} CXX=${CXX}`
+        SAFE_RUN "cd $TEST_PATH && make CC=${CC} CXX=${CXX}"
         RES=$(cd $TEST_PATH; ./sample.o)
         TEST "SUCCESS"
-        SAFE_RUN `cd $TEST_PATH; rm -rf ./sample.o`
+        SAFE_RUN "cd $TEST_PATH && rm -rf ./sample.o"
     fi
 }
 
@@ -74,7 +75,7 @@ RUN_CMD () {
     TEST_PATH=$1
     CMD=$2
     echo "Testing $TEST_PATH"
-    SAFE_RUN `cd $TEST_PATH; $CMD`
+    SAFE_RUN "cd $TEST_PATH && $CMD"
 }
 
 # static lib tests
@@ -100,4 +101,4 @@ RUN "test-shared-basic"
 # test python
 RUN_CMD "test-python" "python helloWorld.py ${BUILD_TYPE}"
 
-SAFE_RUN `rm -rf Makefile`
+SAFE_RUN "rm -rf Makefile"

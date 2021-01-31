@@ -36,6 +36,13 @@ var tests = [
             assert.areEqual('function', typeof descriptor.value, "typeof Promise.all === 'function'");
             assert.areEqual(1, Promise.all.length, "Promise.all.length === 1");
 
+            var descriptor = Object.getOwnPropertyDescriptor(Promise, 'allSettled');
+            assert.isTrue(descriptor.writable, "Promise.allSettled.writable === true");
+            assert.isFalse(descriptor.enumerable, "Promise.allSettled.enumerable === false");
+            assert.isTrue(descriptor.configurable, "Promise.allSettled.configurable === true");
+            assert.areEqual('function', typeof descriptor.value, "typeof Promise.allSettled === 'function'");
+            assert.areEqual(1, Promise.allSettled.length, "Promise.allSettled.length === 1");
+
             var descriptor = Object.getOwnPropertyDescriptor(Promise, 'race');
             assert.isTrue(descriptor.writable, "Promise.race.writable === true");
             assert.isFalse(descriptor.enumerable, "Promise.race.enumerable === false");
@@ -205,6 +212,16 @@ var tests = [
         }
     },
     {
+        name: "Promise.allSettled throwing behavior",
+        body: function () {
+            assert.throws(function() { Promise.allSettled.call(); }, TypeError, "Promise.allSettled throws when called with no this parameter", "Promise.allSettled: 'this' is not an Object");
+            assert.throws(function() { Promise.allSettled.call(undefined); }, TypeError, "Promise.allSettled throws when called when this parameter is undefined", "Promise.allSettled: 'this' is not an Object");
+            assert.throws(function() { Promise.allSettled.call(null); }, TypeError, "Promise.allSettled throws when called when this parameter is null", "Promise.allSettled: 'this' is not an Object");
+            assert.throws(function() { Promise.allSettled.call({}); }, TypeError, "Promise.allSettled throws when called when this parameter is non-callable", "Function expected");
+            assert.throws(function() { Promise.allSettled.call(Math.sin); }, TypeError, "Promise.allSettled throws when this parameter is a non-constructor", "Function expected");
+        }
+    },
+    {
         name: "Promise.prototype.then to access constructor through [@@species]",
         body: function () {
             var p = new Promise(function(resolve, reject) { });
@@ -272,6 +289,54 @@ var tests = [
             Promise.all([p]);
 
             assert.isTrue(isCalled, "The then function was actually called");
+        }
+    },
+    {
+        name: "Promise.all uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.all(bar);
+            assert.areEqual(3, calledNext, "Promise.all should use the iterator protocol, and next should be cached");
+        }
+    },
+    {
+        name: "Promise.allSettled uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.allSettled(bar);
+            assert.areEqual(3, calledNext, "Promise.allSettled should use the iterator protocol, and next should be cached");
+        }
+    },
+    {
+        name: "Promise.race uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.race(bar);
+            assert.areEqual(3, calledNext, "Promise.race should use the iterator protocol, and next should be cached");
         }
     },
     {

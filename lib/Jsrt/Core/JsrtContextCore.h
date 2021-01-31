@@ -101,8 +101,11 @@ class ChakraCoreHostScriptContext sealed : public HostScriptContext
 public:
     ChakraCoreHostScriptContext(Js::ScriptContext* scriptContext)
         : HostScriptContext(scriptContext),
+        fetchImportedModuleCallback(nullptr),
+        fetchImportedModuleFromScriptCallback(nullptr),
         notifyModuleReadyCallback(nullptr),
-        fetchImportedModuleCallback(nullptr)
+        initializeImportMetaCallback(nullptr),
+        reportModuleCompletionCallback(nullptr)
     {
     }
     ~ChakraCoreHostScriptContext()
@@ -219,20 +222,6 @@ public:
         return E_NOTIMPL;
     }
 
-    HRESULT ArrayBufferFromExternalObject(__in Js::RecyclableObject *obj,
-        __out Js::ArrayBuffer **ppArrayBuffer) override
-    {
-        // there is no IBuffer in chakracore.
-        *ppArrayBuffer = nullptr;
-        return S_FALSE;
-    }
-
-    Js::JavascriptError* CreateWinRTError(IErrorInfo* perrinfo, Js::RestrictedErrorStrings * proerrstr) override
-    {
-        AssertMsg(false, "no winrt support in chakracore");
-        return nullptr;
-    }
-
     HRESULT ThrowIfFailed(HRESULT hr) override
     {
         hr;
@@ -250,6 +239,9 @@ public:
 
     HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override;
 
+    HRESULT InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject) override;
+    bool ReportModuleCompletion(Js::ModuleRecordBase* module, Js::Var exception) override;
+
     void SetNotifyModuleReadyCallback(NotifyModuleReadyCallback notifyCallback) { this->notifyModuleReadyCallback = notifyCallback; }
     NotifyModuleReadyCallback GetNotifyModuleReadyCallback() const { return this->notifyModuleReadyCallback; }
 
@@ -258,6 +250,12 @@ public:
 
     void SetFetchImportedModuleFromScriptCallback(FetchImportedModuleFromScriptCallBack fetchCallback) { this->fetchImportedModuleFromScriptCallback = fetchCallback; }
     FetchImportedModuleFromScriptCallBack GetFetchImportedModuleFromScriptCallback() const { return this->fetchImportedModuleFromScriptCallback; }
+
+    void SetInitializeImportMetaCallback(InitializeImportMetaCallback initializeCallback) { this->initializeImportMetaCallback = initializeCallback; }
+    InitializeImportMetaCallback GetInitializeImportMetaCallback() const { return this->initializeImportMetaCallback; }
+
+    void SetReportModuleCompletionCallback(ReportModuleCompletionCallback processCallback) { this->reportModuleCompletionCallback = processCallback; }
+    ReportModuleCompletionCallback GetReportModuleCompletionCallback() const { return this->reportModuleCompletionCallback; }
 
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
     void EnsureParentInfo(Js::ScriptContext* scriptContext = NULL) override
@@ -273,7 +271,6 @@ private:
     FetchImportedModuleCallBack fetchImportedModuleCallback;
     FetchImportedModuleFromScriptCallBack fetchImportedModuleFromScriptCallback;
     NotifyModuleReadyCallback notifyModuleReadyCallback;
+    InitializeImportMetaCallback initializeImportMetaCallback;
+    ReportModuleCompletionCallback reportModuleCompletionCallback;
 };
-
-
-

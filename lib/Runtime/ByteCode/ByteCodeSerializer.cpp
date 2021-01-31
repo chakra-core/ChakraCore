@@ -143,6 +143,7 @@ struct SerializedFieldList {
     bool has_debuggerScopeSlotArray : 1;
     bool has_deferredStubs : 1;
     bool has_scopeInfo : 1;
+    bool has_printOffsets : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -487,6 +488,12 @@ public:
         {
             expectedFunctionBodySize.value = 0;
             expectedOpCodeCount.value = 0;
+#ifdef ENABLE_TEST_HOOKS
+            if (scriptContext->GetConfig()->Force32BitByteCode())
+            {
+                architecture.value = 32;
+            }
+#endif
         }
 
         // Library bytecode uses its own scheme
@@ -1052,9 +1059,13 @@ public:
                 DEFAULT_LAYOUT(Empty);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg3);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3C);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Arg);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ArgNoSrc);
@@ -1066,6 +1077,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg3);
                 DEFAULT_LAYOUT(StartCall);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Profiled2CallI);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(CallI);
@@ -1088,7 +1100,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementPIndexed);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2B1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3B1);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(Class);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementRootU);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ElementScopedC);
@@ -2348,6 +2359,14 @@ public:
         {
             definedFields.has_deferredStubs = true;
             AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), cache, true);
+        }
+
+        PrintOffsets* printOffsets = function->GetPrintOffsets();
+        if (printOffsets != nullptr)
+        {
+            definedFields.has_printOffsets = true;
+            PrependInt32(builder, _u("Start print offset"), printOffsets->cbStartPrintOffset);
+            PrependInt32(builder, _u("End print offset"), printOffsets->cbEndPrintOffset);
         }
 
         ScopeInfo* scopeInfo = function->GetScopeInfo();
@@ -4075,6 +4094,14 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
+        PrintOffsets* printOffsets = nullptr;
+        if (definedFields->has_printOffsets)
+        {
+            printOffsets = RecyclerNewLeaf(this->scriptContext->GetRecycler(), PrintOffsets);
+            current = ReadUInt32(current, &printOffsets->cbStartPrintOffset);
+            current = ReadUInt32(current, &printOffsets->cbEndPrintOffset);
+        }
+
         ScopeInfo* scopeInfo = nullptr;
         if (definedFields->has_scopeInfo)
         {
@@ -4139,6 +4166,10 @@ public:
             {
                 (*function)->SetDeferredStubs(deferredStubs);
             }
+            if (printOffsets != nullptr)
+            {
+                (*function)->SetPrintOffsets(printOffsets);
+            }
             if (scopeInfo != nullptr)
             {
                 (*function)->SetScopeInfo(scopeInfo);
@@ -4172,7 +4203,6 @@ public:
 
         // This is offsetIntoSource is the start offset in bytes as well.
         (*function)->m_cbStartOffset = offsetIntoSource;
-        (*function)->m_cbStartPrintOffset = offsetIntoSourcePrintable;
         (*function)->m_sourceIndex = this->sourceIndex;
 
 #define DEFINE_FUNCTION_PROXY_FIELDS 1

@@ -22,7 +22,7 @@ namespace Js
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptRegExpConstructor, RuntimeFunction, lastMatch);
 
     public:
-        JavascriptRegExpConstructor(DynamicType * type);
+        JavascriptRegExpConstructor(DynamicType* type, ConstructorCache* cache);
 
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;

@@ -68,7 +68,7 @@ namespace Js
         _u("PDT")
     };
 
-
+#ifdef INTL_WINGLOB
     //
     // Convert an ES5 date based on double to a WinRT DateTime
     // DateTime is the number of ticks that have elapsed since 1/1/1601 00:00:00 in 100ns precision
@@ -102,6 +102,7 @@ namespace Js
 
          return INTSAFE_E_ARITHMETIC_OVERFLOW;
     }
+#endif
 
     ///------------------------------------------------------------------------------
     /// Get a time value from SYSTEMTIME structure.
@@ -333,21 +334,5 @@ namespace Js
         {
             yearType += 7;
         }
-    }
-
-    double DateUtilities::JsLocalTimeFromVarDate(double dbl)
-    {
-        // So that the arithmetic works even for negative dates, convert the
-        // date to the _actual number of days_ since 0000h 12/30/1899.
-        if (dbl < 0.0)
-            dbl = 2.0 * ceil(dbl) - dbl;
-
-        // Get the local time value.
-        dbl = (dbl - g_kdblJanuary1st1970) * 86400000;
-        if (NumberUtilities::IsNan(dbl))
-        {
-            return dbl;
-        }
-        return NumberUtilities::IsFinite(dbl) ? floor( dbl + 0.5) : dbl;
     }
 }

@@ -42,66 +42,6 @@ namespace Js
 
     template <> bool VarIsImpl<JavascriptPromiseResolveOrRejectFunction>(RecyclableObject* obj);
 
-    class JavascriptPromiseAsyncSpawnExecutorFunction : public RuntimeFunction
-    {
-    protected:
-        DEFINE_VTABLE_CTOR(JavascriptPromiseAsyncSpawnExecutorFunction, RuntimeFunction);
-        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAsyncSpawnExecutorFunction);
-
-    public:
-        JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var target);
-
-        JavascriptGenerator* GetGenerator();
-        Var GetTarget();
-
-    private:
-        Field(JavascriptGenerator*) generator;
-        Field(Var) target; // this
-
-#if ENABLE_TTD
-    public:
-        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
-
-        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
-        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
-#endif
-    };
-
-    template <> bool VarIsImpl<JavascriptPromiseAsyncSpawnExecutorFunction>(RecyclableObject* obj);
-
-    class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction : public RuntimeFunction
-    {
-    protected:
-        DEFINE_VTABLE_CTOR(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction, RuntimeFunction);
-        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction);
-
-    public:
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
-
-        JavascriptGenerator* GetGenerator();
-        Var GetReject();
-        Var GetResolve();
-        bool GetIsReject();
-        Var GetArgument();
-
-    private:
-        Field(JavascriptGenerator*) generator;
-        Field(Var) reject;
-        Field(Var) resolve;
-        Field(bool) isReject;
-        Field(Var) argument;
-
-#if ENABLE_TTD
-    public:
-        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
-
-        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
-        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
-#endif
-    };
-
-    template <> bool VarIsImpl<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(RecyclableObject* obj);
-
     class JavascriptPromiseCapabilitiesExecutorFunction : public RuntimeFunction
     {
     protected:
@@ -256,7 +196,7 @@ namespace Js
 
         uint32 DecrementRemainingElements();
 
-    private:
+    protected:
         Field(JavascriptPromiseCapability*) capabilities;
         Field(uint32) index;
         Field(JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper*) remainingElementsWrapper;
@@ -273,6 +213,36 @@ namespace Js
     };
 
     template <> bool VarIsImpl<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj);
+
+    class JavascriptPromiseAllSettledResolveOrRejectElementFunction : public JavascriptPromiseAllResolveElementFunction
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptPromiseAllSettledResolveOrRejectElementFunction, JavascriptPromiseAllResolveElementFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAllSettledResolveOrRejectElementFunction);
+
+    public:
+        JavascriptPromiseAllSettledResolveOrRejectElementFunction(DynamicType* type);
+        JavascriptPromiseAllSettledResolveOrRejectElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper, bool isRejecting);
+
+        bool IsAlreadyCalled() const;
+        void SetAlreadyCalled(const bool is);
+
+        bool IsRejectFunction();
+
+    private:
+        Field(JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper*) alreadyCalledWrapper;
+        Field(bool) isRejecting;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
+    };
+
+    template <> bool VarIsImpl<JavascriptPromiseAllSettledResolveOrRejectElementFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapability : FinalizableObject
     {
@@ -391,6 +361,7 @@ namespace Js
             static FunctionInfo Resolve;
             static FunctionInfo Then;
             static FunctionInfo Finally;
+            static FunctionInfo AllSettled;
 
             static FunctionInfo Identity;
             static FunctionInfo Thrower;
@@ -400,6 +371,7 @@ namespace Js
             static FunctionInfo ResolveOrRejectFunction;
             static FunctionInfo CapabilitiesExecutorFunction;
             static FunctionInfo AllResolveElementFunction;
+            static FunctionInfo AllSettledResolveOrRejectElementFunction;
 
             static FunctionInfo GetterSymbolSpecies;
         };
@@ -415,6 +387,7 @@ namespace Js
         static Var EntryResolve(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThen(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFinally(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAllSettled(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryThunkFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThenFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
@@ -425,17 +398,24 @@ namespace Js
         static Var EntryIdentityFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThrowerFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAllResolveElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAllSettledResolveOrRejectElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static Var EntryJavascriptPromiseAsyncSpawnExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryJavascriptPromiseAsyncSpawnStepNextExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var CreateRejectedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
         static Var CreateResolvedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
         static Var CreatePassThroughPromise(JavascriptPromise* sourcePromise, ScriptContext* scriptContext);
         static Var CreateThenPromise(JavascriptPromise* sourcePromise, RecyclableObject* fulfillmentHandler, RecyclableObject* rejectionHandler, ScriptContext* scriptContext);
+        
+        static JavascriptPromise* InternalPromiseResolve(Var value, ScriptContext* scriptContext);
+        static Var PromiseResolve(Var constructor, Var value, ScriptContext* scriptContext);
+        
+        static void PerformPromiseThen(
+            JavascriptPromise* sourcePromise,
+            JavascriptPromiseCapability* capability,
+            RecyclableObject* fulfillmentHandler,
+            RecyclableObject* rejectionHandler,
+            ScriptContext* scriptContext);
 
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -444,6 +424,7 @@ namespace Js
 
 
         static JavascriptPromiseCapability* NewPromiseCapability(Var constructor, ScriptContext* scriptContext);
+        static JavascriptPromiseCapability* UnusedPromiseCapability(ScriptContext* scriptContext);
         static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(RecyclableObject* constructor, ScriptContext* scriptContext);
         static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, bool isReject, Var resolution, ScriptContext* scriptContext);
         static void EnqueuePromiseReactionTask(JavascriptPromiseReaction* reaction, Var resolution, ScriptContext* scriptContext);
@@ -487,7 +468,6 @@ namespace Js
         Field(bool) isHandled;
 
     private :
-        static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject);
         bool WillRejectionBeUnhandled();
 
 #if ENABLE_TTD

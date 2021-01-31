@@ -8,17 +8,20 @@ These two blogs posts on contributing code to open source projects are a good re
 
 ## Security
 
-If you believe you have found a security issue in ChakraCore, please share it with us privately following the guidance at the Microsoft [Security TechCenter](https://www.microsoft.com/en-us/msrc/faqs-report-an-issue). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
+If you believe you have found a security issue in ChakraCore 1.11, please share it with Microsoft privately following the guidance at the Microsoft [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
+
+If you find a security issue in the Master branch of ChakraCore but not in 1.11 please join our discord server and private message one of the Core team members.
 
 ## Legal
 
-You will need to complete a Contributor License Agreement (CLA) before your pull request can be accepted. This agreement testifies that you are granting us permission to use the source code you are submitting, and that this work is being submitted under appropriate license that we can use it.
+You will need to complete a Contribution Agreement before your pull request can be accepted. This agreement testifies that you are granting us permission to use the source code you are submitting, and that this work is being submitted under appropriate license that we can use it.
 
-You can complete the CLA by going through the steps at https://cla.microsoft.com. Once we have received the signed CLA, we'll review the request. You will only need to do this once.
+You can read the agreement here: [Contribution Agreement](ContributionAgreement.md)
 
 ## Housekeeping
 
 Your pull request should:
+
 * Include a description of what your change intends to do
 * Be a child commit of a reasonably recent commit in the master branch
 * Pass all unit tests
@@ -28,15 +31,17 @@ Your pull request should:
   * Tests should include reasonable permutations of the target fix/change
   * Include baseline changes with your change
 
-Submissions that have met these requirements will be assigned to a ChakraCore team member for additional testing. Submissions must meet functional and performance expectations, including meeting requirements in scenarios for which the team doesn’t yet have open source tests. This means you may be asked to fix and resubmit your pull request against a new open test case if it fails one of these tests. The ChakraCore team may verify your change by crawling the web with your change built into Chakra. Failures discovered when testing with this technique will not be analyzed by the team, but we will do our best to communicate the issue discovered to you. This approach needs further refinement, we acknowledge.
+Submissions that have met these requirements will be will reviewed by a core contributor. Submissions must meet functional and performance expectations, including meeting requirements in scenarios for which the team doesn’t yet have open source tests. This means you may be asked to fix and resubmit your pull request against a new open test case if it fails one of these tests.
 
-ChakraCore is an organically grown codebase. The consistency of style reflects this. For the most part, the team follows these [coding conventions](https://github.com/Microsoft/ChakraCore/wiki/Coding-Convention). Contributors should also follow them when making submissions. Otherwise, follow the general coding conventions adhered to in the code surrounding your changes. Pull requests that reformat the code will not be accepted.
+ChakraCore is an organically grown codebase. The consistency of style reflects this. For the most part, the team follows these [coding conventions](https://github.com/chakra-core/ChakraCore/wiki/Coding-Convention). Contributors should also follow them when making submissions. Otherwise, follow the general coding conventions adhered to in the code surrounding your changes. Pull requests that reformat the code will not be accepted.
 
 ## Running the tests
 
-The unit tests can be run by following these steps:
-* Choose a build configuration to build and test, e.g. debug and x64.
-* Build `Chakra.Core.sln` for that config.
+The unit tests can be run offline with following these steps:
+
+### a) Windows
+
+* Build `Chakra.Core.sln` for the version of ChakraCore you wish to test e.g. x64 Debug.
   * Specifically, running tests requires that `rl.exe`, `ch.exe`, and `ChakraCore.dll` be built.
 * Call `test\runtests.cmd` and specify the build config
 
@@ -49,20 +54,25 @@ For full coverage, please run unit tests against debug and test for both x86 and
 * `test\runtests.cmd -x86test`
 
 `runtests.cmd` can take more switches that are useful for running a subset of tests.  Read the script file for more information.
-
 `runtests.cmd` looks for the build output in the default build output folder `Build\VcBuild\bin`. If the build output path is changed from this default then use the `-bindir` switch to specify that path.
 
-## Code Flow into Microsoft Edge
+### b) Linux or macOS
 
-Changes that make it into our ChakraCore GitHub master branch have a short journey to Chakra.dll. Code flows daily from GitHub to the internal repository from which builds of Chakra.dll are produced and then it flows into Windows and Microsoft Edge. While code flows quickly on this first leg of the journey, code flow from our internal branch to a Windows flighting branch is subject to any number of delays. So it is difficult to predict when your change in our GitHub repo will make it into a particular Windows flight.
+Build the version of ChakraCore you wish to test - either a Debug or Test (RelWithDebugInfo) build. You will need the ChakraCore library and the `ch` application built.
+
+If building with `cmake` you can then use the `make check` or `ninja check` command to run the test suite.
+Alternatively you can directly run `test/runtests.py` you'll need to specify `-t` (Test build) or `-d` (Debug build).
+
+`runtests.py` can take more switches that are useful for running a subset of tests.  Read the script file for more information.
+`runtests.py` looks for the build output in the default build output folder `out/test/ch` or `out/debug/ch`. If you've used a different path then use `--binary=path` to specify it
 
 ## Issue Labels
 
- - [`help wanted`](https://github.com/Microsoft/ChakraCore/labels/help%20wanted): these issues are specifically well suited for outside contributors.
- - [`good first issue`](https://github.com/Microsoft/ChakraCore/labels/good%20first%20issue): these issues are small and appropriate for people who wish to familiarize themselves with GitHub pull requests and/or ChakraCore's contributor guidelines, build process, and running tests.  We're here to help you get started in open source.
+ - [`help wanted`](https://github.com/chakra-core/ChakraCore/labels/help%20wanted): these issues are specifically well suited for outside contributors.
+ - [`good first issue`](https://github.com/chakra-core/ChakraCore/labels/good%20first%20issue): these issues are small and appropriate for people who wish to familiarize themselves with GitHub pull requests and/or ChakraCore's contributor guidelines, build process, and running tests.  We're here to help you get started in open source.
 
-You are welcome to work on issues that are not tagged with these labels. However, issues without these labels are often deeply involved with the requirements of the various components of ChakraCore. Therefore, please be sure to touch base with a maintainer via comments on the issue before attempting to solve it.
+You are welcome to work on issues that are not tagged with these labels. However, issues without these labels may be fairly complex, therefore please discuss with a core team member via comments on the issue before attempting to solve it.
 
-Remember, for all issues you choose to work on please communicate on the issue that you are claiming it to avoid duplicated work.
+For all issues you choose to work on please communicate on the issue that you are claiming it to avoid duplicated work.
 
 To learn more about our GitHub labels see the [Label Glossary](https://github.com/Microsoft/ChakraCore/wiki/Label-Glossary) on our wiki page.

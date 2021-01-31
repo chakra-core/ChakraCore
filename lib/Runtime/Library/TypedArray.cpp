@@ -213,7 +213,8 @@ namespace Js
         Var nextValue;
         JsUtil::List<Var, ArenaAllocator>* retList = JsUtil::List<Var, ArenaAllocator>::New(alloc);
 
-        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextValue))
+        RecyclableObject* nextFunc = JavascriptOperators::CacheIteratorNext(iterator, scriptContext);
+        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, nextFunc, &nextValue))
         {
             retList->Add(nextValue);
         }
@@ -327,35 +328,8 @@ namespace Js
                         Js::Throw::FatalInternalError();
                     }
 
-                    ArrayBuffer *temp = nullptr;
-                    HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
-                    arrayBuffer = static_cast<ArrayBufferBase *> (temp);
-                    switch (hr)
-                    {
-                    case S_OK:
-                        // We found an IBuffer
-                        fromExternalObject = true;
-                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
-                        // We have an ArrayBuffer now, so we can skip all the object probing.
-                        break;
-
-                    case S_FALSE:
-                        // We didn't find an IBuffer - fall through
-                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
-                        break;
-
-                    default:
-                        // Any FAILURE HRESULT or unexpected HRESULT
-                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
-                        break;
-                    }
-
-                    if (!fromExternalObject)
-                    {
-                        Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
-                        elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
-                    }
+                    Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
+                    elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
                 }
             }
         }
@@ -1372,24 +1346,17 @@ namespace Js
         uint32 beginByteOffset = srcByteOffset + begin * BYTES_PER_ELEMENT;
         uint32 newLength = end - begin;
 
-        if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
-        {
-            JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(this, scriptContext);
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, defaultConstructor, scriptContext);
-            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
+        JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(this, scriptContext);
+        RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, defaultConstructor, scriptContext);
+        AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
-            bool isDefaultConstructor = constructor == defaultConstructor;
-            newTypedArray = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
-            {
-                Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
-                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext);
-            }));
-        }
-        else
+        bool isDefaultConstructor = constructor == defaultConstructor;
+        newTypedArray = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
         {
-            newTypedArray = TypedArray<TypeName, clamped, virtualAllocated>::Create(buffer, beginByteOffset, newLength, scriptContext->GetLibrary());
-        }
+            Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
+            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+            return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext);
+        }));
 
         return newTypedArray;
     }
@@ -1423,17 +1390,17 @@ namespace Js
         }
 
         bool mapping = false;
-        JavascriptFunction* mapFn = nullptr;
+        RecyclableObject* mapFn = nullptr;
         Var mapFnThisArg = nullptr;
 
         if (args.Info.Count >= 3)
         {
-            if (!VarIs<JavascriptFunction>(args[2]))
+            if (!JavascriptConversion::IsCallable(args[2]))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].from"));
             }
 
-            mapFn = VarTo<JavascriptFunction>(args[2]);
+            mapFn = VarTo<RecyclableObject>(args[2]);
 
             if (args.Info.Count >= 4)
             {

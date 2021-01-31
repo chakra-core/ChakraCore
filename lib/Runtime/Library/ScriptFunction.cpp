@@ -20,19 +20,19 @@ using namespace Js;
         {
             JavascriptFunction *function = UnsafeVarTo<JavascriptFunction>(obj);
             return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
-                || JavascriptAsyncFunction::Test(function);
+                || JavascriptAsyncFunction::Test(function) || JavascriptAsyncGeneratorFunction::Test(function);
         }
 
         return false;
     }
 
-    ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
-        : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
+    ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* type)
+        : ScriptFunctionBase(type, proxy->GetFunctionInfo()),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
         hasInlineCaches(false)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
-        Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
+        Assert(proxy->GetDeferredPrototypeType() == type || proxy->GetUndeferredFunctionType() == type);
         DebugOnly(VerifyEntryPoint());
 
 #if ENABLE_NATIVE_CODEGEN
@@ -97,12 +97,10 @@ using namespace Js;
         pfuncScript->SetEnvironment(environment);
 
         ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
-        if (scFuncType)
+        if (scFuncType && pfuncScript->GetType() == functionProxy->GetDeferredPrototypeType())
         {
-            Assert(pfuncScript->GetType() == functionProxy->GetDeferredPrototypeType());
             pfuncScript->GetTypeHandler()->EnsureObjectReady(pfuncScript);
         }
-
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
@@ -122,7 +120,9 @@ using namespace Js;
         // After setting homeobject we need to set the name if the object is ready.
         if ((*infoRef)->GetFunctionProxy()->GetUndeferredFunctionType())
         {
-            if (!scriptFunc->IsAnonymousFunction() && !scriptFunc->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction())
+            if (!scriptFunc->IsAnonymousFunction() && 
+                !scriptFunc->GetFunctionInfo()->IsClassConstructor() && 
+                !scriptFunc->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction())
             {
                 JavascriptString * functionName = scriptFunc->GetDisplayNameImpl();
                 scriptFunc->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
@@ -131,6 +131,39 @@ using namespace Js;
 
         return scriptFunc;
         JIT_HELPER_END(ScrFunc_OP_NewScFuncHomeObj);
+    }
+
+    ScriptFunction * ScriptFunction::OP_NewClassConstructor(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj, RecyclableObject *constructorParent)
+    {
+        JIT_HELPER_NOT_REENTRANT_HEADER(ScrFunc_OP_NewClassConstructor, reentrancylock, (*infoRef)->GetFunctionProxy()->GetScriptContext()->GetThreadContext());
+        FunctionProxy * proxy = (*infoRef)->GetFunctionProxy();
+        if (proxy->GetUndeferredFunctionType() == nullptr)
+        {
+            DynamicTypeHandler * typeHandler = proxy->GetIsAnonymousFunction() 
+                ? proxy->GetScriptContext()->GetLibrary()->AnonymousClassConstructorTypeHandler()
+                : proxy->GetScriptContext()->GetLibrary()->ClassConstructorTypeHandler();
+            ScriptFunctionType * newType = ScriptFunctionType::New(proxy, typeHandler, constructorParent, true);
+            proxy->SetUndeferredFunctionType(newType);
+        }
+        ScriptFunction * scriptFunction = OP_NewScFuncHomeObj(environment, infoRef, homeObj);
+        if (scriptFunction->GetPrototype() != constructorParent)
+        {
+            scriptFunction->SetPrototype(constructorParent);
+        }
+
+        Var length = TaggedInt::ToVarUnchecked((*infoRef)->GetFunctionProxy()->EnsureDeserialized()->GetReportedInParamsCount() - 1);
+        scriptFunction->SetSlot(SetSlotArguments(Constants::NoProperty, 1, length));
+
+        if (!scriptFunction->IsAnonymousFunction() && !scriptFunction->GetFunctionInfo()->HasComputedName())
+        {
+            JavascriptString * functionName = nullptr;
+            bool result = scriptFunction->GetFunctionName(&functionName);
+            Assert(result);
+            scriptFunction->SetSlot(SetSlotArguments(Constants::NoProperty, 2, functionName));
+        }
+
+        return scriptFunction;
+        JIT_HELPER_END(ScrFunc_OP_NewClassConstructor);
     }
 
     void ScriptFunction::SetEnvironment(FrameDisplay * environment)
@@ -345,19 +378,26 @@ using namespace Js;
             charcount_t cch = pFuncBody->LengthInChars();
             size_t cbLength = pFuncBody->LengthInBytes();
             LPCUTF8 pbStart = pFuncBody->GetToStringSource(_u("ScriptFunction::EnsureSourceString"));
+            size_t cbPreludeLength = 0;
             // cch and cbLength refer to the length of the parse, which may be smaller than the length of the to-string function
-            Assert(pFuncBody->StartOffset() >= pFuncBody->PrintableStartOffset());
-            size_t cbPreludeLength = pFuncBody->StartOffset() - pFuncBody->PrintableStartOffset();
+            PrintOffsets* printOffsets = pFuncBody->GetPrintOffsets();
+            if (printOffsets != nullptr)
+            {
+                Assert((printOffsets->cbEndPrintOffset - printOffsets->cbStartPrintOffset) >= cbLength);
+                cbPreludeLength = (printOffsets->cbEndPrintOffset - printOffsets->cbStartPrintOffset) - cbLength;
+
+                Assert(pFuncBody->StartOffset() >= printOffsets->cbStartPrintOffset);
+                cbLength = printOffsets->cbEndPrintOffset - printOffsets->cbStartPrintOffset;
+            }
             Assert(cbPreludeLength < MaxCharCount);
             // the toString of a function may include some prelude, e.g. the computed name expression.
             // We do not store the char-index of the start, but if there are cbPreludeLength bytes difference,
             // then that is an upper bound on the number of characters difference.
             // We also assume that function.toString is relatively infrequent, and non-ascii characters in
             // a prelude are relatively infrequent, so the inaccuracy here should in general be insignificant
-
             BufferStringBuilder builder(cch + static_cast<charcount_t>(cbPreludeLength), scriptContext);
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            size_t decodedCount = utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength + cbPreludeLength, options);
+            size_t decodedCount = utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength, options);
 
             if (decodedCount < cch)
             {
@@ -866,4 +906,112 @@ using namespace Js;
             this->isInstInlineCacheCount = 0;
         }
         SetHasInlineCaches(false);
+    }
+
+    template <> 
+    void FunctionWithComputedName<ScriptFunction>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<AsmJsScriptFunction>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<ScriptFunctionWithInlineCache>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<GeneratorVirtualScriptFunction>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <> 
+    void FunctionWithComputedName<FunctionWithHomeObj<GeneratorVirtualScriptFunction>>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar;
+    }
+
+    template <>
+    void FunctionWithComputedName<FunctionWithHomeObj<ScriptFunction>>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar; 
+        if (GetFunctionInfo()->IsClassConstructor())
+        {
+            // For class with computed name, we wait until now to set the name property.
+            JavascriptString * functionName = nullptr;
+            bool result = GetFunctionName(&functionName);
+            Assert(result);
+            SetSlot(SetSlotArguments(Constants::NoProperty, 2, functionName));
+        }
+    }
+
+    template <>
+    void FunctionWithComputedName<FunctionWithHomeObj<ScriptFunctionWithInlineCache>>::SetComputedNameVar(Var computedNameVar)
+    {
+        this->computedNameVar = computedNameVar; 
+        if (GetFunctionInfo()->IsClassConstructor())
+        {
+            // For class with computed name, we wait until now to set the name property.
+            JavascriptString * functionName = nullptr;
+            bool result = GetFunctionName(&functionName);
+            Assert(result);
+            SetSlot(SetSlotArguments(Constants::NoProperty, 2, functionName));
+        }
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::AsmJsScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableAsmJsScriptFunctionWithComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithHomeObj<Js::ScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithHomeObj;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::ScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunction>>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithHomeObjAndComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::ScriptFunctionWithInlineCache>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithInlineCacheAndComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObj;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::GeneratorVirtualScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableVirtualJavascriptGeneratorFunctionWithComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObjAndComputedName;
     }

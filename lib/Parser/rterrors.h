@@ -161,7 +161,7 @@ RT_ERROR_MSG(JSERR_NonExtensibleObject, 5046, "", "Cannot create property for a 
 RT_ERROR_MSG(JSERR_Property_CannotSet_NullOrUndefined, 5047, "Unable to set property '%s' of undefined or null reference", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_CannotGet_NullOrUndefined, 5048, "Unable to get property '%s' of undefined or null reference", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_CannotDelete_NullOrUndefined, 5049, "Unable to delete property '%s' of undefined or null reference", "Object expected", kjstTypeError, JSERR_NeedObject)
-RT_ERROR_MSG(JSERR_Property_VarDate, 5050, "Unable to access property '%s': type 'VarDate' does not support user-defined properties", "Object expected", kjstTypeError, JSERR_NeedObject)
+// 5050 - Removed
 RT_ERROR_MSG(JSERR_Property_NeedFunction, 5051, "The value of the property '%s' is not a Function object", "Function expected", kjstTypeError, JSERR_NeedFunction)
 RT_ERROR_MSG(JSERR_Property_NeedFunction_NullOrUndefined, 5052, "The value of the property '%s' is null or undefined, not a Function object", "Function expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_Property_CannotHaveAccessorsAndValue, 5053, "", "Invalid property descriptor: cannot both specify accessors and a 'value' attribute", kjstTypeError, VBSERR_ActionNotSupported)
@@ -372,6 +372,7 @@ RT_ERROR_MSG(JSERR_ProxyHandlerReturnedFalse, 5676, "Proxy %s handler returned f
 RT_ERROR_MSG(JSERR_UnicodeRegExpRangeContainsCharClass, 5677, "%s", "Character classes not allowed in a RegExp class range.", kjstSyntaxError, 0)
 RT_ERROR_MSG(JSERR_DuplicateKeysFromOwnPropertyKeys, 5678, "%s", "Proxy's ownKeys trap returned duplicate keys", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidGloFuncDecl, 5679, "The global property %s is not configurable, writable, nor enumerable, therefore cannot be declared as a function", "", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_YieldStarThrowMissing, 5680, "", "Yielded iterator does not have a 'throw' method", kjstTypeError, 0)
 
 //Host errors
 RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)

@@ -69,11 +69,6 @@ namespace utf8
         return ((0x5B >> (((prefix ^ 0xF0) >> 3) & 0x1E)) & 0x03) + 1;
     }
 
-    const char16 WCH_UTF16_HIGH_FIRST  =  char16(0xd800);
-    const char16 WCH_UTF16_HIGH_LAST   =  char16(0xdbff);
-    const char16 WCH_UTF16_LOW_FIRST   =  char16(0xdc00);
-    const char16 WCH_UTF16_LOW_LAST    =  char16(0xdfff);
-
     char16 GetUnknownCharacter(DecodeOptions options = doDefault)
     {
         if ((options & doThrowOnInvalidWCHARs) != 0)
@@ -83,24 +78,9 @@ namespace utf8
         return char16(UNICODE_UNKNOWN_CHAR_MARK);
     }
 
-    inline BOOL InRange(const char16 ch, const char16 chMin, const char16 chMax)
-    {
-        return (unsigned)(ch - chMin) <= (unsigned)(chMax - chMin);
-    }
-
     BOOL IsValidWideChar(char16 ch)
     {
         return (ch < 0xfdd0) || ((ch > 0xfdef) && (ch <= 0xffef)) || ((ch >= 0xfff9) && (ch <= 0xfffd));
-    }
-
-    inline BOOL IsHighSurrogateChar(char16 ch)
-    {
-        return InRange( ch, WCH_UTF16_HIGH_FIRST, WCH_UTF16_HIGH_LAST );
-    }
-
-    inline BOOL IsLowSurrogateChar(char16 ch)
-    {
-        return InRange( ch, WCH_UTF16_LOW_FIRST, WCH_UTF16_LOW_LAST );
     }
 
     _At_(ptr, _In_reads_(end - ptr) _Post_satisfies_(ptr >= _Old_(ptr) - 1 && ptr <= end))

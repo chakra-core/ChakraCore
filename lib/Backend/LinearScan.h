@@ -103,7 +103,7 @@ public:
         linearScanMD(func), opHelperSpilledLiveranges(NULL), currentOpHelperBlock(NULL),
         lastLabel(NULL), numInt32Regs(0), numFloatRegs(0), stackPackInUseLiveRanges(NULL), stackSlotsFreeList(NULL),
         totalOpHelperFullVisitedLength(0), curLoop(NULL), currentBlock(nullptr), currentRegion(nullptr), m_bailOutRecordCount(0),
-        globalBailOutRecordTables(nullptr), lastUpdatedRowIndices(nullptr)
+        globalBailOutRecordTables(nullptr), lastUpdatedRowIndices(nullptr), bailIn(GeneratorBailIn(func, this))
     {
     }
 
@@ -134,7 +134,7 @@ private:
     void                InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionInstr);
     void                InsertStore(IR::Instr *instr, StackSym *sym, RegNum reg);
     void                InsertLoads(StackSym *sym, RegNum reg);
-    void                InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg);
+    IR::Instr*          InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg);
     void                SetDstReg(IR::Instr *instr);
     void                SetSrcRegs(IR::Instr *instr);
     void                SetUses(IR::Instr *instr, IR::Opnd *opnd);
@@ -227,4 +227,99 @@ private:
     static IR::Instr *  InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
     static IR::Instr *  InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 
+    class GeneratorBailIn {
+        // We need to rely on 2 registers `rax` and `rcx` on x64, or `eax` and `ecx` on x86 to generate the bail-in code.
+        // At this point, since `rax` already has the address of the generator's interpreter frame,
+        // we can easily get the symbols' values through something like: mov dst [rax + appropriate offset]
+        //
+        // There are 4 types of symbols that we have to deal with:
+        //  - symbols that are currently on the stack at this point. We need 2 instructions:
+        //     - Load the value to `rcx`: mov rcx [rax + offset]
+        //     - Finally load the value to its stack slot: mov [rbp + stack offset] rcx
+        //  - symbol that is in rax
+        //  - symbol that is in rcx
+        //  - symbols that are in the other registers. We only need 1 instruction:
+        //     - mov reg [rax + offset]
+        //
+        // Since restoring symbols on the stack might mess up values that will be in rax/rcx,
+        // and we want to maintain the invariant that rax has to hold the value of the interpreter
+        // frame, we need to restore the symbols in the following order:
+        //  - symbols in stack
+        //  - symbols in registers
+        //  - symbol in rax
+        //
+        // The following 3 instructions indicate the insertion points for the above cases:
+        struct BailInInsertionPoint
+        {
+            IR::Instr* raxRestoreInstr;
+            IR::Instr* instrInsertStackSym;
+            IR::Instr* instrInsertRegSym;
+        };
+
+        // Represents a symbol that needs to be restored when bailing in.
+        // In normal cases, for a given symbol, whatever bytecode registers that the
+        // symbol has will map directly to the backend symbol with the same id.
+        // However, due to copy-prop, sometimes we would use a different symbol for a given value.
+        // This struct keep track of that fact and generate the restore instruction accordingly.
+        // Additionally, for symbols that are constant but not in the bytecode constant table, we have
+        // to reload the symbol's value directly.
+        struct BailInSymbol
+        {
+            const SymID fromByteCodeRegSlot;
+            const SymID toBackendId;
+            const bool restoreConstDirectly : 1;
+            const Js::Var constValue;
+            BailInSymbol(SymID fromByteCodeRegSlot, SymID toBackendId, bool restoreConstDirectly = false, Js::Var constValue = nullptr):
+                fromByteCodeRegSlot(fromByteCodeRegSlot),
+                toBackendId(toBackendId),
+                restoreConstDirectly(restoreConstDirectly),
+                constValue(constValue) {}
+        };
+
+        Func* const func;
+        LinearScan* const linearScan;
+        const JITTimeFunctionBody* const jitFnBody;
+        BVSparse<JitArenaAllocator> initializedRegs;
+        SListBase<BailInSymbol>* bailInSymbols;
+
+        // Registers needed in the bail-in code.
+        // The register allocator will have to spill these
+        // so that we are free to use them.
+        static constexpr int regNum = 2;
+        const RegNum regs[regNum];
+        IR::RegOpnd* const interpreterFrameRegOpnd;
+        IR::RegOpnd* const tempRegOpnd;
+
+        bool NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const;
+        bool NeedsReloadingSymWhenBailingIn(StackSym* sym) const;
+        uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
+        IR::SymOpnd* CreateGeneratorObjectOpnd() const;
+
+        // Insert instructions to restore symbols in the `bailInSymbols` list
+        void InsertRestoreSymbols(
+            const BVSparse<JitArenaAllocator>& bytecodeUpwardExposedUses,
+            const BVSparse<JitArenaAllocator>& upwardExposedUses,
+            const CapturedValues& capturedValues,
+            BailInInsertionPoint& insertionPoint
+        );
+
+        // Fill `bailInSymbols` list with all of the symbols that need to be restored
+        void BuildBailInSymbolList(
+            const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
+            const BVSparse<JitArenaAllocator>& upwardExposedUses,
+            const CapturedValues& capturedValues
+        );
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        void InsertBailInTrace(BVSparse<JitArenaAllocator>* symbols, IR::Instr* insertBeforeInstr);
+#endif
+    public:
+        GeneratorBailIn(Func* func, LinearScan* linearScan);
+        ~GeneratorBailIn();
+        IR::Instr* GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr);
+        // Spill all registers that we need in order to generate the bail-in code
+        void SpillRegsForBailIn();
+    };
+
+    GeneratorBailIn bailIn;
 };

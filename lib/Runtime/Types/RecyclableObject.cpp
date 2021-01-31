@@ -330,13 +330,20 @@ namespace Js
         Assert(!this->GetScriptContext()->GetThreadContext()->IsScriptActive());
         return E_NOINTERFACE;
     }
-    RecyclableObject* RecyclableObject::GetThisObjectOrUnWrap()
+
+    RecyclableObject* RecyclableObject::GetUnwrappedObject()
     {
         if (VarIs<UnscopablesWrapperObject>(this))
         {
-            return VarTo<UnscopablesWrapperObject>(this)->GetWrappedObject();
+            return UnsafeVarTo<UnscopablesWrapperObject>(this)->GetWrappedObject();
         }
         return this;
+    }
+
+    RecyclableObject* RecyclableObject::GetThisAndUnwrappedInstance(Var* thisVar) const
+    {
+         *thisVar = this->GetLibrary()->GetUndefined();
+        return (RecyclableObject*)this;
     }
 
     // In order to avoid a branch, every object has an entry point if it gets called like a
@@ -512,9 +519,6 @@ namespace Js
         Var aLeft = this;
         if (aLeft == aRight)
         {
-            //In ES5 mode strict equals (===) on same instance of object type VariantDate succeeds.
-            //Hence equals needs to succeed.
-            //goto ReturnTrue;
             *value = TRUE;
             return TRUE;
         }

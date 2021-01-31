@@ -493,6 +493,10 @@ public:
       return m_EscapeOnLastTkStrCon;
     }
 
+    bool LastIdentifierHasEscape()
+    {
+        return m_lastIdentifierHasEscape;
+    }
 
     bool IsOctOrLeadingZeroOnLastTKNumber()
     {
@@ -730,6 +734,7 @@ private:
     BOOL m_doubleQuoteOnLastTkStrCon :1;
     bool m_OctOrLeadingZeroOnLastTKNumber :1;
     bool m_EscapeOnLastTkStrCon:1;
+    bool m_lastIdentifierHasEscape:1;
     BOOL m_fNextStringTemplateIsTagged:1;   // the next string template scanned has a tag (must create raw strings)
     BYTE m_DeferredParseFlags:2;            // suppressStrPid and suppressIdPid    
     bool es6UnicodeMode;                // True if ES6Unicode Extensions are enabled.
