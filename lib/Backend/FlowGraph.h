@@ -358,6 +358,7 @@ private:
     static bool  IsLegalForPathDepBranches(IR::Instr* instr);
     void         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
     Value *      FindValueInLocalThenGlobalValueTableAndUpdate(GlobOpt *globOpt, GlobHashTable * localSymToValueMap, IR::Instr *instr, Sym *dstSym, Sym *srcSym);
+    Value* GetValueForConditionalBranch(IR::BranchInstr* branch, IR::Opnd* opnd, GlobOpt* globOpt, GlobHashTable* localSymToValueMap);
     IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);
 
 #if DBG_DUMP
@@ -777,6 +778,7 @@ public:
     void                SetLoopTopInstr(IR::LabelInstr * loopTop);
     Func *              GetFunc() const { return GetLoopTopInstr()->m_func; }
     bool                IsSymAssignedToInSelfOrParents(StackSym * const sym) const;
+    bool                IsSymAssignedToInSelfOrParents(SymID id) const;
     BasicBlock *        GetAnyTailBlock() const;
 #if DBG_DUMP
     bool                GetHasCall() const { return hasCall; }
