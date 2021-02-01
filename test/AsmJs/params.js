@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -26,8 +27,6 @@ function wrapType(type, name) {
     default: throw new Error("Invalid Type");
   }
 }
-
-let done = false;
 
 const tested = {};
 function test(n) {
@@ -82,38 +81,37 @@ const [forceTest] = WScript.Arguments;
 if (forceTest !== undefined) {
   const res = test(forceTest);
   print(res ? "Module is valid" : "Module is invalid");
-  done = true;
+  WScript.Quit(0);
 }
 
-if (done === false) {
-  let nParams = 8201;
-  let inc = 100;
-  let direction = true;
 
-  while (inc !== 0) {
-    if (test(nParams)) {
-      if (direction) {
-        nParams += inc;
-      } else {
-        direction = true;
-        inc >>= 1;
-        nParams += inc;
-      }
+let nParams = 8201;
+let inc = 100;
+let direction = true;
+
+while (inc !== 0) {
+  if (test(nParams)) {
+    if (direction) {
+      nParams += inc;
     } else {
-      if (!direction) {
-        nParams -= inc;
-      } else {
-        direction = false;
-        inc >>= 1;
-        nParams -= inc;
-      }
+      direction = true;
+      inc >>= 1;
+      nParams += inc;
     }
-
-    if (nParams > 100000 || nParams < 0) {
-      print(`FAILED. Params reached ${nParams} long. Expected an error by now`);
-      break;
+  } else {
+    if (!direction) {
+      nParams -= inc;
+    } else {
+      direction = false;
+      inc >>= 1;
+      nParams -= inc;
     }
   }
 
-  print(`Support at most ${nParams} params`);
+  if (nParams > 100000 || nParams < 0) {
+    print(`FAILED. Params reached ${nParams} long. Expected an error by now`);
+    break;
+  }
 }
+
+print(`Support at most ${nParams} params`);
