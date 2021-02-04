@@ -69,7 +69,6 @@ GlobalBuiltIn(JavascriptObject, Create)
 GlobalBuiltIn(JavascriptObject, GetOwnPropertyDescriptor)
 GlobalBuiltIn(JavascriptObject, PreventExtensions)
 
-GlobalBuiltIn(JavascriptArray, Push) // TODO(jahorto): consider deleting (trivially implementable in JS)
 GlobalBuiltIn(JavascriptArray, Join)
 GlobalBuiltIn(JavascriptArray, Map)
 GlobalBuiltIn(JavascriptArray, Slice)
