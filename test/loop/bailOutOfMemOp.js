@@ -1,12 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 function f0() {
     var printArr = [];
     Object.prototype.m = {};
-    Object.defineProperty(Array.prototype, "5", {});
+    Object.defineProperty(Array.prototype, "5", {writable : true});
 
     for (var iterator = 0; iterator < 10; iterator++) {
         var arr0 = [];
