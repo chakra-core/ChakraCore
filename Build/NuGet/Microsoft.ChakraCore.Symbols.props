@@ -11,6 +11,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win8-arm\native\*">
+      <Link>arm\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>False</Visible>
+    </Content>
   </ItemGroup>
   <ItemGroup Condition=" (Exists('packages.config') Or Exists('packages.$(MSBuildProjectName).config')) And '$(Platform)' == 'x86'">
     <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\*">
