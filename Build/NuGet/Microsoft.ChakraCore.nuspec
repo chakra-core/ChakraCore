@@ -6,7 +6,7 @@
     <version>$version$</version>
     <authors>Microsoft</authors>
     <owners>Chakra Team</owners>
-    <licenseUrl>https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt</licenseUrl>
+    <license type="file">LICENSE.txt</license>
     <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <developmentDependency>true</developmentDependency>
@@ -22,5 +22,7 @@
     <file src="..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win7-x86\native\ChakraCore.dll" />
     <file src="..\VcBuild\bin\x64_release\ChakraCore.dll" target="runtimes\win7-x64\native\ChakraCore.dll" />
     <file src="..\VcBuild\bin\arm_release\ChakraCore.dll" target="runtimes\win8-arm\native\ChakraCore.dll" />
+
+    <file src="..\..\LICENSE.txt" target="" />
   </files>
 </package>
