@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -28,15 +29,15 @@ public:
 template <typename T>
 class SortedList 
 {
-    template <typename T>
+    template <typename U>
     struct DListNode
     {
-        T data;
-        DListNode<T>* prev;
-        DListNode<T>* next;
+        U data;
+        DListNode<U>* prev;
+        DListNode<U>* next;
 
     public:
-        DListNode(const T& data) :
+        DListNode(const U& data) :
             data(data),
             prev(nullptr),
             next(nullptr)

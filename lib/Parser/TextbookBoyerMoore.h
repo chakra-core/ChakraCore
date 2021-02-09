@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // From Cormen, Leiserson and Rivest, ch 34.
@@ -14,9 +15,9 @@ namespace UnifiedRegex
     private:
         typedef typename Chars<C>::Char Char;
 
-        template <typename C>
+        template <typename T>
         friend class TextbookBoyerMoore;
-        template <typename C>
+        template <typename T>
         friend class TextbookBoyerMooreWithLinearMap;
 
     public:
@@ -46,7 +47,7 @@ namespace UnifiedRegex
     template <typename C>
     class TextbookBoyerMooreWithLinearMap : private Chars<C>
     {
-        template <typename C>
+        template <typename T>
         friend struct TextbookBoyerMooreSetup;
         typedef typename Chars<C>::Char Char;
     private:
@@ -95,7 +96,7 @@ namespace UnifiedRegex
     template <typename C>
     class TextbookBoyerMoore : private Chars<C>
     {
-        template <typename C>
+        template <typename T>
         friend struct TextbookBoyerMooreSetup;
         typedef typename Chars<C>::Char Char;
 

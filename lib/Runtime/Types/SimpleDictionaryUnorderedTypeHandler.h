@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -22,8 +23,8 @@ namespace Js
     template<class TPropertyIndex, class TMapKey, bool IsNotExtensibleSupported>
     class SimpleDictionaryUnorderedTypeHandler sealed : public SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>
     {
-        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryUnorderedTypeHandler;
-        template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
+        template <typename _TPropertyIndex, typename _TMapKey, bool _IsNotExtensibleSupported> friend class SimpleDictionaryUnorderedTypeHandler;
+        template <typename _TPropertyIndex, typename _TMapKey, bool _IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
 
     private:
         // A deleted property ID that will be reused for the next property add. The object's slot corresponding to this property

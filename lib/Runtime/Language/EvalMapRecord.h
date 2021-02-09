@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -103,11 +104,11 @@ namespace Js
     template <class Key, class Value, class EntryRecord, class TopLevelDictionary, class NestedKey>
     class TwoLevelHashDictionary
     {
-        template <class T, class Value>
+        template <class T, class V>
         class AutoRestoreSetInAdd
         {
         public:
-            AutoRestoreSetInAdd(T* instance, Value value) :
+            AutoRestoreSetInAdd(T* instance, V value) :
                 instance(instance), value(value)
             {
                 instance->SetIsInAdd(value);
@@ -119,7 +120,7 @@ namespace Js
 
         private:
             T* instance;
-            Value value;
+            V value;
         };
 
     public:
