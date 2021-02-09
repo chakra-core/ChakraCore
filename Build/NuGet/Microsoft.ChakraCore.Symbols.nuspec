@@ -17,7 +17,7 @@
     <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
   </metadata>
   <files>
-    <file src="Microsoft.ChakraCore.Symbols.props" target="build" />
+    <file src="Microsoft.ChakraCore.Shared.props" target="build\Microsoft.ChakraCore.Symbols.props" />
 
     <file src="..\VcBuild\bin\x86_release\ChakraCore.pdb" target="runtimes\win7-x86\native\ChakraCore.pdb" />
     <file src="..\VcBuild\bin\x64_release\ChakraCore.pdb" target="runtimes\win7-x64\native\ChakraCore.pdb" />
