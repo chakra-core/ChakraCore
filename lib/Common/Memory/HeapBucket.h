@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -22,8 +23,8 @@ public:
     bool hasSetupVerifyListConsistencyData;
     SmallHeapBlockT<TBlockAttributes> * nextAllocableBlockHead;
 
-    template <typename TBlockAttributes>
-    void SetupVerifyListConsistencyData(SmallHeapBlockT<TBlockAttributes>* block, bool expectFull, bool expectDispose)
+    template <typename TBlockAttr>
+    void SetupVerifyListConsistencyData(SmallHeapBlockT<TBlockAttr>* block, bool expectFull, bool expectDispose)
     {
         this->nextAllocableBlockHead = block;
         this->expectFull = expectFull;

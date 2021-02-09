@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -63,10 +64,10 @@ namespace JsUtil
                 && memcmp(this->buffer, list->GetBuffer(), sizeof(T)* this->Count()) == 0;
         }
 
-        template<class TAllocator>
-        static ReadOnlyList * New(TAllocator* alloc, __in_ecount(count) T* buffer, DECLSPEC_GUARD_OVERFLOW int count)
+        template<class UAllocator>
+        static ReadOnlyList * New(UAllocator* alloc, __in_ecount(count) T* buffer, DECLSPEC_GUARD_OVERFLOW int count)
         {
-            return AllocatorNew(TAllocator, alloc, ReadOnlyList, buffer, count, alloc);
+            return AllocatorNew(UAllocator, alloc, ReadOnlyList, buffer, count, alloc);
         }
 
         ReadOnlyList(__in_ecount(count) T* buffer, int count, TAllocator* alloc)
@@ -284,10 +285,10 @@ namespace JsUtil
             }
         }
 
-        template<class T>
-        void Copy(const T* list)
+        template<class U>
+        void Copy(const U* list)
         {
-            CompileAssert(sizeof(TElementType) == sizeof(typename T::TElementType));
+            CompileAssert(sizeof(TElementType) == sizeof(typename U::TElementType));
             if (list->Count() > 0)
             {
                 this->EnsureArray(list->Count());

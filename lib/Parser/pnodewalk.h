@@ -1,14 +1,15 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-template <class ResultType, class Context>
+template <class _ResultType, class _Context>
 struct WalkerPolicyBase
 {
-    typedef ResultType ResultType;
-    typedef Context Context;
+    using ResultType = _ResultType ;
+    using Context = _Context ;
 
     inline bool ContinueWalk(ResultType) { return true; }
     inline ResultType DefaultResult() { return ResultType(); }
@@ -21,11 +22,11 @@ struct WalkerPolicyBase
     inline void WalkReference(ParseNode **ppnode, Context context) { }
 };
 
-template <class Context>
-struct WalkerPolicyBase<bool, Context>
+template <class _Context>
+struct WalkerPolicyBase<bool, _Context>
 {
     typedef bool ResultType;
-    typedef Context Context;
+    using Context = _Context ;
 
     inline bool ContinueWalk(ResultType) { return true; }
     inline bool DefaultResult() { return true; }

@@ -6089,7 +6089,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define towupper      PAL_towupper
 #define vsprintf      PAL_vsprintf
 #define vswprintf     PAL_vswprintf
-#define realloc       PAL_realloc
 #define fopen         PAL_fopen
 #define strtok        PAL_strtok
 #define strtoul       PAL_strtoul
@@ -6122,16 +6121,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define ungetc        PAL_ungetc
 #define setvbuf       PAL_setvbuf
 #define atol          PAL_atol
-#define acos          PAL_acos
-#define asin          PAL_asin
-#define atan2         PAL_atan2
-#define exp           PAL_exp
-#define labs          PAL_labs
-#define log           PAL_log
-#define log10         PAL_log10
-#define malloc        PAL_malloc
 #define memmove       memmove_xplat
-#define free          PAL_free
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
 #define unlink        PAL_unlink
@@ -6195,7 +6185,7 @@ PALIMPORT int __cdecl vsprintf(char *, const char *, va_list);
 PALIMPORT int __cdecl sscanf(const char *, const char *, ...);
 PALIMPORT int __cdecl atoi(const char *);
 PALIMPORT LONG __cdecl atol(const char *);
-PALIMPORT long long int __cdecl atoll(const char *);
+//PALIMPORT long long int __cdecl atoll(const char *) __THROW;
 PALIMPORT ULONG __cdecl strtoul(const char *, char **, int);
 PALIMPORT double __cdecl atof(const char *);
 PALIMPORT double __cdecl strtod(const char *, char **);
@@ -6372,39 +6362,6 @@ unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
 }
 #endif
 
-PALIMPORT int __cdecl abs(int);
-PALIMPORT double __cdecl fabs(double);
-#ifndef PAL_STDCPP_COMPAT
-PALIMPORT LONG __cdecl labs(LONG);
-PALIMPORT double __cdecl fabs(double);
-#endif // !PAL_STDCPP_COMPAT
-// clang complains if this is declared with __int64
-PALIMPORT long long __cdecl llabs(long long);
-
-PALIMPORT double __cdecl sqrt(double);
-PALIMPORT double __cdecl log(double);
-PALIMPORT double __cdecl log10(double);
-PALIMPORT double __cdecl exp(double);
-PALIMPORT double __cdecl acos(double);
-PALIMPORT double __cdecl asin(double);
-PALIMPORT double __cdecl atan(double);
-PALIMPORT double __cdecl atan2(double,double);
-PALIMPORT double __cdecl cos(double);
-PALIMPORT double __cdecl sin(double);
-PALIMPORT double __cdecl tan(double);
-PALIMPORT double __cdecl cosh(double);
-PALIMPORT double __cdecl sinh(double);
-PALIMPORT double __cdecl tanh(double);
-PALIMPORT double __cdecl fmod(double, double);
-PALIMPORT float __cdecl fmodf(float, float);
-PALIMPORT double __cdecl floor(double);
-PALIMPORT float __cdecl floorf(float);
-PALIMPORT double __cdecl ceil(double);
-PALIMPORT float __cdecl ceilf(float);
-PALIMPORT float __cdecl fabsf(float);
-PALIMPORT double __cdecl modf(double, double *);
-PALIMPORT float __cdecl modff(float, float *);
-
 PALIMPORT int __cdecl _finite(double);
 PALIMPORT int __cdecl _isnan(double);
 PALIMPORT double __cdecl _copysign(double, double);
@@ -6424,9 +6381,13 @@ inline __int64 abs(__int64 _X) {
 #endif
 #endif
 
-PALIMPORT void * __cdecl malloc(size_t);
-PALIMPORT void   __cdecl free(void *);
-PALIMPORT void * __cdecl realloc(void *, size_t);
+#ifdef INCLUDE_PAL_INTERNAL_
+/* FIXME remove
+ * PAL wrappers around memory management functions, only used inside PAL */
+PALIMPORT void * __cdecl PAL_malloc(size_t);
+PALIMPORT void   __cdecl PAL_free(void *);
+PALIMPORT void * __cdecl PAL_realloc(void *, size_t);
+#endif
 PALIMPORT char * __cdecl _strdup(const char *);
 
 #if defined(_MSC_VER)

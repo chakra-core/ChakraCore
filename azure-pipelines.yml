@@ -33,18 +33,30 @@ jobs:
       maxParallel: 6
       matrix:
         Linux.Debug:
-          image_name: 'ubuntu-18.04'
+          image_name: 'ubuntu-20.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Debug'
           do_test: true
           libtype_flag: ''
         Linux.ReleaseWithDebug:
-          image_name: 'ubuntu-18.04'
+          image_name: 'ubuntu-20.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
           do_test: true
           libtype_flag: ''
         Linux.Release:
+          image_name: 'ubuntu-20.04'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'Release'
+          do_test: false
+          libtype_flag: ''
+        Ubuntu18.Debug:
+          image_name: 'ubuntu-18.04'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'Debug'
+          do_test: true
+          libtype_flag: ''
+        Ubuntu18.Release:
           image_name: 'ubuntu-18.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
