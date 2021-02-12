@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<properties>
+  <authors>Microsoft</authors>
+  <owners>Chakra Team</owners>
+  <licenseFile>LICENSE.txt</licenseFile>
+  <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
+  <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+  <defaultDescription>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</defaultDescription>
+  <defaultReleaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Roadmap#release-notes</defaultReleaseNotes>
+  <commonTags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</commonTags>
+</properties>
