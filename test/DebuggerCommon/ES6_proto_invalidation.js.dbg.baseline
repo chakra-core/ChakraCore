@@ -439,11 +439,13 @@
               "name": "string forEach"
             },
             "Symbol.unscopables": {
-              "find": "boolean true",
-              "findIndex": "boolean true",
-              "fill": "boolean true",
               "copyWithin": "boolean true",
               "entries": "boolean true",
+              "fill": "boolean true",
+              "find": "boolean true",
+              "findIndex": "boolean true",
+              "flat": "boolean true",
+              "flatMap": "boolean true",
               "includes": "boolean true",
               "keys": "boolean true",
               "values": "boolean true"
