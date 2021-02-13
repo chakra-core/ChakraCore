@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<commonProperties>
+  <defaultProperties>
+    <!--
+      Custom properties whose values are used to replace $-delimited tokens (for example, `$description$`)
+      in the `.nuspec` files. For naming these properties, it is recommended to use the camelCase style.
+    -->
+    <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
+    <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Roadmap#release-notes</releaseNotes>
+    <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
+  </defaultProperties>
+  <!--
+    XML content of the following two elements is substituted into a `$CommonMetadataElements$` and
+    `$CommonFileElements$` tokens in the `.nuspec` files. This XML content is completely static and
+    cannot contain $-delimited tokens.
+  -->
+  <commonMetadataElements>
+    <authors>Microsoft</authors>
+    <owners>Chakra Team</owners>
+    <license type="file">LICENSE.txt</license>
+    <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <developmentDependency>true</developmentDependency>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <language>en-US</language>
+  </commonMetadataElements>
+  <commonFileElements>
+    <file src="..\..\LICENSE.txt" target="" />
+  </commonFileElements>
+</commonProperties>
