@@ -27,7 +27,7 @@ var tests = [
             for (let index = 0; index < length; index++)
             {
                 const propName = list[index];
-                assert.areEqual(unscopables[propName], true, `Array.prototype[@@unscopables].${ propName } - \`true\` value excepted, got - \`${ value }\``);
+                assert.areEqual(unscopables[propName], true, `Array.prototype[@@unscopables].${ propName } should equal true`);
             }
 
         }
