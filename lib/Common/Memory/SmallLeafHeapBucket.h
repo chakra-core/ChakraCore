@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 namespace Memory
@@ -10,7 +11,7 @@ class SmallLeafHeapBucketT : public HeapBucketT<SmallLeafHeapBlockT<TBlockAttrib
     typedef HeapBucketT<SmallLeafHeapBlockT<TBlockAttributes>> BaseT;
 protected:
     friend class HeapBucket;
-    template <class TBlockAttributes>
+    template <class TBlockAttr>
     friend class HeapBucketGroup;
 
     void Sweep(RecyclerSweep& recyclerSweep);

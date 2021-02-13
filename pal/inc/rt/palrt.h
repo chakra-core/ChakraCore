@@ -1067,7 +1067,7 @@ _SAFECRT__EXTERN_C
 errno_t __cdecl getenv_s(size_t *_ReturnValue, char *_Dst, size_t _SizeInWords, const char *_Name);
 
 #if defined(__cplusplus) && _SAFECRT_USE_CPP_OVERLOADS
-template <size_t _SizeInWords>
+template <size_t _SzInWords>
 inline
 errno_t __cdecl getenv_s(size_t *_ReturnValue, char *_Dst, size_t _SizeInWords, const char *_Name)
 {

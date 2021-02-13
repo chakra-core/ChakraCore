@@ -40,10 +40,10 @@ check_type_size(size_t SIZEOF_SIZE_T)
 
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in
-  ${CMAKE_CURRENT_SOURCE_DIR}/built/config.h
+  ${CMAKE_CURRENT_BINARY_DIR}/config.h
 )
 
-include_directories(chakra ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/built)
+include_directories(chakra ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 # disable -Wunused-parameter: this is really common when implementing
 #   interfaces, etc.

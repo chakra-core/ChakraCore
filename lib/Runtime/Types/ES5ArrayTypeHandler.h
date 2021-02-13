@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -98,8 +99,8 @@ namespace Js
         template<size_t size>
         friend class SimpleTypeHandler;
         template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> friend class SimpleDictionaryTypeHandlerBase;
-        template <typename T> friend class DictionaryTypeHandlerBase;
-        template <typename T> friend class ES5ArrayTypeHandlerBase;
+        template <typename U> friend class DictionaryTypeHandlerBase;
+        template <typename U> friend class ES5ArrayTypeHandlerBase;
 
     private:
         Field(IndexPropertyDescriptorMap*) indexPropertyMap;
