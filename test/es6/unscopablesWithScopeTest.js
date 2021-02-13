@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -11,6 +12,24 @@ var tests = [
         body: function ()
         {
             assert.isTrue(Array.prototype.hasOwnProperty(Symbol.unscopables), "Array should have Array.prototype[@@unscopables] property");
+        }
+    },
+    {
+        name: "Check if all excepted properties exist in Array.prototype[@@unscopables] and have corresponding values",
+        body: function () 
+        {
+            
+            const unscopables = Array.prototype[Symbol.unscopables];
+
+            const list = ["copyWithin", "entries", "fill", "find", "findIndex", "flat", "flatMap", "includes", "keys", "values"];
+            const length = list.length;
+
+            for (let index = 0; index < length; index++)
+            {
+                const propName = list[index];
+                assert.areEqual(unscopables[propName], true, `Array.prototype[@@unscopables].${ propName } should equal true`);
+            }
+
         }
     },
     {
@@ -26,6 +45,8 @@ var tests = [
             var includes    = globalScope;
             var keys        = globalScope;
             var values      = globalScope;
+            var flat        = globalScope;
+            var flatMap     = globalScope;
             with([])
             {
                 assert.areEqual(globalScope, find,       "find property is not brought into scope by the with statement");
@@ -36,6 +57,8 @@ var tests = [
                 assert.areEqual(globalScope, includes,   "includes property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, keys,       "keys property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, values,     "values property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, flat,       "flat property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, flatMap,    "flatMap property is not brought into scope by the with statement");
             }
         }
     },
@@ -53,6 +76,8 @@ var tests = [
             var keys        = globalScope;
             var values      = globalScope;
             var slice       = globalScope;
+            var flat        = globalScope;
+            var flatMap     = globalScope;
             var a = [];
             a[Symbol.unscopables]["slice"] = true;
             with(a)
@@ -66,6 +91,8 @@ var tests = [
                 assert.areEqual(globalScope, keys,       "keys property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, values,     "values property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, slice,      "slice property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, flat,       "flat property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, flatMap,    "flatMap property is not brought into scope by the with statement");
             }
         }
     },
@@ -236,6 +263,8 @@ var tests = [
             var includes   = globalScope;
             var keys       = globalScope;
             var values     = globalScope;
+            var flat       = globalScope;
+            var flatMap    = globalScope;
             with([])
             {
                 function foo()
@@ -254,6 +283,8 @@ var tests = [
                                 assert.areEqual(globalScope, includes,   "includes property is not brought into scope by the with statement");
                                 assert.areEqual(globalScope, keys,       "keys property is not brought into scope by the with statement");
                                 assert.areEqual(globalScope, values,     "values property is not brought into scope by the with statement");
+                                assert.areEqual(globalScope, flat,       "flat property is not brought into scope by the with statement");
+                                assert.areEqual(globalScope, flatMap,    "flatMap property is not brought into scope by the with statement");
                             }
                         }
                     }
