@@ -746,11 +746,20 @@ case_2:
         }
         
         Var value;
-#if defined(DBG) && !defined(DIAG_DAC)
-        Assert(pThis->GetItemAt((charcount_t)k, &value));
-#else // DBG
-        pThis->GetItemAt((charcount_t)k, &value);
-#endif // DBG
+        // 8. Return the String value consisting of only the code unit at position k in S.
+        if (pThis->GetItemAt((charcount_t)k, &value))
+        {
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+            value = BreakSpeculation(value);
+#endif
+            return value;
+        }
+        else
+        {
+            // Yes, i except this to be
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        
         // 8. Return the String value consisting of only the code unit at position k in S.
 #ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         value = BreakSpeculation(value);
