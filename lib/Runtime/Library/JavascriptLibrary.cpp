@@ -3724,6 +3724,9 @@ namespace Js
         case PropertyIds::codePointAt:
             return BuiltinFunction::JavascriptString_CodePointAt;
 
+        case PropertyIds::at:
+            return BuiltinFunction::JavascriptArray_At;
+
         case PropertyIds::push:
             return BuiltinFunction::JavascriptArray_Push;
 

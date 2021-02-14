@@ -3652,6 +3652,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
 {
     switch(builtInId)
     {
+    case Js::BuiltinFunction::JavascriptArray_At:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_At, callInstr->m_func));
+        break;
+
     case Js::BuiltinFunction::JavascriptArray_Concat:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Concat, callInstr->m_func));
         break;
@@ -3690,6 +3694,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
 
     case Js::BuiltinFunction::JavascriptArray_Unshift:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_Unshift, callInstr->m_func));
+        break;
+
+    case Js::BuiltinFunction::JavascriptString_At:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_At, callInstr->m_func));
         break;
 
     case Js::BuiltinFunction::JavascriptString_Concat:

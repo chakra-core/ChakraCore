@@ -8777,6 +8777,7 @@ Case0:
     // Github: https://github.com/tc39/proposal-relative-indexing-method
     Var JavascriptArray::EntryAt(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        JIT_HELPER_REENTRANT_HEADER(Array_At);
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         
         ARGUMENTS(args, callInfo);
@@ -8805,6 +8806,7 @@ Case0:
         }
         Assert(pArr == nullptr || length.IsUint32Max()); // if pArr is not null lets make sure length is safe to cast, which will only happen if length is a uint32max
         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::AtHelper(pArr, nullptr, obj, length.GetBigIndex(), args, scriptContext));
+        JIT_HELPER_END(Array_At);
     }
 
     template <typename T>
