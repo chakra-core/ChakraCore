@@ -715,7 +715,7 @@ case_2:
 
         // 1. Let O be ? RequireObjectCoercible(this value).
         // 2. Let S be ? ToString(O).
-        GetThisStringArgument(args, scriptContext, _u("String.prototype.charAt"), &pThis);
+        JS_REENTRANT(jsReentLock, GetThisStringArgument(args, scriptContext, _u("String.prototype.at"), &pThis));
 
         // 3. Let len be the length of S.
         charcount_t len = pThis->GetLength();
@@ -745,8 +745,8 @@ case_2:
             return scriptContext->GetLibrary()->GetUndefined();
         }
         
-        Assert(pThis->GetItemAt(k, &value));
         Var value;
+        Assert(pThis->GetItemAt((charcount_t)k, &value));
         // 8. Return the String value consisting of only the code unit at position k in S.
 #ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         value = BreakSpeculation(value);
