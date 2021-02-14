@@ -745,20 +745,13 @@ case_2:
             return scriptContext->GetLibrary()->GetUndefined();
         }
         
+        Assert(pThis->GetItemAt(k, &value));
         Var value;
-        // Return the String value consisting of only the code unit at position k in S.
-        if (pThis->GetItemAt((charcount_t)k, &value))
-        {
+        // 8. Return the String value consisting of only the code unit at position k in S.
 #ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
-            value = BreakSpeculation(value);
+        value = BreakSpeculation(value);
 #endif
-            return value;
-        }
-        else
-        {
-            // Edge case?
-            return scriptContext->GetLibrary()->GetEmptyString();
-        }
+        return value;
     }
 
     Var JavascriptString::EntryCharAt(RecyclableObject* function, CallInfo callInfo, ...)
