@@ -12,7 +12,7 @@ const at = ArrayPrototype.at;
 
 const tests = [
     {
-        name: "Existance of Array.prototype.at",
+        name: "Existence of Array.prototype.at",
         body: function () {
             assert.isTrue(typeof at === "function", "Array.prototype.at should be a function");
         }

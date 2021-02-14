@@ -12,7 +12,7 @@ const at = StringPrototype.at;
 
 const tests = [
     {
-        name: "Existance of String.prototype.at",
+        name: "Existnce of String.prototype.at",
         body: function () {
             assert.isTrue(typeof at === "function", "String.prototype.at should be a function");
         }

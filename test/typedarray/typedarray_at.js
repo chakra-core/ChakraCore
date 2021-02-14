@@ -11,7 +11,7 @@ const at = TypedArrayPrototype.at;
 
 const tests = [
     {
-        name: "Existance of TypedArray.prototype.at",
+        name: "Existence of TypedArray.prototype.at",
         body: function () {
             assert.isTrue(typeof at === "function", "TypedArray.prototype.at should be a function");
         }
