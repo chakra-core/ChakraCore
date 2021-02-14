@@ -1,8 +1,8 @@
 //-------------------------------------------------------------------------------------------------------
-        // Copyright (C) Microsoft. All rights reserved.
-        // Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
-        // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
-        //-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
         // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
         // This file was generated with tools/regenByteCode.py
 
