@@ -8821,7 +8821,7 @@ Case0:
             JS_REENTRANT(jsReentLock, relativeIndex = NumberUtilities::TryToInt64(JavascriptConversion::ToInteger(args[1], scriptContext)));
         }
 
-        // 4. If relativeIndex ≥ 0, then
+        // 4. If relativeIndex >= 0, then
         //     a. Let k be relativeIndex.
         // 5. Else,
         //     a. Let k be len + relativeIndex.
@@ -8832,7 +8832,7 @@ Case0:
             k += (int64_t)length;
         }
         
-        // 6. If k < 0 or k ≥ len, then return undefined.
+        // 6. If k < 0 or k >= len, then return undefined.
         if (k < 0 || k >= (int64_t)length)
         {
             return scriptContext->GetLibrary()->GetUndefined();
