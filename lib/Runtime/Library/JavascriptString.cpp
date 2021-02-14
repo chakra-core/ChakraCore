@@ -759,12 +759,6 @@ case_2:
             // Yes, i except this to be
             return scriptContext->GetLibrary()->GetUndefined();
         }
-        
-        // 8. Return the String value consisting of only the code unit at position k in S.
-#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
-        value = BreakSpeculation(value);
-#endif
-        return value;
     }
 
     Var JavascriptString::EntryCharAt(RecyclableObject* function, CallInfo callInfo, ...)
