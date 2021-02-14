@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 /*
@@ -19,6 +20,7 @@ LIBRARY_FUNCTION(Math,          Asin,               1,    BIF_TypeSpecUnaryToFlo
 LIBRARY_FUNCTION(Math,          Atan,               1,    BIF_TypeSpecUnaryToFloat                          , Math::EntryInfo::Atan)
 LIBRARY_FUNCTION(Math,          Atan2,              2,    BIF_TypeSpecAllToFloat                            , Math::EntryInfo::Atan2)
 LIBRARY_FUNCTION(Math,          Ceil,               1,    BIF_TypeSpecDstToInt | BIF_TypeSpecSrc1ToFloat    , Math::EntryInfo::Ceil)
+LIBRARY_FUNCTION(JavascriptString,        At,                 2,    BIF_UseSrc0                                       , JavascriptString::EntryInfo::At)
 LIBRARY_FUNCTION(JavascriptString,        CodePointAt,        2,    BIF_TypeSpecSrc2ToInt | BIF_UseSrc0               , JavascriptString::EntryInfo::CodePointAt)
 LIBRARY_FUNCTION(JavascriptString,        CharAt,             2,    BIF_UseSrc0                                       , JavascriptString::EntryInfo::CharAt  )
 LIBRARY_FUNCTION(JavascriptString,        CharCodeAt,         2,    BIF_UseSrc0                                       , JavascriptString::EntryInfo::CharCodeAt )
@@ -60,6 +62,7 @@ LIBRARY_FUNCTION(Math,          Round,              1,    BIF_TypeSpecDstToInt |
 LIBRARY_FUNCTION(Math,          Sin,                1,    BIF_TypeSpecUnaryToFloat                          , Math::EntryInfo::Sin)
 LIBRARY_FUNCTION(Math,          Sqrt,               1,    BIF_TypeSpecUnaryToFloat                          , Math::EntryInfo::Sqrt)
 LIBRARY_FUNCTION(Math,          Tan,                1,    BIF_TypeSpecUnaryToFloat                          , Math::EntryInfo::Tan)
+LIBRARY_FUNCTION(JavascriptArray,         At,                 2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::At)
 LIBRARY_FUNCTION(JavascriptArray,         Concat,             15,   BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptArray::EntryInfo::Concat)
 LIBRARY_FUNCTION(JavascriptArray,         IndexOf,            2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::IndexOf)
 LIBRARY_FUNCTION(JavascriptArray,         Includes,           2,    BIF_UseSrc0                                       , JavascriptArray::EntryInfo::Includes)

@@ -26,6 +26,11 @@
             "fromCodePoint": "function <large string>",
             "raw": "function <large string>"
           },
+          "at": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string at"
+          },
           "indexOf": {
             "#__proto__": "function <large string>",
             "length": "number 1",
@@ -293,6 +298,11 @@
               "from": "function <large string>",
               "of": "function <large string>"
             },
+            "at": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string at"
+            },
             "push": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -439,6 +449,7 @@
               "name": "string forEach"
             },
             "Symbol.unscopables": {
+              "at": "boolean true",
               "copyWithin": "boolean true",
               "entries": "boolean true",
               "fill": "boolean true",
@@ -522,6 +533,11 @@
               "from": "function <large string>",
               "of": "function <large string>"
             },
+            "at": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string at"
+            },
             "push": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -668,6 +684,7 @@
               "name": "string forEach"
             },
             "Symbol.unscopables": {
+              "at": "boolean true",
               "copyWithin": "boolean true",
               "entries": "boolean true",
               "fill": "boolean true",

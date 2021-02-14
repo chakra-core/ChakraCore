@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -233,6 +234,7 @@ namespace Js
         {
         public:
             static FunctionInfo NewInstance;
+            static FunctionInfo At;
             static FunctionInfo Concat;
             static FunctionInfo Every;
             static FunctionInfo Filter;
@@ -271,6 +273,7 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
         static Var ProfiledNewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAt(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryConcat(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEvery(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFilter(RecyclableObject* function, CallInfo callInfo, ...);
@@ -502,6 +505,8 @@ namespace Js
         template <typename T = uint32>
         static Var SliceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         static Var SliceObjectHelper(RecyclableObject* obj, uint32 sliceStart, uint32 start, JavascriptArray* newArr, RecyclableObject* newObj, uint32 newLen, ScriptContext* scriptContext);
+        template <typename T = uint32>
+        static Var AtHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var EveryHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>

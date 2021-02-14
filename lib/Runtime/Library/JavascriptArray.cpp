@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -8768,6 +8769,89 @@ Case0:
 #endif
         JS_REENTRANT_UNLOCK(jsReentLock,
             return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value));
+    }
+
+    // Relative indexing proposal 
+    // Array.prototype.at(index): https://tc39.es/proposal-relative-indexing-method/#sec-array.prototype.at
+    // Spec: https://tc39.es/proposal-relative-indexing-method
+    // Github: https://github.com/tc39/proposal-relative-indexing-method
+    Var JavascriptArray::EntryAt(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.at"));
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_at);
+
+        if (args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.at"));
+        }
+
+        BigIndex length;
+        JavascriptArray* pArr = nullptr;
+        RecyclableObject* obj = nullptr;
+
+        JS_REENTRANT(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.at"), &pArr, &obj, &length));
+
+        if (length.IsSmallIndex())
+        {
+            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::AtHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext));
+        }
+        Assert(pArr == nullptr || length.IsUint32Max()); // if pArr is not null lets make sure length is safe to cast, which will only happen if length is a uint32max
+        JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::AtHelper(pArr, nullptr, obj, length.GetBigIndex(), args, scriptContext));
+    }
+
+    template <typename T>
+    Var JavascriptArray::AtHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext)
+    {
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, pArr);
+
+        // 3. Let relativeIndex be ? ToInteger(index).
+        int64_t relativeIndex = 0;
+
+        if (args.Info.Count > 1)
+        {
+            JS_REENTRANT(jsReentLock, relativeIndex = NumberUtilities::TryToInt64(JavascriptConversion::ToInteger(args[1], scriptContext)));
+        }
+
+        // 4. If relativeIndex ≥ 0, then
+        //     a. Let k be relativeIndex.
+        // 5. Else,
+        //     a. Let k be len + relativeIndex.
+        int64_t k = relativeIndex;
+        
+        if (relativeIndex < 0)
+        {
+            k += (int64_t)length;
+        }
+        
+        // 6. If k < 0 or k ≥ len, then return undefined.
+        if (k < 0 || k >= (int64_t)length)
+        {
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
+        
+        
+        if (typedArrayBase)
+        {
+            // %typedarray%.prototype.at(index): https://tc39.es/proposal-relative-indexing-method/#sec-array.prototype.at
+            // 8. Return ? Get(O, ! ToString(k)).
+            return typedArrayBase->DirectGetItem((uint32_t)k);
+        }
+        else
+        {
+            Var element;
+            // 7. Return ? Get(O, ! ToString(k)).
+            JS_REENTRANT(jsReentLock, element = JavascriptOperators::GetItem(obj, (T)k, scriptContext));
+            return element;
+        }
     }
 
     Var JavascriptArray::EntryEvery(RecyclableObject* function, CallInfo callInfo, ...)
