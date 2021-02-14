@@ -746,7 +746,7 @@ case_2:
         }
         
         Var value;
-        Assert(pThis->GetItemAt((charcount_t)k, &value));
+        AssertOrFailFast(pThis->GetItemAt((charcount_t)k, &value));
         // 8. Return the String value consisting of only the code unit at position k in S.
 #ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         value = BreakSpeculation(value);
