@@ -2,6 +2,12 @@
 <regress-exe>
   <test>
     <default>
+      <files>string_at.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>charAt.js</files>
       <baseline>charAt.baseline</baseline>
     </default>
