@@ -9,6 +9,8 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 const ArrayPrototype = Array.prototype;
 const at = ArrayPrototype.at;
 
+const call = Function.call.bind(Function.call); // (fn: Function, thisArg: any, ...args: any[]) => any
+
 
 const tests = [
     {
@@ -42,7 +44,7 @@ const tests = [
         }
     },
     {
-        name: "Array.prototype.at called on invalid object",
+        name: "Array.prototype.at called on nullish object",
         body: function () {
             assert.throws(() => { at.call(null) }, TypeError);
             assert.throws(() => { at.call(undefined) }, TypeError);
@@ -112,6 +114,16 @@ const tests = [
 
             assert.areEqual(array.at(index), 1, 'result of array.at(index) should be 1');
             assert.areEqual(count, 1, 'The value of count should be 1');
+        }
+    },
+    {
+        name: "Array.prototype.at called on Array-Like object",
+        body: function () {
+            const arraylike = { 0: 1, 1: 2, 2: 3, length: 2 };
+
+            assert.areEqual(call(at, arraylike, 0), 1, `call(at, arraylike, 0) should be 1`);
+            assert.areEqual(call(at, arraylike, -1), 2, `call(at, arraylike, -1) should be 2`); // -1 + arraylike.length === 1
+            assert.areEqual(call(at, arraylike, 2), undefined, `call(at, arraylike, 2) should be undefined`);
         }
     }
 ];

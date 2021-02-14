@@ -9,6 +9,7 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 const TypedArrayPrototype = Object.getPrototypeOf(Int8Array).prototype;
 const at = TypedArrayPrototype.at;
 
+
 const tests = [
     {
         name: "Existence of TypedArray.prototype.at",

@@ -9,6 +9,8 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 const StringPrototype = String.prototype;
 const at = StringPrototype.at;
 
+const call = Function.call.bind(Function.call); // (fn: Function, thisArg: any, ...args: any[]) => any
+
 
 const tests = [
     {
@@ -44,8 +46,10 @@ const tests = [
     {
         name: "String.prototype.at called on invalid object",
         body: function () {
-            assert.throws(() => { at.call(null) }, TypeError);
-            assert.throws(() => { at.call(undefined) }, TypeError);
+            // on object without toString() should throw 
+            assert.throws(() => { call(at, Object.create(null)) }, TypeError);
+            assert.throws(() => { call(at, null) }, TypeError);
+            assert.throws(() => { call(at, undefined) }, TypeError);
         }
     },
     {
@@ -108,6 +112,21 @@ const tests = [
 
             assert.areEqual(string.at(index), "2", 'result of string.at(index) should be "2"');
             assert.areEqual(count, 1, 'The value of count should be 1');
+        }
+    },
+    {
+        name: "String.prototype.at called on to-stringable object",
+        body: function () {
+            const object = {
+                toString() {
+                    return "Test";
+                }
+            }
+            
+            assert.areEqual(call(at, object, 0), "T", 'call(at, object, 0) should be "T"');
+            assert.areEqual(call(at, object, -1), "t", 'call(at, object, -1) should be "t"');
+            assert.areEqual(call(at, object, 1), "e", 'call(at, object, 1) should be "e"');
+            assert.areEqual(call(at, object, 2), "s", 'call(at, object, 2) should be "T"');
         }
     }
 ];
