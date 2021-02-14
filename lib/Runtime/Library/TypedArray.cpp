@@ -1590,9 +1590,8 @@ namespace Js
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_at);
 
         TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.at"));
-        uint32 length = typedArrayBase->GetLength();
 
-        return JavascriptArray::AtHelper(nullptr, typedArrayBase, typedArrayBase, length, args, scriptContext);
+        return JavascriptArray::AtHelper<uint32>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
     }
 
     Var TypedArrayBase::EntryCopyWithin(RecyclableObject* function, CallInfo callInfo, ...)

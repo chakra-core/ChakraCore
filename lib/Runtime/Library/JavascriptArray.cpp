@@ -8854,6 +8854,8 @@ Case0:
         }
     }
 
+    template Var JavascriptArray::AtHelper<uint32_t>(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, uint32_t length, Arguments& args, ScriptContext* scriptContext);
+
     Var JavascriptArray::EntryEvery(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
