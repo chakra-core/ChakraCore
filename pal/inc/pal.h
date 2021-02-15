@@ -5163,6 +5163,19 @@ PALIMPORT
 inline
 LONGLONG
 PALAPI
+InterlockedIncrement16(
+    IN OUT SHORT volatile *lpAddend)
+{
+    SHORT result = __sync_add_and_fetch(lpAddend, (SHORT)1);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
+}
+
+EXTERN_C
+PALIMPORT
+inline
+LONGLONG
+PALAPI
 InterlockedIncrement64(
     IN OUT LONGLONG volatile* lpAddend)
 {
