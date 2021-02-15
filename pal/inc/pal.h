@@ -6159,7 +6159,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define ungetc        PAL_ungetc
 #define setvbuf       PAL_setvbuf
 #define atol          PAL_atol
-#define memmove       memmove_xplat
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
 #define unlink        PAL_unlink
