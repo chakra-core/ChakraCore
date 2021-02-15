@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -216,6 +217,7 @@ namespace Js
         {
         public:
             static FunctionInfo NewInstance;
+            static FunctionInfo At;
             static FunctionInfo CharAt;
             static FunctionInfo CharCodeAt;
             static FunctionInfo CodePointAt;
@@ -262,6 +264,7 @@ namespace Js
         };
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAt(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCharAt(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCharCodeAt(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCodePointAt(RecyclableObject* function, CallInfo callInfo, ...);

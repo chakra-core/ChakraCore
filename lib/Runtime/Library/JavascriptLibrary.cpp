@@ -2021,7 +2021,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(arrayPrototype, mode, 26);
+        typeHandler->Convert(arrayPrototype, mode, 27);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterArray
         // so that the update is in sync with profiler
 
@@ -2032,6 +2032,7 @@ namespace Js
 
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
+        builtinFuncs[BuiltinFunction::JavascriptArray_At]                 = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::at,              &JavascriptArray::EntryInfo::At,                1);
         builtinFuncs[BuiltinFunction::JavascriptArray_Push]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::push,            &JavascriptArray::EntryInfo::Push,              1);
         builtinFuncs[BuiltinFunction::JavascriptArray_Concat]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::concat,          &JavascriptArray::EntryInfo::Concat,            1);
         builtinFuncs[BuiltinFunction::JavascriptArray_Join]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::join,            &JavascriptArray::EntryInfo::Join,              1);
@@ -2104,6 +2105,7 @@ namespace Js
 
         DynamicType* dynamicType = DynamicType::New(scriptContext, TypeIds_Object, library->nullValue, nullptr, NullTypeHandler<false>::GetDefaultInstance(), false);
         DynamicObject* unscopablesList = DynamicObject::New(library->GetRecycler(), dynamicType);
+        unscopablesList->SetProperty(PropertyIds::at,         JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
         unscopablesList->SetProperty(PropertyIds::copyWithin, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
         unscopablesList->SetProperty(PropertyIds::entries,    JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
         unscopablesList->SetProperty(PropertyIds::fill,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
@@ -2321,6 +2323,7 @@ namespace Js
         library->AddMember(typedarrayPrototype, PropertyIds::constructor, library->typedArrayConstructor);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::set, &TypedArrayBase::EntryInfo::Set, 2);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::subarray, &TypedArrayBase::EntryInfo::Subarray, 2);
+        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::at, &TypedArrayBase::EntryInfo::At, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::copyWithin, &TypedArrayBase::EntryInfo::CopyWithin, 2);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::every, &TypedArrayBase::EntryInfo::Every, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::fill, &TypedArrayBase::EntryInfo::Fill, 1);
@@ -3721,6 +3724,9 @@ namespace Js
         case PropertyIds::codePointAt:
             return BuiltinFunction::JavascriptString_CodePointAt;
 
+        case PropertyIds::at:
+            return BuiltinFunction::JavascriptArray_At;
+
         case PropertyIds::push:
             return BuiltinFunction::JavascriptArray_Push;
 
@@ -4380,7 +4386,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeStringPrototype(DynamicObject* stringPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(stringPrototype, mode, 38);
+        typeHandler->Convert(stringPrototype, mode, 39);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterString
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = stringPrototype->GetScriptContext();
@@ -4401,6 +4407,7 @@ namespace Js
             /* builtinFuncs[BuiltinFunction::String_Normalize] =*/library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::normalize,          &JavascriptString::EntryInfo::Normalize,            0);
         }
 
+        builtinFuncs[BuiltinFunction::JavascriptString_At]                = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::at,                 &JavascriptString::EntryInfo::At,               1);
         builtinFuncs[BuiltinFunction::JavascriptString_CharAt]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charAt,             &JavascriptString::EntryInfo::CharAt,               1);
         builtinFuncs[BuiltinFunction::JavascriptString_CharCodeAt]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charCodeAt,         &JavascriptString::EntryInfo::CharCodeAt,           1);
         builtinFuncs[BuiltinFunction::JavascriptString_Concat]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::concat,             &JavascriptString::EntryInfo::Concat,               1);

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -41,6 +42,7 @@ BUILTIN(GlobalObject, ChWriteTraceEvent, EntryChWriteTraceEvent, FunctionInfo::E
 #endif /* IR_VIEWER */
 
 BUILTIN(JavascriptArray, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(JavascriptArray, At, EntryAt, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptArray, Concat, EntryConcat, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptArray, Every, EntryEvery, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptArray, Filter, EntryFilter, FunctionInfo::ErrorOnNew)
@@ -219,6 +221,7 @@ BUILTIN(JavascriptRegExp, GetterSticky, EntryGetterSticky, FunctionInfo::ErrorOn
 BUILTIN(JavascriptRegExp, GetterUnicode, EntryGetterUnicode, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptRegExp, GetterDotAll, EntryGetterDotAll, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptString, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(JavascriptString, At, EntryAt, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptString, CharAt, EntryCharAt, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptString, CharCodeAt, EntryCharCodeAt, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptString, CodePointAt, EntryCodePointAt, FunctionInfo::ErrorOnNew)
@@ -348,6 +351,7 @@ BUILTIN(TypedArrayBase, Set, EntrySet, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, Subarray, EntrySubarray, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, Of, EntryOf, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, From, EntryFrom, FunctionInfo::ErrorOnNew)
+BUILTIN(TypedArrayBase, At, EntryAt, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, CopyWithin, EntryCopyWithin, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, Entries, EntryEntries, FunctionInfo::ErrorOnNew)
 BUILTIN(TypedArrayBase, Every, EntryEvery, FunctionInfo::ErrorOnNew)
