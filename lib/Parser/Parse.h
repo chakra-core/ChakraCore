@@ -315,11 +315,11 @@ protected:
     HashTbl * GetHashTbl() { return this->GetScanner()->GetHashTbl(); }
 
     LPCWSTR GetTokenString(tokens token);
-    __declspec(noreturn) void Error(HRESULT hr, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
+    DECLSPEC_NORETURN void Error(HRESULT hr, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
 private:
-    __declspec(noreturn) void Error(HRESULT hr, ParseNodePtr pnode);
-    __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
-    __declspec(noreturn) static void OutOfMemory();
+    DECLSPEC_NORETURN void Error(HRESULT hr, ParseNodePtr pnode);
+    DECLSPEC_NORETURN void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
+    DECLSPEC_NORETURN static void OutOfMemory();
 
     void EnsureStackAvailable();
 

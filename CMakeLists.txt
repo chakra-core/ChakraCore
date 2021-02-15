@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set(COMPILER_IS_CLANG 1)
+  set(COMPILER_IS_GNU 0)
+elseif (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  set(COMPILER_IS_CLANG 0)
+  set(COMPILER_IS_GNU 1)
+else ()
+  set(COMPILER_IS_CLANG 0)
+  set(COMPILER_IS_GNU 0)
+endif ()
+
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 
 # Disable expected CMake workflow
@@ -355,32 +366,42 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -Wno-ignored-attributes\
-        -Wno-parentheses-equality\
         -Wno-reorder\
-        -Wno-microsoft\
         -Wno-unused-value\
-        -Wno-int-to-void-pointer-cast\
         -Wno-invalid-offsetof\
-        -Wno-undefined-inline\
-        -Wno-inconsistent-missing-override\
-        -Wno-c++14-extensions\
-        -Wno-macro-redefined\
         -Wno-pragmas\
-        -Wno-invalid-token-paste\
         -Wno-format\
-        -Wno-invalid-noreturn\
-        -Wno-null-arithmetic\
-        -Wno-tautological-constant-out-of-range-compare\
-        -Wno-tautological-undefined-compare\
-        -Wno-address-of-temporary\
-        -Wno-null-conversion\
         -Wno-return-type\
         -Wno-switch\
-        -Wno-int-to-pointer-cast\
-        -Wno-tautological-constant-compare\
-        -Wno-enum-compare-switch\
-        -Wno-unknown-warning-option"
+        -Wno-int-to-pointer-cast"
     )
+
+    if (COMPILER_IS_CLANG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -Wno-address-of-temporary\
+            -Wno-c++14-extensions\
+            -Wno-enum-compare-switch\
+            -Wno-inconsistent-missing-override\
+            -Wno-int-to-void-pointer-cast\
+            -Wno-invalid-noreturn\
+            -Wno-invalid-token-paste\
+            -Wno-macro-redefined\
+            -Wno-microsoft\
+            -Wno-null-conversion\
+            -Wno-null-arithmetic\
+            -Wno-parentheses-equality\
+            -Wno-tautological-constant-compare\
+            -Wno-tautological-constant-out-of-range-compare\
+            -Wno-tautological-undefined-compare\
+            -Wno-undefined-inline\
+            -Wno-unknown-warning-option"
+        )
+    elseif(COMPILER_IS_GNU)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -Wno-conversion-null"
+        )
+    endif()
+
         # notes..
         # -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
         # -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
@@ -395,17 +416,23 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         # -Wno-unknown-warning-option ... well, some of the new switches are not
         # recognized by older compilers and they fail. So, put this one and not fail
 
+
+
     include(Build/CMakeFeatureDetect.cmake)
 
+    # CXX / CC COMPILER FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         ${CXX_DO_NOT_OPTIMIZE_SIBLING_CALLS} \
-        -fno-omit-frame-pointer \
-        -fdelayed-template-parsing"
-        )
+        -fno-omit-frame-pointer"
+    )
 
-    # CXX / CC COMPILER FLAGS
+    if (COMPILER_IS_CLANG)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -fdelayed-template-parsing \
+            -fasm-blocks")
+    endif()
+
     add_compile_options(
-        -fasm-blocks
         -fms-extensions
         -fwrapv # Treat signed integer overflow as two's complement
     )

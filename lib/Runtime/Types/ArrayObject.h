@@ -36,7 +36,7 @@ namespace Js
         // For boxing stack instance
         ArrayObject(ArrayObject * instance, bool deepCopy);
 
-        void __declspec(noreturn) ThrowItemNotConfigurableError(PropertyId propId = Constants::NoProperty);
+        void DECLSPEC_NORETURN ThrowItemNotConfigurableError(PropertyId propId = Constants::NoProperty);
         void VerifySetItemAttributes(PropertyId propId, PropertyAttributes attributes);
 
     public:

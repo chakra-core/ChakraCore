@@ -90,7 +90,7 @@ namespace Wasm
 #endif
 
         template<WasmType... T>
-        __declspec(noreturn) void CompileAssertCases()
+        DECLSPEC_NORETURN void CompileAssertCases()
         {
             CompileAssertMsg(SwitchCaseChecks::bv<T...>::value == AllLocalTypes, "WasmTypes missing in switch-case");
             AssertOrFailFastMsg(UNREACHED, "The WasmType case should have been handled");

@@ -774,7 +774,7 @@ private:
         return m_ptoken->tk = tkScanError;
     }
 
-    __declspec(noreturn) void Error(HRESULT hr)
+    DECLSPEC_NORETURN void Error(HRESULT hr)
     {
         m_pchMinTok = m_currentCharacter;
         m_cMinTokMultiUnits = this->m_cMultiUnits;

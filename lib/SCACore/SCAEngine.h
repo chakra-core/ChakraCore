@@ -169,25 +169,25 @@ namespace Js
 
         void ThrowIfFailed(HRESULT hr) const;
 
-        void __declspec(noreturn) ThrowSCAUnsupported() const
+        void DECLSPEC_NORETURN ThrowSCAUnsupported() const
         {
             // E_SCA_UNSUPPORTED
             ThrowIfFailed(E_FAIL);
         }
 
-        void __declspec(noreturn) ThrowSCANewVersion() const
+        void DECLSPEC_NORETURN ThrowSCANewVersion() const
         {
             // E_SCA_NEWVERSION
             ThrowIfFailed(E_FAIL);
         }
 
-        void __declspec(noreturn) ThrowSCADataCorrupt() const
+        void DECLSPEC_NORETURN ThrowSCADataCorrupt() const
         {
             // E_SCA_DATACORRUPT
             ThrowIfFailed(E_FAIL);
         }
 
-        void __declspec(noreturn) ThrowSCAObjectDetached() const
+        void DECLSPEC_NORETURN ThrowSCAObjectDetached() const
         {
             // E_SCA_TRANSFERABLE_NEUTERED
             ThrowIfFailed(E_FAIL);

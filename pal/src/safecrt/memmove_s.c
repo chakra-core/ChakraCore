@@ -18,26 +18,10 @@
 *                      Return ENOMEM when there is no memory for buffer
 *******************************************************************************/
 
-// use stdlib instead of PAL defined malloc to avoid forced Wint-to-pointer warning
-#include <stdlib.h>
 #include <string.h>
-
-#ifndef _VALIDATE_RETURN_ERRCODE
-#define _VALIDATE_RETURN_ERRCODE(c, e) \
-    if (!(c)) return e
-#endif
-
-#ifndef ENOMEM
-#define ENOMEM 12
-#endif
-
-#ifndef EINVAL
-#define EINVAL 22
-#endif
-
-#ifndef ERANGE
-#define ERANGE 34
-#endif
+#include <errno.h>
+#include "internal_securecrt.h"
+#include "mbusafecrt_internal.h"
 
 /*
 usage: see https://msdn.microsoft.com/en-us/library/8k35d1fx.aspx

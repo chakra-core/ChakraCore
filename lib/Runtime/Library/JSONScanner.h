@@ -24,7 +24,7 @@ namespace JSON
         uint GetCurrentStringLen() { return currentIndex; }
         uint GetScanPosition() { return uint(currentChar - inputText); }
 
-        void __declspec(noreturn) ThrowSyntaxError(int wErr)
+        void DECLSPEC_NORETURN ThrowSyntaxError(int wErr)
         {
             char16 scanPos[16];
             ::_itow_s(GetScanPosition(), scanPos, _countof(scanPos), 10);

@@ -72,7 +72,7 @@ public:
     // Define a couple of overflow policies for the UInt32Math routines.
 
     // The default policy for overflow is to throw an OutOfMemory exception
-    __declspec(noreturn) static void DefaultOverflowPolicy();
+    DECLSPEC_NORETURN static void DefaultOverflowPolicy();
 
     // A functor (class with operator()) which records whether a the calculation
     // encountered an overflow condition.

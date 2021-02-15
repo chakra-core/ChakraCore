@@ -474,7 +474,7 @@ private:
     static const KWD * KwdOfTok(tokens tk)
     { return (unsigned int)tk < tkLimKwd ? g_mptkkwd + tk : nullptr; }
 
-    static __declspec(noreturn) void OutOfMemory();
+    static DECLSPEC_NORETURN void OutOfMemory();
 #if PROFILE_DICTIONARY
     DictionaryStats *stats;
 #endif

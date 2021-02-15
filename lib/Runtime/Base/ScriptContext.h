@@ -1385,7 +1385,7 @@ private:
         bool HasRecordedException() const { return threadContext->GetRecordedException() != nullptr; }
         Js::JavascriptExceptionObject * GetAndClearRecordedException(bool *considerPassingToDebugger = nullptr);
         void RecordException(Js::JavascriptExceptionObject * exceptionObject, bool propagateToDebugger = false);
-        __declspec(noreturn) void RethrowRecordedException(JavascriptExceptionObject::HostWrapperCreateFuncType hostWrapperCreateFunc);
+        DECLSPEC_NORETURN void RethrowRecordedException(JavascriptExceptionObject::HostWrapperCreateFuncType hostWrapperCreateFunc);
 
 #if ENABLE_NATIVE_CODEGEN
         BOOL IsNativeAddress(void * codeAddr);
