@@ -21,7 +21,7 @@ var tests = [
             
             const unscopables = Array.prototype[Symbol.unscopables];
 
-            const list = ["copyWithin", "entries", "fill", "find", "findIndex", "flat", "flatMap", "includes", "keys", "values"];
+            const list = ["at", "copyWithin", "entries", "fill", "find", "findIndex", "flat", "flatMap", "includes", "keys", "values"];
             const length = list.length;
 
             for (let index = 0; index < length; index++)
@@ -37,6 +37,7 @@ var tests = [
         body: function ()
         {
             var globalScope = -1;
+            var at          = globalScope;
             var find        = globalScope;
             var findIndex   = globalScope;
             var fill        = globalScope;
@@ -49,6 +50,7 @@ var tests = [
             var flatMap     = globalScope;
             with([])
             {
+                assert.areEqual(globalScope, at,         "at property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, find,       "find property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, findIndex,  "findIndex property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, fill,       "fill property is not brought into scope by the with statement");
@@ -67,6 +69,7 @@ var tests = [
         body: function ()
         {
             var globalScope = -1;
+            var at          = globalScope;
             var find        = globalScope;
             var findIndex   = globalScope;
             var fill        = globalScope;
@@ -82,6 +85,7 @@ var tests = [
             a[Symbol.unscopables]["slice"] = true;
             with(a)
             {
+                assert.areEqual(globalScope, at,         "at property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, find,       "find property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, findIndex,  "findIndex property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, fill,       "fill property is not brought into scope by the with statement");
@@ -255,6 +259,7 @@ var tests = [
         body: function ()
         {
             var globalScope = -1;
+            var at         = globalScope;
             var find       = globalScope;
             var findIndex  = globalScope;
             var fill       = globalScope;
@@ -275,6 +280,7 @@ var tests = [
                         {
                             function bat()
                             {
+                                assert.areEqual(globalScope, at,         "at property is not brought into scope by the with statement");
                                 assert.areEqual(globalScope, find,       "find property is not brought into scope by the with statement");
                                 assert.areEqual(globalScope, findIndex,  "findIndex property is not brought into scope by the with statement");
                                 assert.areEqual(globalScope, fill,       "fill property is not brought into scope by the with statement");

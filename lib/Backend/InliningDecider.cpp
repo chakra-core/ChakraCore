@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -505,12 +506,14 @@ bool InliningDecider::GetBuiltInInfoCommon(
         *inlineCandidateOpCode = Js::OpCode::InlineArrayPop;
         break;
 
+    case Js::JavascriptBuiltInFunction::JavascriptArray_At:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Concat:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Reverse:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Shift:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Slice:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Splice:
 
+    case Js::JavascriptBuiltInFunction::JavascriptString_At:
     case Js::JavascriptBuiltInFunction::JavascriptString_Link:
         goto CallDirectCommon;
 

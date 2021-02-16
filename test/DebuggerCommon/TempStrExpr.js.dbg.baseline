@@ -130,6 +130,7 @@
         "prototype": {
           "#__proto__": "Object {...}",
           "constructor": "function <large string>",
+          "at": "function <large string>",
           "indexOf": "function <large string>",
           "lastIndexOf": "function <large string>",
           "replace": "function <large string>",

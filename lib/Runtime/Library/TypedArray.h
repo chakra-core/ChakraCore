@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 //  Implements typed array.
@@ -32,6 +33,7 @@ namespace Js
 
             static FunctionInfo From;
             static FunctionInfo Of;
+            static FunctionInfo At;
             static FunctionInfo CopyWithin;
             static FunctionInfo Entries;
             static FunctionInfo Every;
@@ -70,6 +72,7 @@ namespace Js
         static Var EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFrom(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryOf(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAt(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryCopyWithin(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEntries(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEvery(RecyclableObject* function, CallInfo callInfo, ...);

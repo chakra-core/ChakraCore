@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
 // Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -476,6 +476,7 @@ HELPERCALL(SaveAllRegistersNoSse2AndBranchBailOut, nullptr, AttrCanNotBeReentran
 #endif
 
 //Helpers for inlining built-ins
+HELPERCALLCHK(Array_At, Js::JavascriptArray::EntryAt, 0)
 HELPERCALLCHK(Array_Concat, Js::JavascriptArray::EntryConcat, 0)
 HELPERCALLCHK(Array_IndexOf, Js::JavascriptArray::EntryIndexOf, 0)
 HELPERCALLCHK(Array_Includes, Js::JavascriptArray::EntryIncludes, 0)
@@ -495,6 +496,7 @@ HELPERCALLCHK(Array_Splice, Js::JavascriptArray::EntrySplice, 0)
 HELPERCALLCHK(Array_Unshift, Js::JavascriptArray::EntryUnshift, 0)
 HELPERCALLCHK(Array_IsArray, Js::JavascriptArray::EntryIsArray, 0)
 
+HELPERCALL(String_At, Js::JavascriptString::EntryAt, 0)
 HELPERCALL(String_Concat, Js::JavascriptString::EntryConcat, 0)
 HELPERCALL(String_CharCodeAt, Js::JavascriptString::EntryCharCodeAt, 0)
 HELPERCALL(String_CharAt, Js::JavascriptString::EntryCharAt, 0)

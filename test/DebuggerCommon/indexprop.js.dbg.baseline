@@ -39,6 +39,7 @@
         "#__proto__": {
           "#__proto__": "Object {...}",
           "constructor": "function <large string>",
+          "at": "function <large string>",
           "push": "function <large string>",
           "concat": "function <large string>",
           "join": "function <large string>",
