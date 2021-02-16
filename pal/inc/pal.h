@@ -5084,7 +5084,10 @@ BitScanReverse(
     // Unconditionally calling the intrinsic in this way allows the compiler to
     // emit branchless code for this function when possible (depending on how the
     // intrinsic is implemented for the target platform).
-    int lzcount = __builtin_clzl(qwMask);
+
+    // NOTE: this is different from the dotnet CLR version, where they use __builtin_clzl
+    // instead of __builtin_clz but gets the wrong result for Math::Clz32
+    int lzcount = __builtin_clz(qwMask);
     *Index = (DWORD)(31 - lzcount);
     return qwMask != 0;
 }
