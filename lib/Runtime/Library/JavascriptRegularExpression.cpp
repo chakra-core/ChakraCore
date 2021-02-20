@@ -811,12 +811,25 @@ using namespace Js;
 
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
 
+        // 4. Let previousLastIndex be ? Get(rx, "lastIndex").
         Var previousLastIndex = JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext);
-        SetLastIndexProperty(regEx, TaggedInt::ToVarUnchecked(0), scriptContext);
+        // 5. If SameValue(previousLastIndex, +0F) is false, then
+        //    a. Perform ? Set(rx, "lastIndex", +0F, true).
+        if (!JavascriptConversion::SameValue(previousLastIndex, TaggedInt::ToVarUnchecked(0)))
+        {
+            SetLastIndexProperty(regEx, TaggedInt::ToVarUnchecked(0), scriptContext);
+        }
 
         Var result = CallExec(thisObj, string, varName, scriptContext);
-
-        SetLastIndexProperty(regEx, previousLastIndex, scriptContext);
+        
+        // 7. Let currentLastIndex be ? Get(rx, "lastIndex").
+        Var currentLastIndex = JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext);
+        // 8. If SameValue(currentLastIndex, previousLastIndex) is false, then
+        //    a. Perform ? Set(rx, "lastIndex", previousLastIndex, true).
+        if (!JavascriptConversion::SameValue(currentLastIndex, previousLastIndex))
+        {
+            SetLastIndexProperty(regEx, previousLastIndex, scriptContext);
+        }
 
         return JavascriptOperators::IsNull(result)
             ? TaggedInt::ToVarUnchecked(-1)
