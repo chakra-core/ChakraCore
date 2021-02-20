@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -770,13 +771,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             Assert(src1->IsHelperCallOpnd());
             switch (src1->AsHelperCallOpnd()->m_fnHelper)
             {
-            case IR::JnHelperMethod::HelperString_Split:
-            case IR::JnHelperMethod::HelperString_Match:
-                GenerateFastInlineStringSplitMatch(instr);
-                break;
-            case IR::JnHelperMethod::HelperRegExp_Exec:
-                GenerateFastInlineRegExpExec(instr);
-                break;
+            // Cause spec deviations
+            // case IR::JnHelperMethod::HelperString_Split:
+            // case IR::JnHelperMethod::HelperString_Match:
+            //     GenerateFastInlineStringSplitMatch(instr);
+            //     break;
+            // case IR::JnHelperMethod::HelperRegExp_Exec:
+            //     GenerateFastInlineRegExpExec(instr);
+            //     break;
             case IR::JnHelperMethod::HelperGlobalObject_ParseInt:
                 GenerateFastInlineGlobalObjectParseInt(instr);
                 break;
@@ -20378,6 +20380,7 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
 }
 
+// TODO: Cleanup
 bool
 Lowerer::ShouldGenerateStringReplaceFastPath(IR::Instr * callInstr, IntConstType argCount)
 {
@@ -20390,462 +20393,464 @@ Lowerer::ShouldGenerateStringReplaceFastPath(IR::Instr * callInstr, IntConstType
     // arg3(s14)<8>.var = ArgOut_A       s4.var, arg2(s13)<4>.var                #001c   <---- c
     // s0[LikelyString].var = CallI      s5[ffunc].var, arg3(s14)<8>.var         #0020
 
-    IR::Opnd *linkOpnd = callInstr->GetSrc2();
-    Assert(argCount == 2);
+    return false;
+    // IR::Opnd *linkOpnd = callInstr->GetSrc2();
+    // Assert(argCount == 2);
 
-    while(linkOpnd->IsSymOpnd())
-    {
-        IR::SymOpnd *src2 = linkOpnd->AsSymOpnd();
-        StackSym *sym = src2->m_sym->AsStackSym();
-        Assert(sym->m_isSingleDef);
-        IR::Instr *argInstr = sym->m_instrDef;
+    // while(linkOpnd->IsSymOpnd())
+    // {
+    //     IR::SymOpnd *src2 = linkOpnd->AsSymOpnd();
+    //     StackSym *sym = src2->m_sym->AsStackSym();
+    //     Assert(sym->m_isSingleDef);
+    //     IR::Instr *argInstr = sym->m_instrDef;
 
-        Assert(argCount >= 0);
-        // check to see if 'a' and 'c' are likely strings
-        if((argCount == 2 || argCount == 0) && (!argInstr->GetSrc1()->GetValueType().IsLikelyString()))
-        {
-            return false;
-        }
-        // we want 'b' to be regex. Don't generate fastpath if it is a tagged int
-        if((argCount == 1) && (argInstr->GetSrc1()->IsTaggedInt()))
-        {
-            return false;
-        }
-        argCount--;
-        linkOpnd = argInstr->GetSrc2();
-    }
-    return true;
+    //     Assert(argCount >= 0);
+    //     // check to see if 'a' and 'c' are likely strings
+    //     if((argCount == 2 || argCount == 0) && (!argInstr->GetSrc1()->GetValueType().IsLikelyString()))
+    //     {
+    //         return false;
+    //     }
+    //     // we want 'b' to be regex. Don't generate fastpath if it is a tagged int
+    //     if((argCount == 1) && (argInstr->GetSrc1()->IsTaggedInt()))
+    //     {
+    //         return false;
+    //     }
+    //     argCount--;
+    //     linkOpnd = argInstr->GetSrc2();
+    // }
+    // return true;
 }
 
 bool
 Lowerer::GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel)
 {
-    // a.replace(b,c)
-    // We want to emit the fast path if 'a' and 'c' are strings and 'b' is a regex
-    //
-    // strOpnd --> a
-    // src1    --> b
-    // src2    --> c
+    return false;
+    // // a.replace(b,c)
+    // // We want to emit the fast path if 'a' and 'c' are strings and 'b' is a regex
+    // //
+    // // strOpnd --> a
+    // // src1    --> b
+    // // src2    --> c
 
-    IR::Opnd * callDst = callInstr->GetDst();
+    // IR::Opnd * callDst = callInstr->GetDst();
 
-    Assert(strOpnd->GetValueType().IsLikelyString() && src2->GetValueType().IsLikelyString());
+    // Assert(strOpnd->GetValueType().IsLikelyString() && src2->GetValueType().IsLikelyString());
 
-    if(!strOpnd->GetValueType().IsString())
-    {
-        strOpnd = GetRegOpnd(strOpnd, insertInstr, m_func, TyVar);
+    // if(!strOpnd->GetValueType().IsString())
+    // {
+    //     strOpnd = GetRegOpnd(strOpnd, insertInstr, m_func, TyVar);
 
-        this->GenerateStringTest(strOpnd->AsRegOpnd(), insertInstr, labelHelper);
-    }
+    //     this->GenerateStringTest(strOpnd->AsRegOpnd(), insertInstr, labelHelper);
+    // }
 
-    if(!src1->IsNotTaggedValue())
-    {
-        m_lowererMD.GenerateObjectTest(src1, insertInstr, labelHelper);
-    }
+    // if(!src1->IsNotTaggedValue())
+    // {
+    //     m_lowererMD.GenerateObjectTest(src1, insertInstr, labelHelper);
+    // }
 
-    IR::Opnd * vtableOpnd = LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptRegExp);
+    // IR::Opnd * vtableOpnd = LoadVTableValueOpnd(insertInstr, VTableValue::VtableJavascriptRegExp);
 
-    // cmp  [regex], vtableAddress
-    // jne  $labelHelper
-    src1 = GetRegOpnd(src1, insertInstr, m_func, TyVar);
-    InsertCompareBranch(
-        IR::IndirOpnd::New(src1->AsRegOpnd(), 0, TyMachPtr, insertInstr->m_func),
-        vtableOpnd,
-        Js::OpCode::BrNeq_A,
-        labelHelper,
-        insertInstr);
+    // // cmp  [regex], vtableAddress
+    // // jne  $labelHelper
+    // src1 = GetRegOpnd(src1, insertInstr, m_func, TyVar);
+    // InsertCompareBranch(
+    //     IR::IndirOpnd::New(src1->AsRegOpnd(), 0, TyMachPtr, insertInstr->m_func),
+    //     vtableOpnd,
+    //     Js::OpCode::BrNeq_A,
+    //     labelHelper,
+    //     insertInstr);
 
-    if(!src2->GetValueType().IsString())
-    {
-        src2 = GetRegOpnd(src2, insertInstr, m_func, TyVar);
-        this->GenerateStringTest(src2->AsRegOpnd(), insertInstr, labelHelper);
-    }
+    // if(!src2->GetValueType().IsString())
+    // {
+    //     src2 = GetRegOpnd(src2, insertInstr, m_func, TyVar);
+    //     this->GenerateStringTest(src2->AsRegOpnd(), insertInstr, labelHelper);
+    // }
 
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, insertInstr->m_func);
-    if (callDst)
-    {
-        helperCallInstr->SetDst(callDst);
-    }
-    insertInstr->InsertBefore(helperCallInstr);
+    // IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, insertInstr->m_func);
+    // if (callDst)
+    // {
+    //     helperCallInstr->SetDst(callDst);
+    // }
+    // insertInstr->InsertBefore(helperCallInstr);
 
-    if (insertInstr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(insertInstr->GetBailOutKind()))
-    {
-        helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, insertInstr->GetBailOutInfo(), insertInstr->GetBailOutKind(), insertInstr);
-    }
+    // if (insertInstr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(insertInstr->GetBailOutKind()))
+    // {
+    //     helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, insertInstr->GetBailOutInfo(), insertInstr->GetBailOutKind(), insertInstr);
+    // }
 
-    //scriptContext, pRegEx, pThis, pReplace (to be pushed in reverse order)
+    // //scriptContext, pRegEx, pThis, pReplace (to be pushed in reverse order)
 
-    // pReplace, pThis, pRegEx
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, src2);
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, strOpnd);
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, src1);
+    // // pReplace, pThis, pRegEx
+    // this->m_lowererMD.LoadHelperArgument(helperCallInstr, src2);
+    // this->m_lowererMD.LoadHelperArgument(helperCallInstr, strOpnd);
+    // this->m_lowererMD.LoadHelperArgument(helperCallInstr, src1);
 
-    // script context
-    LoadScriptContext(helperCallInstr);
+    // // script context
+    // LoadScriptContext(helperCallInstr);
 
-    if(callDst)
-    {
-        m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperRegExp_ReplaceStringResultUsed);
-    }
-    else
-    {
-        m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperRegExp_ReplaceStringResultNotUsed);
-    }
+    // if(callDst)
+    // {
+    //     m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperRegExp_ReplaceStringResultUsed);
+    // }
+    // else
+    // {
+    //     m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::JnHelperMethod::HelperRegExp_ReplaceStringResultNotUsed);
+    // }
 
-    return true;
+    // return true;
 }
 
-///----
+// ///----
 
-void
-Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
-{
-    // a.split(b,c (optional) )
-    // We want to emit the fast path when
-    //     1. c is not present, and
-    //     2. 'a' is a string and 'b' is a regex.
-    //
-    // a.match(b)
-    // We want to emit the fast path when 'a' is a string and 'b' is a regex.
+// void
+// Lowerer::GenerateFastInlineStringSplitMatch(IR::Instr * instr)
+// {
+//     // a.split(b,c (optional) )
+//     // We want to emit the fast path when
+//     //     1. c is not present, and
+//     //     2. 'a' is a string and 'b' is a regex.
+//     //
+//     // a.match(b)
+//     // We want to emit the fast path when 'a' is a string and 'b' is a regex.
 
-    Assert(instr->m_opcode == Js::OpCode::CallDirect);
-    IR::Opnd * callDst = instr->GetDst();
+//     Assert(instr->m_opcode == Js::OpCode::CallDirect);
+//     IR::Opnd * callDst = instr->GetDst();
 
-    //helperCallOpnd
-    IR::Opnd * src1 = instr->GetSrc1();
+//     //helperCallOpnd
+//     IR::Opnd * src1 = instr->GetSrc1();
 
-    //ArgOut_A_InlineSpecialized
-    IR::Instr * tmpInstr = instr->GetSrc2()->AsSymOpnd()->m_sym->AsStackSym()->m_instrDef;
+//     //ArgOut_A_InlineSpecialized
+//     IR::Instr * tmpInstr = instr->GetSrc2()->AsSymOpnd()->m_sym->AsStackSym()->m_instrDef;
 
-    IR::Opnd * argsOpnd[2];
-    if(!instr->FetchOperands(argsOpnd, 2))
-    {
-        return;
-    }
+//     IR::Opnd * argsOpnd[2];
+//     if(!instr->FetchOperands(argsOpnd, 2))
+//     {
+//         return;
+//     }
 
-    if(!argsOpnd[0]->GetValueType().IsLikelyString() || argsOpnd[1]->IsTaggedInt())
-    {
-        return;
-    }
+//     if(!argsOpnd[0]->GetValueType().IsLikelyString() || argsOpnd[1]->IsTaggedInt())
+//     {
+//         return;
+//     }
 
-    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    if(!argsOpnd[0]->GetValueType().IsString())
-    {
-        argsOpnd[0] = GetRegOpnd(argsOpnd[0], instr, m_func, TyVar);
-        this->GenerateStringTest(argsOpnd[0]->AsRegOpnd(), instr, labelHelper);
-    }
+//     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+//     if(!argsOpnd[0]->GetValueType().IsString())
+//     {
+//         argsOpnd[0] = GetRegOpnd(argsOpnd[0], instr, m_func, TyVar);
+//         this->GenerateStringTest(argsOpnd[0]->AsRegOpnd(), instr, labelHelper);
+//     }
 
-    if(!argsOpnd[1]->IsNotTaggedValue())
-    {
-        m_lowererMD.GenerateObjectTest(argsOpnd[1], instr, labelHelper);
-    }
+//     if(!argsOpnd[1]->IsNotTaggedValue())
+//     {
+//         m_lowererMD.GenerateObjectTest(argsOpnd[1], instr, labelHelper);
+//     }
 
-    IR::Opnd * vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableJavascriptRegExp);
+//     IR::Opnd * vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableJavascriptRegExp);
 
-    // cmp  [regex], vtableAddress
-    // jne  $labelHelper
-    argsOpnd[1] = GetRegOpnd(argsOpnd[1], instr, m_func, TyVar);
-    InsertCompareBranch(
-        IR::IndirOpnd::New(argsOpnd[1]->AsRegOpnd(), 0, TyMachPtr, instr->m_func),
-        vtableOpnd,
-        Js::OpCode::BrNeq_A,
-        labelHelper,
-        instr);
+//     // cmp  [regex], vtableAddress
+//     // jne  $labelHelper
+//     argsOpnd[1] = GetRegOpnd(argsOpnd[1], instr, m_func, TyVar);
+//     InsertCompareBranch(
+//         IR::IndirOpnd::New(argsOpnd[1]->AsRegOpnd(), 0, TyMachPtr, instr->m_func),
+//         vtableOpnd,
+//         Js::OpCode::BrNeq_A,
+//         labelHelper,
+//         instr);
 
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
-    if (callDst)
-    {
-        helperCallInstr->SetDst(callDst);
-    }
-    instr->InsertBefore(helperCallInstr);
-    if (instr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
-    {
-        helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, instr->GetBailOutInfo(), instr->GetBailOutKind(), instr);
-    }
+//     IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
+//     if (callDst)
+//     {
+//         helperCallInstr->SetDst(callDst);
+//     }
+//     instr->InsertBefore(helperCallInstr);
+//     if (instr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
+//     {
+//         helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, instr->GetBailOutInfo(), instr->GetBailOutKind(), instr);
+//     }
 
-    // [stackAllocationPointer, ]scriptcontext, regexp, input[, limit] (to be pushed in reverse order)
+//     // [stackAllocationPointer, ]scriptcontext, regexp, input[, limit] (to be pushed in reverse order)
 
-    if(src1->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperString_Split)
-    {
-        //limit
-        //As we are optimizing only for two operands, make limit UINT_MAX
-        IR::Opnd* limit = IR::IntConstOpnd::New(UINT_MAX, TyUint32, instr->m_func);
-        this->m_lowererMD.LoadHelperArgument(helperCallInstr, limit);
-    }
+//     if(src1->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperString_Split)
+//     {
+//         //limit
+//         //As we are optimizing only for two operands, make limit UINT_MAX
+//         IR::Opnd* limit = IR::IntConstOpnd::New(UINT_MAX, TyUint32, instr->m_func);
+//         this->m_lowererMD.LoadHelperArgument(helperCallInstr, limit);
+//     }
 
-    //input, regexp
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, argsOpnd[0]);
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, argsOpnd[1]);
+//     //input, regexp
+//     this->m_lowererMD.LoadHelperArgument(helperCallInstr, argsOpnd[0]);
+//     this->m_lowererMD.LoadHelperArgument(helperCallInstr, argsOpnd[1]);
 
-    // script context
-    LoadScriptContext(helperCallInstr);
+//     // script context
+//     LoadScriptContext(helperCallInstr);
 
-    IR::JnHelperMethod helperMethod = IR::JnHelperMethod::HelperInvalid;
-    IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
-    if(callDst && instr->dstIsTempObject)
-    {
-        switch(src1->AsHelperCallOpnd()->m_fnHelper)
-        {
-            case IR::JnHelperMethod::HelperString_Split:
-                helperMethod = IR::JnHelperMethod::HelperRegExp_SplitResultUsedAndMayBeTemp;
-                break;
+//     IR::JnHelperMethod helperMethod = IR::JnHelperMethod::HelperInvalid;
+//     IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
+//     if(callDst && instr->dstIsTempObject)
+//     {
+//         switch(src1->AsHelperCallOpnd()->m_fnHelper)
+//         {
+//             case IR::JnHelperMethod::HelperString_Split:
+//                 helperMethod = IR::JnHelperMethod::HelperRegExp_SplitResultUsedAndMayBeTemp;
+//                 break;
 
-            case IR::JnHelperMethod::HelperString_Match:
-                helperMethod = IR::JnHelperMethod::HelperRegExp_MatchResultUsedAndMayBeTemp;
-                break;
+//             case IR::JnHelperMethod::HelperString_Match:
+//                 helperMethod = IR::JnHelperMethod::HelperRegExp_MatchResultUsedAndMayBeTemp;
+//                 break;
 
-            default:
-                Assert(false);
-                __assume(false);
-        }
+//             default:
+//                 Assert(false);
+//                 __assume(false);
+//         }
 
-        // Allocate some space on the stack for the result array
-        IR::RegOpnd *const stackAllocationOpnd = IR::RegOpnd::New(TyVar, m_func);
-        autoReuseStackAllocationOpnd.Initialize(stackAllocationOpnd, m_func);
-        stackAllocationOpnd->SetValueType(callDst->GetValueType());
-        GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, helperCallInstr);
-        m_lowererMD.LoadHelperArgument(helperCallInstr, stackAllocationOpnd);
-    }
-    else
-    {
-        switch(src1->AsHelperCallOpnd()->m_fnHelper)
-        {
-            case IR::JnHelperMethod::HelperString_Split:
-                helperMethod =
-                    callDst
-                        ? IR::JnHelperMethod::HelperRegExp_SplitResultUsed
-                        : IR::JnHelperMethod::HelperRegExp_SplitResultNotUsed;
-                break;
+//         // Allocate some space on the stack for the result array
+//         IR::RegOpnd *const stackAllocationOpnd = IR::RegOpnd::New(TyVar, m_func);
+//         autoReuseStackAllocationOpnd.Initialize(stackAllocationOpnd, m_func);
+//         stackAllocationOpnd->SetValueType(callDst->GetValueType());
+//         GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, helperCallInstr);
+//         m_lowererMD.LoadHelperArgument(helperCallInstr, stackAllocationOpnd);
+//     }
+//     else
+//     {
+//         switch(src1->AsHelperCallOpnd()->m_fnHelper)
+//         {
+//             case IR::JnHelperMethod::HelperString_Split:
+//                 helperMethod =
+//                     callDst
+//                         ? IR::JnHelperMethod::HelperRegExp_SplitResultUsed
+//                         : IR::JnHelperMethod::HelperRegExp_SplitResultNotUsed;
+//                 break;
 
-            case IR::JnHelperMethod::HelperString_Match:
-                helperMethod =
-                    callDst
-                        ? IR::JnHelperMethod::HelperRegExp_MatchResultUsed
-                        : IR::JnHelperMethod::HelperRegExp_MatchResultNotUsed;
-                break;
+//             case IR::JnHelperMethod::HelperString_Match:
+//                 helperMethod =
+//                     callDst
+//                         ? IR::JnHelperMethod::HelperRegExp_MatchResultUsed
+//                         : IR::JnHelperMethod::HelperRegExp_MatchResultNotUsed;
+//                 break;
 
-            default:
-                Assert(false);
-                __assume(false);
-        }
-    }
+//             default:
+//                 Assert(false);
+//                 __assume(false);
+//         }
+//     }
 
-    m_lowererMD.ChangeToHelperCall(helperCallInstr, helperMethod);
+//     m_lowererMD.ChangeToHelperCall(helperCallInstr, helperMethod);
 
-    IR::LabelInstr *doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    instr->InsertAfter(doneLabel);
-    instr->InsertBefore(labelHelper);
-    InsertBranch(Js::OpCode::Br, true, doneLabel, labelHelper);
+//     IR::LabelInstr *doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+//     instr->InsertAfter(doneLabel);
+//     instr->InsertBefore(labelHelper);
+//     InsertBranch(Js::OpCode::Br, true, doneLabel, labelHelper);
 
-    RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
-}
+//     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
+// }
 
-void
-Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
-{
-    // a.exec(b)
-    // We want to emit the fast path when 'a' is a regex and 'b' is a string
+// void
+// Lowerer::GenerateFastInlineRegExpExec(IR::Instr * instr)
+// {
+//     // a.exec(b)
+//     // We want to emit the fast path when 'a' is a regex and 'b' is a string
 
-    Assert(instr->m_opcode == Js::OpCode::CallDirect);
-    IR::Opnd * callDst = instr->GetDst();
+//     Assert(instr->m_opcode == Js::OpCode::CallDirect);
+//     IR::Opnd * callDst = instr->GetDst();
 
-    //ArgOut_A_InlineSpecialized
-    IR::Instr * tmpInstr = instr->GetSrc2()->AsSymOpnd()->m_sym->AsStackSym()->m_instrDef;
+//     //ArgOut_A_InlineSpecialized
+//     IR::Instr * tmpInstr = instr->GetSrc2()->AsSymOpnd()->m_sym->AsStackSym()->m_instrDef;
 
-    IR::Opnd * argsOpnd[2];
-    if (!instr->FetchOperands(argsOpnd, 2))
-    {
-        return;
-    }
+//     IR::Opnd * argsOpnd[2];
+//     if (!instr->FetchOperands(argsOpnd, 2))
+//     {
+//         return;
+//     }
 
-    IR::Opnd *opndString = argsOpnd[1];
-    if(!opndString->GetValueType().IsLikelyString() || argsOpnd[0]->IsTaggedInt())
-    {
-        return;
-    }
+//     IR::Opnd *opndString = argsOpnd[1];
+//     if(!opndString->GetValueType().IsLikelyString() || argsOpnd[0]->IsTaggedInt())
+//     {
+//         return;
+//     }
 
-    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    if(!opndString->GetValueType().IsString())
-    {
-        opndString = GetRegOpnd(opndString, instr, m_func, TyVar);
-        this->GenerateStringTest(opndString->AsRegOpnd(), instr, labelHelper);
-    }
+//     IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+//     if(!opndString->GetValueType().IsString())
+//     {
+//         opndString = GetRegOpnd(opndString, instr, m_func, TyVar);
+//         this->GenerateStringTest(opndString->AsRegOpnd(), instr, labelHelper);
+//     }
 
-    IR::Opnd *opndRegex = argsOpnd[0];
-    if(!opndRegex->IsNotTaggedValue())
-    {
-        m_lowererMD.GenerateObjectTest(opndRegex, instr, labelHelper);
-    }
+//     IR::Opnd *opndRegex = argsOpnd[0];
+//     if(!opndRegex->IsNotTaggedValue())
+//     {
+//         m_lowererMD.GenerateObjectTest(opndRegex, instr, labelHelper);
+//     }
 
-    IR::Opnd * vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableJavascriptRegExp);
+//     IR::Opnd * vtableOpnd = LoadVTableValueOpnd(instr, VTableValue::VtableJavascriptRegExp);
 
-    // cmp  [regex], vtableAddress
-    // jne  $labelHelper
-    opndRegex = GetRegOpnd(opndRegex, instr, m_func, TyVar);
-    InsertCompareBranch(
-        IR::IndirOpnd::New(opndRegex->AsRegOpnd(), 0, TyMachPtr, instr->m_func),
-        vtableOpnd,
-        Js::OpCode::BrNeq_A,
-        labelHelper,
-        instr);
+//     // cmp  [regex], vtableAddress
+//     // jne  $labelHelper
+//     opndRegex = GetRegOpnd(opndRegex, instr, m_func, TyVar);
+//     InsertCompareBranch(
+//         IR::IndirOpnd::New(opndRegex->AsRegOpnd(), 0, TyMachPtr, instr->m_func),
+//         vtableOpnd,
+//         Js::OpCode::BrNeq_A,
+//         labelHelper,
+//         instr);
 
-    IR::LabelInstr *doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+//     IR::LabelInstr *doneLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
-    if (!PHASE_OFF(Js::ExecBOIFastPathPhase, m_func))
-    {
-        // Load pattern from regex operand
-        IR::RegOpnd *opndPattern = IR::RegOpnd::New(TyMachPtr, m_func);
-        Lowerer::InsertMove(
-            opndPattern,
-            IR::IndirOpnd::New(opndRegex->AsRegOpnd(), Js::JavascriptRegExp::GetOffsetOfPattern(), TyMachPtr, m_func),
-            instr);
+//     if (!PHASE_OFF(Js::ExecBOIFastPathPhase, m_func))
+//     {
+//         // Load pattern from regex operand
+//         IR::RegOpnd *opndPattern = IR::RegOpnd::New(TyMachPtr, m_func);
+//         Lowerer::InsertMove(
+//             opndPattern,
+//             IR::IndirOpnd::New(opndRegex->AsRegOpnd(), Js::JavascriptRegExp::GetOffsetOfPattern(), TyMachPtr, m_func),
+//             instr);
 
-        // Load program from pattern
-        IR::RegOpnd *opndProgram = IR::RegOpnd::New(TyMachPtr, m_func);
-        Lowerer::InsertMove(
-            opndProgram,
-            IR::IndirOpnd::New(opndPattern, offsetof(UnifiedRegex::RegexPattern, rep) + offsetof(UnifiedRegex::RegexPattern::UnifiedRep, program), TyMachPtr, m_func),
-            instr);
+//         // Load program from pattern
+//         IR::RegOpnd *opndProgram = IR::RegOpnd::New(TyMachPtr, m_func);
+//         Lowerer::InsertMove(
+//             opndProgram,
+//             IR::IndirOpnd::New(opndPattern, offsetof(UnifiedRegex::RegexPattern, rep) + offsetof(UnifiedRegex::RegexPattern::UnifiedRep, program), TyMachPtr, m_func),
+//             instr);
 
-        IR::LabelInstr *labelFastHelper = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+//         IR::LabelInstr *labelFastHelper = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
-        // We want the program's tag to be BOILiteral2Tag
-        InsertCompareBranch(
-            IR::IndirOpnd::New(opndProgram, (int32)UnifiedRegex::Program::GetOffsetOfTag(), TyUint8, m_func),
-            IR::IntConstOpnd::New((IntConstType)UnifiedRegex::Program::GetBOILiteral2Tag(), TyUint8, m_func),
-            Js::OpCode::BrNeq_A,
-            labelFastHelper,
-            instr);
+//         // We want the program's tag to be BOILiteral2Tag
+//         InsertCompareBranch(
+//             IR::IndirOpnd::New(opndProgram, (int32)UnifiedRegex::Program::GetOffsetOfTag(), TyUint8, m_func),
+//             IR::IntConstOpnd::New((IntConstType)UnifiedRegex::Program::GetBOILiteral2Tag(), TyUint8, m_func),
+//             Js::OpCode::BrNeq_A,
+//             labelFastHelper,
+//             instr);
 
-        // Test the program's flags for "global"
-        InsertTestBranch(
-            IR::IndirOpnd::New(opndProgram, offsetof(UnifiedRegex::Program, flags), TyUint8, m_func),
-            IR::IntConstOpnd::New(UnifiedRegex::GlobalRegexFlag, TyUint8, m_func),
-            Js::OpCode::BrNeq_A,
-            labelFastHelper,
-            instr);
+//         // Test the program's flags for "global"
+//         InsertTestBranch(
+//             IR::IndirOpnd::New(opndProgram, offsetof(UnifiedRegex::Program, flags), TyUint8, m_func),
+//             IR::IntConstOpnd::New(UnifiedRegex::GlobalRegexFlag, TyUint8, m_func),
+//             Js::OpCode::BrNeq_A,
+//             labelFastHelper,
+//             instr);
 
-        IR::LabelInstr *labelNoMatch = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+//         IR::LabelInstr *labelNoMatch = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
-        // If string length < 2...
-        InsertCompareBranch(
-            IR::IndirOpnd::New(opndString->AsRegOpnd(), offsetof(Js::JavascriptString, m_charLength), TyUint32, m_func),
-            IR::IntConstOpnd::New(2, TyUint32, m_func),
-            Js::OpCode::BrLt_A,
-            labelNoMatch,
-            instr);
+//         // If string length < 2...
+//         InsertCompareBranch(
+//             IR::IndirOpnd::New(opndString->AsRegOpnd(), offsetof(Js::JavascriptString, m_charLength), TyUint32, m_func),
+//             IR::IntConstOpnd::New(2, TyUint32, m_func),
+//             Js::OpCode::BrLt_A,
+//             labelNoMatch,
+//             instr);
 
-        // ...or the DWORD doesn't match the pattern...
-        IR::RegOpnd *opndBuffer = IR::RegOpnd::New(TyMachReg, m_func);
-        Lowerer::InsertMove(
-            opndBuffer,
-            IR::IndirOpnd::New(opndString->AsRegOpnd(), offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, m_func),
-            instr);
+//         // ...or the DWORD doesn't match the pattern...
+//         IR::RegOpnd *opndBuffer = IR::RegOpnd::New(TyMachReg, m_func);
+//         Lowerer::InsertMove(
+//             opndBuffer,
+//             IR::IndirOpnd::New(opndString->AsRegOpnd(), offsetof(Js::JavascriptString, m_pszValue), TyMachPtr, m_func),
+//             instr);
 
-        IR::LabelInstr *labelGotString = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+//         IR::LabelInstr *labelGotString = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
-        InsertTestBranch(opndBuffer, opndBuffer, Js::OpCode::BrNeq_A, labelGotString, instr);
+//         InsertTestBranch(opndBuffer, opndBuffer, Js::OpCode::BrNeq_A, labelGotString, instr);
 
-        m_lowererMD.LoadHelperArgument(instr, opndString);
-        IR::Instr *instrCall = IR::Instr::New(Js::OpCode::Call, opndBuffer, IR::HelperCallOpnd::New(IR::HelperString_GetSz, m_func), m_func);
-        instr->InsertBefore(instrCall);
-        m_lowererMD.LowerCall(instrCall, 0);
+//         m_lowererMD.LoadHelperArgument(instr, opndString);
+//         IR::Instr *instrCall = IR::Instr::New(Js::OpCode::Call, opndBuffer, IR::HelperCallOpnd::New(IR::HelperString_GetSz, m_func), m_func);
+//         instr->InsertBefore(instrCall);
+//         m_lowererMD.LowerCall(instrCall, 0);
 
-        instr->InsertBefore(labelGotString);
+//         instr->InsertBefore(labelGotString);
 
-        IR::RegOpnd *opndBufferDWORD = IR::RegOpnd::New(TyUint32, m_func);
-        Lowerer::InsertMove(
-            opndBufferDWORD,
-            IR::IndirOpnd::New(opndBuffer, 0, TyUint32, m_func),
-            instr);
+//         IR::RegOpnd *opndBufferDWORD = IR::RegOpnd::New(TyUint32, m_func);
+//         Lowerer::InsertMove(
+//             opndBufferDWORD,
+//             IR::IndirOpnd::New(opndBuffer, 0, TyUint32, m_func),
+//             instr);
 
-        InsertCompareBranch(
-            IR::IndirOpnd::New(opndProgram, (int32)(UnifiedRegex::Program::GetOffsetOfRep() + UnifiedRegex::Program::GetOffsetOfBOILiteral2Literal()), TyUint32, m_func),
-            opndBufferDWORD,
-            Js::OpCode::BrEq_A,
-            labelFastHelper,
-            instr);
+//         InsertCompareBranch(
+//             IR::IndirOpnd::New(opndProgram, (int32)(UnifiedRegex::Program::GetOffsetOfRep() + UnifiedRegex::Program::GetOffsetOfBOILiteral2Literal()), TyUint32, m_func),
+//             opndBufferDWORD,
+//             Js::OpCode::BrEq_A,
+//             labelFastHelper,
+//             instr);
 
-        // ...then set the last index to 0...
-        instr->InsertBefore(labelNoMatch);
+//         // ...then set the last index to 0...
+//         instr->InsertBefore(labelNoMatch);
 
-        Lowerer::InsertMove(
-            IR::IndirOpnd::New(opndRegex->AsRegOpnd(), Js::JavascriptRegExp::GetOffsetOfLastIndexVar(), TyVar, m_func),
-            IR::AddrOpnd::NewNull(m_func),
-            instr);
+//         Lowerer::InsertMove(
+//             IR::IndirOpnd::New(opndRegex->AsRegOpnd(), Js::JavascriptRegExp::GetOffsetOfLastIndexVar(), TyVar, m_func),
+//             IR::AddrOpnd::NewNull(m_func),
+//             instr);
 
-        Lowerer::InsertMove(
-            IR::IndirOpnd::New(opndRegex->AsRegOpnd(), Js::JavascriptRegExp::GetOffsetOfLastIndexOrFlag(), TyUint32, m_func),
-            IR::IntConstOpnd::New(0, TyUint32, m_func),
-            instr);
+//         Lowerer::InsertMove(
+//             IR::IndirOpnd::New(opndRegex->AsRegOpnd(), Js::JavascriptRegExp::GetOffsetOfLastIndexOrFlag(), TyUint32, m_func),
+//             IR::IntConstOpnd::New(0, TyUint32, m_func),
+//             instr);
 
-        // ...and set the dst to null...
-        if (callDst)
-        {
-            Lowerer::InsertMove(
-                callDst,
-                LoadLibraryValueOpnd(instr, LibraryValue::ValueNull),
-                instr);
-        }
+//         // ...and set the dst to null...
+//         if (callDst)
+//         {
+//             Lowerer::InsertMove(
+//                 callDst,
+//                 LoadLibraryValueOpnd(instr, LibraryValue::ValueNull),
+//                 instr);
+//         }
 
-        // ...and we're done.
-        this->InsertBranch(Js::OpCode::Br, doneLabel, instr);
+//         // ...and we're done.
+//         this->InsertBranch(Js::OpCode::Br, doneLabel, instr);
 
-        instr->InsertBefore(labelFastHelper);
-    }
+//         instr->InsertBefore(labelFastHelper);
+//     }
 
-    IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
-    if (callDst)
-    {
-        helperCallInstr->SetDst(callDst);
-    }
-    instr->InsertBefore(helperCallInstr);
-    if (instr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
-    {
-        helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, instr->GetBailOutInfo(), instr->GetBailOutKind(), instr);
-    }
-    // [stackAllocationPointer, ]scriptcontext, regexp, string (to be pushed in reverse order)
+//     IR::Instr * helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
+//     if (callDst)
+//     {
+//         helperCallInstr->SetDst(callDst);
+//     }
+//     instr->InsertBefore(helperCallInstr);
+//     if (instr->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
+//     {
+//         helperCallInstr = AddBailoutToHelperCallInstr(helperCallInstr, instr->GetBailOutInfo(), instr->GetBailOutKind(), instr);
+//     }
+//     // [stackAllocationPointer, ]scriptcontext, regexp, string (to be pushed in reverse order)
 
-    //string, regexp
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, opndString);
-    this->m_lowererMD.LoadHelperArgument(helperCallInstr, opndRegex);
+//     //string, regexp
+//     this->m_lowererMD.LoadHelperArgument(helperCallInstr, opndString);
+//     this->m_lowererMD.LoadHelperArgument(helperCallInstr, opndRegex);
 
-    // script context
-    LoadScriptContext(helperCallInstr);
+//     // script context
+//     LoadScriptContext(helperCallInstr);
 
-    IR::JnHelperMethod helperMethod;
-    IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
-    if (callDst)
-    {
-        if (instr->dstIsTempObject)
-        {
-            helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultUsedAndMayBeTemp;
+//     IR::JnHelperMethod helperMethod;
+//     IR::AutoReuseOpnd autoReuseStackAllocationOpnd;
+//     if (callDst)
+//     {
+//         if (instr->dstIsTempObject)
+//         {
+//             helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultUsedAndMayBeTemp;
 
-            // Allocate some space on the stack for the result array
-            IR::RegOpnd *const stackAllocationOpnd = IR::RegOpnd::New(TyVar, m_func);
-            autoReuseStackAllocationOpnd.Initialize(stackAllocationOpnd, m_func);
-            stackAllocationOpnd->SetValueType(callDst->GetValueType());
-            GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, helperCallInstr);
-            m_lowererMD.LoadHelperArgument(helperCallInstr, stackAllocationOpnd);
-        }
-        else
-        {
-            helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultUsed;
-        }
-    }
-    else
-    {
-        helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed;
-    }
+//             // Allocate some space on the stack for the result array
+//             IR::RegOpnd *const stackAllocationOpnd = IR::RegOpnd::New(TyVar, m_func);
+//             autoReuseStackAllocationOpnd.Initialize(stackAllocationOpnd, m_func);
+//             stackAllocationOpnd->SetValueType(callDst->GetValueType());
+//             GenerateMarkTempAlloc(stackAllocationOpnd, Js::JavascriptArray::StackAllocationSize, helperCallInstr);
+//             m_lowererMD.LoadHelperArgument(helperCallInstr, stackAllocationOpnd);
+//         }
+//         else
+//         {
+//             helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultUsed;
+//         }
+//     }
+//     else
+//     {
+//         helperMethod = IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed;
+//     }
 
-    m_lowererMD.ChangeToHelperCall(helperCallInstr, helperMethod);
+//     m_lowererMD.ChangeToHelperCall(helperCallInstr, helperMethod);
 
-    instr->InsertAfter(doneLabel);
-    instr->InsertBefore(labelHelper);
-    InsertBranch(Js::OpCode::Br, true, doneLabel, labelHelper);
+//     instr->InsertAfter(doneLabel);
+//     instr->InsertBefore(labelHelper);
+//     InsertBranch(Js::OpCode::Br, true, doneLabel, labelHelper);
 
-    RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
-}
+//     RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
+// }
 
 // Generate a fast path for the "in" operator that check quickly if we have an array or not and if the index of the data is contained in the array's length.
 void Lowerer::GenerateFastArrayIsIn(IR::Instr * instr)

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -539,14 +540,15 @@ private:
     void            GenerateFastInlineHasOwnProperty(IR::Instr * instr);
     void            GenerateFastInlineArrayPush(IR::Instr * instr);
     void            GenerateFastInlineArrayPop(IR::Instr * instr);
-    void            GenerateFastInlineStringSplitMatch(IR::Instr * instr);
+    // TODO: Cleanup
+    // void            GenerateFastInlineStringSplitMatch(IR::Instr * instr);
     void            GenerateFastInlineMathImul(IR::Instr* instr);
     void            GenerateFastInlineMathClz(IR::Instr* instr);
     void            GenerateCtz(IR::Instr* instr);
     void            GeneratePopCnt(IR::Instr* instr);
     template <bool Saturate> void GenerateTruncWithCheck(_In_ IR::Instr* instr);
     void            GenerateFastInlineMathFround(IR::Instr* instr);
-    void            GenerateFastInlineRegExpExec(IR::Instr * instr);
+    // void            GenerateFastInlineRegExpExec(IR::Instr * instr);
     bool            GenerateFastPush(IR::Opnd *baseOpndParam, IR::Opnd *src, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel, IR::LabelInstr * bailOutLabelHelper, bool returnLength = false);
     bool            GenerateFastReplace(IR::Opnd* strOpnd, IR::Opnd* src1, IR::Opnd* src2, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);
     bool            ShouldGenerateStringReplaceFastPath(IR::Instr * instr, IntConstType argCount);

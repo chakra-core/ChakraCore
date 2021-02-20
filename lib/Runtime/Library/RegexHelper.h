@@ -102,16 +102,16 @@ namespace Js
             , CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& concatenated );
 
     public:
-        static Var RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
-        static Var RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
+        // TODO: Cleanup
+        // static Var RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
+        // static Var RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var RegexReplace(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult);
         static Var RegexReplaceFunction(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, RecyclableObject* replacefn);
         static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var StringReplace(ScriptContext* scriptContext, JavascriptString* regularExpression, JavascriptString* input, RecyclableObject* replacefn);
-        static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
-        static Var RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
-        static Var RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
-        static Var RegexSplit(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
+        // static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
+        // static Var RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
+        // static Var RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
         static Var RegexSearch(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var StringSplit(JavascriptString* regularExpression, JavascriptString* input, CharCount limit);
         static bool IsResultNotUsed(CallFlags flags);
