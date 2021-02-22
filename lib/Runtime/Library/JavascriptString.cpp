@@ -2007,7 +2007,7 @@ case_2:
             }
             else
             {
-                Assert((charcount_t)0 < e && e <= s);
+                Assert(e <= s);
                 if (e == p)
                 {
                     q++;
