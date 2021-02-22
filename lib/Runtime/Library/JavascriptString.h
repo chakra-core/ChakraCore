@@ -348,7 +348,8 @@ namespace Js
         static Var TrimLeftRightHelper(JavascriptString* arg, ScriptContext* scriptContext);
 
         static Var DoStringReplace(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
-        static Var DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
+        static Var DoStringSplit(Arguments& args, ScriptContext* scriptContext);
+        static bool SplitMatch(JavascriptString* S, charcount_t q, JavascriptString* R, charcount_t* e);
         template<int argCount, typename FallbackFn>
         static Var DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext);
         static Var GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext);
