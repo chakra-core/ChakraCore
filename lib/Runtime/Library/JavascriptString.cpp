@@ -1811,10 +1811,11 @@ case_2:
 
     Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
     {
-        return JavascriptOperators::GetPropertyNoCache(
+        Var func = JavascriptOperators::GetPropertyNoCache(
             JavascriptOperators::ToObject(regExp, scriptContext),
             propertyId,
             scriptContext);
+        return JavascriptOperators::IsUndefinedOrNull(func) ? scriptContext->GetLibrary()->GetUndefined() : func;
     }
 
     template<int argCount>
