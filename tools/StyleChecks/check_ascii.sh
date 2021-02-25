@@ -15,7 +15,7 @@ fi
 
 ERRFILE=check_ascii.sh.err
 rm -f $ERRFILE
-git diff --name-only `git merge-base origin/master HEAD` HEAD | grep -v -E "test/.*|tools/.*|Build/.*|/*.md|/*.txt|/*.vcxproj" | xargs -I % ./jenkins/check_file_ascii.sh %
+git diff --name-only `git merge-base origin/master HEAD` HEAD | grep -v -E "test/.*|tools/.*|Build/.*|/*.md|/*.txt|/*.vcxproj" | xargs -I % ./tools/StyleChecks/check_file_ascii.sh %
 
 if [ -e $ERRFILE ]; then # if error file exists then there were errors
     >&2 echo "--------------" # leading >&2 means echo to stderr

@@ -3,34 +3,30 @@
   <test>
     <default>
       <files>DateCtr.js</files>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins,slow</tags>
+      <tags>slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateGetSet.js</files>
       <baseline>DateGetSet.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- XPLAT doesn't provide expected DST info for year 35816 -->
-      <tags>exclude_jenkins,exclude_xplat,slow</tags>
+      <tags>exclude_xplat,slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateParse.js</files>
       <baseline>DateParse_es5.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>slow,exclude_jenkins</tags>
+      <tags>slow</tags>
     </default>
   </test>
   <test>
     <default>
       <files>DateParse2.js</files>
       <baseline>DateParse2.v5.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- xplat DST info for BC years don't mach to ones for Windows. Internally trying to match them is very expensive -->
-      <tags>slow,exclude_jenkins,exclude_xplat</tags>
+      <tags>slow,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -67,8 +63,7 @@
       <files>Conversions.js</files>
       <baseline>Conversions.win8.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_win7,exclude_winBlue,exclude_snap,exclude_jenkins,exclude_xplat,slow</tags>
+      <tags>exclude_win7,exclude_winBlue,exclude_snap,exclude_xplat,slow</tags>
     </default>
   </test>
   <test>
@@ -76,8 +71,7 @@
       <files>Conversions.js</files>
       <baseline>Conversions.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_win7,exclude_win8,exclude_snap,exclude_jenkins,exclude_xplat,slow</tags>
+      <tags>exclude_win7,exclude_win8,exclude_snap,exclude_xplat,slow</tags>
     </default>
   </test>
   <test>
@@ -90,8 +84,7 @@
   <test>
     <default>
       <files>formatting_xplat.js</files>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>slow,exclude_jenkins,exclude_windows</tags>
+      <tags>slow,exclude_windows</tags>
     </default>
   </test>
   <test>
@@ -99,10 +92,9 @@
       <files>formatting.js</files>
       <baseline>formatting.baseline</baseline>
       <compile-flags>-ForceOldDateAPI</compile-flags>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- on DST pass Win OldDateAPI jumps back to 01:00 after 01:59 -->
       <!-- todo: Do not force OLDDateAPI ? -->
-      <tags>slow,exclude_jenkins,exclude_xplat</tags>
+      <tags>slow,exclude_xplat</tags>
     </default>
     <condition order="1" type="include">
       <os>win8</os>
@@ -139,9 +131,8 @@
   <test>
     <default>
       <files>toStringAndToUTCStringYearPadding.js</files>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- xplat tz info for BC != Windows tz info for BC -->
-      <tags>slow,exclude_jenkins,exclude_xplat</tags>
+      <tags>slow,exclude_xplat</tags>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
@@ -163,9 +154,8 @@
     <default>
       <files>parseValidISO.js</files>
       <baseline>parseValidISO.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- xplat tz info for BC != Windows tz info for BC -->
-      <tags>slow,exclude_jenkins,exclude_xplat</tags>
+      <tags>slow,exclude_xplat</tags>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
@@ -173,9 +163,8 @@
     <default>
       <files>parseInvalidISO.js</files>
       <baseline>parseInvalidISO.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
       <!-- OSX doesn't provide expected DST for minus years -->
-      <tags>slow,exclude_jenkins,exclude_xplat</tags>
+      <tags>slow,exclude_xplat</tags>
     </default>
   </test>
 </regress-exe>
