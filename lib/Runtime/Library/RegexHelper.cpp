@@ -1941,33 +1941,18 @@ namespace Js
             w = scriptContext->GetRegexDebugWriter();
 #endif
 
-        if (pattern->IsUnicode())
-        {
-            pattern->rep.unified.matcher->Match<true>
-                (state.input
-                    , inputLength
-                    , offset
-                    , scriptContext
+        pattern->rep.unified.matcher->Match
+            (state.input
+                , inputLength
+                , offset
+                , scriptContext
 #if ENABLE_REGEX_CONFIG_OPTIONS
-                    , stats
-                    , w
+                , stats
+                , w
 #endif
-                    );
-        }
-        else
-        {
-            pattern->rep.unified.matcher->Match<false>
-                (state.input
-                    , inputLength
-                    , offset
-                    , scriptContext
-#if ENABLE_REGEX_CONFIG_OPTIONS
-                    , stats
-                    , w
-#endif
-                    );
-        }
-        
+                );
+
+
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (REGEX_CONFIG_FLAG(RegexProfile))
