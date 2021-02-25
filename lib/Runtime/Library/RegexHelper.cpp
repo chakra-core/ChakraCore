@@ -1941,16 +1941,33 @@ namespace Js
             w = scriptContext->GetRegexDebugWriter();
 #endif
 
-        pattern->rep.unified.matcher->Match
-            (state.input
-                , inputLength
-                , offset
-                , scriptContext
+        if (pattern->IsUnicode())
+        {
+            pattern->rep.unified.matcher->Match<true>
+                (state.input
+                    , inputLength
+                    , offset
+                    , scriptContext
 #if ENABLE_REGEX_CONFIG_OPTIONS
-                , stats
-                , w
+                    , stats
+                    , w
 #endif
-                );
+                    );
+        }
+        else
+        {
+            pattern->rep.unified.matcher->Match<false>
+                (state.input
+                    , inputLength
+                    , offset
+                    , scriptContext
+#if ENABLE_REGEX_CONFIG_OPTIONS
+                    , stats
+                    , w
+#endif
+                    );
+        }
+        
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (REGEX_CONFIG_FLAG(RegexProfile))
@@ -2412,7 +2429,7 @@ namespace Js
     {
         if (string->GetLength() > (0 > index || (uint64_t)index + (uint64_t)1 > UINT32_MAX ? UINT32_MAX : (uint32_t)(index + 1)) &&
             NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
-            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]) && isUnicode)
         {
             return index + 2;
         }
@@ -2424,7 +2441,7 @@ namespace Js
     {
         if (string->GetLength() > index + 1 &&
             NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
-            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]) && isUnicode)
         {
             return JavascriptRegExp::AddIndex(index, 2);
         }
