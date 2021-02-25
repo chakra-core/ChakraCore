@@ -152,6 +152,7 @@ namespace Js
         static RecyclableObject* ExecResultToRecyclableObject(Var result);
         static JavascriptString* GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext);
         static void AdvanceLastIndex(RecyclableObject* instance, JavascriptString* input, JavascriptString* matchStr, bool unicode, ScriptContext* scriptContext);
+        static int64_t AdvanceStringIndex(JavascriptString* string, int64_t index, bool isUnicode);
         static charcount_t AdvanceStringIndex(JavascriptString* string, charcount_t index, bool isUnicode);
     };
 }

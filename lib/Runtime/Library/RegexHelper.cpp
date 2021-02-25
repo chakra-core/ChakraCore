@@ -2396,18 +2396,39 @@ namespace Js
     {
         if (matchStr->GetLength() == 0)
         {
-            CharCount lastIndex = JavascriptRegExp::GetLastIndexProperty(instance, scriptContext);
+            
+            int64 lastIndex = JavascriptConversion::ToLength(
+                JavascriptOperators::GetProperty(instance, PropertyIds::lastIndex, scriptContext),
+                scriptContext);
             lastIndex = AdvanceStringIndex(input, lastIndex, unicode);
-            JavascriptRegExp::SetLastIndexProperty(instance, lastIndex, scriptContext);
+            JavascriptRegExp::SetLastIndexProperty(
+                instance,
+                JavascriptNumber::ToVar(lastIndex, scriptContext),
+                scriptContext);
         }
+    }
+
+    int64_t RegexHelper::AdvanceStringIndex(JavascriptString* string, int64_t index, bool isUnicode)
+    {
+        if (string->GetLength() > (0 > index || (uint64_t)index + (uint64_t)1 > UINT32_MAX ? UINT32_MAX : (uint32_t)(index + 1)) &&
+            NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
+        {
+            return index + 2;
+        }
+        
+        return index + 1;
     }
 
     CharCount RegexHelper::AdvanceStringIndex(JavascriptString* string, CharCount index, bool isUnicode)
     {
-        // TODO: Change the increment to 2 depending on the "unicode" flag and
-        // the code point at "index". The increment is currently constant at 1
-        // in order to be compatible with the rest of the RegExp code.
-
+        if (string->GetLength() > index + 1 &&
+            NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
+        {
+            return JavascriptRegExp::AddIndex(index, 2);
+        }
+        
         return JavascriptRegExp::AddIndex(index, 1);
     }
 }
