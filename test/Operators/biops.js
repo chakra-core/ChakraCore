@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -46,19 +47,10 @@ var biops = [
     "&&", "||"                    // 11.11 Binary logical operators    
 ];
 
-function fixDate(output)
-{
-    if (output instanceof Date)
-    {
-        return output.toUTCString();
-    }
-    return output;
-}
-
 for (var op in biops) {
     for (var i=0; i<all.length; ++i) {
         for (var j=0; j<all.length; ++j) {
-            write("a["+i+"]("+fixDate(all[i])+") "+biops[op]+" a["+j+"]("+fixDate(all[j])+") = " + fixDate(eval("all[i] " + biops[op] + " all[j];")));            
+            write("a["+i+"]("+all[i]+") "+biops[op]+" a["+j+"]("+all[j]+") = " + eval("all[i] " + biops[op] + " all[j];"));            
         }
     }
 }

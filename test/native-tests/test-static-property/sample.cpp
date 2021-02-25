@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -70,12 +71,15 @@ int main()
         fprintf(stderr, "JsObject Has/Get/Set etc. Property... failed\n");
     }
 
-    JsValueRef fname_second_copy;
-    FAIL_CHECK(JsObjectDeleteProperty(object, fname, false, &fname_second_copy));
+    JsValueRef deletion_result;
+    FAIL_CHECK(JsObjectDeleteProperty(object, fname, false, &deletion_result));
 
     FAIL_CHECK(JsObjectHasProperty(object, fname, &hasObject));
 
-    if (hasObject || fname_second_copy != fname)
+    bool delete_result = false;
+    FAIL_CHECK(JsBooleanToBool(deletion_result, &delete_result));
+
+    if (hasObject || delete_result == false)
     {
         fprintf(stderr, "JsObjectDeleteProperty failed\n");
     }

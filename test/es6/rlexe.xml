@@ -453,7 +453,6 @@
     <default>
       <files>ES6StringTemplateSlow.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Nightly</tags>
     </default>
   </test>
   <test>
