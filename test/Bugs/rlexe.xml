@@ -307,7 +307,7 @@
     <default>
       <files>misc_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>Slow</tags>
+      <tags>exclude_windows</tags>
     </default>
   </test>
   <test>

@@ -59,8 +59,7 @@
     <default>
       <files>InternalToString.js</files>
       <baseline>InternalToString.baseline</baseline>
-      <!-- test is timezone-sensitive; remove exclude_jenkins after fix (Microsoft/ChakraCore#319) -->
-      <tags>exclude_jenkins,slow</tags>
+      <tags>slow</tags>
     </default>
   </test>
   <test>
