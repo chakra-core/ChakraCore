@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -267,13 +268,15 @@ var tests = [
         Object.defineProperty(Array.prototype, 1, {
             get: function() {
                 x.length = 0;
-            }
+            },
+            configurable: true
         });
 
         var f = function(){
             assert.areEqual(arguments.length, 2, "Changing length of x during spreading should truncate the spread.");
         }
         f(...x);
+        delete Array.prototype[1];
     }
   },
   {
