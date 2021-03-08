@@ -2412,9 +2412,9 @@ namespace Js
 
     int64_t RegexHelper::AdvanceStringIndex(JavascriptString* string, int64_t index, bool isUnicode)
     {
-        if (string->GetLength() > (0 > index || (uint64_t)index + (uint64_t)1 > UINT32_MAX ? UINT32_MAX : (uint32_t)(index + 1)) &&
+        if (isUnicode && string->GetLength() > (0 > index || (uint64_t)index + 1ui64 > 0xffffffffui64 ? UINT32_MAX : (uint32_t)(index + 1)) &&
             NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
-            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]) && isUnicode)
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
         {
             return index + 2;
         }
@@ -2424,9 +2424,9 @@ namespace Js
 
     CharCount RegexHelper::AdvanceStringIndex(JavascriptString* string, CharCount index, bool isUnicode)
     {
-        if (string->GetLength() > index + 1 &&
+        if (isUnicode && string->GetLength() > index + 1 &&
             NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
-            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]) && isUnicode)
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
         {
             return JavascriptRegExp::AddIndex(index, 2);
         }

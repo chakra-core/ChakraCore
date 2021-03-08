@@ -2915,6 +2915,60 @@ case_2:
         return m_pszValue;
     }
 
+    codepoint_t* JavascriptString::GetCodePoints(ScriptContext* scriptContext)
+    {
+        if (m_codePointString != nullptr)
+        {
+            return m_codePointString;
+        }
+        
+        const char16* initialString = GetString();
+        charcount_t codePointLength = 0;
+        charcount_t stringLength = GetLength(), i = 0;
+        while (i < stringLength)
+        {
+            if (i + 1 < stringLength &&
+                NumberUtilities::IsSurrogateLowerPart((codepoint_t)initialString[i]) &&
+                NumberUtilities::IsSurrogateUpperPart((codepoint_t)initialString[i + 1]))
+            {
+                codePointLength++;
+                i++;
+            }
+
+            i++;
+        }
+        codepoint_t* codePoints;
+        charcount_t j = 0;
+        i = 0;
+        codePoints = AllocatorNewArrayLeafZ(Recycler, scriptContext->GetRecycler(), codepoint_t, codePointLength);
+        while (i < stringLength)
+        {
+            if (i + 1 < stringLength &&
+                NumberUtilities::IsSurrogateLowerPart((codepoint_t)initialString[i]) &&
+                NumberUtilities::IsSurrogateUpperPart((codepoint_t)initialString[i + 1]))
+            {
+                *(codePoints + j++) = NumberUtilities::SurrogatePairAsCodePoint((codepoint_t)initialString[i], (codepoint_t)initialString[i + 1]);
+                i += 2ui32;
+                continue;
+            }
+            *(codePoints + j++) = (codepoint_t)initialString[i];
+            i++;
+        }
+        m_codePointString = codePoints;
+        m_codePointsLength = codePointLength;
+        return codePoints;
+    }
+
+    charcount_t JavascriptString::GetCodePointsLength()
+    {
+        if (m_codePointsLength == k_InvalidCharCount)
+        {
+            GetCodePoints(); // Init the m_codePointsLength and m_codePoints properties
+        }
+
+        return m_codePointsLength;
+    }
+
     void const * JavascriptString::GetOriginalStringReference()
     {
         // Just return the string buffer

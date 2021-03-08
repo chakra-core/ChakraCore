@@ -40,8 +40,10 @@ namespace Js
         JavascriptString(JavascriptString&) = delete;
 
     private:
-        Field(const char16*) m_pszValue;         // Flattened, '\0' terminated contents
+        Field(const char16*) m_pszValue;          // Flattened, '\0' terminated contents
         Field(charcount_t) m_charLength;          // Length in characters, not including '\0'.
+        Field(codepoint_t*) m_codePointString;    // Code points of the string, may be nullptr if not initialized yet by GetCodePoints call
+        Field(charcount_t) m_codePointsLength;    // Length of the codepoints, may be k_InvalidCharCount if not initialized yet by GetCodePoints call
 
         static const charcount_t MaxCharLength = INT_MAX - 1;  // Max number of chars not including '\0'.
 
@@ -69,6 +71,8 @@ namespace Js
         const char16* UnsafeGetBuffer() const;
         LPCWSTR GetSzCopy(ArenaAllocator* alloc);   // Copy to an Arena
         const char16* GetString(); // Get string, may not be NULL terminated
+        codepoint_t* GetCodePoints();
+        charcount_t GetCodePointsLength();
 
         // NumberUtil::FIntRadStrToDbl and parts of GlobalObject::EntryParseInt were refactored into ToInteger
         Var ToInteger(int radix = 0);
