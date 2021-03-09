@@ -244,7 +244,11 @@
     <default>
       <files>push3.js</files>
       <compile-flags>-off:nativearray -ForceES5Array</compile-flags>
-      <baseline>push3.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>push4_traps.js</files>
     </default>
   </test>
   <test>

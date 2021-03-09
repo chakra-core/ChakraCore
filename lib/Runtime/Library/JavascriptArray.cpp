@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
 // Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -5184,6 +5184,14 @@ Case0:
             VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(array))
         {
             auto* nativeIntArray = UnsafeVarTo<JavascriptNativeIntArray>(array);
+            if (JavascriptArray::HasAnyES5ArrayInPrototypeChain(nativeIntArray, true))
+            {
+                Var args[2];
+                args[0] = array;
+                args[1] = JavascriptNumber::ToVar(value, scriptContext);
+
+                return EntryPushNonJavascriptArray(scriptContext, args, 2);
+            }
             Assert(!nativeIntArray->IsCrossSiteObject());
             uint32 n = nativeIntArray->length;
             if (n < JavascriptArray::MaxArrayLength)
@@ -5216,6 +5224,14 @@ Case0:
             VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(array))
         {
             auto* nativeFloatArray = UnsafeVarTo<JavascriptNativeFloatArray>(array);
+            if (JavascriptArray::HasAnyES5ArrayInPrototypeChain(nativeFloatArray, true))
+            {
+                Var args[2];
+                args[0] = array;
+                args[1] = JavascriptNumber::ToVarNoCheck(value, scriptContext);
+
+                return EntryPushNonJavascriptArray(scriptContext, args, 2);
+            }
             Assert(!nativeFloatArray->IsCrossSiteObject());
             uint32 n = nativeFloatArray->length;
             if( n < JavascriptArray::MaxArrayLength)
@@ -5239,18 +5255,20 @@ Case0:
     Var JavascriptArray::Push(ScriptContext * scriptContext, Var object, Var value)
     {
         JIT_HELPER_REENTRANT_HEADER(Array_VarPush);
+        if (JavascriptArray::IsNonES5Array(object))
+        {
+            JavascriptArray* array = UnsafeFromAnyArray(object);
+            if (!JavascriptArray::HasAnyES5ArrayInPrototypeChain(array, true))
+            {
+                return EntryPushJavascriptArray(scriptContext, array, &value, 1);
+            }
+        }
+        
         Var args[2];
         args[0] = object;
         args[1] = value;
 
-        if (JavascriptArray::IsNonES5Array(object))
-        {
-            return EntryPushJavascriptArray(scriptContext, args, 2);
-        }
-        else
-        {
-            return EntryPushNonJavascriptArray(scriptContext, args, 2);
-        }
+        return EntryPushNonJavascriptArray(scriptContext, args, 2);
         JIT_HELPER_END(Array_VarPush);
     }
 
@@ -5371,10 +5389,8 @@ Case0:
     *   Pushes Var element in a Var Array.
     *   Returns the length of the array.
     */
-    Var JavascriptArray::EntryPushJavascriptArray(ScriptContext * scriptContext, Var * args, uint argCount)
+    Var JavascriptArray::EntryPushJavascriptArray(ScriptContext * scriptContext, JavascriptArray * arr, Var * args, uint argCount)
     {
-        JavascriptArray * arr = JavascriptArray::FromAnyArray(args[0]);
-
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arr);
 #endif
@@ -5383,18 +5399,18 @@ Case0:
         ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.push"));
 
         // Fast Path for one push for small indexes
-        if (argCount == 2 && n < JavascriptArray::MaxArrayLength)
+        if (argCount == 1 && n < JavascriptArray::MaxArrayLength)
         {
             // Set Item is overridden by CrossSiteObject, so no need to check for IsCrossSiteObject()
-            h.ThrowTypeErrorOnFailure(arr->SetItem(n, args[1], PropertyOperation_None));
+            h.ThrowTypeErrorOnFailure(arr->SetItem(n, args[0], PropertyOperation_None));
             return JavascriptNumber::ToVar(n + 1, scriptContext);
         }
 
         // Fast Path for multiple push for small indexes
-        if (JavascriptArray::MaxArrayLength - argCount + 1 > n && JavascriptArray::IsVarArray(arr) && scriptContext == arr->GetScriptContext())
+        if (argCount < JavascriptArray::MaxArrayLength - n && JavascriptArray::IsVarArray(arr) && scriptContext == arr->GetScriptContext())
         {
             uint index;
-            for (index = 1; index < argCount; ++index, ++n)
+            for (index = 0; index < argCount; ++index, ++n)
             {
                 Assert(n != JavascriptArray::MaxArrayLength);
                 // Set Item is overridden by CrossSiteObject, so no need to check for IsCrossSiteObject()
@@ -5403,13 +5419,12 @@ Case0:
             return JavascriptNumber::ToVar(n, scriptContext);
         }
 
-        return EntryPushJavascriptArrayNoFastPath(scriptContext, args, argCount);
+        return EntryPushJavascriptArrayNoFastPath(scriptContext, arr, args, argCount);
     }
 
-    Var JavascriptArray::EntryPushJavascriptArrayNoFastPath(ScriptContext * scriptContext, Var * args, uint argCount)
+    Var JavascriptArray::EntryPushJavascriptArrayNoFastPath(ScriptContext * scriptContext, JavascriptArray* arr, Var * args, uint argCount)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
-        JavascriptArray * arr = JavascriptArray::FromAnyArray(args[0]);
         SETOBJECT_FOR_MUTATION(jsReentLock, arr);
 
         uint n = arr->length;
@@ -5417,7 +5432,7 @@ Case0:
 
         // First handle "small" indices.
         uint index;
-        for (index = 1; index < argCount && n < JavascriptArray::MaxArrayLength; ++index, ++n)
+        for (index = 0; index < argCount && n < JavascriptArray::MaxArrayLength; ++index, ++n)
         {
             // Set Item is overridden by CrossSiteObject, so no need to check for IsCrossSiteObject()
             h.ThrowTypeErrorOnFailure(arr->SetItem(n, args[index], PropertyOperation_None));
@@ -5466,12 +5481,14 @@ Case0:
 
         if (JavascriptArray::IsNonES5Array(args[0]))
         {
-            return EntryPushJavascriptArray(scriptContext, args.Values, args.Info.Count);
+            JavascriptArray* array = UnsafeFromAnyArray(args[0]);
+            if (!JavascriptArray::HasAnyES5ArrayInPrototypeChain(array, true))
+            {
+                return EntryPushJavascriptArray(scriptContext, array, &(args.Values[1]), args.Info.Count - 1);
+            }
         }
-        else
-        {
-            return EntryPushNonJavascriptArray(scriptContext, args.Values, args.Info.Count);
-        }
+
+        return EntryPushNonJavascriptArray(scriptContext, args.Values, args.Info.Count);
     }
 
     template <typename T>

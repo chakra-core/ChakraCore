@@ -262,17 +262,18 @@ if changes_detected == True:
         guid = str(uuid.uuid4())
 
         output_str = '''//-------------------------------------------------------------------------------------------------------
-                        // Copyright (C) Microsoft. All rights reserved.
-                        // Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
-                        // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
-                        //-------------------------------------------------------------------------------------------------------
-                        // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
-                        // This file was generated with tools/regenByteCode.py
+// Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+// NOTE: If there is a merge conflict the correct fix is to make a new GUID.
+// This file was generated with tools/regenByteCode.py
 
-                        // {%s}
-                        const GUID byteCodeCacheReleaseFileVersion =
-                        { 0x%s, 0x%s, 0x%s, {0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s } };
-        '''.replace('\n                        ', '\n') % (guid,
+// {%s}
+const GUID byteCodeCacheReleaseFileVersion =
+{ 0x%s, 0x%s, 0x%s, {0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s, 0x%s } };
+
+''' % (guid,
             guid[:8], guid[9:13], guid[14:18], guid[19:21], guid[21:23], guid[24:26],
             guid[26:28], guid[28:30], guid[30:32], guid[32:34], guid[-2:])
 
