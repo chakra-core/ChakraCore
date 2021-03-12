@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -39,7 +40,7 @@ try {
 }
 catch(e)
 {
-  print("FAILED: get exception " + e.description);
+  print("FAILED: get exception " + e.message);
   hasThrown = true;
 }
 }
@@ -52,7 +53,7 @@ try {
 }
 catch(e)
 {
-  print("SUCCEEDED: get expected exception " + e.description);
+  print("SUCCEEDED: get expected exception " + e.message);
   hasThrown = true;
 }
 if (!hasThrown)
@@ -82,7 +83,7 @@ function verifyOneFunction(func, typedObjectInstances, srcIndex, destIndex, offs
       hasException = true;
       if (!shouldThrow)
       {
-        print("ERROR! throw unexpected exception " + e.description);
+        print("ERROR! throw unexpected exception " + e.message);
       }
     }
     if (!hasException && shouldThrow)
@@ -111,11 +112,11 @@ function verifysubarray(typedObjectInstances, srcIndex, destIndex, offset, shoul
       hasException = true;
       if (!shouldThrow)
       {
-        print("ERROR! throw unexpected exception " + e.description);
+        print("ERROR! throw unexpected exception " + e.message);
       }
       else
       {
-         print("SUCCEEDED in getting exception " + e.description);
+         print("SUCCEEDED in getting exception " + e.message);
       }
     }
     if (!hasException && shouldThrow)
@@ -146,11 +147,11 @@ function verifySet(typedObjectInstances, srcIndex, destIndex, shouldThrow)
       hasException = true;
       if (!shouldThrow)
       {
-        print("ERROR! throw unexpected exception " + e.description);
+        print("ERROR! throw unexpected exception " + e.message);
       }
       else
       {
-         print("SUCCEEDED in getting exception " + e.description);
+         print("SUCCEEDED in getting exception " + e.message);
       }
     }
     if (!hasException && shouldThrow)
@@ -171,7 +172,7 @@ function verifySet(typedObjectInstances, srcIndex, destIndex, shouldThrow)
     }
     catch (e)
     {
-        print("ERROR! throw unexpected exception " + e.description);
+        print("ERROR! throw unexpected exception " + e.message);
     }
 
     print("verify set using "+  typedObjectInstances[destIndex] + " instance " + typedObjectInstances[srcIndex]);
@@ -187,7 +188,7 @@ function verifySet(typedObjectInstances, srcIndex, destIndex, shouldThrow)
     }
     catch (e)
     {
-        print("ERROR! throw unexpected exception " + e.description);
+        print("ERROR! throw unexpected exception " + e.message);
     }
 
     print("verify set to different type");

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -85,8 +86,8 @@ var tests = {
             o.__defineGetter__("b", function () { return 4; });
 
             assert.isTrue(o.a === 1, "getter in 'a' should return 1");
-            assert.isTrue((function () { try { o.a = 0; } catch (e) { return e.description; } return null; })() === "2", "setter in 'a' should throw a new Error with number equal to 2");
-            assert.isTrue((function () { try { o.b = 0; } catch (e) { return e.description; } return null; })() === "3", "setter in 'b' should throw a new Error with number equal to 3");
+            assert.isTrue((function () { try { o.a = 0; } catch (e) { return e.message; } return null; })() === "2", "setter in 'a' should throw a new Error with number equal to 2");
+            assert.isTrue((function () { try { o.b = 0; } catch (e) { return e.message; } return null; })() === "3", "setter in 'b' should throw a new Error with number equal to 3");
             assert.isTrue(o.b === 4, "getter in 'b' should return 4");
         }
     },

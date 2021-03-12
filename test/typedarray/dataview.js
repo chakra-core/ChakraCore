@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 var getFuncs = ['getInt8', 'getUint8', 'getInt16', 'getUint16', 'getInt32', 'getUint32', 'getFloat32', 'getFloat64'];
@@ -78,7 +79,7 @@ function testOneOffset(dataView, offSet, value)
                 }
             catch(e)
                 {
-                print("SUCCEEDED: exception " + e.description);
+                print("SUCCEEDED: exception " + e.message);
                 succeeded = true;
                 }
             if (!succeeded)

@@ -99,7 +99,6 @@
         },
         "[4]": {
           "#__proto__": "Object {...}",
-          "description": "string ErrorObj",
           "message": "string ErrorObj",
           "stack": "string <large string>",
           "[105]": "string 105"
