@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -160,7 +161,7 @@ var tests = [
 
             assert.areEqual(false, new ProxyFoo() instanceof ProxyFoo, "new ProxyFoo() instanceof ProxyFoo");
             assert.areEqual(1, checked, "Symbol.hasInstance in a function contructor through proxy - checked==1");
-            assert.areEqual(['Symbol(Symbol.hasInstance)'], checkedString, "checkedString==['Symbol(Symbol.hasInstance)']");
+            assert.areEqual(['prototype', 'Symbol(Symbol.hasInstance)'], checkedString, "checkedString==['Symbol(Symbol.hasInstance)']");
             assert.areEqual(false, new ProxyFoo() instanceof Foo, "new ProxyFoo() instanceof Foo");
             assert.areEqual(2, checked, "Symbol.hasInstance in a function contructor through proxy - checked==2");
         }

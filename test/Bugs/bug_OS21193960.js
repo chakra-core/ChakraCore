@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -42,7 +43,7 @@ var tests = [
               assert.areEqual(1, ctorCount, "1 === ctorCount");
 
               assert.areEqual(123, newProxy.prop0, "123 === newProxy.prop0");
-              assert.areEqual(0, getCount, "0 === getCount");
+              assert.areEqual(1, getCount, "1 === getCount");
             };
 
             test();
@@ -87,7 +88,7 @@ var tests = [
               assert.areEqual(1, ctorCount, "1 === ctorCount");
 
               assert.areEqual(123, newProxy.prop0, "123 === newProxy.prop0");
-              assert.areEqual(1, getCount, "1 === getCount");
+              assert.areEqual(2, getCount, "2 === getCount");
             };
 
             test();
@@ -146,7 +147,7 @@ var tests = [
               assert.areEqual(1, baseCount, "1 === baseCount");
 
               assert.areEqual(123, newProxy.prop0, "123 === newProxy.prop0");
-              assert.areEqual(1, getCount, "1 === getCount");
+              assert.areEqual(2, getCount, "2 === getCount");
             };
 
             test();
