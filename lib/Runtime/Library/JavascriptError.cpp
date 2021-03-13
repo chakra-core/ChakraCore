@@ -127,7 +127,7 @@ namespace Js
 
         RecyclableObject* thisError = VarTo<RecyclableObject>(args[0]);
         Var value = NULL;
-        JavascriptString *outputStr, *message, *cause;
+        JavascriptString *outputStr, *message;
 
         // get error.name
         BOOL hasName = JavascriptOperators::GetPropertyNoCache(thisError, PropertyIds::name, &value, scriptContext) &&
@@ -164,13 +164,6 @@ namespace Js
         else if (msgLen > 0)
         {
             outputStr = message;
-        }
-        
-        if (JavascriptOperators::HasProperty(thisError, PropertyIds::cause))
-        {
-            cause = JavascriptConversion::ToString(JavascriptOperators::GetPropertyNoCache(thisError, PropertyIds::cause, scriptContext), scriptContext);
-            outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("\nCaused by: ")));
-            outputStr = JavascriptString::Concat(outputStr, cause);
         }
 
         return outputStr;

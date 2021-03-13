@@ -7,6 +7,7 @@
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 
+const o = {};
 const tests = [
     {
         name: "Error.prototype.cause",
@@ -21,16 +22,24 @@ const tests = [
         }
     },
     {
+        name: `Error("", { cause: o })'s descriptor`,
+        body: function () {
+            const e = Error("", { cause: o });
+            const desc = Object.getOwnPropertyDescriptor(e, "cause");
+            assert.areEqual(desc.configurable, true, "e.cause should be configurable");
+            assert.areEqual(desc.writable, true, "e.cause should be writable");
+            assert.areEqual(desc.enumerable, false, "e.cause should not be enumerable");
+        }
+    },
+    {
         name: "o === Error('', { cause: o }).cause",
         body: function () {
-            const o = {};
             assert.areEqual(RangeError("", { cause: o }).cause, o, `Cause property value should be kept as-is`);
         }
     },
     {
         name: "Proxy options parameter",
         body: function () {
-            const o = {};
             const options = new Proxy({ cause: o }, {
                 has(target, p) {
                     hasCounter++;
@@ -46,27 +55,6 @@ const tests = [
             assert.areEqual(hasCounter, 1, `hasCounter should be 1`);
             assert.areEqual(getCounter, 1, `getCounter should be 1`);
             assert.areEqual(e.cause, o, `Cause property value should be kept as-is`);
-            assert.areEqual(hasCounter, 1, `hasCounter should be 1`);
-            assert.areEqual(getCounter, 1, `getCounter should be 1`);
-        }
-    },
-    {
-        name: "Proxy *Error.toString()",
-        body: function () {
-            const o = {};
-            const e = TypeError("test", { cause: o });
-            const p = new Proxy(e, {
-                has(target, p) {
-                    hasCounter++;
-                    return p in target;
-                },
-                get(target, p) {
-                    p === "cause" && getCounter++;
-                    return target[p];
-                }
-            });
-            var hasCounter = 0, getCounter = 0;
-            p.toString();
             assert.areEqual(hasCounter, 1, `hasCounter should be 1`);
             assert.areEqual(getCounter, 1, `getCounter should be 1`);
         }
