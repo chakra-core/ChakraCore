@@ -2,6 +2,11 @@
 <regress-exe>
   <test>
     <default>
+      <files>error_cause.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>errorProps.js</files>
       <baseline>errorProps_v4.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
