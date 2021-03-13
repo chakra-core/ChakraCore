@@ -74,7 +74,6 @@
         },
         "a20": {
           "#__proto__": "Object {...}",
-          "description": "string Hello World!",
           "message": "string Hello World!",
           "stack": "string <large string>"
         },

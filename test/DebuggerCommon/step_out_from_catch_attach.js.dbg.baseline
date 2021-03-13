@@ -16,8 +16,6 @@
       "x": "number 1",
       "e": {
         "#__proto__": "Object {...}",
-        "number": "number 0",
-        "description": "string ",
         "stack": "string <large string>"
       },
       "z": "number 1"
