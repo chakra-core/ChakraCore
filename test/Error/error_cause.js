@@ -98,6 +98,12 @@ function makeTestsFor(ErrorConstructor) {
                 assert.areEqual(hasCounter, 1, `hasCounter should be 1`);
                 assert.areEqual(getCounter, 1, `getCounter should be 1`);
             }
+        },
+        {
+            name: "Cause property is not added to error if options parameter doesn't have the cause property",
+            body: function () {
+                assert.isFalse('cause' in ErrorConstructor(message, { }), `Cause property must not be added to error if options parameter doesn't have the cause property`);
+            }
         }
     ]
 }
