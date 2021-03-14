@@ -104,6 +104,15 @@ function makeTestsFor(ErrorConstructor) {
             body: function () {
                 assert.isFalse('cause' in ErrorConstructor(message, { }), `Cause property must not be added to error if options parameter doesn't have the cause property`);
             }
+        },
+        {
+            name: "Cause property is not added to error if options parameter isn't typeof object",
+            body: function () {
+                Number.prototype.cause = 0;
+                String.prototype.cause = 0;
+                assert.isFalse('cause' in ErrorConstructor(message, 0), `Cause property must not be added to error if options parameter isn't typeof object`);
+                assert.isFalse('cause' in ErrorConstructor(message, ""), `Cause property must not be added to error if options parameter isn't typeof object`);
+            }
         }
     ]
 }
