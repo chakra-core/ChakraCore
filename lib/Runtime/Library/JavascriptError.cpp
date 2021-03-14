@@ -47,7 +47,7 @@ namespace Js
         SetEnumerable(propertyId, false);
     }
 
-    Var JavascriptError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message)
+    Var JavascriptError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message, Var options)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -64,6 +64,14 @@ namespace Js
             JavascriptOperators::SetProperty(pError, pError, PropertyIds::message, messageString, scriptContext);
             pError->SetNotEnumerable(PropertyIds::message);
         }
+
+        if (JavascriptOperators::IsObject(options) && JavascriptOperators::HasProperty(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause))
+        {
+            Var cause = JavascriptOperators::GetPropertyNoCache(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause, scriptContext);
+            JavascriptOperators::SetProperty(pError, pError, PropertyIds::cause, cause, scriptContext);
+            pError->SetNotEnumerable(PropertyIds::cause);
+        }
+        
 
         JavascriptExceptionContext exceptionContext;
         JavascriptExceptionOperators::WalkStackForExceptionContext(*scriptContext, exceptionContext, pError,
@@ -84,7 +92,8 @@ namespace Js
         JavascriptError* pError = scriptContext->GetLibrary()->Create##name(); \
         Var newTarget = args.GetNewTarget(); \
         Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined(); \
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message); \
+        Var options = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined(); \
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message, options); \
     }
     NEW_ERROR(Error);
     NEW_ERROR(EvalError);
@@ -115,7 +124,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Error.prototype.toString"));
         }
 
-        RecyclableObject * thisError = VarTo<RecyclableObject>(args[0]);
+        RecyclableObject* thisError = VarTo<RecyclableObject>(args[0]);
         Var value = NULL;
         JavascriptString *outputStr, *message;
 
@@ -148,8 +157,8 @@ namespace Js
 
         if (nameLen > 0 && msgLen > 0)
         {
-           outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(": ")));
-           outputStr = JavascriptString::Concat(outputStr, message);
+            outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(": ")));
+            outputStr = JavascriptString::Concat(outputStr, message);
         }
         else if (msgLen > 0)
         {

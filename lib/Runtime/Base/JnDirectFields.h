@@ -107,6 +107,7 @@ ENTRY(JsBuiltIn)
 ENTRY(call)
 ENTRY(CanvasPixelArray)
 ENTRY(cast)
+ENTRY(cause)
 ENTRY2(catch_, _u("catch")) // "catch" cannot be an identifier in C++ so using "catch_" instead
 ENTRY(charAt)
 ENTRY(charCodeAt)
