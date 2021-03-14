@@ -53,7 +53,6 @@ namespace Js
 
         bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         JavascriptString* messageString = nullptr;
-        Var cause = nullptr;
 
         if (JavascriptOperators::GetTypeId(message) != TypeIds_Undefined)
         {
@@ -66,9 +65,9 @@ namespace Js
             pError->SetNotEnumerable(PropertyIds::message);
         }
 
-        if (JavascriptOperators::IsObject(options) && JavascriptOperators::HasProperty(VarTo<RecyclableObject>(options), PropertyIds::cause))
+        if (JavascriptOperators::IsObject(options) && JavascriptOperators::HasProperty(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause))
         {
-            cause = JavascriptOperators::GetPropertyNoCache(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause, scriptContext);
+            Var cause = JavascriptOperators::GetPropertyNoCache(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause, scriptContext);
             JavascriptOperators::SetProperty(pError, pError, PropertyIds::cause, cause, scriptContext);
             pError->SetNotEnumerable(PropertyIds::cause);
         }
