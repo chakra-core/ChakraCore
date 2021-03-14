@@ -53,6 +53,31 @@ function makeTestsFor(ErrorConstructor) {
             }
         },
         {
+            name: "Options with cause property as getter",
+            body: function () {
+                var getCounter = 0;
+                const options = {
+                    get cause() {
+                        getCounter++;
+                        return o;
+                    }
+                }
+                ErrorConstructor(message, options);
+                assert.areEqual(getCounter, 1, `getCounter should be 1`);
+            }
+        },
+        {
+            name: "Options with cause property as getter which throws",
+            body: function () {
+                const options = {
+                    get cause() {
+                        throw ErrorConstructor();
+                    }
+                }
+                assert.throws(() => ErrorConstructor(message, options), ErrorConstructor);
+            }
+        },
+        {
             name: "Proxy options parameter",
             body: function () {
                 const options = new Proxy({ cause: o }, {
