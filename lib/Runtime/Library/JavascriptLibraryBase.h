@@ -84,6 +84,7 @@ namespace Js
         JavascriptFunction* GetSyntaxErrorConstructor() const { return syntaxErrorConstructor; }
         JavascriptFunction* GetTypeErrorConstructor() const { return typeErrorConstructor; }
         JavascriptFunction* GetURIErrorConstructor() const { return uriErrorConstructor; }
+        JavascriptFunction* GetAggregateErrorConstructor() const { return aggregateErrorConstructor;  }
         JavascriptFunction* GetPromiseResolve() const { return promiseResolveFunction; }
         JavascriptFunction* GetPromiseThen() const { return promiseThenFunction; }
         JavascriptFunction* GetJSONStringify() const { return jsonStringifyFunction; }
@@ -153,6 +154,7 @@ namespace Js
         DynamicObject* GetSyntaxErrorPrototype() const { return syntaxErrorPrototype; }
         DynamicObject* GetTypeErrorPrototype() const { return typeErrorPrototype; }
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
+        DynamicObject* GetAggregateErrorPrototype() const { return aggregateErrorPrototype;  }
         PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
         PropertyId GetPropertyIdSymbolToStringTag() { return PropertyIds::_symbolToStringTag; };
         PropertyId GetPropertyIdSymbolUnscopables() { return PropertyIds::_symbolUnscopables; };
@@ -196,6 +198,7 @@ namespace Js
         Field(RuntimeFunction*) syntaxErrorConstructor;
         Field(RuntimeFunction*) typeErrorConstructor;
         Field(RuntimeFunction*) uriErrorConstructor;
+        Field(RuntimeFunction*) aggregateErrorConstructor;
         Field(RuntimeFunction*) proxyConstructor;
         Field(RuntimeFunction*) promiseConstructor;
         Field(RuntimeFunction*) generatorFunctionConstructor;
@@ -283,6 +286,7 @@ namespace Js
         Field(DynamicObject*) syntaxErrorPrototype;
         Field(DynamicObject*) typeErrorPrototype;
         Field(DynamicObject*) uriErrorPrototype;
+        Field(DynamicObject*) aggregateErrorPrototype;
 
         //SIMD Prototypes
         Field(DynamicObject*) simdBool8x16Prototype;

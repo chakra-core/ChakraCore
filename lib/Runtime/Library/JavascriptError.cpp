@@ -83,6 +83,63 @@ namespace Js
             pError;
     }
 
+    Var JavascriptAggregateError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options)
+    {
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
+        JavascriptString* messageString = nullptr;
+
+        if (JavascriptOperators::GetTypeId(message) != TypeIds_Undefined)
+        {
+            messageString = JavascriptConversion::ToString(message, scriptContext);
+        }
+
+        if (messageString)
+        {
+            JavascriptOperators::SetProperty(pError, pError, PropertyIds::message, messageString, scriptContext);
+            pError->SetNotEnumerable(PropertyIds::message);
+        }
+
+        if (JavascriptOperators::IsObject(options) && JavascriptOperators::HasProperty(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause))
+        {
+            Var cause = JavascriptOperators::GetPropertyNoCache(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause, scriptContext);
+            JavascriptOperators::SetProperty(pError, pError, PropertyIds::cause, cause, scriptContext);
+            pError->SetNotEnumerable(PropertyIds::cause);
+        }
+
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        Recycler* recycler = scriptContext->GetRecycler();
+        JavascriptAggregateErrorErrorsList* errorsList = RecyclerNew(recycler, JavascriptAggregateErrorErrorsList, recycler);
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(UnsafeVarTo<RecyclableObject>(errors), scriptContext);
+        JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
+        {
+            errorsList->Push(next);
+        });
+        errorsList->Reverse();
+
+        JavascriptArray* elements = library->CreateArray(errorsList->Count());
+        JavascriptAggregateErrorErrorsList::Iterator it = errorsList->GetIterator();
+        uint32 n = 0;
+        while (it.Next())
+        {
+            elements->DirectSetItemAt(n, it.Data());
+            n++;
+        }
+
+        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, elements, scriptContext);
+        pError->SetNotEnumerable(PropertyIds::errors);
+
+        JavascriptExceptionContext exceptionContext;
+        JavascriptExceptionOperators::WalkStackForExceptionContext(*scriptContext, exceptionContext, pError,
+            JavascriptExceptionOperators::StackCrawlLimitOnThrow(pError, *scriptContext), /*returnAddress=*/ nullptr, /*isThrownException=*/ false, /*resetSatck=*/ false);
+        JavascriptExceptionOperators::AddStackTraceToObject(pError, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ false, /*resetSatck=*/ false);
+
+        return isCtorSuperCall ?
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pError, nullptr, scriptContext) :
+            pError;
+    }
+
 #define NEW_ERROR(name) \
     Var JavascriptError::New##name##Instance(RecyclableObject* function, CallInfo callInfo, ...) \
     { \
@@ -107,6 +164,19 @@ namespace Js
     NEW_ERROR(WebAssemblyLinkError);
 
 #undef NEW_ERROR
+
+    Var JavascriptAggregateError::NewAggregateErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JavascriptAggregateError* pError = scriptContext->GetLibrary()->CreateAggregateError();
+        Var newTarget = args.GetNewTarget();
+        Var errors = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        Var message = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
+        Var options = args.Info.Count > 3 ? args[3] : scriptContext->GetLibrary()->GetUndefined();
+        return JavascriptAggregateError::NewInstance(function, pError, callInfo, newTarget, errors, message, options);
+    }
 
     Var JavascriptError::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -770,6 +840,9 @@ namespace Js
             break;
         case kjstURIError:
             jsNewError = targetJavascriptLibrary->CreateURIError();
+            break;
+        case kjstAggregateError:
+            jsNewError = targetJavascriptLibrary->CreateAggregateError();
             break;
         case kjstWebAssemblyCompileError:
             jsNewError = targetJavascriptLibrary->CreateWebAssemblyCompileError();

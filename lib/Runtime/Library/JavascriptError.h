@@ -178,4 +178,40 @@ namespace Js
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Error;
     }
+
+    typedef SList<Var, Recycler> JavascriptAggregateErrorErrorsList;
+
+    class JavascriptAggregateError : public JavascriptError {
+    private:
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptAggregateError);
+
+        Field(RecyclableObject*) m_errors;
+
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptAggregateError, JavascriptError);
+
+    public:
+        class EntryInfo {
+        public:
+            static FunctionInfo NewAggregateErrorInstance;
+        };
+
+        JavascriptAggregateError(DynamicType* type, BOOL isExternalError = FALSE, BOOL isPrototype = FALSE) :
+            JavascriptError(type, isExternalError, isPrototype), m_errors(nullptr)
+        {
+
+        }
+
+        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
+        static Var NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options);
+    };
+
+    template <> inline bool VarIsImpl<JavascriptAggregateError>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Error &&
+            (
+                VirtualTableInfo<JavascriptAggregateError>::HasVirtualTable(obj) ||
+                VirtualTableInfo<CrossSiteObject<JavascriptAggregateError>>::HasVirtualTable(obj)
+                );
+    }
 }

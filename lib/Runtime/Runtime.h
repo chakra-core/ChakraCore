@@ -162,6 +162,7 @@ namespace Js
 
     struct RestrictedErrorStrings;
     class JavascriptError;
+    class JavascriptAggregateError;
     class RecyclableObject;
     class JavascriptRegExp;
     class JavascriptRegularExpressionResult;

@@ -331,6 +331,7 @@ namespace Js
         INIT_ERROR_PROTO(syntaxErrorPrototype, InitializeSyntaxErrorPrototype);
         INIT_ERROR_PROTO(typeErrorPrototype, InitializeTypeErrorPrototype);
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
+        INIT_ERROR_PROTO(aggregateErrorPrototype, InitializeAggregateErrorPrototype);
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -566,6 +567,7 @@ namespace Js
         INIT_SIMPLE_TYPE(syntaxErrorType, TypeIds_Error, syntaxErrorPrototype);
         INIT_SIMPLE_TYPE(typeErrorType, TypeIds_Error, typeErrorPrototype);
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
+        INIT_SIMPLE_TYPE(aggregateErrorType, TypeIds_Error, aggregateErrorPrototype);
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -1018,6 +1020,9 @@ namespace Js
 
         case kjstURIError:
             return GetURIErrorType();
+
+        case kjstAggregateError:
+            return GetAggregateErrorType();
 
         case kjstWebAssemblyCompileError:
             return GetWebAssemblyCompileErrorType();
@@ -1792,6 +1797,11 @@ namespace Js
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
+        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptAggregateError::EntryInfo::NewAggregateErrorInstance,
+            DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
+            nativeErrorPrototype);
+        AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
+
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
@@ -2523,6 +2533,31 @@ namespace Js
     INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError);
 
 #undef INIT_ERROR
+
+    bool JavascriptLibrary::InitializeAggregateErrorConstructor(DynamicObject * constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    { 
+        typeHandler->Convert(constructor, mode, 3);
+        JavascriptLibrary* library = constructor->GetLibrary();
+        library->AddMember(constructor, PropertyIds::prototype, library->GetAggregateErrorPrototype(), PropertyNone);
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
+        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable;
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
+        constructor->SetHasNoEnumerableProperties(true);
+        return true;
+    }
+
+    bool JavascriptLibrary::InitializeAggregateErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
+    {
+        typeHandler->Convert(prototype, mode, 3);
+        JavascriptLibrary* library = prototype->GetLibrary();
+        library->AddMember(prototype, PropertyIds::constructor, library->GetAggregateErrorConstructor());
+        bool hasNoEnumerableProperties = true;
+        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable;
+        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
+        library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes);
+        prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
+        return true;
+    }
 
     bool JavascriptLibrary::InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -6261,6 +6296,9 @@ namespace Js
         case kjstURIError:
             baseErrorType = uriErrorType;
             break;
+        case kjstAggregateError:
+            baseErrorType = aggregateErrorType;
+            break;
         case kjstWebAssemblyCompileError:
             baseErrorType = webAssemblyCompileErrorType;
             break;
@@ -6295,6 +6333,15 @@ namespace Js
     CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
     CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
     CREATE_ERROR(WebAssemblyLinkError, webAssemblyLinkErrorType, kjstWebAssemblyLinkError);
+
+
+    JavascriptAggregateError* JavascriptLibrary::CreateAggregateError()
+    {
+        AssertMsg(aggregateErrorType, "Where's aggregateErrorType?");
+        JavascriptAggregateError* pError = RecyclerNew(this->GetRecycler(), JavascriptAggregateError, aggregateErrorType);
+        JavascriptAggregateError::SetErrorType(pError, kjstAggregateError);
+        return pError;
+    }
 
 #undef CREATE_ERROR
 
@@ -7452,6 +7499,7 @@ namespace Js
         REGISTER_ERROR_OBJECT(SyntaxError);
         REGISTER_ERROR_OBJECT(TypeError);
         REGISTER_ERROR_OBJECT(URIError);
+        REGISTER_ERROR_OBJECT(AggregateError);
 
         return hr;
     }
