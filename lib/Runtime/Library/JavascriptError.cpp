@@ -83,7 +83,7 @@ namespace Js
             pError;
     }
 
-    Var JavascriptAggregateError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options)
+    Var JavascriptAggregateError::NewInstance(RecyclableObject* function, JavascriptAggregateError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -108,7 +108,6 @@ namespace Js
             pError->SetNotEnumerable(PropertyIds::cause);
         }
 
-        JavascriptLibrary* library = scriptContext->GetLibrary();
         Recycler* recycler = scriptContext->GetRecycler();
         JavascriptAggregateErrorErrorsList* errorsList = RecyclerNew(recycler, JavascriptAggregateErrorErrorsList, recycler);
         RecyclableObject* iterator = JavascriptOperators::GetIterator(UnsafeVarTo<RecyclableObject>(errors), scriptContext);
@@ -117,19 +116,8 @@ namespace Js
             errorsList->Push(next);
         });
         errorsList->Reverse();
-
-        JavascriptArray* elements = library->CreateArray(errorsList->Count());
-        JavascriptAggregateErrorErrorsList::Iterator it = errorsList->GetIterator();
-        uint32 n = 0;
-        while (it.Next())
-        {
-            elements->DirectSetItemAt(n, it.Data());
-            n++;
-        }
-
-        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, elements, scriptContext);
-        pError->SetNotEnumerable(PropertyIds::errors);
-
+        JavascriptAggregateError::SetErrorsList(pError, errorsList, scriptContext);
+        
         JavascriptExceptionContext exceptionContext;
         JavascriptExceptionOperators::WalkStackForExceptionContext(*scriptContext, exceptionContext, pError,
             JavascriptExceptionOperators::StackCrawlLimitOnThrow(pError, *scriptContext), /*returnAddress=*/ nullptr, /*isThrownException=*/ false, /*resetSatck=*/ false);
@@ -176,6 +164,21 @@ namespace Js
         Var message = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
         Var options = args.Info.Count > 3 ? args[3] : scriptContext->GetLibrary()->GetUndefined();
         return JavascriptAggregateError::NewInstance(function, pError, callInfo, newTarget, errors, message, options);
+    }
+
+    void JavascriptAggregateError::SetErrorsList(JavascriptAggregateError* pError, JavascriptAggregateErrorErrorsList* errorsList, ScriptContext* scriptContext)
+    {
+        JavascriptArray* array = scriptContext->GetLibrary()->CreateArray(errorsList->Count());
+        uint32 n = 0;
+        SList<Var, Recycler>::Iterator it = errorsList->GetIterator();
+        while (it.Next())
+        {
+            array->DirectSetItemAt(n, it.Data());
+            n++;
+        }
+
+        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, array, scriptContext);
+        pError->SetNotEnumerable(PropertyIds::errors);
     }
 
     Var JavascriptError::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -316,6 +319,14 @@ namespace Js
     THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
     THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
+
+    void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateError(ScriptContext* scriptContext, JavascriptAggregateErrorErrorsList* errorsList)
+    {
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        JavascriptAggregateError* pError = library->CreateAggregateError();
+        JavascriptAggregateError::SetErrorsList(pError, errorsList, scriptContext);
+        JavascriptExceptionOperators::Throw(pError, scriptContext);
+    }
 #undef THROW_ERROR_IMPL
 
     void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable); }

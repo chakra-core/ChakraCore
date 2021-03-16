@@ -203,7 +203,11 @@ namespace Js
         }
 
         static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
-        static Var NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options);
+        static Var NewInstance(RecyclableObject* function, JavascriptAggregateError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options);
+
+        static void SetErrorsList(JavascriptAggregateError* pError, JavascriptAggregateErrorErrorsList* errorsList, ScriptContext* scriptContext);
+
+        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, JavascriptAggregateErrorErrorsList* errorsList);
     };
 
     template <> inline bool VarIsImpl<JavascriptAggregateError>(RecyclableObject* obj)
