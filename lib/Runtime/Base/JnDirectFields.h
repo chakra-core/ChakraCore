@@ -44,6 +44,7 @@ ENTRY_SYMBOL(_symbolUnscopables, _u("Symbol.unscopables"))
 // math functions must remain contiguous for quick modification check
 ENTRY(abs)
 ENTRY(acos)
+ENTRY(any)
 ENTRY(asin)
 ENTRY(atan)
 ENTRY(atan2)

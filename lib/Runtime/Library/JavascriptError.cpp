@@ -168,16 +168,22 @@ namespace Js
 
     void JavascriptAggregateError::SetErrorsList(JavascriptAggregateError* pError, JavascriptAggregateErrorErrorsList* errorsList, ScriptContext* scriptContext)
     {
-        JavascriptArray* array = scriptContext->GetLibrary()->CreateArray(errorsList->Count());
+        JavascriptArray* errors = scriptContext->GetLibrary()->CreateArray(errorsList->Count());
         uint32 n = 0;
         SList<Var, Recycler>::Iterator it = errorsList->GetIterator();
         while (it.Next())
         {
-            array->DirectSetItemAt(n, it.Data());
+            errors->DirectSetItemAt(n, it.Data());
             n++;
         }
 
-        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, array, scriptContext);
+        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, errors, scriptContext);
+        pError->SetNotEnumerable(PropertyIds::errors);
+    }
+
+    void JavascriptAggregateError::SetErrorsList(JavascriptAggregateError* pError, JavascriptArray* errors, ScriptContext* scriptContext)
+    {
+        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, errors, scriptContext);
         pError->SetNotEnumerable(PropertyIds::errors);
     }
 
@@ -320,11 +326,11 @@ namespace Js
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
     THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
 
-    void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateError(ScriptContext* scriptContext, JavascriptAggregateErrorErrorsList* errorsList)
+    void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateError(ScriptContext* scriptContext, JavascriptArray* errors)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
         JavascriptAggregateError* pError = library->CreateAggregateError();
-        JavascriptAggregateError::SetErrorsList(pError, errorsList, scriptContext);
+        JavascriptAggregateError::SetErrorsList(pError, errors, scriptContext);
         JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
 #undef THROW_ERROR_IMPL
