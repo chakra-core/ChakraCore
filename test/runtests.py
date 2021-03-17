@@ -741,12 +741,8 @@ def main():
             ])
     ] if x.name in args.variants]
 
-    # rm profile.dpl.*
-    for f in glob.glob(test_root + '/*/profile.dpl.*'):
-        os.remove(f)
-
     print('############# ChakraCore Test Suite #############')
-    print('Testing {} build'.format('Test' if flavor is 'Test' else 'Debug'))
+    print('Testing {} build'.format('Test' if flavor == 'Test' else 'Debug'))
     print('Using {} threads'.format(processcount))
     # run each variant
     pool, sequential_pool = Pool(processcount), Pool(1)
@@ -758,6 +754,10 @@ def main():
     failed = any(variant.test_result.fail_count > 0 for variant in variants)
     print('[{} seconds] {}'.format(
         round(elapsed_time.total_seconds(),2), 'Success!' if not failed else 'Failed!'))
+
+    # rm profile.dpl.*
+    for f in glob.glob(test_root + '/*/profile.dpl.*'):
+        os.remove(f)
 
     return 1 if failed else 0
 

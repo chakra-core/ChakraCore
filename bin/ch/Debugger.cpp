@@ -1,8 +1,11 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#include "Helpers.h"
+#include "PlatformAgnostic/ChakraICU.h"
 
 #define MAX_BASELINE_SIZE       (1024*1024*200)
 
@@ -303,63 +306,34 @@ Error:
 
 bool Debugger::SetBaseline()
 {
-#ifdef _WIN32
-    LPSTR script = nullptr;
-    FILE *file = nullptr;
-    size_t numChars = 0;
-    HRESULT hr = S_OK;
+    const char* script = nullptr;
+    char* fileName = nullptr;
+    JsValueRef scriptRef = JS_INVALID_REFERENCE;
+    HRESULT hr = E_FAIL;
+    UINT lengthBytes = 0;
 
-    if (_wfopen_s(&file, HostConfigFlags::flags.dbgbaseline, _u("rb")) != 0)
+    if (SUCCEEDED(WideStringToNarrowDynamic(HostConfigFlags::flags.dbgbaseline, &fileName)))
     {
-        Helpers::LogError(_u("opening baseline file '%s'"), HostConfigFlags::flags.dbgbaseline);
-    }
-
-    if(file != nullptr)
-    {
-        long fileSize = _filelength(_fileno(file));
-        if (0 <= fileSize && fileSize <= MAX_BASELINE_SIZE)
+        Helpers::LoadScriptFromFile(fileName, script, &lengthBytes);
+        if (script && lengthBytes < MAX_BASELINE_SIZE &&
+            ChakraRTInterface::JsCreateString(script, strlen(script), &scriptRef) == JsNoError)
         {
-            script = new char[(size_t)fileSize + 1];
-
-            numChars = fread(script, sizeof(script[0]), fileSize, file);
-            if (numChars == (size_t)fileSize)
-            {
-                script[numChars] = '\0';
-
-                JsValueRef wideScriptRef;
-                IfJsErrorFailLogAndHR(ChakraRTInterface::JsCreateString(
-                  script, strlen(script), &wideScriptRef));
-
-                this->CallFunctionNoResult("SetBaseline", wideScriptRef);
-            }
-            else
-            {
-                Helpers::LogError(_u("failed to read from baseline file"));
-                IfFailGo(E_FAIL);
-            }
-        }
-        else
-        {
-            Helpers::LogError(_u("baseline file too large"));
-            IfFailGo(E_FAIL);
+            this->CallFunctionNoResult("SetBaseline", scriptRef);
+            hr = S_OK;
         }
     }
-Error:
+
     if (script)
     {
         delete[] script;
     }
 
-    if (file)
+    if (hr != S_OK)
     {
-        fclose(file);
+        Helpers::LogError(_u("Failed to load & process debug baseline: %s"), HostConfigFlags::flags.dbgbaseline);
     }
 
     return hr == S_OK;
-#else
-    // xplat-todo: Implement this on Linux
-    return false;
-#endif
 }
 
 bool Debugger::SetInspectMaxStringLength()
