@@ -8493,10 +8493,10 @@ Case0:
 
         JS_REENTRANT_UNLOCK(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.find"), &pArr, &obj, &length));
 
-        return JavascriptArray::FindHelper<false>(pArr, nullptr, obj, length, args, scriptContext);
+        return JavascriptArray::FindHelper<false, false>(pArr, nullptr, obj, length, args, scriptContext);
     }
 
-    template <bool findIndex>
+    template <bool findIndex, bool reversed>
     Var JavascriptArray::FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
@@ -8537,16 +8537,18 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
+        int64 loopStart = reversed ? length - 1 : 0;
+        int8 loopDelta = reversed ? -1 : 1;
 
         if (pArr)
         {
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
 
             Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
+            for (int64 k = loopStart; reversed ? k >= 0 : k < length; k += loopDelta)
             {
                 element = undefined;
-                JS_REENTRANT(jsReentLock, pArr->DirectGetItemAtFull(k, &element));
+                JS_REENTRANT(jsReentLock, pArr->DirectGetItemAtFull((uint32)k, &element));
 
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
@@ -8571,20 +8573,20 @@ Case0:
                 if (!JavascriptArray::IsNonES5Array(obj))
                 {
                     AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
-                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FindObjectHelper<findIndex>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
+                    JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FindObjectHelper<findIndex, reversed>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
                 }
             }
         }
         else if (typedArrayBase)
         {
             Assert(length <= UINT_MAX);
-            for (uint32 k = 0; k < (uint32)length; k++)
+            for (int64 k = loopStart; reversed ? k >= 0 : k < length; k+= loopDelta)
             {
                 // Spec does not ask to call HasItem, so we need to go to visit the whole length
 
-                element = typedArrayBase->DirectGetItem(k);
+                element = typedArrayBase->DirectGetItem((uint32)k);
 
-                Var index = JavascriptNumber::ToVar(k, scriptContext);
+                Var index = JavascriptNumber::ToVar((uint32)k, scriptContext);
 
                 JS_REENTRANT(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
@@ -8605,13 +8607,13 @@ Case0:
         }
         else
         {
-            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FindObjectHelper<findIndex>(obj, length, 0u, callBackFn, thisArg, scriptContext));
+            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FindObjectHelper<findIndex, reversed>(obj, length, 0u, callBackFn, thisArg, scriptContext));
         }
 
         return findIndex ? JavascriptNumber::ToVar(-1, scriptContext) : scriptContext->GetLibrary()->GetUndefined();
     }
 
-    template <bool findIndex>
+    template <bool findIndex, bool reversed>
     Var JavascriptArray::FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
@@ -8621,8 +8623,10 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
+        int64 loopStart = reversed ? length - 1 : start;
+        int8 loopDelta = reversed ? -1 : 1;
 
-        for (int64 k = start; k < length; k++)
+        for (int64 k = loopStart; reversed ? k >= start : k < length; k += loopDelta)
         {
             JS_REENTRANT(jsReentLock, element = JavascriptOperators::GetItem(obj, (uint64)k, scriptContext));
             Var index = JavascriptNumber::ToVar(k, scriptContext);
@@ -8648,9 +8652,8 @@ Case0:
     }
 
     ///----------------------------------------------------------------------------
-    /// FindIndex() calls the given predicate callback on each element of the
-    /// array, in order, and returns the index of the first element that makes the
-    /// predicate return true, as described in (ES6.0: S22.1.3.9).
+    /// FindLast() calls the given predicate callback on each element of the array, in
+    /// reversed order, and returns the first element that makes the predicate return true.
     ///----------------------------------------------------------------------------
     Var JavascriptArray::EntryFindIndex(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -8673,7 +8676,65 @@ Case0:
 
         JS_REENTRANT_UNLOCK(jsReentLock,
             TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.findIndex"), &pArr, &obj, &length));
-            return JavascriptArray::FindHelper<true>(pArr, nullptr, obj, length, args, scriptContext);
+            return JavascriptArray::FindHelper<true, false>(pArr, nullptr, obj, length, args, scriptContext);
+    }
+
+    ///----------------------------------------------------------------------------
+    /// FindIndex() calls the given predicate callback on each element of the
+    /// array, in order, and returns the index of the first element that makes the
+    /// predicate return true, as described in (ES6.0: S22.1.3.9).
+    ///----------------------------------------------------------------------------
+    Var JavascriptArray::EntryFindLast(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.findLast"));
+        }
+
+        int64 length;
+        JavascriptArray* pArr = nullptr;
+        RecyclableObject* obj = nullptr;
+
+        JS_REENTRANT_UNLOCK(jsReentLock, TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.findLast"), &pArr, &obj, &length));
+
+        return JavascriptArray::FindHelper<false, true>(pArr, nullptr, obj, length, args, scriptContext);
+    }
+
+    ///----------------------------------------------------------------------------
+    /// FindLastIndex() calls the given predicate callback on each element of the
+    /// array, in reversed order, and returns the index of the first element that makes the
+    /// predicate return true.
+    ///----------------------------------------------------------------------------
+    Var JavascriptArray::EntryFindLastIndex(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args.Info.Count == 0)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.findLastIndex"));
+        }
+
+        int64 length;
+        JavascriptArray* pArr = nullptr;
+        RecyclableObject* obj = nullptr;
+
+        JS_REENTRANT_UNLOCK(jsReentLock,
+            TryGetArrayAndLength(args[0], scriptContext, _u("Array.prototype.findLastIndex"), &pArr, &obj, &length));
+        return JavascriptArray::FindHelper<true, true>(pArr, nullptr, obj, length, args, scriptContext);
     }
 
     ///----------------------------------------------------------------------------

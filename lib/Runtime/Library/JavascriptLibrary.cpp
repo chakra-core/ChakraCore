@@ -2076,6 +2076,9 @@ namespace Js
         {
             /* No inlining            Array_Find           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::find,            &JavascriptArray::EntryInfo::Find,              1);
             /* No inlining            Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
+
+            /* No inlining            Array_FindLast           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLast, &JavascriptArray::EntryInfo::FindLast,             1);
+            /* No inlining            Array_FindLastIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLastIndex, &JavascriptArray::EntryInfo::FindLastIndex,   1);
         }
 
 #ifdef ENABLE_JS_BUILTINS

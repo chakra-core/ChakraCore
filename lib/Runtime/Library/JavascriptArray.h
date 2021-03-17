@@ -260,6 +260,8 @@ namespace Js
             static FunctionInfo IsArray;
             static FunctionInfo Find;
             static FunctionInfo FindIndex;
+            static FunctionInfo FindLast;
+            static FunctionInfo FindLastIndex;
             static FunctionInfo Entries;
             static FunctionInfo Keys;
             static FunctionInfo Values;
@@ -299,6 +301,8 @@ namespace Js
         static Var EntryIsArray(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFind(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFindIndex(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFindLast(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFindLastIndex(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryEntries(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryKeys(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValues(RecyclableObject* function, CallInfo callInfo, ...);
@@ -515,9 +519,9 @@ namespace Js
         static Var SomeHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var SomeObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
-        template <bool findIndex>
+        template <bool findIndex, bool reversed>
         static Var FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
-        template <bool findIndex>
+        template <bool findIndex, bool reversed>
         static Var FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
