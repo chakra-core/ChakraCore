@@ -102,6 +102,12 @@
   </test>
   <test>
     <default>
+      <files>unscopablesWithEsArrayFindFromLastTest.js</files>
+      <compile-flags>-ESArrayFindFromLast -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>function.name.js</files>
       <compile-flags>-ES6Generators -es6functionnamefull -args summary -endargs</compile-flags>
     </default>
