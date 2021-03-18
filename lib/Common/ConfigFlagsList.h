@@ -668,6 +668,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESNumericSeparator      (true)
 #define DEFAULT_CONFIG_ESHashbang              (true)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
+#define DEFAULT_CONFIG_ESArrayFindFromLast     (false)
 #define DEFAULT_CONFIG_ESNullishCoalescingOperator (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
 #ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
@@ -1193,6 +1194,8 @@ FLAGR(Boolean, ESHashbang, "Enable Hashbang syntax", DEFAULT_CONFIG_ESHashbang)
 
 // ES Symbol.prototype.description flag
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)
+
+FLAGR(Boolean, ESArrayFindFromLast, "Enable findLast, findLastIndex for Array.prototype and TypedArray.prorotype", DEFAULT_CONFIG_ESArrayFindFromLast)
 
 // ES import.meta keyword meta-property
 FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImportMeta)

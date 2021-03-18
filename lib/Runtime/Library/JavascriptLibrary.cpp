@@ -2076,9 +2076,11 @@ namespace Js
         {
             /* No inlining            Array_Find           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::find,            &JavascriptArray::EntryInfo::Find,              1);
             /* No inlining            Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
-
-            /* No inlining            Array_FindLast           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLast, &JavascriptArray::EntryInfo::FindLast,             1);
-            /* No inlining            Array_FindLastIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLastIndex, &JavascriptArray::EntryInfo::FindLastIndex,   1);
+        }
+        if (scriptContext->GetConfig()->IsESArrayFindFromLastEnabled())
+        {
+            /* No inlining            Array_FindLast           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLast, &JavascriptArray::EntryInfo::FindLast, 1);
+            /* No inlining            Array_FindLastIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLastIndex, &JavascriptArray::EntryInfo::FindLastIndex, 1);
         }
 
 #ifdef ENABLE_JS_BUILTINS
@@ -2335,8 +2337,6 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::filter, &TypedArrayBase::EntryInfo::Filter, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::find, &TypedArrayBase::EntryInfo::Find, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findIndex, &TypedArrayBase::EntryInfo::FindIndex, 1);
-        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findLast, &TypedArrayBase::EntryInfo::FindLast, 1);
-        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findLastIndex, &TypedArrayBase::EntryInfo::FindLastIndex, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::forEach, &TypedArrayBase::EntryInfo::ForEach, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::indexOf, &TypedArrayBase::EntryInfo::IndexOf, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::join, &TypedArrayBase::EntryInfo::Join, 1);
@@ -2383,6 +2383,11 @@ namespace Js
 
             library->AddMember(typedarrayPrototype, PropertyIds::toLocaleString, library->arrayPrototypeToLocaleStringFunction);
             library->AddMember(typedarrayPrototype, PropertyIds::toString, library->arrayPrototypeToStringFunction);
+        }
+
+        if (scriptContext->GetConfig()->IsESArrayFindFromLastEnabled()) {
+            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findLast, &TypedArrayBase::EntryInfo::FindLast, 1);
+            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findLastIndex, &TypedArrayBase::EntryInfo::FindLastIndex, 1);
         }
 
         typedarrayPrototype->SetHasNoEnumerableProperties(true);
