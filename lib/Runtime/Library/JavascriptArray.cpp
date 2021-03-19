@@ -8545,7 +8545,7 @@ Case0:
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
 
             Assert(length <= UINT_MAX);
-            for (uint32 k = loopStart; (!reversed || k >= 0) && k < length; k += loopDelta)
+            for (uint32 k = loopStart; k < length; k += loopDelta)
             {
                 element = undefined;
                 JS_REENTRANT(jsReentLock, pArr->DirectGetItemAtFull(k, &element));
@@ -8580,7 +8580,7 @@ Case0:
         else if (typedArrayBase)
         {
             Assert(length <= UINT_MAX);
-            for (uint32 k = loopStart; (!reversed || k >= 0) && k < length; k+= loopDelta)
+            for (uint32 k = loopStart; k < length; k+= loopDelta)
             {
                 // Spec does not ask to call HasItem, so we need to go to visit the whole length
 
@@ -8626,7 +8626,7 @@ Case0:
         uint32 loopStart = reversed ? (uint32)length - 1 : (uint32)start;
         int8 loopDelta = reversed ? -1 : 1;
 
-        for (uint32 k = loopStart; (!reversed || k >= 0) && k < length; k += loopDelta)
+        for (uint32 k = loopStart; k < length; k += loopDelta)
         {
             JS_REENTRANT(jsReentLock, element = JavascriptOperators::GetItem(obj, k, scriptContext));
             Var index = JavascriptNumber::ToVar(k, scriptContext);
