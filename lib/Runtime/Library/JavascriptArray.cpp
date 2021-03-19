@@ -8537,7 +8537,7 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
-        int64 loopStart = reversed ? length - 1 : 0;
+        uint32 loopStart = reversed ? (uint32)length - 1 : 0;
         int8 loopDelta = reversed ? -1 : 1;
 
         if (pArr)
@@ -8545,10 +8545,10 @@ Case0:
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
 
             Assert(length <= UINT_MAX);
-            for (int64 k = loopStart; reversed ? k >= 0 : k < length; k += loopDelta)
+            for (uint32 k = loopStart; (!reversed || k >= 0) && k < length; k += loopDelta)
             {
                 element = undefined;
-                JS_REENTRANT(jsReentLock, pArr->DirectGetItemAtFull((uint32)k, &element));
+                JS_REENTRANT(jsReentLock, pArr->DirectGetItemAtFull(k, &element));
 
                 Var index = JavascriptNumber::ToVar(k, scriptContext);
 
@@ -8580,13 +8580,13 @@ Case0:
         else if (typedArrayBase)
         {
             Assert(length <= UINT_MAX);
-            for (int64 k = loopStart; reversed ? k >= 0 : k < length; k+= loopDelta)
+            for (uint32 k = loopStart; (!reversed || k >= 0) && k < length; k+= loopDelta)
             {
                 // Spec does not ask to call HasItem, so we need to go to visit the whole length
 
-                element = typedArrayBase->DirectGetItem((uint32)k);
+                element = typedArrayBase->DirectGetItem(k);
 
-                Var index = JavascriptNumber::ToVar((uint32)k, scriptContext);
+                Var index = JavascriptNumber::ToVar(k, scriptContext);
 
                 JS_REENTRANT(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
@@ -8623,12 +8623,12 @@ Case0:
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
-        int64 loopStart = reversed ? length - 1 : start;
+        uint32 loopStart = reversed ? (uint32)length - 1 : (uint32)start;
         int8 loopDelta = reversed ? -1 : 1;
 
-        for (int64 k = loopStart; reversed ? k >= start : k < length; k += loopDelta)
+        for (uint32 k = loopStart; (!reversed || k >= 0) && k < length; k += loopDelta)
         {
-            JS_REENTRANT(jsReentLock, element = JavascriptOperators::GetItem(obj, (uint64)k, scriptContext));
+            JS_REENTRANT(jsReentLock, element = JavascriptOperators::GetItem(obj, k, scriptContext));
             Var index = JavascriptNumber::ToVar(k, scriptContext);
 
             JS_REENTRANT(jsReentLock,
@@ -8652,8 +8652,9 @@ Case0:
     }
 
     ///----------------------------------------------------------------------------
-    /// FindLast() calls the given predicate callback on each element of the array, in
-    /// reversed order, and returns the first element that makes the predicate return true.
+    /// FindIndex() calls the given predicate callback on each element of the
+    /// array, in order, and returns the index of the first element that makes the
+    /// predicate return true, as described in (ES6.0: S22.1.3.9).
     ///----------------------------------------------------------------------------
     Var JavascriptArray::EntryFindIndex(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -8680,9 +8681,9 @@ Case0:
     }
 
     ///----------------------------------------------------------------------------
-    /// FindIndex() calls the given predicate callback on each element of the
-    /// array, in order, and returns the index of the first element that makes the
-    /// predicate return true, as described in (ES6.0: S22.1.3.9).
+    /// FindLast() calls the given predicate callback on each element of the
+    /// array, in reversed order, and returns the index of the first element that makes the
+    /// predicate return true.
     ///----------------------------------------------------------------------------
     Var JavascriptArray::EntryFindLast(RecyclableObject* function, CallInfo callInfo, ...)
     {
