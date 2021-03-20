@@ -1269,25 +1269,25 @@
   <test>
     <default>
       <files>TypedArray.js</files>
-      <compile-flags>-debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:TypedArray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ComputedPropertyNames.js</files>
-      <compile-flags>-debuglaunch -dbgbaseline:computedpropertynames.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:ComputedPropertyNames.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>parentedDynamicCode2.js</files>
-      <compile-flags>-InspectMaxStringLength:1000 -dbgbaseline:parenteddynamiccode2.js.dbg.baseline</compile-flags>
+      <compile-flags>-InspectMaxStringLength:1000 -dbgbaseline:parentedDynamicCode2.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>parentedDynamicCode3.js</files>
-      <compile-flags>-InspectMaxStringLength:1000 -dbgbaseline:parenteddynamiccode3.js.dbg.baseline</compile-flags>
+      <compile-flags>-InspectMaxStringLength:1000 -dbgbaseline:parentedDynamicCode3.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
@@ -1301,14 +1301,14 @@
     <default>
       <files>ConsoleScope.js</files>
       <baseline>ConsoleScope.js.baseline</baseline>
-      <compile-flags>-debuglaunch -dbgbaseline:consolescope.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:ConsoleScope.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ConsoleScopePMSpec.js</files>
       <baseline>ConsoleScopePMSpec.js.baseline</baseline>
-      <compile-flags>-debuglaunch -dbgbaseline:consolescopepmspec.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:ConsoleScopePMSpec.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
@@ -1351,7 +1351,7 @@
   <test>
     <default>
       <files>promiseDisplay.js</files>
-      <compile-flags>-debuglaunch -dbgbaseline:promisedisplay.js.dbg.baseline</compile-flags>
+      <compile-flags>-debuglaunch -dbgbaseline:promiseDisplay.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
