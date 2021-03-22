@@ -1,7 +1,9 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #if defined(PHASE) || defined(PHASE_DEFAULT_ON) || defined(PHASE_DEFAULT_OFF)
 #ifndef PHASE
 #define PHASE(name)
@@ -668,6 +670,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESNumericSeparator      (true)
 #define DEFAULT_CONFIG_ESHashbang              (true)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
+#define DEFAULT_CONFIG_ESArrayFindFromLast     (false)
 #define DEFAULT_CONFIG_ESNullishCoalescingOperator (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
 #ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
@@ -1193,6 +1196,8 @@ FLAGR(Boolean, ESHashbang, "Enable Hashbang syntax", DEFAULT_CONFIG_ESHashbang)
 
 // ES Symbol.prototype.description flag
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)
+
+FLAGR(Boolean, ESArrayFindFromLast, "Enable findLast, findLastIndex for Array.prototype and TypedArray.prorotype", DEFAULT_CONFIG_ESArrayFindFromLast)
 
 // ES import.meta keyword meta-property
 FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImportMeta)

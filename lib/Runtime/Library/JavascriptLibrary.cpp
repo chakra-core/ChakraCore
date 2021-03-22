@@ -2077,6 +2077,11 @@ namespace Js
             /* No inlining            Array_Find           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::find,            &JavascriptArray::EntryInfo::Find,              1);
             /* No inlining            Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
         }
+        if (scriptContext->GetConfig()->IsESArrayFindFromLastEnabled())
+        {
+            /* No inlining            Array_FindLast           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLast, &JavascriptArray::EntryInfo::FindLast, 1);
+            /* No inlining            Array_FindLastIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findLastIndex, &JavascriptArray::EntryInfo::FindLastIndex, 1);
+        }
 
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
@@ -2105,17 +2110,24 @@ namespace Js
 
         DynamicType* dynamicType = DynamicType::New(scriptContext, TypeIds_Object, library->nullValue, nullptr, NullTypeHandler<false>::GetDefaultInstance(), false);
         DynamicObject* unscopablesList = DynamicObject::New(library->GetRecycler(), dynamicType);
-        unscopablesList->SetProperty(PropertyIds::at,         JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::copyWithin, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::entries,    JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::fill,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::find,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::findIndex,  JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::flat,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::flatMap,    JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::includes,   JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::keys,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
-        unscopablesList->SetProperty(PropertyIds::values,     JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::at,               JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::copyWithin,       JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::entries,          JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::fill,             JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::find,             JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::findIndex,        JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::flat,             JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::flatMap,          JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::includes,         JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::keys,             JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        unscopablesList->SetProperty(PropertyIds::values,           JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+
+        if (scriptContext->GetConfig()->IsESArrayFindFromLastEnabled())
+        {
+            unscopablesList->SetProperty(PropertyIds::findLast, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+            unscopablesList->SetProperty(PropertyIds::findLastIndex, JavascriptBoolean::ToVar(true, scriptContext), PropertyOperation_None, nullptr);
+        }
+
         library->AddMember(arrayPrototype, PropertyIds::_symbolUnscopables, unscopablesList, PropertyConfigurable);
 
         /* No inlining            Array_Fill           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::fill, &JavascriptArray::EntryInfo::Fill, 1);
@@ -2376,6 +2388,11 @@ namespace Js
 
             library->AddMember(typedarrayPrototype, PropertyIds::toLocaleString, library->arrayPrototypeToLocaleStringFunction);
             library->AddMember(typedarrayPrototype, PropertyIds::toString, library->arrayPrototypeToStringFunction);
+        }
+
+        if (scriptContext->GetConfig()->IsESArrayFindFromLastEnabled()) {
+            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findLast, &TypedArrayBase::EntryInfo::FindLast, 1);
+            library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findLastIndex, &TypedArrayBase::EntryInfo::FindLastIndex, 1);
         }
 
         typedarrayPrototype->SetHasNoEnumerableProperties(true);

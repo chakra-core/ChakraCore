@@ -1802,7 +1802,7 @@ namespace Js
 
         TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.find"));
 
-        return JavascriptArray::FindHelper<false>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
+        return JavascriptArray::FindHelper<false, false>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
     }
 
     Var TypedArrayBase::EntryFindIndex(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1818,7 +1818,39 @@ namespace Js
 
         TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.findIndex"));
 
-        return JavascriptArray::FindHelper<true>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
+        return JavascriptArray::FindHelper<true, false>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
+    }
+
+    Var TypedArrayBase::EntryFindLast(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.findLast"));
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_find);
+
+        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.findLast"));
+
+        return JavascriptArray::FindHelper<false, true>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
+    }
+
+    Var TypedArrayBase::EntryFindLastIndex(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("[TypedArray].prototype.findLastIndex"));
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_findIndex);
+
+        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.findLastIndex"));
+
+        return JavascriptArray::FindHelper<true, true>(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
     }
 
     // %TypedArray%.prototype.forEach as described in ES6.0 (draft 22) Section 22.2.3.12
