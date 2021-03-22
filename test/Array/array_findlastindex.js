@@ -416,6 +416,36 @@ const tests = [
             assert.areEqual(2, result);
             assert.areEqual(2, called);
         }
+    },
+    {
+        name : "length limit and behavior",
+        body : function () {
+            var arrZero = [];
+            var arrOne = [1];
+            var arrMax = [];
+            arrMax.length = 2 ** 32 - 1;
+            arrMax[2 ** 32 - 2] = 1;
+
+            var result = arrZero.findLastIndex(function (x) {
+                return x === 1
+            });
+            assert.areEqual(-1, result);
+
+            result = arrOne.findLastIndex(function (x) {
+                return x === 1
+            });
+            assert.areEqual(0, result);
+
+            result = arrOne.findLastIndex(function (x) {
+                return x === 2
+            });
+            assert.areEqual(-1, result);
+
+            result = arrMax.findLastIndex(function (x) {
+                return x === 1
+            });
+            assert.areEqual(2 ** 32 - 2, result);
+        }
     }
 ]
 
