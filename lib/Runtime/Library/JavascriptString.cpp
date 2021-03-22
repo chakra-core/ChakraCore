@@ -205,7 +205,7 @@ namespace Js
     {
         if (!IsValidCharCount(newLength))
         {
-            JavascriptExceptionOperators::ThrowOutOfMemory(this->GetScriptContext());
+            JavascriptError::ThrowRangeError(this->GetScriptContext(), JSERR_OutOfBoundString);
         }
         m_charLength = newLength;
     }
