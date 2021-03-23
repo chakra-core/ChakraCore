@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
@@ -341,13 +342,13 @@ namespace Js
     bool
     FunctionBody::SkipAutoProfileForCoroutine() const
     {
-        return this->IsCoroutine() && CONFIG_ISENABLED(Js::JitES6GeneratorsFlag);
+        return this->IsCoroutine() && CONFIG_FLAG(JitES6Generators);
     }
 
     bool
     FunctionBody::IsGeneratorAndJitIsDisabled() const
     {
-        return this->IsCoroutine() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry() && !this->IsInDebugMode() && !this->IsAsync());
+        return this->IsCoroutine() && !(CONFIG_FLAG(JitES6Generators) && !this->GetHasTry() && !this->IsInDebugMode() && !this->IsModule());
     }
 
     ScriptContext* EntryPointInfo::GetScriptContext()
@@ -7151,8 +7152,7 @@ namespace Js
             !GetScriptContext()->IsScriptContextInDebugMode() &&
             DoInterpreterProfile() &&
 #pragma warning(suppress: 6235) // (<non-zero constant> || <expression>) is always a non-zero constant.
-            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
-            !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
+            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile());
     }
 
     bool FunctionBody::DoSimpleJitWithLock() const
@@ -7166,8 +7166,7 @@ namespace Js
             !this->IsInDebugMode() &&
             DoInterpreterProfileWithLock() &&
 #pragma warning(suppress: 6235) // (<non-zero constant> || <expression>) is always a non-zero constant.
-            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile()) &&
-            !IsCoroutine(); // Generator JIT requires bailout which SimpleJit cannot do since it skips GlobOpt
+            (!CONFIG_FLAG(NewSimpleJit) || DoInterpreterAutoProfile());
     }
 
     bool FunctionBody::DoSimpleJitDynamicProfile() const
