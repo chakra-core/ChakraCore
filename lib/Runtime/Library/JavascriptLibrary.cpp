@@ -2556,7 +2556,7 @@ namespace Js
         typeHandler->Convert(constructor, mode, 3);
         JavascriptLibrary* library = constructor->GetLibrary();
         library->AddMember(constructor, PropertyIds::prototype, library->GetAggregateErrorPrototype(), PropertyNone);
-        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(3), PropertyConfigurable);
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable);
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable;
         library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
         constructor->SetHasNoEnumerableProperties(true);
