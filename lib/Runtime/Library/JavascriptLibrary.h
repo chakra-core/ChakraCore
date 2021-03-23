@@ -922,7 +922,7 @@ namespace Js
         JavascriptError* CreateSyntaxError();
         JavascriptError* CreateTypeError();
         JavascriptError* CreateURIError();
-        JavascriptAggregateError* CreateAggregateError();
+        JavascriptError* CreateAggregateError();
         JavascriptError* CreateStackOverflowError();
         JavascriptError* CreateOutOfMemoryError();
         JavascriptError* CreateWebAssemblyCompileError();

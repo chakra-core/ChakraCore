@@ -400,8 +400,8 @@ namespace Js
             if (remainingElementsWrapper->remainingElements == 0)
             {
                 // 7.d.iii.1 Let error be a newly created AggregateError object.
-                JavascriptAggregateError* error = library->CreateAggregateError();
-                JavascriptAggregateError::SetErrorsList(error, errors, scriptContext);
+                JavascriptError* error = library->CreateAggregateError();
+                JavascriptError::SetErrorsList(error, errors, scriptContext);
                 JavascriptExceptionOperators::Throw(error, scriptContext);
             }
         }
@@ -468,7 +468,7 @@ namespace Js
                 // a. Let error be a newly created AggregateError object.
                 // b. Perform ! DefinePropertyOrThrow(error, "errors", Property Descriptor { [[Configurable]]: true, [[Enumerable]]: false, [[Writable]]: true, [[Value]]: ! CreateArrayFromList(errors) }).
                 // c. Return ? Call(promiseCapability.[[Reject]], undefined, « error »).
-                JavascriptAggregateError::ThrowAggregateError(scriptContext, errors);
+                JavascriptError::ThrowAggregateError(scriptContext, errors);
             }
         }
         catch (const JavascriptException& err)

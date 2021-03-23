@@ -1797,7 +1797,7 @@ namespace Js
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
-        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptAggregateError::EntryInfo::NewAggregateErrorInstance,
+        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewAggregateErrorInstance,
             DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
@@ -6348,18 +6348,10 @@ namespace Js
     CREATE_ERROR(SyntaxError, syntaxErrorType, kjstSyntaxError);
     CREATE_ERROR(TypeError, typeErrorType, kjstTypeError);
     CREATE_ERROR(URIError, uriErrorType, kjstURIError);
+    CREATE_ERROR(AggregateError, aggregateErrorType, kjstAggregateError);
     CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
     CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
     CREATE_ERROR(WebAssemblyLinkError, webAssemblyLinkErrorType, kjstWebAssemblyLinkError);
-
-
-    JavascriptAggregateError* JavascriptLibrary::CreateAggregateError()
-    {
-        AssertMsg(aggregateErrorType, "Where's aggregateErrorType?");
-        JavascriptAggregateError* pError = RecyclerNew(this->GetRecycler(), JavascriptAggregateError, aggregateErrorType);
-        JavascriptAggregateError::SetErrorType(pError, kjstAggregateError);
-        return pError;
-    }
 
 #undef CREATE_ERROR
 

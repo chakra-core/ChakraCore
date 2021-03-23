@@ -139,7 +139,7 @@ BUILTIN(JavascriptError, NewReferenceErrorInstance, NewReferenceErrorInstance, F
 BUILTIN(JavascriptError, NewSyntaxErrorInstance, NewSyntaxErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewTypeErrorInstance, NewTypeErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewURIErrorInstance, NewURIErrorInstance, FunctionInfo::None)
-BUILTIN(JavascriptAggregateError, NewAggregateErrorInstance, NewAggregateErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewAggregateErrorInstance, NewAggregateErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyCompileErrorInstance, NewWebAssemblyCompileErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyRuntimeErrorInstance, NewWebAssemblyRuntimeErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErrorInstance, FunctionInfo::None)

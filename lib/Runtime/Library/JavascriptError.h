@@ -53,6 +53,7 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
+            static FunctionInfo NewAggregateErrorInstance;
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
@@ -97,6 +98,7 @@ namespace Js
         THROW_ERROR_DECL(ThrowWebAssemblyLinkError)
 
 #undef THROW_ERROR_DECL
+        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, JavascriptArray* errors);
         static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
         static void __declspec(noreturn) ThrowOutOfMemoryError(ScriptContext *scriptContext);
         static void __declspec(noreturn) ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se);
@@ -145,6 +147,11 @@ namespace Js
         static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName = nullptr);
         static JavascriptError* CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse, const WCHAR * sourceUrl = nullptr);
 
+        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
+
+        static void SetErrorsList(JavascriptError* pError, SList<Var, Recycler>* errorsList, ScriptContext* scriptContext);
+        static void SetErrorsList(JavascriptError* pError, JavascriptArray* errors, ScriptContext* scriptContext);
+
     private:
 
         Field(BOOL) isExternalError;
@@ -177,46 +184,5 @@ namespace Js
     template <> inline bool VarIsImpl<JavascriptError>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Error;
-    }
-
-    typedef SList<Var, Recycler> JavascriptAggregateErrorErrorsList;
-
-    class JavascriptAggregateError : public JavascriptError {
-    private:
-        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptAggregateError);
-
-        Field(RecyclableObject*) m_errors;
-
-    protected:
-        DEFINE_VTABLE_CTOR(JavascriptAggregateError, JavascriptError);
-
-    public:
-        class EntryInfo {
-        public:
-            static FunctionInfo NewAggregateErrorInstance;
-        };
-
-        JavascriptAggregateError(DynamicType* type, BOOL isExternalError = FALSE, BOOL isPrototype = FALSE) :
-            JavascriptError(type, isExternalError, isPrototype), m_errors(nullptr)
-        {
-
-        }
-
-        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
-        static Var NewInstance(RecyclableObject* function, JavascriptAggregateError* pError, CallInfo callInfo, Var newTarget, Var errors, Var message, Var options);
-
-        static void SetErrorsList(JavascriptAggregateError* pError, JavascriptAggregateErrorErrorsList* errorsList, ScriptContext* scriptContext);
-        static void SetErrorsList(JavascriptAggregateError* pError, JavascriptArray* errors, ScriptContext* scriptContext);
-
-        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, JavascriptArray* errors);
-    };
-
-    template <> inline bool VarIsImpl<JavascriptAggregateError>(RecyclableObject* obj)
-    {
-        return JavascriptOperators::GetTypeId(obj) == TypeIds_Error &&
-            (
-                VirtualTableInfo<JavascriptAggregateError>::HasVirtualTable(obj) ||
-                VirtualTableInfo<CrossSiteObject<JavascriptAggregateError>>::HasVirtualTable(obj)
-                );
     }
 }
