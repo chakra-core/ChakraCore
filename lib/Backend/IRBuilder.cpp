@@ -118,6 +118,11 @@ IRBuilder::DoBailOnNoProfile()
         return false;
     }
 
+    if (m_func->GetTopFunc()->GetJITFunctionBody()->IsCoroutine())
+    {
+        return false;
+    }
+
     return true;
 }
 
