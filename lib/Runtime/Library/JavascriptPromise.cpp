@@ -340,7 +340,7 @@ namespace Js
                 // h. Append undefined to errors.
                 errors->DirectAppendItem(library->GetUndefined());
 
-                // i. Let nextPromise be ? Call(promiseResolve, constructor, « nextValue »).
+                // i. Let nextPromise be ? Call(promiseResolve, constructor, << nextValue >> ).
                 ThreadContext* threadContext = scriptContext->GetThreadContext();
                 Var nextPromise = nullptr;
                 BEGIN_SAFE_REENTRANT_CALL(threadContext);
@@ -357,7 +357,7 @@ namespace Js
                 alreadyCalledWrapper->alreadyResolved = false;
 
                 // j. Let steps be the algorithm steps defined in Promise.any Reject Element Functions.
-                // k. Let rejectElement be ! CreateBuiltinFunction(steps, « [[AlreadyCalled]], [[Index]], [[Errors]], [[Capability]], [[RemainingElements]] »).
+                // k. Let rejectElement be ! CreateBuiltinFunction(steps, << [[AlreadyCalled]], [[Index]], [[Errors]], [[Capability]], [[RemainingElements]] >> ).
                 // p. Set rejectElement.[[RemainingElements]] to remainingElementsCount.
                 Var rejectElement = library->CreatePromiseAnyRejectElementFunction(EntryAnyRejectElementFunction, index, errors, promiseCapability, remainingElementsWrapper, alreadyCalledWrapper);
 
