@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -2155,7 +2156,7 @@ namespace Js
                 {
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        newThisObject = JavascriptOperators::NewScObjectNoCtor(targetObj, scriptContext);
+                        newThisObject = JavascriptOperators::NewScObjectNoCtorCommon(proxy, scriptContext, false);
                     }
                     END_SAFE_REENTRANT_CALL
                     args.Values[0] = newThisObject;

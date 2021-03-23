@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -509,6 +510,17 @@ var tests = [
             Object.defineProperty(desc, "writable", { get: function () { ++counter; return true; }});
             Object.defineProperty(new Proxy({}, handler), "test", desc);
             assert.areEqual(1, counter, "Writable property on descriptor should only be checked once");
+        }
+    },
+    {
+        name : "Proxy without construct trap, should get prototype when constructing",
+        body() {
+            const constructor = function() {}
+            constructor.prototype.a = 5;
+            const p = new Proxy(constructor, {get(a, b, c){ if (b === 'prototype') { return {b : 10} } return Reflect.get(a, b, c);}})
+            const obj = new p();
+            assert.areEqual(obj.b, 10);
+            assert.isUndefined(obj.a);
         }
     }
 ];
