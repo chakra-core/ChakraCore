@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -1063,21 +1064,21 @@ private:
     StackSym* m_loopParamSym;
     StackSym* m_bailoutReturnValueSym;
     StackSym* m_hasBailedOutSym;
-    StackSym* m_forInEnumeratorForGeneratorSym;
+    StackSym* m_generatorFrameSym;
 
 public:
     StackSym* tempSymDouble;
     StackSym* tempSymBool;
 
-    void SetForInEnumeratorSymForGeneratorSym(StackSym* sym)
+    void SetGeneratorFrameSym(StackSym* sym)
     {
-        Assert(this->m_forInEnumeratorForGeneratorSym == nullptr);
-        this->m_forInEnumeratorForGeneratorSym = sym;
+        Assert(this->m_generatorFrameSym == nullptr);
+        this->m_generatorFrameSym = sym;
     }
 
-    StackSym* GetForInEnumeratorSymForGeneratorSym() const
+    StackSym* GetGeneratorFrameSym() const
     {
-        return this->m_forInEnumeratorForGeneratorSym;
+        return this->m_generatorFrameSym;
     }
 
     // StackSyms' corresponding getters/setters
