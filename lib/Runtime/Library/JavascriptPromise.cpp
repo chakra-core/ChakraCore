@@ -364,7 +364,7 @@ namespace Js
                 // q. Set remainingElementsCount.[[Value]] to remainingElementsCount.[[Value]] + 1.
                 remainingElementsWrapper->remainingElements++;
 
-                // r. Perform ? Invoke(nextPromise, "then", « resultCapability.[[Resolve]], rejectElement »).
+                // r. Perform ? Invoke(nextPromise, "then", << resultCapability.[[Resolve]], rejectElement >> ).
                 RecyclableObject* nextPromiseObject;
                 if (!JavascriptConversion::ToObject(nextPromise, scriptContext, &nextPromiseObject))
                 {
@@ -467,7 +467,7 @@ namespace Js
             {
                 // a. Let error be a newly created AggregateError object.
                 // b. Perform ! DefinePropertyOrThrow(error, "errors", Property Descriptor { [[Configurable]]: true, [[Enumerable]]: false, [[Writable]]: true, [[Value]]: ! CreateArrayFromList(errors) }).
-                // c. Return ? Call(promiseCapability.[[Reject]], undefined, « error »).
+                // c. Return ? Call(promiseCapability.[[Reject]], undefined, << error >> ).
                 JavascriptError::ThrowAggregateError(scriptContext, errors);
             }
         }
