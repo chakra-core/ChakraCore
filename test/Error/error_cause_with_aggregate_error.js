@@ -6,7 +6,6 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-
 function makeTestsFor(ErrorConstructor) {
     const name = ErrorConstructor.name;
     const message = "Test message";
@@ -116,6 +115,7 @@ function makeTestsFor(ErrorConstructor) {
         }
     ]
 }
+
 const tests = [
     ...makeTestsFor(AggregateError),
 ];

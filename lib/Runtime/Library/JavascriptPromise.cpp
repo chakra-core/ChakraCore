@@ -295,8 +295,7 @@ namespace Js
         try {
             // 3. Let promiseResolve be GetPromiseResolve(C).
             // 4. IfAbruptRejectPromise(promiseResolve, promiseCapability).
-            RecyclableObject* constructorObject = VarTo<RecyclableObject>(C);
-            Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
+            Var resolveVar = JavascriptOperators::GetProperty(constructor, Js::PropertyIds::resolve, scriptContext);
             promiseResolve = VarTo<RecyclableObject>(resolveVar);
 
             // 5. Let iteratorRecord be GetIterator(iterable).
@@ -413,7 +412,7 @@ namespace Js
             JavascriptOperators::IteratorClose(iteratorRecord, scriptContext);
 
             JavascriptExceptionObject* exception = err.GetAndClear();
-            return JavascriptPromise::CreateRejectedPromise(exception->GetThrownObject(scriptContext), scriptContext);
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
         }
 
         return promiseCapability->GetPromise();

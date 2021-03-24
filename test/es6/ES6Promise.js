@@ -43,6 +43,13 @@ var tests = [
             assert.areEqual('function', typeof descriptor.value, "typeof Promise.allSettled === 'function'");
             assert.areEqual(1, Promise.allSettled.length, "Promise.allSettled.length === 1");
 
+            var descriptor = Object.getOwnPropertyDescriptor(Promise, 'any');
+            assert.isTrue(descriptor.writable, "Promise.any.writable === true");
+            assert.isFalse(descriptor.enumerable, "Promise.any.enumerable === false");
+            assert.isTrue(descriptor.configurable, "Promise.any.configurable === true");
+            assert.areEqual('function', typeof descriptor.value, "typeof Promise.any === 'function'");
+            assert.areEqual(1, Promise.any.length, "Promise.any.length === 1");
+
             var descriptor = Object.getOwnPropertyDescriptor(Promise, 'race');
             assert.isTrue(descriptor.writable, "Promise.race.writable === true");
             assert.isFalse(descriptor.enumerable, "Promise.race.enumerable === false");
@@ -222,6 +229,16 @@ var tests = [
         }
     },
     {
+        name: "Promise.any throwing behavior",
+        body: function () {
+            assert.throws(function() { Promise.any.call(); }, TypeError, "Promise.any throws when called with no this parameter", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call(undefined); }, TypeError, "Promise.any throws when called when this parameter is undefined", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call(null); }, TypeError, "Promise.any throws when called when this parameter is null", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call({}); }, TypeError, "Promise.any throws when called when this parameter is non-callable", "Function expected");
+            assert.throws(function() { Promise.any.call(Math.sin); }, TypeError, "Promise.any throws when this parameter is a non-constructor", "Function expected");
+        }
+    },
+    {
         name: "Promise.prototype.then to access constructor through [@@species]",
         body: function () {
             var p = new Promise(function(resolve, reject) { });
@@ -321,6 +338,22 @@ var tests = [
 
             Promise.allSettled(bar);
             assert.areEqual(3, calledNext, "Promise.allSettled should use the iterator protocol, and next should be cached");
+        }
+    },
+    {
+        name: "Promise.any uses iterator next correctly",
+        body: function () {
+            let calledNext = 0;
+            const bar = {
+                [Symbol.iterator]() { return this; },
+                next () {
+                    this.next = function (){ throw new Error ("Next should have been cached so this should not be called") };
+                    return {value : Promise.resolve(0), done : (++calledNext > 2)}
+                }
+            }
+
+            Promise.any(bar);
+            assert.areEqual(3, calledNext, "Promise.any should use the iterator protocol, and next should be cached");
         }
     },
     {
@@ -559,6 +592,7 @@ var tests = [
             assert.isTrue(finallyPromise instanceof MyPromise, "Subclass of Promise is returned from Promise.prototype.finally called with subclass of Promise object as this");
             assert.isTrue(MyPromise.race([]) instanceof MyPromise, "Subclass of Promise inherits Promise.race which uses 'this' argument as constructor for return object");
             assert.isTrue(MyPromise.all([]) instanceof MyPromise, "Subclass of Promise inherits Promise.all which uses 'this' argument as constructor for return object");
+            assert.isTrue(MyPromise.any([]) instanceof MyPromise, "Subclass of Promise inherits Promise.any which uses 'this' argument as constructor for return object");
             assert.isTrue(MyPromise.resolve(42) instanceof MyPromise, "Subclass of Promise inherits Promise.resolve which uses 'this' argument as constructor for return object");
             assert.isTrue(MyPromise.reject(42) instanceof MyPromise, "Subclass of Promise inherits Promise.reject which uses 'this' argument as constructor for return object");
         }
