@@ -21,21 +21,21 @@ function makeTestsFor(ErrorConstructor) {
         {
             name: `"cause" in ${ name }().cause === false`,
             body: function () {
-                assert.isFalse("cause" in ErrorConstructor(), `${ name }().cause should not be defined if not specified by cause property of options parameter in ${ name } constructor`);
+                assert.isFalse("cause" in ErrorConstructor([]), `${ name }().cause should not be defined if not specified by cause property of options parameter in ${ name } constructor`);
             }
         },
         {
             name: `message property is defined when ${ name } called with one argument, not cause`,
             body: function () {
-                assert.isTrue("message" in ErrorConstructor(message), `message property is defined when ${ name } called with one argument, not cause`);
-                assert.isTrue(ErrorConstructor(message).message === message, `message property is defined when ${ name } called with one argument, not cause`);
-                assert.isFalse("cause" in ErrorConstructor(message), `message property is defined when ${ name } called with one argument, not cause`);
+                assert.isTrue("message" in ErrorConstructor([], message), `message property is defined when ${ name } called with one argument, not cause`);
+                assert.isTrue(ErrorConstructor([], message).message === message, `message property is defined when ${ name } called with one argument, not cause`);
+                assert.isFalse("cause" in ErrorConstructor([], message), `message property is defined when ${ name } called with one argument, not cause`);
             }
         },
         {
             name: `${ name }(${ message }, { cause: o })'s descriptor`,
             body: function () {
-                const e = ErrorConstructor(message, { cause: o });
+                const e = ErrorConstructor([], message, { cause: o });
                 const desc = Object.getOwnPropertyDescriptor(e, "cause");
                 assert.areEqual(desc.configurable, true, "e.cause should be configurable");
                 assert.areEqual(desc.writable, true, "e.cause should be writable");
@@ -46,10 +46,10 @@ function makeTestsFor(ErrorConstructor) {
             name: `o === ${ name }(${ message }, { cause: o }).cause`,
             body: function () {
                 const e = Error();
-                assert.areEqual(ErrorConstructor("", { cause: o }).cause, o, `Cause property value should be kept as-is`);
-                assert.areEqual(ErrorConstructor("", { cause: 0 }).cause, 0, `Cause property value should be kept as-is`);
-                assert.areEqual(ErrorConstructor("", { cause: e }).cause, e, `Cause property value should be kept as-is`);
-                assert.areEqual(ErrorConstructor("", { cause: "A cause" }).cause, "A cause", `Cause property value should be kept as-is`);
+                assert.areEqual(ErrorConstructor([], "", { cause: o }).cause, o, `Cause property value should be kept as-is`);
+                assert.areEqual(ErrorConstructor([], "", { cause: 0 }).cause, 0, `Cause property value should be kept as-is`);
+                assert.areEqual(ErrorConstructor([], "", { cause: e }).cause, e, `Cause property value should be kept as-is`);
+                assert.areEqual(ErrorConstructor([], "", { cause: "A cause" }).cause, "A cause", `Cause property value should be kept as-is`);
             }
         },
         {
@@ -62,7 +62,7 @@ function makeTestsFor(ErrorConstructor) {
                         return o;
                     }
                 }
-                ErrorConstructor(message, options);
+                ErrorConstructor([], message, options);
                 assert.areEqual(getCounter, 1, `getCounter should be 1`);
             }
         },
@@ -71,10 +71,10 @@ function makeTestsFor(ErrorConstructor) {
             body: function () {
                 const options = {
                     get cause() {
-                        throw ErrorConstructor();
+                        throw ErrorConstructor([]);
                     }
                 }
-                assert.throws(() => ErrorConstructor(message, options), ErrorConstructor);
+                assert.throws(() => ErrorConstructor([], message, options), ErrorConstructor);
             }
         },
         {
@@ -91,7 +91,7 @@ function makeTestsFor(ErrorConstructor) {
                     }
                 });
                 var hasCounter = 0, getCounter = 0;
-                const e = ErrorConstructor("test", options);
+                const e = ErrorConstructor([], "test", options);
                 assert.areEqual(hasCounter, 1, `hasCounter should be 1`);
                 assert.areEqual(getCounter, 1, `getCounter should be 1`);
                 assert.areEqual(e.cause, o, `Cause property value should be kept as-is`);
@@ -102,7 +102,7 @@ function makeTestsFor(ErrorConstructor) {
         {
             name: "Cause property is not added to error if options parameter doesn't have the cause property",
             body: function () {
-                assert.isFalse('cause' in ErrorConstructor(message, { }), `Cause property must not be added to error if options parameter doesn't have the cause property`);
+                assert.isFalse('cause' in ErrorConstructor([], message, { }), `Cause property must not be added to error if options parameter doesn't have the cause property`);
             }
         },
         {
@@ -110,19 +110,14 @@ function makeTestsFor(ErrorConstructor) {
             body: function () {
                 Number.prototype.cause = 0;
                 String.prototype.cause = 0;
-                assert.isFalse('cause' in ErrorConstructor(message, 0), `Cause property must not be added to error if options parameter isn't typeof object`);
-                assert.isFalse('cause' in ErrorConstructor(message, ""), `Cause property must not be added to error if options parameter isn't typeof object`);
+                assert.isFalse('cause' in ErrorConstructor([], message, 0), `Cause property must not be added to error if options parameter isn't typeof object`);
+                assert.isFalse('cause' in ErrorConstructor([], message, ""), `Cause property must not be added to error if options parameter isn't typeof object`);
             }
         }
     ]
 }
 const tests = [
-    ...makeTestsFor(Error),
-    ...makeTestsFor(TypeError),
-    ...makeTestsFor(ReferenceError),
-    ...makeTestsFor(SyntaxError),
-    ...makeTestsFor(RangeError),
-    ...makeTestsFor(EvalError),
+    ...makeTestsFor(AggregateError),
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
