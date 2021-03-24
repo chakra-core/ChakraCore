@@ -110,6 +110,9 @@ PTNODE(knopAsgOr      , "|="               , Or_A     , Bin         , fnopBin|fn
 PTNODE(knopAsgLsh     , "<<="              , Shl_A    , Bin         , fnopBin|fnopAsg       , "LeftShiftAssignExpr"            )
 PTNODE(knopAsgRsh     , ">>="              , Shr_A    , Bin         , fnopBin|fnopAsg       , "RightShiftAssignExpr"           )
 PTNODE(knopAsgRs2     , ">>>="             , ShrU_A   , Bin         , fnopBin|fnopAsg       , "UnsignedRightShiftAssignExpr"   )
+PTNODE(knopAsgLogOr   , "||="              , Nop      , Bin         , fnopBin|fnopAsg       , "LogicalOrAssignExpr")
+PTNODE(knopAsgLogAnd  , "&&="              , Nop      , Bin         , fnopBin|fnopAsg       , "LogicalAndAssignExpr")
+PTNODE(knopAsgCoalesce, "??="              , Nop      , Bin         , fnopBin|fnopAsg       , "LogicalCoalesceAssignExpr")
 //___end range
 
 PTNODE(knopMember     , ":"                , Nop      , Bin         , fnopNotExprStmt|fnopBin, "MemberOper"                    )

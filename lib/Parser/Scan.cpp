@@ -1778,7 +1778,20 @@ LEof:
             {
                 p++;
                 token = tkCoalesce;
-                break;
+            }
+            if (m_scriptContext->GetConfig()->IsEsLogicalAssignmentOperatorEnabled())
+            {
+                Assert(token == tkQMark || token == tkCoalesce);
+                if (token == tkCoalesce && this->PeekFirst(p, last) == '=')
+                {
+                    p++;
+                    token = tkAsgLogCoalesce;
+                }
+                else if (this->PeekFirst(p, last) == '?' && this->PeekFirst(p + 1, last) == '=')
+                {
+                    p += 2;
+                    token = tkAsgLogCoalesce;
+                }
             }
             break;
 
@@ -2181,6 +2194,12 @@ LCommentLineBreak:
             case '|':
                 p++;
                 token = tkLogOr;
+                if (m_scriptContext->GetConfig()->IsEsLogicalAssignmentOperatorEnabled() && this->PeekFirst(p, last) == '=')
+                {
+                    p++;
+                    token = tkAsgLogOr;
+                    break;
+                }
                 break;
             }
             break;
@@ -2196,6 +2215,12 @@ LCommentLineBreak:
             case '&':
                 p++;
                 token = tkLogAnd;
+                if (m_scriptContext->GetConfig()->IsEsLogicalAssignmentOperatorEnabled() && this->PeekFirst(p, last) == '=')
+                {
+                    p++;
+                    token = tkAsgLogAnd;
+                    break;
+                }
                 break;
             }
             break;
