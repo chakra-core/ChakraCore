@@ -1797,10 +1797,13 @@ namespace Js
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
-        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewAggregateErrorInstance,
-            DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
-            nativeErrorPrototype);
-        AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
+        if (scriptContext->GetConfig()->IsESPromiseAnyEnabled())
+        {
+            aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewAggregateErrorInstance,
+                DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
+                nativeErrorPrototype);
+            AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
+        }
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -2713,7 +2716,10 @@ namespace Js
 
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::all, &JavascriptPromise::EntryInfo::All, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::allSettled, &JavascriptPromise::EntryInfo::AllSettled, 1);
-        library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::any, &JavascriptPromise::EntryInfo::Any, 1);
+        if (scriptContext->GetConfig()->IsESPromiseAnyEnabled())
+        {
+            library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::any, &JavascriptPromise::EntryInfo::Any, 1);
+        }
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::race, &JavascriptPromise::EntryInfo::Race, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::reject, &JavascriptPromise::EntryInfo::Reject, 1);
         library->AddMember(promiseConstructor, PropertyIds::resolve, library->EnsurePromiseResolveFunction(), PropertyBuiltInMethodDefaults);
