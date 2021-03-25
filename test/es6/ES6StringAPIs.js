@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -271,6 +272,7 @@ var tests = [
             assert.throws(function () { s.repeat(-1); }, RangeError, "negative repeat counts are out of range", "String.prototype.repeat: argument out of range");
             assert.throws(function () { s.repeat(-Infinity); }, RangeError, "negative infinite repeat count is out of range", "String.prototype.repeat: argument out of range");
             assert.throws(function () { s.repeat(Infinity); }, RangeError, "infinite repeat count is out of range", "String.prototype.repeat: argument out of range");
+            assert.throws(function () { s.repeat(2 ** 30); }, RangeError, "lengths too large for a string throw");
 
             assert.areEqual("\0\0\0\0", "\0".repeat(4), "null character embedded in string is repeated");
             assert.areEqual("a\0ba\0ba\0b", "a\0b".repeat(3), "null character embedded in string mixed with normal characters is repeated");
