@@ -18,6 +18,9 @@ enum
     koplNo,     // not an operator
     koplCma,    // ,
     koplSpr,    // ...
+    koplLorAsg, // ||=
+    koplLanAsg, // &&=
+    koplLcoAsg, // ??=
     koplAsg,    // = += etc
     koplQue,    // ?:
     koplLor,    // ||

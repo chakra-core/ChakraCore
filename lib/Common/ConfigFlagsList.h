@@ -672,6 +672,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
 #define DEFAULT_CONFIG_ESArrayFindFromLast     (false)
 #define DEFAULT_CONFIG_ESNullishCoalescingOperator (true)
+#define DEFAULT_CONFIG_ESLogicalAssignmentOperator (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
 
 // Jitting generators has not been tested on ARM
@@ -1101,93 +1102,93 @@ FLAGNR(Boolean, Force32BitByteCode, "Force CC to generate 32bit bytecode intende
 
 FLAGNR(Boolean, CollectGarbage        , "Enable CollectGarbage API", DEFAULT_CONFIG_CollectGarbage)
 
-FLAGR (Boolean, Intl                  , "Intl object support", DEFAULT_CONFIG_Intl)
-FLAGNR(Boolean, IntlBuiltIns          , "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
-FLAGNR(Boolean, IntlPlatform          , "Make the internal Intl native helper object visible to user code", DEFAULT_CONFIG_IntlPlatform)
+FLAGR(Boolean, Intl, "Intl object support", DEFAULT_CONFIG_Intl)
+FLAGNR(Boolean, IntlBuiltIns, "Intl built-in function support", DEFAULT_CONFIG_IntlBuiltIns)
+FLAGNR(Boolean, IntlPlatform, "Make the internal Intl native helper object visible to user code", DEFAULT_CONFIG_IntlPlatform)
 
-FLAGNR(Boolean, JsBuiltIn             , "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
-FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
-FLAGNR(Boolean, EntryPointInfoRpcData , "Keep encoded rpc buffer for jitted function on EntryPointInfo until cleanup", DEFAULT_CONFIG_EntryPointInfoRpcData)
+FLAGNR(Boolean, JsBuiltIn, "JS Built-in function support", DEFAULT_CONFIG_JsBuiltIn)
+FLAGNR(Boolean, JitRepro, "Add Function.invokeJit to execute codegen on an encoded rpc buffer", DEFAULT_CONFIG_JitRepro)
+FLAGNR(Boolean, EntryPointInfoRpcData, "Keep encoded rpc buffer for jitted function on EntryPointInfo until cleanup", DEFAULT_CONFIG_EntryPointInfoRpcData)
 
-FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
-FLAGNR(Boolean, TestChakraLib         , "Access to the Chakra internal library with the __chakraLibrary keyword without global access restriction", DEFAULT_CONFIG_TestChakraLib)
+FLAGNR(Boolean, LdChakraLib, "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
+FLAGNR(Boolean, TestChakraLib, "Access to the Chakra internal library with the __chakraLibrary keyword without global access restriction", DEFAULT_CONFIG_TestChakraLib)
 
 // ES6 (BLUE+1) features/flags
 
 // Master ES6 flag to enable STABLE ES6 features/flags
-FLAGR(Boolean, ES6                         , "Enable ES6 stable features",                        DEFAULT_CONFIG_ES6)
+FLAGR(Boolean, ES6, "Enable ES6 stable features", DEFAULT_CONFIG_ES6)
 
 // Master ES6 flag to enable ALL sub ES6 features/flags
-FLAGNRC(Boolean, ES6All                    , "Enable all ES6 features, both stable and unstable", DEFAULT_CONFIG_ES6All)
+FLAGNRC(Boolean, ES6All, "Enable all ES6 features, both stable and unstable", DEFAULT_CONFIG_ES6All)
 
 // Master ES6 flag to enable Threshold ES6 features/flags
-FLAGNRC(Boolean, ES6Experimental           , "Enable all experimental features",                  DEFAULT_CONFIG_ES6All)
+FLAGNRC(Boolean, ES6Experimental, "Enable all experimental features", DEFAULT_CONFIG_ES6All)
 
 // Per ES6 feature/flag
 
-FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and 'await' keywords"                  , DEFAULT_CONFIG_ES7AsyncAwait)
-FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
-FLAGPR           (Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full function.name"                            , DEFAULT_CONFIG_ES6FunctionNameFull)
-FLAGPR           (Boolean, ES6, ES6Generators          , "Enable ES6 generators"                                    , DEFAULT_CONFIG_ES6Generators)
-FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)"                , DEFAULT_CONFIG_ES7ExponentionOperator)
+FLAGPR(Boolean, ES6, ES7AsyncAwait, "Enable ES7 'async' and 'await' keywords", DEFAULT_CONFIG_ES7AsyncAwait)
+FLAGPR(Boolean, ES6, ES6DateParseFix, "Enable ES6 Date.parse fixes", DEFAULT_CONFIG_ES6DateParseFix)
+FLAGPR(Boolean, ES6, ES6FunctionNameFull, "Enable ES6 Full function.name", DEFAULT_CONFIG_ES6FunctionNameFull)
+FLAGPR(Boolean, ES6, ES6Generators, "Enable ES6 generators", DEFAULT_CONFIG_ES6Generators)
+FLAGPR(Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)", DEFAULT_CONFIG_ES7ExponentionOperator)
 
-FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.values and Object.entries"              , DEFAULT_CONFIG_ES7ValuesEntries)
-FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
-FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
-FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
+FLAGPR(Boolean, ES6, ES7ValuesEntries, "Enable ES7 Object.values and Object.entries", DEFAULT_CONFIG_ES7ValuesEntries)
+FLAGPR(Boolean, ES6, ES7TrailingComma, "Enable ES7 trailing comma in function", DEFAULT_CONFIG_ES7TrailingComma)
+FLAGPR(Boolean, ES6, ES6IsConcatSpreadable, "Enable ES6 isConcatSpreadable Symbol", DEFAULT_CONFIG_ES6IsConcatSpreadable)
+FLAGPR(Boolean, ES6, ES6Math, "Enable ES6 Math extensions", DEFAULT_CONFIG_ES6Math)
 
 #ifndef COMPILE_DISABLE_ESDynamicImport
 #define COMPILE_DISABLE_ESDynamicImport 0
 #endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ESDynamicImport        , "Enable dynamic import"                                    , DEFAULT_CONFIG_ESDynamicImport)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ESDynamicImport, "Enable dynamic import", DEFAULT_CONFIG_ESDynamicImport)
 
-FLAGPR           (Boolean, ES6, ES6Module              , "Enable ES6 Modules"                                       , DEFAULT_CONFIG_ES6Module)
-FLAGPR           (Boolean, ES6, ES6Object              , "Enable ES6 Object extensions"                             , DEFAULT_CONFIG_ES6Object)
-FLAGPR           (Boolean, ES6, ES6Number              , "Enable ES6 Number extensions"                             , DEFAULT_CONFIG_ES6Number)
-FLAGPR           (Boolean, ES6, ES6ObjectLiterals      , "Enable ES6 Object literal extensions"                     , DEFAULT_CONFIG_ES6ObjectLiterals)
-FLAGPR           (Boolean, ES6, ES6Proxy               , "Enable ES6 Proxy feature"                                 , DEFAULT_CONFIG_ES6Proxy)
-FLAGPR           (Boolean, ES6, ES6Rest                , "Enable ES6 Rest parameters"                               , DEFAULT_CONFIG_ES6Rest)
-FLAGPR           (Boolean, ES6, ES6Spread              , "Enable ES6 Spread support"                                , DEFAULT_CONFIG_ES6Spread)
-FLAGPR           (Boolean, ES6, ES6String              , "Enable ES6 String extensions"                             , DEFAULT_CONFIG_ES6String)
-FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prototype fixes"                        , DEFAULT_CONFIG_ES6StringPrototypeFixes)
-FLAGPR           (Boolean, ES6, ES2018ObjectRestSpread , "Enable ES2018 Object Rest/Spread"                         , DEFAULT_CONFIG_ES2018ObjectRestSpread)
+FLAGPR(Boolean, ES6, ES6Module, "Enable ES6 Modules", DEFAULT_CONFIG_ES6Module)
+FLAGPR(Boolean, ES6, ES6Object, "Enable ES6 Object extensions", DEFAULT_CONFIG_ES6Object)
+FLAGPR(Boolean, ES6, ES6Number, "Enable ES6 Number extensions", DEFAULT_CONFIG_ES6Number)
+FLAGPR(Boolean, ES6, ES6ObjectLiterals, "Enable ES6 Object literal extensions", DEFAULT_CONFIG_ES6ObjectLiterals)
+FLAGPR(Boolean, ES6, ES6Proxy, "Enable ES6 Proxy feature", DEFAULT_CONFIG_ES6Proxy)
+FLAGPR(Boolean, ES6, ES6Rest, "Enable ES6 Rest parameters", DEFAULT_CONFIG_ES6Rest)
+FLAGPR(Boolean, ES6, ES6Spread, "Enable ES6 Spread support", DEFAULT_CONFIG_ES6Spread)
+FLAGPR(Boolean, ES6, ES6String, "Enable ES6 String extensions", DEFAULT_CONFIG_ES6String)
+FLAGPR(Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prototype fixes", DEFAULT_CONFIG_ES6StringPrototypeFixes)
+FLAGPR(Boolean, ES6, ES2018ObjectRestSpread, "Enable ES2018 Object Rest/Spread", DEFAULT_CONFIG_ES2018ObjectRestSpread)
 
-FLAGPR           (Boolean, ES6, ES6PrototypeChain      , "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
-FLAGPR           (Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
-FLAGPR           (Boolean, ES6, ES6ToLength            , "Enable ES6 ToLength fixes"                                , DEFAULT_CONFIG_ES6ToLength)
-FLAGPR           (Boolean, ES6, ES6ToStringTag         , "Enable ES6 ToStringTag symbol"                            , DEFAULT_CONFIG_ES6ToStringTag)
-FLAGPR           (Boolean, ES6, ES6Unicode             , "Enable ES6 Unicode 6.0 extensions"                        , DEFAULT_CONFIG_ES6Unicode)
-FLAGPR           (Boolean, ES6, ES6UnicodeVerbose      , "Enable ES6 Unicode 6.0 verbose failure output"            , DEFAULT_CONFIG_ES6UnicodeVerbose)
-FLAGPR           (Boolean, ES6, ES6Unscopables         , "Enable ES6 With Statement Unscopables"                    , DEFAULT_CONFIG_ES6Unscopables)
-FLAGPR           (Boolean, ES6, ES6RegExSticky         , "Enable ES6 RegEx sticky flag"                             , DEFAULT_CONFIG_ES6RegExSticky)
-FLAGPR           (Boolean, ES6, ES2018RegExDotAll      , "Enable ES2018 RegEx dotAll flag"                          , DEFAULT_CONFIG_ES2018RegExDotAll)
-FLAGPR           (Boolean, ES6, ESExportNsAs           , "Enable ES experimental export * as name"                  , DEFAULT_CONFIG_ESExportNsAs)
-FLAGPR           (Boolean, ES6, ES2018AsyncIteration   , "Enable ES2018 Async Iteration"                            , DEFAULT_CONFIG_ES2018AsyncIteration)
-FLAGPR           (Boolean, ES6, ESTopLevelAwait        , "Enable Top Level Await in modules"                        , DEFAULT_CONFIG_ESTopLevelAwait)
+FLAGPR(Boolean, ES6, ES6PrototypeChain, "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
+FLAGPR(Boolean, ES6, ES6ToPrimitive, "Enable ES6 ToPrimitive symbol", DEFAULT_CONFIG_ES6ToPrimitive)
+FLAGPR(Boolean, ES6, ES6ToLength, "Enable ES6 ToLength fixes", DEFAULT_CONFIG_ES6ToLength)
+FLAGPR(Boolean, ES6, ES6ToStringTag, "Enable ES6 ToStringTag symbol", DEFAULT_CONFIG_ES6ToStringTag)
+FLAGPR(Boolean, ES6, ES6Unicode, "Enable ES6 Unicode 6.0 extensions", DEFAULT_CONFIG_ES6Unicode)
+FLAGPR(Boolean, ES6, ES6UnicodeVerbose, "Enable ES6 Unicode 6.0 verbose failure output", DEFAULT_CONFIG_ES6UnicodeVerbose)
+FLAGPR(Boolean, ES6, ES6Unscopables, "Enable ES6 With Statement Unscopables", DEFAULT_CONFIG_ES6Unscopables)
+FLAGPR(Boolean, ES6, ES6RegExSticky, "Enable ES6 RegEx sticky flag", DEFAULT_CONFIG_ES6RegExSticky)
+FLAGPR(Boolean, ES6, ES2018RegExDotAll, "Enable ES2018 RegEx dotAll flag", DEFAULT_CONFIG_ES2018RegExDotAll)
+FLAGPR(Boolean, ES6, ESExportNsAs, "Enable ES experimental export * as name", DEFAULT_CONFIG_ESExportNsAs)
+FLAGPR(Boolean, ES6, ES2018AsyncIteration, "Enable ES2018 Async Iteration", DEFAULT_CONFIG_ES2018AsyncIteration)
+FLAGPR(Boolean, ES6, ESTopLevelAwait, "Enable Top Level Await in modules", DEFAULT_CONFIG_ESTopLevelAwait)
 
 #ifndef COMPILE_DISABLE_ES6RegExPrototypeProperties
-    #define COMPILE_DISABLE_ES6RegExPrototypeProperties 0
+#define COMPILE_DISABLE_ES6RegExPrototypeProperties 0
 #endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 properties on the RegEx prototype"         , DEFAULT_CONFIG_ES6RegExPrototypeProperties)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 properties on the RegEx prototype", DEFAULT_CONFIG_ES6RegExPrototypeProperties)
 
 #ifndef COMPILE_DISABLE_ES6RegExSymbols
-    #define COMPILE_DISABLE_ES6RegExSymbols 0
+#define COMPILE_DISABLE_ES6RegExSymbols 0
 #endif
 
 // When we enable ES6RegExSymbols check all String and Regex built-ins which are inlined in JIT and make sure the helper
 // sets implicit call flag before calling into script
 // Also, the corresponding helpers in JnHelperMethodList.h should be marked as being reentrant
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols, "Enable ES6 RegExp symbols", DEFAULT_CONFIG_ES6RegExSymbols)
 
-FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
-FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
-FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors"        , DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
+FLAGPR(Boolean, ES6, ES6HasInstance, "Enable ES6 @@hasInstance symbol", DEFAULT_CONFIG_ES6HasInstance)
+FLAGPR(Boolean, ES6, ES6Verbose, "Enable ES6 verbose trace", DEFAULT_CONFIG_ES6Verbose)
+FLAGPR(Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Object.getOwnPropertyDescriptors", DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors)
 
 #ifndef COMPILE_DISABLE_ESSharedArrayBuffer
-    #define COMPILE_DISABLE_ESSharedArrayBuffer 0
+#define COMPILE_DISABLE_ESSharedArrayBuffer 0
 #endif
 
-FLAGPR_REGOVR_EXP(Boolean, ES6, ESSharedArrayBuffer    , "Enable SharedArrayBuffer"                                 , DEFAULT_CONFIG_ESSharedArrayBuffer)
+FLAGPR_REGOVR_EXP(Boolean, ES6, ESSharedArrayBuffer, "Enable SharedArrayBuffer", DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // Newer language feature flags
 
@@ -1199,6 +1200,9 @@ FLAGR(Boolean, ESNumericSeparator, "Enable Numeric Separator flag", DEFAULT_CONF
 
 // ES Nullish coalescing operator support (??)
 FLAGR(Boolean, ESNullishCoalescingOperator, "Enable nullish coalescing operator", DEFAULT_CONFIG_ESNullishCoalescingOperator)
+
+// ES Logical assignment operator support (||=, &&=, ??=)
+FLAGR(Boolean, ESLogicalAssignmentOperator, "Enable logical assignment operator", DEFAULT_CONFIG_ESLogicalAssignmentOperator)
 
 // ES Hashbang support for interpreter directive syntax
 FLAGR(Boolean, ESHashbang, "Enable Hashbang syntax", DEFAULT_CONFIG_ESHashbang)

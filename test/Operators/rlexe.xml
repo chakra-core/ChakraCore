@@ -57,12 +57,6 @@
   </test>
   <test>
     <default>
-      <files>equals.js</files>
-      <baseline>equals.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>instanceof.js</files>
       <baseline>instanceof.baseline</baseline>
     </default>
@@ -81,6 +75,12 @@
     <default>
       <files>logAnd.js</files>
       <baseline>logAnd.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>logicalAndAssignment.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

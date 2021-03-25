@@ -9400,6 +9400,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
     {
 
     case knopLogOr:
+    case knopAsgLogOr:
     {
         byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftFalse = byteCodeGenerator->Writer()->DefineLabel();
@@ -9413,6 +9414,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
     }
 
     case knopLogAnd:
+    case knopAsgLogAnd:
     {
         byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
@@ -11721,26 +11723,38 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
     // otherwise. (In other words, the "truth" of the right-hand expression is never tested.)
     // PTNODE(knopLogOr      , "||"        ,None    ,Bin  ,fnopBin)
     case knopLogOr:
+    case knopAsgLogOr:
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
         // We use a single dest here for the whole generating boolean expr, because we were poorly
         // optimizing the previous version where we had a dest for each level
-        funcInfo->AcquireLoc(pnode);
+        const Js::RegSlot result_location = funcInfo->AcquireLoc(pnode);
         EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, false, byteCodeGenerator, funcInfo);
+        if (pnode->nop == knopAsgLogOr)
+        {
+            EmitAssignment(pnode, pnode->AsParseNodeBin()->pnode1, result_location, byteCodeGenerator, funcInfo);
+        }
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
     // PTNODE(knopLogAnd     , "&&"        ,None    ,Bin  ,fnopBin)
     case knopLogAnd:
+    case knopAsgLogAnd:
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
         // We use a single dest here for the whole generating boolean expr, because we were poorly
         // optimizing the previous version where we had a dest for each level
-        funcInfo->AcquireLoc(pnode);
+        const Js::RegSlot result_location = funcInfo->AcquireLoc(pnode);
         EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, false, byteCodeGenerator, funcInfo);
+
+        if (pnode->nop == knopAsgLogAnd)
+        {
+            EmitAssignment(pnode, pnode->AsParseNodeBin()->pnode1, result_location, byteCodeGenerator, funcInfo);
+        }
+
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
@@ -11750,10 +11764,11 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
     // If the left hand side is null or undefined it resolves to the right hand side
     // PTNODE(knopCoalesce     , "??"        ,None    ,Bin  ,fnopBin)
     case knopCoalesce:
+    case knopAsgCoalesce:
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
-        funcInfo->AcquireLoc(pnode);
+        const Js::RegSlot result_location = funcInfo->AcquireLoc(pnode);
 
         // LHS
         Emit(pnode->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
@@ -11766,6 +11781,11 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         Emit(pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo, false);
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnode->location, pnode->AsParseNodeBin()->pnode2->location);
         funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
+
+        if (pnode->nop == knopAsgCoalesce)
+        {
+            EmitAssignment(pnode, pnode->AsParseNodeBin()->pnode1, result_location, byteCodeGenerator, funcInfo);
+        }
 
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
@@ -11804,7 +11824,6 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
 
         break;
     }
-
     case knopAsgAdd:
     case knopAsgSub:
     case knopAsgMul:
