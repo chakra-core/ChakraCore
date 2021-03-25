@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -227,7 +228,7 @@ private:
     IR::RegOpnd *       BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type = TyVar);
     IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset);
     IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId);
-    IR::Opnd *          BuildForInEnumeratorOpnd(uint forInLoopLevel);
+    IR::Opnd *          BuildForInEnumeratorOpnd(uint forInLoopLevel, uint32 offset);
     IR::RegOpnd *       EnsureLoopBodyForInEnumeratorArrayOpnd();
 private:
     uint                AddStatementBoundary(uint statementIndex, uint offset);
@@ -366,29 +367,12 @@ private:
         Func* const m_func;
         IRBuilder* const m_irBuilder;
 
-        // for-in enumerators are allocated on the heap for jit'd loop body
-        // and on the stack for all other cases (the interpreter frame will
-        // reuses them when bailing out). But because we have the concept of
-        // "bailing in" for generator, reusing enumerators allocated on the stack
-        // would not work. So we have to allocate them on the generator's interpreter
-        // frame instead. This operand is loaded as part of the jump table, before we
-        // jump to any of the resume point.
-        IR::RegOpnd* m_forInEnumeratorArrayOpnd = nullptr;
-
         IR::RegOpnd* m_generatorFrameOpnd = nullptr;
-
-        // This label is used to insert any initialization code that might be needed
-        // when bailing in and before jumping to any of the resume points.
-        // As of now, we only need to load the operand for for-in enumerator.
-        IR::LabelInstr* m_initLabel = nullptr;
-
-        IR::RegOpnd* CreateForInEnumeratorArrayOpnd();
 
     public:
         GeneratorJumpTable(Func* func, IRBuilder* irBuilder);
         IR::Instr* BuildJumpTable();
-        IR::LabelInstr* GetInitLabel() const;
-        IR::RegOpnd* EnsureForInEnumeratorArrayOpnd();
+        IR::RegOpnd* BuildForInEnumeratorArrayOpnd(uint32 offset);
     };
 
     GeneratorJumpTable m_generatorJumpTable;

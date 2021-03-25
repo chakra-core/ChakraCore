@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 namespace Js
@@ -42,7 +43,8 @@ namespace Js
             Method                         = 0x400000, // The function is a method
             ComputedName                   = 0x800000,
             ActiveScript                   = 0x1000000,
-            HomeObj                        = 0x2000000
+            HomeObj                        = 0x2000000,
+            GeneratorWithComplexParams     = 0x8000000 // Generator function with non-simple params needs startup yield
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
@@ -136,6 +138,7 @@ namespace Js
         bool GetBaseConstructorKind() const { return (attributes & Attributes::BaseConstructorKind) != 0; }
         bool IsActiveScript() const { return ((this->attributes & Attributes::ActiveScript) != 0); }
         void SetIsActiveScript() { attributes = (Attributes)(attributes | Attributes::ActiveScript); }
+        bool GetGeneratorWithComplexParams() {return (attributes & Attributes::GeneratorWithComplexParams) != 0; }
     protected:
         FieldNoBarrier(JavascriptMethod) originalEntryPoint;
         FieldWithBarrier(FunctionProxy *) functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -120,6 +121,8 @@ using namespace Js;
             prototype);
 
         // Call a next on the generator to execute till the beginning of the body
+        FunctionInfo* funcInfo = generatorFunction->scriptFunction->GetFunctionInfo();
+        if (funcInfo->GetGeneratorWithComplexParams() || funcInfo->IsModule())
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
             generator->CallGenerator(library->GetUndefined(), ResumeYieldKind::Normal);
