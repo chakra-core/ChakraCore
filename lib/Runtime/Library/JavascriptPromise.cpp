@@ -280,10 +280,6 @@ namespace Js
 
         // 1. Let C be the this value.
         Var C = args[0];
-        if (!JavascriptOperators::IsObject(C))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Promise.any"));
-        }
         RecyclableObject* constructor = VarTo<RecyclableObject>(C);
 
         // 2. Let promiseCapability be ? NewPromiseCapability(C).
@@ -296,7 +292,11 @@ namespace Js
             // 3. Let promiseResolve be GetPromiseResolve(C).
             // 4. IfAbruptRejectPromise(promiseResolve, promiseCapability).
             Var resolveVar = JavascriptOperators::GetProperty(constructor, Js::PropertyIds::resolve, scriptContext);
-            promiseResolve = VarTo<RecyclableObject>(resolveVar);
+            if (!JavascriptConversion::IsCallable(resolveVar))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+            promiseResolve = UnsafeVarTo<RecyclableObject>(resolveVar);
 
             // 5. Let iteratorRecord be GetIterator(iterable).
             // 6. IfAbruptRejectPromise(iteratorRecord, promiseCapability).
@@ -313,15 +313,8 @@ namespace Js
         // 7. Let result be PerformPromiseAny(iteratorRecord, C, promiseCapability, promiseResolve).
         try {
             // 1. Assert: ! IsConstructor(constructor) is true. 
-            JavascriptOperators::IsConstructor(C);
-
             // 2. Assert: resultCapability is a PromiseCapability Record.
             // 3. Assert: ! IsCallable(promiseResolve) is true.
-            if (!JavascriptConversion::IsCallable(promiseResolve))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-            }
-
             // 4. Let errors be a new empty List.
             JavascriptArray* errors = library->CreateArray();
 
@@ -375,7 +368,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
                 }
 
-                RecyclableObject* thenFunc = VarTo<RecyclableObject>(thenVar);
+                RecyclableObject* thenFunc = UnsafeVarTo<RecyclableObject>(thenVar);
 
                 BEGIN_SAFE_REENTRANT_CALL(threadContext)
                 {
@@ -399,9 +392,10 @@ namespace Js
             if (remainingElementsWrapper->remainingElements == 0)
             {
                 // 7.d.iii.1 Let error be a newly created AggregateError object.
-                JavascriptError* error = library->CreateAggregateError();
-                JavascriptError::SetErrorsList(error, errors, scriptContext);
-                JavascriptExceptionOperators::Throw(error, scriptContext);
+                JavascriptError* pError = library->CreateAggregateError();
+                JavascriptError::SetErrorsList(pError, errors, scriptContext);
+                JavascriptError::SetErrorMessage(pError, JSERR_PromiseAllRejected, _u(""), scriptContext);
+                JavascriptExceptionOperators::Throw(pError, scriptContext);
             }
         }
         catch (const JavascriptException& err)
@@ -454,30 +448,21 @@ namespace Js
         JavascriptPromiseCapability* promiseCapability = anyRejectElementFunction->GetCapabilities();
 
         // 9. Set errors[index] to x.
-        errors->SetItem(index, x, PropertyOperation_None);
+        errors->DirectSetItemAt(index, x);
 
-        JavascriptExceptionObject* exception = nullptr;
-        try
+        // 8. Let remainingElementsCount be F.[[RemainingElements]].
+        // 10. Set remainingElementsCount.[[Value]] to remainingElementsCount.[[Value]] - 1.
+        // 11. If remainingElementsCount.[[Value]] is 0, then
+        if (anyRejectElementFunction->DecrementRemainingElements() == 0)
         {
-            // 8. Let remainingElementsCount be F.[[RemainingElements]].
-            // 10. Set remainingElementsCount.[[Value]] to remainingElementsCount.[[Value]] - 1.
-            // 11. If remainingElementsCount.[[Value]] is 0, then
-            if (anyRejectElementFunction->DecrementRemainingElements() == 0)
-            {
-                // a. Let error be a newly created AggregateError object.
-                // b. Perform ! DefinePropertyOrThrow(error, "errors", Property Descriptor { [[Configurable]]: true, [[Enumerable]]: false, [[Writable]]: true, [[Value]]: ! CreateArrayFromList(errors) }).
-                // c. Return ? Call(promiseCapability.[[Reject]], undefined, << error >> ).
-                JavascriptError::ThrowAggregateError(scriptContext, errors);
-            }
-        }
-        catch (const JavascriptException& err)
-        {
-            exception = err.GetAndClear();
-        }
+            // a. Let error be a newly created AggregateError object.
+            JavascriptError* pError = library->CreateAggregateError();
+            // b. Perform ! DefinePropertyOrThrow(error, "errors", Property Descriptor { [[Configurable]]: true, [[Enumerable]]: false, [[Writable]]: true, [[Value]]: ! CreateArrayFromList(errors) }).
+            JavascriptError::SetErrorsList(pError, errors, scriptContext);
+            JavascriptError::SetErrorMessage(pError, JSERR_PromiseAllRejected, _u(""), scriptContext);
 
-        if (exception != nullptr)
-        {
-            return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
+            // c. Return ? Call(promiseCapability.[[Reject]], undefined, << error >> ).
+            return TryCallResolveOrRejectHandler(pError, promiseCapability->GetReject(), scriptContext);
         }
 
         return undefinedVar;

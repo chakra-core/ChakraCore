@@ -154,15 +154,22 @@ Test #63 - val is 0(Expect 0)
 Test #66 - Success - []
 Test #68 - Failed - {}
 Test #76 - Catch handler #1 called with err = TypeError: Function expected
+Test #76 - Catch handler #1 called with err.message = Function expected
 Test #77 - Catch handler #1 called with err = TypeError: Function expected
+Test #77 - Catch handler #1 called with err.message = Function expected
 Test #78 - Catch handler #1 called with err = TypeError: Object expected
+Test #78 - Catch handler #1 called with err.message = Object expected
 Test #79 - Catch handler #1 called with err = TypeError: Function expected
+Test #79 - Catch handler #1 called with err.message = Function expected
 Test #80 - Catch handler #1 called with err = TypeError: failure inside iterator
+Test #80 - Catch handler #1 called with err.message = failure inside iterator
 Test #81 - Error handler #1 called with err = TypeError: failure inside iterator
-Test #88 - Error handler #1 called with err = AggregateError
+Test #81 - Error handler #1 called with err.message = failure inside iterator
+Test #88 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected﻾﻾﻾﻾﻾﻾﻾̃ﾂ￿
 Test #88 - Error handler #1 called with err.errors = []
-Test #89 - Error handler #1 called with err = AggregateError
-Test #89 - Error handler #1 called with err.message = ""
+Test #88 - Error handler #1 called with err.message = Promise.any all promises rejected﻾﻾﻾﻾﻾﻾﻾̃ﾂ￿
+Test #89 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected﻾﻾﻾﻾﻾﻾﻾ñ礻ǿȂ￿
+Test #89 - Error handler #1 called with err.message = "Promise.any all promises rejected﻾﻾﻾﻾﻾﻾﻾ñ礻ǿ\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000Ȃ\u0010￿
 Test #89 - Error handler #1 called with err.name = AggregateError
 Test #89 - Error handler #1 called with err.errors = []
 Test #6 - Error handler #2 called with err = thenable.get:error!
@@ -217,14 +224,6 @@ Test #86 - 2 failure: 2
 Test #86 - 3 failure: 3
 Test #86 - 4 failure: 4
 Test #87 - Success handler #1 called with result = first promise value
-Test #89 - Error handler #2 called with err = AggregateError
-Test #89 - Error handler #2 called with err.message = ""
-Test #89 - Error handler #2 called with err.name = AggregateError
-Test #89 - Error handler #2 called with err.errors = [1]
-Test #89 - Error handler #3 called with err = AggregateError
-Test #89 - Error handler #3 called with err.message = ""
-Test #89 - Error handler #3 called with err.name = AggregateError
-Test #89 - Error handler #3 called with err.errors = [1,2,3]
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure

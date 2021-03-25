@@ -98,7 +98,6 @@ namespace Js
         THROW_ERROR_DECL(ThrowWebAssemblyLinkError)
 
 #undef THROW_ERROR_DECL
-        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, JavascriptArray* errors);
         static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
         static void __declspec(noreturn) ThrowOutOfMemoryError(ScriptContext *scriptContext);
         static void __declspec(noreturn) ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se);

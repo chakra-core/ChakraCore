@@ -319,14 +319,6 @@ namespace Js
     THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
     THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
-
-    void __declspec(noreturn) JavascriptError::ThrowAggregateError(ScriptContext* scriptContext, JavascriptArray* errors)
-    {
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-        JavascriptError* pError = library->CreateAggregateError();
-        JavascriptError::SetErrorsList(pError, errors, scriptContext);
-        JavascriptExceptionOperators::Throw(pError, scriptContext);
-    }
 #undef THROW_ERROR_IMPL
 
     void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable); }

@@ -1438,6 +1438,7 @@ var tests = [
             p.catch(
                 function(err) {
                     echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1452,6 +1453,7 @@ var tests = [
             p.catch(
                 function(err) {
                     echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
                 }
             );
             
@@ -1468,6 +1470,7 @@ var tests = [
             p.catch(
                 function(err) {
                     echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
                 }
             );
             
@@ -1484,6 +1487,7 @@ var tests = [
             p.catch(
                 function(err) {
                     echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
                 }
             );
             
@@ -1507,6 +1511,7 @@ var tests = [
             p.catch(
                 function(err) {
                     echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1542,6 +1547,7 @@ var tests = [
                 },
                 function(err) {
                     echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1563,6 +1569,7 @@ var tests = [
                 },
                 function(err) {
                     echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1584,6 +1591,7 @@ var tests = [
                 },
                 function(err) {
                     echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1605,6 +1613,7 @@ var tests = [
                 },
                 function(err) {
                     echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1672,6 +1681,7 @@ var tests = [
                 },
                 function(err) {
                     echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
                 }
             );
         }
@@ -1686,6 +1696,7 @@ var tests = [
                 function(err){
                     echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
                     echo('Test #' + index + ' - Error handler #1 called with err.errors = ' + JSON.stringify(err.errors));
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
                 }
             )
         }

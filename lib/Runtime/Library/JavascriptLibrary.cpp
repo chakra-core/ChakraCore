@@ -2516,13 +2516,13 @@ namespace Js
         return true;
     }
 
-#define INIT_ERROR_IMPL(error, errorName) \
+#define INIT_ERROR_IMPL(error, errorName, ctorLength) \
     bool JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(constructor, mode, 3); \
         JavascriptLibrary* library = constructor->GetLibrary(); \
         library->AddMember(constructor, PropertyIds::prototype, library->Get##error##Prototype(), PropertyNone); \
-        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable); \
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(ctorLength), PropertyConfigurable); \
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
         library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
         constructor->SetHasNoEnumerableProperties(true); \
@@ -2541,43 +2541,19 @@ namespace Js
         return true; \
     }
 
-#define INIT_ERROR(error) INIT_ERROR_IMPL(error, error)
+#define INIT_ERROR(error) INIT_ERROR_IMPL(error, error, 1)
     INIT_ERROR(EvalError);
     INIT_ERROR(RangeError);
     INIT_ERROR(ReferenceError);
     INIT_ERROR(SyntaxError);
     INIT_ERROR(TypeError);
     INIT_ERROR(URIError);
-    INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError);
-    INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError);
-    INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError);
+    INIT_ERROR_IMPL(AggregateError, AggregateError, 2);
+    INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError, 1);
+    INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError, 1);
+    INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError, 1);
 
 #undef INIT_ERROR
-
-    bool JavascriptLibrary::InitializeAggregateErrorConstructor(DynamicObject * constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
-    { 
-        typeHandler->Convert(constructor, mode, 3);
-        JavascriptLibrary* library = constructor->GetLibrary();
-        library->AddMember(constructor, PropertyIds::prototype, library->GetAggregateErrorPrototype(), PropertyNone);
-        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(2), PropertyConfigurable);
-        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable;
-        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
-        constructor->SetHasNoEnumerableProperties(true);
-        return true;
-    }
-
-    bool JavascriptLibrary::InitializeAggregateErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
-    {
-        typeHandler->Convert(prototype, mode, 3);
-        JavascriptLibrary* library = prototype->GetLibrary();
-        library->AddMember(prototype, PropertyIds::constructor, library->GetAggregateErrorConstructor());
-        bool hasNoEnumerableProperties = true;
-        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable;
-        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
-        library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes);
-        prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
-        return true;
-    }
 
     bool JavascriptLibrary::InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
@@ -2704,7 +2680,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializePromiseConstructor(DynamicObject* promiseConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(promiseConstructor, mode, 8);
+        typeHandler->Convert(promiseConstructor, mode, 9);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterPromise
         // so that the update is in sync with profiler
         JavascriptLibrary* library = promiseConstructor->GetLibrary();

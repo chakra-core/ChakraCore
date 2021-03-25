@@ -232,9 +232,9 @@ var tests = [
     {
         name: "Promise.any throwing behavior",
         body: function () {
-            assert.throws(function() { Promise.any.call(); }, TypeError, "Promise.any throws when called with no this parameter", "Promise.any: 'this' is not an Object");
-            assert.throws(function() { Promise.any.call(undefined); }, TypeError, "Promise.any throws when called when this parameter is undefined", "Promise.any: 'this' is not an Object");
-            assert.throws(function() { Promise.any.call(null); }, TypeError, "Promise.any throws when called when this parameter is null", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call(); }, TypeError, "Promise.any throws when called with no this parameter", "Function expected");
+            assert.throws(function() { Promise.any.call(undefined); }, TypeError, "Promise.any throws when called when this parameter is undefined", "Function expected");
+            assert.throws(function() { Promise.any.call(null); }, TypeError, "Promise.any throws when called when this parameter is null", "Function expected");
             assert.throws(function() { Promise.any.call({}); }, TypeError, "Promise.any throws when called when this parameter is non-callable", "Function expected");
             assert.throws(function() { Promise.any.call(Math.sin); }, TypeError, "Promise.any throws when this parameter is a non-constructor", "Function expected");
         }
