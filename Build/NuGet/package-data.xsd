@@ -1,0 +1,198 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="https://github.com/chakra-core/ChakraCore"
+  xmlns="https://github.com/chakra-core/ChakraCore"
+  elementFormDefault="qualified">
+  <xs:element name="packageData">
+    <xs:annotation>
+      <xs:documentation>The root element of the package data</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="commonProperties">
+          <xs:annotation>
+            <xs:documentation>
+              Contains a custom common properties whose values are used to replace $-delimited tokens
+              (for example, `$description$`) in the `.nuspec` files
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:all>
+              <xs:element name="defaultProperties" minOccurs="0" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    Contains a default values for common properties of the packages.
+                    The values of these properties can be overridden by properties of specific packages.
+                    For naming these properties, it is recommended to use the camelCase style.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:any namespace="##any" processContents="skip" minOccurs="0"
+                            maxOccurs="unbounded" />
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="commonMetadataElements" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    Defines a common metadata of the packages. XML content of this element is
+                    substituted into a `$CommonMetadataElements$` token in the `.nuspec` files.
+                    This XML content is completely static and cannot contain $-delimited tokens.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:any namespace="##any" processContents="skip" minOccurs="0"
+                            maxOccurs="unbounded" />
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="commonFileElements" minOccurs="1" maxOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>
+                    Defines a list of common files to include in the packages. XML content of this
+                    element is substituted into a `$CommonFileElements$` token in the `.nuspec` files.
+                    This XML content is completely static and cannot contain $-delimited tokens.
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                      <xs:element name="file" minOccurs="0" maxOccurs="unbounded">
+                        <xs:annotation>
+                          <xs:documentation>File or files to include in the package</xs:documentation>
+                        </xs:annotation>
+                        <xs:complexType>
+                          <xs:attribute name="src" type="requiredString_type" use="required">
+                            <xs:annotation>
+                              <xs:documentation>
+                                The location of the file or files to include relative to the `.nuspec`
+                                file
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:attribute>
+                          <xs:attribute name="target" type="xs:string" use="optional">
+                            <xs:annotation>
+                              <xs:documentation>
+                                Relative path to the directory within the package where the files will
+                                be placed
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:attribute>
+                          <xs:attribute name="exclude" type="xs:string" use="optional">
+                            <xs:annotation>
+                              <xs:documentation>
+                                The file or files to exclude within the `src` location
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:attribute>
+                        </xs:complexType>
+                      </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:all>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="packages">
+          <xs:complexType>
+            <xs:annotation>
+              <xs:documentation>Defines a list of data about the packages</xs:documentation>
+            </xs:annotation>
+            <xs:sequence>
+              <xs:element name="package" minOccurs="0" maxOccurs="unbounded">
+                <xs:annotation>
+                  <xs:documentation>
+                    Data about the package on basis of which the `.nupkg` file are created
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:all>
+                    <xs:element name="properties" minOccurs="0" maxOccurs="1">
+                      <xs:annotation>
+                        <xs:documentation>
+                          Contains a custom properties of the package that are used to replace
+                          $-delimited tokens (for example, `$tags$`) in the `.nuspec` files.
+                          These properties can override common properties. The property value can
+                          contain a Mustache tag with special token name (`{{{base}}}`) that is replaced
+                          with the value of overridable common property.
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:any namespace="##any" processContents="skip" minOccurs="0"
+                                  maxOccurs="unbounded" />
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="preprocessableFiles" minOccurs="0" maxOccurs="1">
+                      <xs:annotation>
+                        <xs:documentation>
+                          Defines a list of files that must be processed before creating a `.nupkg`
+                          files
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="file" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation>
+                                Information about the file that must be processed before creating a
+                                `.nupkg` file.
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:attribute name="src" type="requiredString_type">
+                                <xs:annotation>
+                                  <xs:documentation>
+                                    The location of the pre-processable file relative to the XML file
+                                    with package data. Pre-processable file is a primitive Mustache
+                                    template.
+                                  </xs:documentation>
+                                </xs:annotation>
+                              </xs:attribute>
+                              <xs:attribute name="target" type="requiredString_type">
+                                <xs:annotation>
+                                  <xs:documentation>
+                                    The location of the target file relative to the XML file with
+                                    package data. Target file is created based on primitive Mustache
+                                    template and properties of the package. The path to target file can
+                                    contain a Mustache tags that are replaced during processing with the
+                                    values of corresponding package properties.
+                                  </xs:documentation>
+                                </xs:annotation>
+                              </xs:attribute>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:all>
+                  <xs:attribute name="id" type="requiredString_type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Unique identifier for the package</xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                  <xs:attribute name="nuspecFile" type="requiredString_type" use="required">
+                    <xs:annotation>
+                      <xs:documentation>
+                        The location of the `.nuspec` file relative to the XML file with package data
+                      </xs:documentation>
+                    </xs:annotation>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:simpleType name="requiredString_type">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

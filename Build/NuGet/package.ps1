@@ -4,56 +4,67 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-using namespace System.Collections
-using namespace System.IO
 using namespace System.Text
+
+using module '.\package-classes.psm1'
+
+Set-StrictMode -Version 5.1
 
 $packageRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $packageVersionFile = Join-Path $packageRoot '.pack-version'
-$packageСommonPropertiesFile = Join-Path $packageRoot 'package-common-properties.xml'
+$packageDataFile = Join-Path $packageRoot 'package-data.xml'
 $packageArtifactsDir = Join-Path $packageRoot 'Artifacts'
 $localNugetExe = Join-Path $packageRoot 'nuget.exe'
 
-# helper for getting properties that are common to all packages
-function GetPackageCommonProperties() {
-    $version = (Get-Content $packageVersionFile)
-    $commonPropertiesXml = [xml](Get-Content $packageСommonPropertiesFile -Encoding utf8)
-    $rootElem = $commonPropertiesXml.DocumentElement
+# helper to download file with retry
+function DownloadFileWithRetry([string]$sourceUrl, [string]$destFile, [int]$retries) {
+    $delayTimeInSeconds = 5
 
-    $commonProperties = @{
-        version = $version;
-        CommonMetadataElements = $rootElem.commonMetadataElements.InnerXml;
-        CommonFileElements = $rootElem.commonFileElements.InnerXml
+    while ($true) {
+        try {
+            Invoke-WebRequest $sourceUrl -OutFile $destFile
+            break
+        }
+        catch {
+            Write-Host "Failed to download $sourceUrl"
+
+            if ($retries -gt 0) {
+                $retries--
+
+                Write-Host "Waiting $delayTimeInSeconds seconds before retrying. Retries left: $retries"
+                Start-Sleep -Seconds $delayTimeInSeconds
+            }
+            else {
+                $exception = $_.Exception
+                throw $exception
+            }
+        }
     }
-
-    foreach ($propertyElem in $rootElem.defaultProperties.SelectNodes('child::*')) {
-        $commonProperties.Add($propertyElem.Name, $propertyElem.'#text')
-    }
-
-    return $commonProperties;
 }
 
 # helper to create NuGet package
-function CreateNugetPackage ([string]$nuspecFile, [Hashtable]$commonProperties) {
-    $id = [Path]::GetFileNameWithoutExtension($packageNuspecFile)
-    $properties = @{ id = $id }
-    $properties += $commonProperties
+function CreateNugetPackage ([Package]$package, [string]$version, [string]$outputDir) {
+    $properties = $package.Properties.Clone()
+    $properties['id'] = $package.Id
+    $properties['version'] = $version
 
     $sb = New-Object StringBuilder
 
-    foreach ($propertyName in $properties.Keys){
+    foreach ($propertyName in $properties.Keys) {
         $propertyValue = $properties[$propertyName]
 
         if ($sb.Length -gt 0) {
-            [void]$sb.Append(';');
+            [void]$sb.Append(';')
         }
-        [void]$sb.AppendFormat('{0}={1}', $propertyName, $propertyValue.Replace('"', '""'));
+        [void]$sb.AppendFormat('{0}={1}', $propertyName, $propertyValue.Replace('"', '""'))
     }
 
     $propertiesStr = $sb.toString()
     [void]$sb.Clear()
 
-    & $localNugetExe pack $nuspecFile -OutputDirectory $packageArtifactsDir -Properties $propertiesStr
+    $package.PreprocessFiles()
+    & $localNugetExe pack $package.NuspecFile -OutputDirectory $outputDir -Properties $propertiesStr
+    $package.RemovePreprocessedFiles()
 }
 
 if (Test-Path $packageArtifactsDir) {
@@ -65,13 +76,13 @@ if (!(Test-Path $localNugetExe)) {
     $nugetDistUrl = 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
 
     Write-Host "NuGet.exe not found - downloading latest from $nugetDistUrl"
-
-    Invoke-WebRequest $nugetDistUrl -OutFile $localNugetExe
+    DownloadFileWithRetry $nugetDistUrl $localNugetExe -retries 3
 }
 
-$packageCommonProperties = GetPackageCommonProperties
+# Create new NuGet packages based on data from an XML file.
+$version = (Get-Content $packageVersionFile)
+$packages = [Package]::GetPackages($packageDataFile)
 
-# Create new packages for any nuspec files that exist in this directory.
-foreach ($packageNuspecFile in $(Get-Item "$packageRoot\*.nuspec")) {
-    CreateNugetPackage $packageNuspecFile $packageCommonProperties
+foreach ($package in $packages) {
+    CreateNugetPackage $package $version $packageArtifactsDir
 }

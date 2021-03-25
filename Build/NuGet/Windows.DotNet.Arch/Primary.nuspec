@@ -9,9 +9,9 @@
     $CommonMetadataElements$
   </metadata>
   <files>
-    <file src="$id$.props" target="build" />
+    <file src="Items.$platformArchitecture$.props" target="build\$id$.props" />
 
-    <file src="..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win7-x86\native\ChakraCore.dll" />
+    <file src="..\..\VcBuild\bin\$platformArchitecture$_release\ChakraCore.dll" target="runtimes\$runtimeIdentifier$\native\ChakraCore.dll" />
 
     $CommonFileElements$
   </files>
