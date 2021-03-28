@@ -213,7 +213,6 @@ private:
     void                BuildInitClass(uint32 offset, Js::RegSlot constructor, Js::RegSlot proto, IR::Opnd * opndProtoParent, IR::Opnd * opndCtorParent, IR::Opnd * opndEnvironment, uint index);
     void                BuildBrReg1(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot srcRegSlot);
     void                BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot src1RegSlot, Js::RegSlot src2RegSlot);
-    void                BuildBrReg3(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2);
     void                BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, uint32 forInLoopLevel, uint32 targetOffset);
 
     IR::IndirOpnd *     BuildIndirOpnd(IR::RegOpnd *baseReg, IR::RegOpnd *indexReg);

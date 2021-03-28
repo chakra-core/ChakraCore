@@ -10891,16 +10891,31 @@ void EmitClass(ParseNodeClass * pnodeClass, ByteCodeGenerator * byteCodeGenerato
         Js::RegSlot ctorParentLoc = funcInfo->IsTmpReg(pnodeClass->pnodeExtends->location) ? pnodeClass->pnodeExtends->location : funcInfo->AcquireTmpRegister();
         Js::RegSlot protoParentLoc = funcInfo->AcquireTmpRegister();
 
-        Js::ByteCodeLabel labelParentsFound = byteCodeGenerator->Writer()->DefineLabel();
-        byteCodeGenerator->Writer()->BrReg3(Js::OpCode::CheckExtends, labelParentsFound, ctorParentLoc, protoParentLoc, pnodeClass->pnodeExtends->location);
         if (pnodeClass->pnodeExtends->location != ctorParentLoc)
         {
             byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, ctorParentLoc, pnodeClass->pnodeExtends->location);
         }
+
+        Js::ByteCodeLabel needProto = byteCodeGenerator->Writer()->DefineLabel();
+        Js::ByteCodeLabel haveConstructor = byteCodeGenerator->Writer()->DefineLabel();
+        Js::ByteCodeLabel labelParentsFound = byteCodeGenerator->Writer()->DefineLabel();
+
+        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrOnNotNullObj_A, needProto, ctorParentLoc);
+
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdC_A_Null, protoParentLoc);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdBaseFncProto, ctorParentLoc);
+        byteCodeGenerator->Writer()->Br(labelParentsFound);
+
+        byteCodeGenerator->Writer()->MarkLabel(needProto);
+        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrOnConstructor_A, haveConstructor, ctorParentLoc);
+        byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_ErrorOnNew));
+
+        byteCodeGenerator->Writer()->MarkLabel(haveConstructor);
         uint cacheId = funcInfo->FindOrAddInlineCacheId(ctorParentLoc, Js::PropertyIds::prototype, false, false);
         byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld_ReuseLoc, protoParentLoc, ctorParentLoc, cacheId);
         byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrOnObjectOrNull_A, labelParentsFound, protoParentLoc);
         byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_InvalidPrototype));
+
         byteCodeGenerator->Writer()->MarkLabel(labelParentsFound);
         if (frameDisplayLoc == funcInfo->frameDisplayRegister || frameDisplayLoc  == funcInfo->GetEnvRegister())
         {

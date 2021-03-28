@@ -1639,6 +1639,15 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             break;
         }
 
+    case Js::OpCode::LdBaseFncProto:
+        {
+            // reuseLoc set to true as this is only used when that is wanted - during class extension
+            reuseLoc = true;
+            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            newOpcode = Js::OpCode::Ld_A;
+            break;
+        }
+
     case Js::OpCode::LdFalse_ReuseLoc:
         reuseLoc = true;
         // fall through
@@ -6902,24 +6911,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset)
 
 template <typename SizePolicy>
 void
-IRBuilder::BuildBrReg3(Js::OpCode newOpcode, uint32 offset)
-{
-    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
-    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrReg3<SizePolicy>>();
-
-    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
-    {
-        this->DoClosureRegCheck(layout->R0);
-        this->DoClosureRegCheck(layout->R1);
-        this->DoClosureRegCheck(layout->R2);
-    }
-
-    BuildBrReg3(newOpcode, offset, m_jnReader.GetCurrentOffset() + layout->RelativeJumpOffset, layout->R0, layout->R1, layout->R2);
-}
-
-template <typename SizePolicy>
-void
 IRBuilder::BuildBrReg1Unsigned1(Js::OpCode newOpcode, uint32 offset)
 {
     Assert(newOpcode == Js::OpCode::BrOnEmpty
@@ -7001,64 +6992,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     {
         branchInstr = IR::BranchInstr::New(newOpcode, nullptr, src1Opnd, src2Opnd, m_func);
         this->AddBranchInstr(branchInstr, offset, targetOffset);
-    }
-}
-
-
-void
-IRBuilder::BuildBrReg3(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2)
-{
-    switch (newOpcode)
-    {
-        case Js::OpCode::CheckExtends:
-        {
-            IR::RegOpnd * opndExtends = BuildSrcOpnd(R2);
-            // If extends is Null, assign appropriate values to ctorParent and protoParent and jump to target offset.
-            IR::LabelInstr * labelNotNull = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-            IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BrOnNotNullObj_A, labelNotNull, opndExtends, m_func);
-            this->AddInstr(branchInstr, offset);
-
-            IR::AddrOpnd * opndNullAddr = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetNullAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
-            IR::RegOpnd * opndProtoParent = BuildDstOpnd(R1);
-            IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, opndProtoParent, opndNullAddr, m_func);
-            opndNullAddr->SetValueType(ValueType::Null);
-            this->AddInstr(instr, offset);
-
-            IR::AddrOpnd * opndFuncProto = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
-            IR::RegOpnd * opndCtorParent = BuildDstOpnd(R0);
-            instr = IR::Instr::New(Js::OpCode::Ld_A, opndCtorParent, opndFuncProto, m_func);
-            this->AddInstr(instr, offset);
-
-            branchInstr = IR::BranchInstr::New(Js::OpCode::Br, nullptr, m_func);
-            this->AddBranchInstr(branchInstr, offset, targetOffset);
-
-            this->AddInstr(labelNotNull, offset);
-
-            IR::LabelInstr * labelIsCtor = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-            IR::BranchInstr * brIsCtor = IR::BranchInstr::New(Js::OpCode::BrOnConstructor_A, labelIsCtor, opndExtends, m_func);
-            this->AddInstr(brIsCtor, offset);
-
-            instr = IR::Instr::New(Js::OpCode::RuntimeTypeError, m_func);
-            instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(JSERR_ErrorOnNew), TyInt32, m_func, true));
-            this->AddInstr(instr, offset);
-
-            this->AddInstr(labelIsCtor, offset);
-
-            if (R0 == R2 && opndCtorParent->m_sym != opndExtends->m_sym)
-            {
-                // The byte code doesn't contain a Ld_A, since the byte code regs are the same, but they've been renumbered in the JIT,
-                // so we have to assign from one to the other.
-                instr = IR::Instr::New(Js::OpCode::Ld_A, opndCtorParent, opndExtends, m_func);
-                this->AddInstr(instr, offset);
-            }
-
-            break;
-        }
-
-        default:
-            AssertMsg(false, "Unknown BrReg3 opcode");
-            break;
-
     }
 }
 

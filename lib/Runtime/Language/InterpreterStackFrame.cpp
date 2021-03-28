@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -733,19 +734,6 @@
     }
 
 #define PROCESS_BRCMem(name, func) PROCESS_BRCMem_COMMON(name, func,)
-
-#define PROCESS_BR_AtoA2_COMMON(name, func, suffix) \
-    case OpCode::name: \
-    { \
-        PROCESS_READ_LAYOUT(name, BrReg3, suffix); \
-        if (func(playout->R0, playout->R1, playout->R2)) \
-        { \
-            ip = m_reader.SetCurrentRelativeOffset(ip, playout->RelativeJumpOffset); \
-        } \
-        break; \
-    }
-
-#define PROCESS_BR_AtoA2(name, func) PROCESS_BR_AtoA2_COMMON(name, func,)
 
 #define PROCESS_BRPROP(name, func) \
     case OpCode::name: \
@@ -7872,22 +7860,6 @@ skipThunk:
         return InitClassHelper(environment, infoRef, protoParent, constructorParent, protoReg);
     }
 
-    bool InterpreterStackFrame::OP_CheckExtends(RegSlot regCtorParent, RegSlot regProtoParent, RegSlot regExtends)
-    {
-        Var extends = GetReg(regExtends);
-        if (JavascriptOperators::IsNull(extends))
-        {
-            SetReg(regProtoParent, scriptContext->GetLibrary()->GetNull());
-            SetReg(regCtorParent, scriptContext->GetLibrary()->GetFunctionPrototype());
-            return true;
-        }
-        if (!JavascriptOperators::IsConstructor(extends))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
-        }            
-        return false;
-    }
-
     Var InterpreterStackFrame::OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var constructorParent, Var protoParent, RegSlot protoReg)
     {
         return InitClassHelper(environment, infoRef, VarTo<RecyclableObject>(protoParent), VarTo<RecyclableObject>(constructorParent), protoReg);
@@ -8648,6 +8620,11 @@ skipThunk:
         return aValue != NULL;
     }
 
+    bool InterpreterStackFrame::OP_BrOnNotNullObj_A(Var aValue)
+    {
+        return aValue != scriptContext->GetLibrary()->GetNull();
+    }
+
     BOOL InterpreterStackFrame::OP_BrUndecl_A(Var aValue)
     {
         return this->scriptContext->GetLibrary()->IsUndeclBlockVar(aValue);
@@ -8685,6 +8662,16 @@ skipThunk:
     BOOL InterpreterStackFrame::OP_BrOnBaseConstructorKind(Var aValue)
     {
         return JavascriptOperators::IsBaseConstructorKind(aValue);
+    }
+
+    bool InterpreterStackFrame::OP_BrOnConstructor(Var aValue)
+    {
+        return JavascriptOperators::IsConstructor(aValue);
+    }
+
+    Var InterpreterStackFrame::OP_LdBaseFncProto()
+    {
+        return scriptContext->GetLibrary()->GetFunctionPrototype();
     }
 
     template<class T>
