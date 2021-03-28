@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // Default all macro to nothing
@@ -61,6 +62,7 @@ EXDEF2    (BRLONG,                  BrLong,                     OP_Br)
   DEF2_WMS(BRB_ALLOW_STACK,         BrOnObject_A,               JavascriptOperators::IsObject)
 EXDEF2_WMS(BRB_ALLOW_STACK,         BrOnObjectOrNull_A,         JavascriptOperators::IsObjectOrNull)
   DEF2_WMS(BRB,                     BrNotNull_A,                OP_BrNotNull_A)
+  DEF2_WMS(BRB,                     BrOnNotNullObj_A,           OP_BrOnNotNullObj_A)
 //Not emitted for byte code, keep it here for completeness
 //EXDEF2_WMS(BRB,                   BrUndecl_A,                 OP_BrUndecl_A)
 EXDEF2_WMS(BRB,                     BrNotUndecl_A,              OP_BrNotUndecl_A)
@@ -236,6 +238,7 @@ EXDEF3_WMS(CUSTOM,                  InitClassMemberGet,         OP_InitClassMemb
 EXDEF3_WMS(CUSTOM,                  InitClassMemberSetComputedName, OP_InitClassMemberSetComputedName, ElementI)
 EXDEF2_WMS(BRB,                     BrOnClassConstructor,       OP_BrOnClassConstructor)
 EXDEF2_WMS(BRB,                     BrOnBaseConstructorKind,    OP_BrOnBaseConstructorKind)
+EXDEF2_WMS(BRB,                     BrOnConstructor_A,          OP_BrOnConstructor)
   DEF3_WMS(GET_ELEM_LOCALSLOTNonVar,LdLocalSlot,                OP_LdSlot, ElementSlotI1)
 EXDEF3_WMS(GET_ELEM_PARAMSLOTNonVar,LdParamSlot,                OP_LdSlot, ElementSlotI1)
   DEF3_WMS(GET_ELEM_INNERSLOTNonVar,LdInnerSlot,                OP_LdInnerSlot, ElementSlotI2)
@@ -311,6 +314,7 @@ EXDEF3_WMS(CALL,                    ProfiledNewScObjectSpread,  PROFILEDOP(OP_Pr
   DEF2_WMS(XXtoA1Mem,               LdTrue_ReuseLoc,            JavascriptBoolean::OP_LdTrue)
   DEF2_WMS(XXtoA1Mem,               LdFalse,                    JavascriptBoolean::OP_LdFalse)
   DEF2_WMS(XXtoA1Mem,               LdFalse_ReuseLoc,           JavascriptBoolean::OP_LdFalse)
+  DEF2_WMS(XXtoA1,                  LdBaseFncProto,             OP_LdBaseFncProto)
   EXDEF2_WMS(XXtoA1Mem,             LdChakraLib,                JavascriptOperators::OP_LdChakraLib)
   DEF2_WMS(A1I1toA1Mem,             LdThis,                     JavascriptOperators::OP_GetThisNoFastPath)
 EXDEF2_WMS(XXtoA1Mem,               LdHomeObj,                  OP_LdHomeObj)
@@ -401,7 +405,6 @@ EXDEF2_WMS(XXtoA2_FB,               InitBaseClass,              OP_InitBaseClass
 EXDEF2_WMS(A1toA2_FB,               InitInnerBaseClass,         OP_InitBaseClass)
 EXDEF2_WMS(A2toA2_FB,               InitClass,                  OP_InitClass)
 EXDEF2_WMS(A3toA2_FB,               InitInnerClass,             OP_InitClass)
-EXDEF2_WMS(BR_AtoA2,                CheckExtends,               OP_CheckExtends)
   DEF2_WMS(BRBReturnP1toA1,         BrOnEmpty,                  JavascriptOperators::OP_BrOnEmpty)
   DEF2    (TRY,                     TryCatch,                   OP_TryCatch)
   DEF2    (TRY,                     TryFinally,                 OP_TryFinally)

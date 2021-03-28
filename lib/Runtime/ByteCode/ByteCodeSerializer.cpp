@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -1077,7 +1078,6 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg2);
-                DEFAULT_LAYOUT_WITH_ONEBYTE(BrReg3);
                 DEFAULT_LAYOUT(StartCall);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Profiled2CallI);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(CallI);

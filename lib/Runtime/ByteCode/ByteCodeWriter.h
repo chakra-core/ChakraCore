@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -266,7 +267,6 @@ namespace Js
         void BrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C1);
         void BrS(OpCode op, ByteCodeLabel labelID, byte val);
         void BrReg2(OpCode op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
-        void BrReg3(OpCode op, ByteCodeLabel labelID, RegSlot R0, RegSlot R1, RegSlot R2);
         void BrProperty(OpCode op, ByteCodeLabel labelID, RegSlot R1, PropertyIdIndexType propertyIdIndex);
         void BrLocalProperty(OpCode op, ByteCodeLabel labelID, PropertyIdIndexType propertyIdIndex);
         void BrEnvProperty(OpCode op, ByteCodeLabel labelID, PropertyIdIndexType propertyIdIndex, int32 slotIndex);
@@ -316,7 +316,6 @@ namespace Js
         template <typename SizePolicy> bool TryWriteBrReg1(OpCode op, ByteCodeLabel labelID, RegSlot R1);
         template <typename SizePolicy> bool TryWriteBrReg1Unsigned1(OpCode op, ByteCodeLabel labelID, RegSlot R1, uint C2);
         template <typename SizePolicy> bool TryWriteBrReg2(OpCode op, ByteCodeLabel labelID, RegSlot R1, RegSlot R2);
-        template <typename SizePolicy> bool TryWriteBrReg3(OpCode op, ByteCodeLabel labelID, RegSlot R0, RegSlot R1, RegSlot R2);
         template <typename SizePolicy> bool TryWriteCallI(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount);
         template <typename SizePolicy> bool TryWriteCallIFlags(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, CallFlags callFlags);
         template <typename SizePolicy> bool TryWriteCallIWithICIndex(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, uint32 inlineCacheIndex, bool isRootLoad);

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -1618,24 +1619,6 @@ namespace Js
         DumpOffset(data->RelativeJumpOffset, reader);
         DumpReg(data->R1);
         DumpReg(data->R2);
-    }
-
-    template <class T>
-    void ByteCodeDumper::DumpBrReg3(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
-    {
-        switch (op)
-        {
-            case Js::OpCode::CheckExtends:
-                DumpOffset(data->RelativeJumpOffset, reader);
-                DumpReg(data->R0);
-                DumpReg(data->R1);
-                DumpReg(data->R2);
-                break;
-
-            default:
-                AssertMsg(false, "Unknown BrReg3 opcode");
-                break;
-        }
     }
 
     void ByteCodeDumper::DumpBrProperty(OpCode op, const unaligned OpLayoutBrProperty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
