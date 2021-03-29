@@ -11,7 +11,7 @@
     </Link>
     <ClCompile>
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>    
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug' And '$(Platform)' == 'arm'">
     <ReferenceCopyLocalPaths Include="$(MSBuildThisFileDirectory)..\..\lib\native\v140\arm\Debug\ChakraCore.dll" />

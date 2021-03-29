@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Condition=" '$(TargetFramework)' == '' Or '$(TargetFramework.TrimEnd(`0123456789`))' == 'net' ">
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\*" Condition=" '$(Platform)' == 'AnyCPU' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\*.*" Condition=" '$(Platform)' == 'AnyCPU' ">
       <Link>x86\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\*" Condition=" '$(Platform)' == 'AnyCPU' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\*.*" Condition=" '$(Platform)' == 'AnyCPU' ">
       <Link>x64\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win8-arm\native\*" Condition=" '$(Platform)' == 'AnyCPU' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win8-arm\native\*.*" Condition=" '$(Platform)' == 'AnyCPU' ">
       <Link>arm\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
 
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\*" Condition=" '$(Platform)' == 'x86' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x86\native\*.*" Condition=" '$(Platform)' == 'x86' ">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\*" Condition=" '$(Platform)' == 'x64' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win7-x64\native\*.*" Condition=" '$(Platform)' == 'x64' ">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
-    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win8-arm\native\*" Condition=" '$(Platform)' == 'ARM' ">
+    <Content Include="$(MSBuildThisFileDirectory)..\runtimes\win8-arm\native\*.*" Condition=" '$(Platform)' == 'ARM' ">
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
