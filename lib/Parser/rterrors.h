@@ -305,7 +305,7 @@ RT_ERROR_MSG(JSERR_GeneratorAlreadyExecuting, 5618, "%s: Cannot execute generato
 RT_ERROR_MSG(JSERR_LengthIsTooBig, 5619, "Length property would exceed maximum value in output from '%s'", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_NonObjectFromIterable, 5620, "Iterable provided to %s must not return non-object or null value.", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_EmptyArrayAndInitValueNotPresent, 5621, "%s: Array contains no elements and initialValue is not provided", "", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_PromiseAllRejected, 5622, "Promise.any all promises rejected", "", kjstAggregateError, 0)
+RT_ERROR_MSG(JSERR_PromiseAllRejected, 5622, "", "Promise.any all promises rejected.", kjstAggregateError, 0)
 
 // 5623-5626 Unused
 RT_ERROR_MSG(JSERR_NeedConstructor, 5627, "'%s' is not a constructor", "Constructor expected", kjstTypeError, 0)

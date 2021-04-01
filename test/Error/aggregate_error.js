@@ -8,63 +8,21 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
    {
-       name: "proptotype constructor",
+       name: "proptotype and constructor",
        body: function ()
        {
             assert.areEqual(AggregateError, AggregateError.prototype.constructor);
-       }
-   },
-   {
-       name: "proptotype errors absent on protptype",
-       body: function ()
-       {
-           assert.isFalse(AggregateError.prototype.hasOwnProperty("errors"));
-       }
-   },
-   {
-       name: "proptotype message",
-       body: function ()
-       {
-           assert.areEqual("", AggregateError.prototype.message)
-       }
-   },
-   {
-        name: "proptotype name",
-        body: function ()
-        {
-            assert.areEqual("AggregateError", AggregateError.prototype.name)
-        }
-    },
-    {
-        name: "prototype type",
-        body: function ()
-        {
+            assert.isFalse(AggregateError.prototype.hasOwnProperty("errors"));
+            assert.areEqual("", AggregateError.prototype.message);
+            assert.areEqual("AggregateError", AggregateError.prototype.name);
             assert.areEqual("object", typeof AggregateError.prototype);
-        }
-    },
-    {
-        name: "prototype proto",
-        body: function () {
-
             assert.areEqual(Error.prototype, Object.getPrototypeOf(AggregateError.prototype));
+            assert.areEqual("AggregateError", AggregateError.name);
+            assert.areEqual(2, AggregateError.length);
         }
     },
     {
-        name: "name",
-        body: function ()
-        {
-            assert.areEqual("AggregateError", AggregateError.name)
-        }
-    },
-    {
-        name: "length",
-        body: function ()
-        {
-            assert.areEqual(2, AggregateError.length)
-        }
-    },
-    {
-        name: "errors iterable to list feilures",
+        name: "errors iterable to list failures",
         body: function ()
         {
             class TestError extends Error {}
@@ -226,26 +184,6 @@ var tests = [
         }
     },
     {
-        name: "message method prop cast",
-        body: function ()
-        {
-            var case1 = new AggregateError([], 42);
-            assert.areEqual("42", case1.message);
-
-            var case2 = new AggregateError([], false);
-            assert.areEqual("false", case2.message);
-
-            var case3 = new AggregateError([], true);
-            assert.areEqual("true", case3.message);
-
-            var case4 = new AggregateError([], { toString() { return "string"; }});
-            assert.areEqual("string", case4.message);
-
-            var case5 = new AggregateError([], null);
-            assert.areEqual("null", case5.message);
-        }
-    },
-    {
         name: "message method prop",
         body: function ()
         {
@@ -401,26 +339,16 @@ var tests = [
         }
     },
     {
-        name: "newtarget proto",
-        body: function ()
-        {
-            var obj = new AggregateError([]);
-            assert.areEqual(AggregateError.prototype, Object.getPrototypeOf(obj));
-        }
-    },
-    {
-        name: "prop desc",
-        body: function ()
-        {
-            assert.areEqual("function", typeof AggregateError);
-        }
-    },
-    {
         name: "proto",
         body: function ()
         {
+            assert.areEqual("function", typeof AggregateError);
+
             var proto = Object.getPrototypeOf(AggregateError);
             assert.areEqual(Error, proto);
+
+            var obj = new AggregateError([]);
+            assert.areEqual(AggregateError.prototype, Object.getPrototypeOf(obj));
         }
     },
     {
