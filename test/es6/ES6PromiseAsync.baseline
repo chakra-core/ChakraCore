@@ -103,11 +103,20 @@ Executing test #83 - Promise.any fulfills with the same value as the first encou
 Executing test #84 - Promise.any fulfills with the same value as the first encountered rejected promise (promises complete async)
 Executing test #85 - Promise.any should wait until one resolve
 Executing test #86 - Promise.any should wait until all reject
-Executing test #87 - Promise.any should throw TypeError if resolve not a function
-Test #87 - resolve getter called
-Executing test #88 - Promise.any passes each element in it's argument to Promise.resolve
-Executing test #89 - Promise.any should failure with empty list
-Executing test #90 - Promise.any should reject with aggregate error and errors
+Executing test #87 - Promise.any should not call return
+Test #87 - get iterator called
+Test #87 - iterator next called: 2
+Test #87 - iterator next called: 1
+Test #87 - iterator next throw
+Executing test #88 - Promise.any should call return once
+Test #88 - get iterator called
+Test #88 - iterator next called: 2
+Test #88 - iterator return called
+Executing test #89 - Promise.any should throw TypeError if resolve not a function
+Test #89 - resolve getter called
+Executing test #90 - Promise.any passes each element in it's argument to Promise.resolve
+Executing test #91 - Promise.any should failure with empty list
+Executing test #92 - Promise.any should reject with aggregate error and errors
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
@@ -167,14 +176,26 @@ Test #80 - Catch handler #1 called with err = TypeError: failure inside iterator
 Test #80 - Catch handler #1 called with err.message = failure inside iterator
 Test #81 - Error handler #1 called with err = TypeError: failure inside iterator
 Test #81 - Error handler #1 called with err.message = failure inside iterator
-Test #87 - Error handler #1 called with err = TypeError: Function expected
-Test #89 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
-Test #89 - Error handler #1 called with err.errors = []
-Test #89 - Error handler #1 called with err.message = Promise.any all promises rejected.
-Test #90 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
-Test #90 - Error handler #1 called with err.message = "Promise.any all promises rejected."
-Test #90 - Error handler #1 called with err.name = AggregateError
-Test #90 - Error handler #1 called with err.errors = []
+Test #87 - Error handler #1 called with err = Error: BANG
+Test #88 - Error handler #1 called with err = Error
+Test #89 - Error handler #1 called with err = TypeError: Function expected
+Test #90 - Error handler #1 called with err = Error
+Test #90 - Error handler #1 called with err.message = 
+Test #91 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
+Test #91 - Error handler #1 called with err.errors = []
+Test #91 - Error handler #1 called with err.message = Promise.any all promises rejected.
+Test #92 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
+Test #92 - Error handler #1 called with err.message = "Promise.any all promises rejected."
+Test #92 - Error handler #1 called with err.name = AggregateError
+Test #92 - Error handler #1 called with err.errors = []
+Test #92 - Error handler #2 called with err = Error
+Test #92 - Error handler #2 called with err.message = ""
+Test #92 - Error handler #2 called with err.name = Error
+Test #92 - Error handler #2 called with err.errors = undefined
+Test #92 - Error handler #3 called with err = Error
+Test #92 - Error handler #3 called with err.message = ""
+Test #92 - Error handler #3 called with err.name = Error
+Test #92 - Error handler #3 called with err.errors = undefined
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error
@@ -198,7 +219,6 @@ Test #38 - p1 success: p1
 Test #38 - p2 success: p2
 Test #38 - p3 success: p3
 Test #39 - Success handler #1 called with result = success value 1,42,TypeError: an error
-Test #41 - Promise.resolve call nested within thenable.then = nested Promise.resolve call
 Test #47 - Success handler #1b called with result = '3' (isArray = false) (fulfillCalled = false)
 Test #48 - Error handler #1 called with err = 2
 Test #59 - Success - Rejected status and value passed through finally with not callable argument
@@ -226,7 +246,6 @@ Test #85 - 4 failure: 4
 Test #86 - 2 failure: 2
 Test #86 - 3 failure: 3
 Test #86 - 4 failure: 4
-Test #88 - Success handler #1 called with result = first promise value
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure

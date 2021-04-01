@@ -1666,6 +1666,79 @@ var tests = [
         }
     },
     {
+        name: "Promise.any should not call return",
+        body: function (index) {
+            function it() {
+                return {
+                    [Symbol.iterator]() {
+                        echo(`Test #${index} - get iterator called`);
+                        return this;
+                    },
+                    i: 2,
+                    next() {
+                        if (this.i > 0) {
+                            let i = this.i--;
+                            echo(`Test #${index} - iterator next called: ${i}`);
+                            return { value: i, done: false }
+                        } else {
+                            echo(`Test #${index} - iterator next throw`);
+                            throw new Error("BANG");
+                        }
+                    },
+                    return() {
+                        echo(`Test #${index} - iterator return called`);
+                    }
+                }
+            }
+
+            Promise.any(it()).then(
+                function (result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function (err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should call return once",
+        body: function (index) {
+            function it() {
+                return {
+                    [Symbol.iterator]() {
+                        echo(`Test #${index} - get iterator called`);
+                        return this;
+                    },
+                    i: 2,
+                    next() {
+                        if (this.i > 0) {
+                            let i = this.i--;
+                            echo(`Test #${index} - iterator next called: ${i}`);
+                            return { value: i, done: false }
+                        } else {
+                            echo(`Test #${index} - iterator next throw`);
+                            throw new Error("BANG");
+                        }
+                    },
+                    return() {
+                        echo(`Test #${index} - iterator return called`);
+                    }
+                }
+            }
+
+            Promise.resolve = function () { throw new Error(); }
+            Promise.any(it()).then(
+                function (result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function (err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                }
+            );
+        }
+    },
+    {
         name: "Promise.any should throw TypeError if resolve not a function",
         body: function (index) {
             class foo extends Promise {

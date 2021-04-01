@@ -403,8 +403,6 @@ namespace Js
             // 8. If result is an abrupt completion, then
             //   a. If iteratorRecord.[[Done]] is false, set result to IteratorClose(iteratorRecord, result).
             //   b. IfAbruptRejectPromise(result, promiseCapability).
-            JavascriptOperators::IteratorClose(iteratorRecord, scriptContext);
-
             JavascriptExceptionObject* exception = err.GetAndClear();
             TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
         }

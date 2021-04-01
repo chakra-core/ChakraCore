@@ -143,7 +143,7 @@ namespace Js
         using ErrorListType = SList<Var, Recycler>;
         Recycler* recycler = scriptContext->GetRecycler();
         ErrorListType* errorsList = RecyclerNew(recycler, ErrorListType, recycler);
-        RecyclableObject* iterator = JavascriptOperators::GetIterator(UnsafeVarTo<RecyclableObject>(errors), scriptContext);
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(errors, scriptContext);
         JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
             {
                 errorsList->Push(next);
