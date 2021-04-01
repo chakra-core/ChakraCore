@@ -9,11 +9,11 @@
     $CommonMetadataElements$
   </metadata>
   <files>
-    <file src="Microsoft.ChakraCore.Shared.props" target="build\$id$.props" />
+    <file src="Items.props" target="build\$id$.props" />
 
-    <file src="..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win7-x86\native\ChakraCore.dll" />
-    <file src="..\VcBuild\bin\x64_release\ChakraCore.dll" target="runtimes\win7-x64\native\ChakraCore.dll" />
-    <file src="..\VcBuild\bin\arm_release\ChakraCore.dll" target="runtimes\win8-arm\native\ChakraCore.dll" />
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win7-x86\native\ChakraCore.dll" />
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.dll" target="runtimes\win7-x64\native\ChakraCore.dll" />
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.dll" target="runtimes\win8-arm\native\ChakraCore.dll" />
 
     $CommonFileElements$
   </files>

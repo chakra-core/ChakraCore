@@ -2574,9 +2574,18 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[1]))
+            if (TaggedInt::Is(args[1]))
             {
-                double countDbl = JavascriptConversion::ToInteger(args[1], scriptContext);
+                int32 signedCount = TaggedInt::ToInt32(args[1]);
+                if (signedCount < 0)
+                {
+                    JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("String.prototype.repeat"));
+                }
+                count = (uint32) signedCount;
+            }
+            else if (!JavascriptOperators::IsUndefinedObject(args[1]))
+            {
+                double countDbl = JavascriptConversion::ToInteger_Full(args[1], scriptContext);
                 if (JavascriptNumber::IsPosInf(countDbl) || countDbl < 0.0)
                 {
                     JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange, _u("String.prototype.repeat"));
@@ -2607,7 +2616,14 @@ case_2:
         const char16* currentRawString = currentString->GetString();
         charcount_t currentLength = currentString->GetLength();
 
-        charcount_t finalBufferCount = UInt32Math::Add(UInt32Math::Mul(count, currentLength), 1);
+        charcount_t finalBufferCount = 0;
+        bool hasOverflow = UInt32Math::Mul(count, currentLength, &finalBufferCount);
+        if (hasOverflow || !IsValidCharCount(finalBufferCount))
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
+        }
+        finalBufferCount = finalBufferCount + 1;
+
         char16* buffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, finalBufferCount);
 
         if (currentLength == 1)

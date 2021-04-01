@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -1240,7 +1241,8 @@ static const Js::FunctionInfo::Attributes StableFunctionInfoAttributesMask = (Js
     Js::FunctionInfo::Attributes::Generator |
     Js::FunctionInfo::Attributes::Module |
     Js::FunctionInfo::Attributes::ComputedName |
-    Js::FunctionInfo::Attributes::HomeObj
+    Js::FunctionInfo::Attributes::HomeObj |
+    Js::FunctionInfo::Attributes::GeneratorWithComplexParams
 );
 
 static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pnodeFnc)
@@ -1289,6 +1291,10 @@ static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pno
     if (pnodeFnc->IsGenerator())
     {
         attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Generator);
+        if (pnodeFnc->HasNonSimpleParameterList())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::GeneratorWithComplexParams);
+        }
     }
     if (pnodeFnc->IsAccessor())
     {
