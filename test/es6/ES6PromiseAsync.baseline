@@ -103,9 +103,11 @@ Executing test #83 - Promise.any fulfills with the same value as the first encou
 Executing test #84 - Promise.any fulfills with the same value as the first encountered rejected promise (promises complete async)
 Executing test #85 - Promise.any should wait until one resolve
 Executing test #86 - Promise.any should wait until all reject
-Executing test #87 - Promise.any passes each element in it's argument to Promise.resolve
-Executing test #88 - Promise.any should failure with empty list
-Executing test #89 - Promise.any should reject with aggregate error and errors
+Executing test #87 - Promise.any should throw TypeError if resolve not a function
+Test #87 - resolve getter called
+Executing test #88 - Promise.any passes each element in it's argument to Promise.resolve
+Executing test #89 - Promise.any should failure with empty list
+Executing test #90 - Promise.any should reject with aggregate error and errors
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
@@ -165,13 +167,14 @@ Test #80 - Catch handler #1 called with err = TypeError: failure inside iterator
 Test #80 - Catch handler #1 called with err.message = failure inside iterator
 Test #81 - Error handler #1 called with err = TypeError: failure inside iterator
 Test #81 - Error handler #1 called with err.message = failure inside iterator
-Test #88 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
-Test #88 - Error handler #1 called with err.errors = []
-Test #88 - Error handler #1 called with err.message = Promise.any all promises rejected.
+Test #87 - Error handler #1 called with err = TypeError: Function expected
 Test #89 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
-Test #89 - Error handler #1 called with err.message = "Promise.any all promises rejected."
-Test #89 - Error handler #1 called with err.name = AggregateError
 Test #89 - Error handler #1 called with err.errors = []
+Test #89 - Error handler #1 called with err.message = Promise.any all promises rejected.
+Test #90 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
+Test #90 - Error handler #1 called with err.message = "Promise.any all promises rejected."
+Test #90 - Error handler #1 called with err.name = AggregateError
+Test #90 - Error handler #1 called with err.errors = []
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error
@@ -223,7 +226,7 @@ Test #85 - 4 failure: 4
 Test #86 - 2 failure: 2
 Test #86 - 3 failure: 3
 Test #86 - 4 failure: 4
-Test #87 - Success handler #1 called with result = first promise value
+Test #88 - Success handler #1 called with result = first promise value
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure

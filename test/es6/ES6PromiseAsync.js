@@ -1666,6 +1666,25 @@ var tests = [
         }
     },
     {
+        name: "Promise.any should throw TypeError if resolve not a function",
+        body: function (index) {
+            class foo extends Promise {
+                static get resolve() {
+                    echo('Test #' + index + ' - resolve getter called');
+                    return 5;
+                }
+            }
+            Promise.any.call(foo, [2, 3]).then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                }
+            );
+        }
+    },
+    {
         name: "Promise.any passes each element in it's argument to Promise.resolve",
         body: function (index) {
             var promises = [
