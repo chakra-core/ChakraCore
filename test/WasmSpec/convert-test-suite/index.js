@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 /* eslint-env node */
@@ -9,6 +10,7 @@ const Bluebird = require("bluebird");
 const {spawn} = require("child_process");
 const slash = require("slash");
 const json5 = require("json5");
+const walk = require("klaw");
 
 Bluebird.promisifyAll(fs);
 const config = json5.parse(fs.readFileSync(path.join(__dirname, "config.json5")));
@@ -82,7 +84,7 @@ function main() {
   return generateChakraTests(
     // Walk all the folders to find test files
   ).then(() => Bluebird.reduce(folders, (specFiles, folder) => new Promise((resolve) => {
-    fs.walk(folder)
+    walk(folder)
       .on("data", item => {
         const ext = path.extname(item.path);
         const relative = path.relative(rlRoot, item.path);
