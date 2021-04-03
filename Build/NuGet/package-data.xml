@@ -29,7 +29,7 @@
     <package id="Microsoft.ChakraCore.X86" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
       <properties>
         <platformArchitecture>x86</platformArchitecture>
-        <runtimeIdentifier>win7-x86</runtimeIdentifier>
+        <runtimeIdentifier>win-x86</runtimeIdentifier>
       </properties>
       <preprocessableFiles>
         <file src="Windows.DotNet.Arch\Items.props.mustache"
@@ -39,7 +39,7 @@
     <package id="Microsoft.ChakraCore.X64" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
       <properties>
         <platformArchitecture>x64</platformArchitecture>
-        <runtimeIdentifier>win7-x64</runtimeIdentifier>
+        <runtimeIdentifier>win-x64</runtimeIdentifier>
       </properties>
       <preprocessableFiles>
         <file src="Windows.DotNet.Arch\Items.props.mustache"
@@ -49,7 +49,7 @@
     <package id="Microsoft.ChakraCore.ARM" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
       <properties>
         <platformArchitecture>arm</platformArchitecture>
-        <runtimeIdentifier>win8-arm</runtimeIdentifier>
+        <runtimeIdentifier>win-arm</runtimeIdentifier>
       </properties>
       <preprocessableFiles>
         <file src="Windows.DotNet.Arch\Items.props.mustache"
