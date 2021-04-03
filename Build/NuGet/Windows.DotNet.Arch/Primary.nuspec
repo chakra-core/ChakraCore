@@ -11,7 +11,7 @@
   <files>
     <file src="Items.$platformArchitecture$.props" target="build\$id$.props" />
 
-    <file src="..\..\VcBuild\bin\$platformArchitecture$_release\ChakraCore.dll" target="runtimes\$runtimeIdentifier$\native\ChakraCore.dll" />
+    <file src="..\..\VcBuild\bin\$platformArchitecture$_release\ChakraCore.dll" target="runtimes\$runtimeIdentifier$\native" />
 
     $CommonFileElements$
   </files>
