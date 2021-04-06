@@ -25,8 +25,8 @@
   </commonProperties>
   <packages>
     <package id="Microsoft.ChakraCore" nuspecFile="Windows.DotNet.All\Primary.nuspec" />
-    <package id="Microsoft.ChakraCore.Symbols" nuspecFile="Windows.DotNet.All\Symbols.nuspec" />
-    <package id="Microsoft.ChakraCore.X86" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+    <package id="Microsoft.ChakraCore.symbols" nuspecFile="Windows.DotNet.All\Symbols.nuspec" />
+    <package id="Microsoft.ChakraCore.win-x86" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
       <properties>
         <platformArchitecture>x86</platformArchitecture>
         <runtimeIdentifier>win-x86</runtimeIdentifier>
@@ -36,7 +36,7 @@
               target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.props" />
       </preprocessableFiles>
     </package>
-    <package id="Microsoft.ChakraCore.X64" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+    <package id="Microsoft.ChakraCore.win-x64" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
       <properties>
         <platformArchitecture>x64</platformArchitecture>
         <runtimeIdentifier>win-x64</runtimeIdentifier>
@@ -46,7 +46,7 @@
               target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.props" />
       </preprocessableFiles>
     </package>
-    <package id="Microsoft.ChakraCore.ARM" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+    <package id="Microsoft.ChakraCore.win-arm" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
       <properties>
         <platformArchitecture>arm</platformArchitecture>
         <runtimeIdentifier>win-arm</runtimeIdentifier>
