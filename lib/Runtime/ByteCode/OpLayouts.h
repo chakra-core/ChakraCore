@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -266,15 +267,6 @@ namespace Js {
     struct OpLayoutT_BrReg2       // if (R1 op R2) goto Offset
     {
         JumpOffset  RelativeJumpOffset;
-        typename SizePolicy::RegSlotType     R1;
-        typename SizePolicy::RegSlotType     R2;
-    };
-
-    template <typename SizePolicy>
-    struct OpLayoutT_BrReg3
-    {
-        JumpOffset  RelativeJumpOffset;
-        typename SizePolicy::RegSlotType     R0;
         typename SizePolicy::RegSlotType     R1;
         typename SizePolicy::RegSlotType     R2;
     };

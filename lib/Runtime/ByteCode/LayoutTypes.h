@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 //
@@ -64,7 +65,6 @@ LAYOUT_TYPE                 (Br)
 LAYOUT_TYPE_WMS             (BrReg1)
 LAYOUT_TYPE_WMS             (BrReg2)
 LAYOUT_TYPE_WMS             (BrReg1Unsigned1)
-LAYOUT_TYPE_WMS             (BrReg3)
 LAYOUT_TYPE                 (BrS)
 LAYOUT_TYPE                 (BrProperty)
 LAYOUT_TYPE                 (BrLocalProperty)

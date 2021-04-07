@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
-  <metadata minClientVersion="3.4">
+  <metadata>
     <id>$id$</id>
     <version>$version$</version>
     <description>$description$</description>
@@ -11,9 +11,9 @@
   <files>
     <file src="Items.props" target="build\$id$.props" />
 
-    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win7-x86\native\ChakraCore.dll" />
-    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.dll" target="runtimes\win7-x64\native\ChakraCore.dll" />
-    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.dll" target="runtimes\win8-arm\native\ChakraCore.dll" />
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.dll" target="runtimes\win-x86\native" />
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.dll" target="runtimes\win-x64\native" />
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.dll" target="runtimes\win-arm\native" />
 
     $CommonFileElements$
   </files>
