@@ -263,6 +263,11 @@ Test #69 - p1 success: p2
 Test #69 - p1 failure: e2
 Test #83 - Success handler #1 called with result = p1
 Test #84 - Success handler #1 called with result = p2
+Test #85 - Success handler #1 called with result = 3
+Test #86 - Error handler #1 called with err = AggregateError: Promise.any all promises rejected.
+Test #86 - Error handler #1 called with err.message = "Promise.any all promises rejected."
+Test #86 - Error handler #1 called with err.name = AggregateError
+Test #86 - Error handler #1 called with err.errors = [1,2,3,4,5]
 Test #4 - Success handler #2 called with result = chain:success2
 Test #57 - Success - Rejected status and value passed through finally
 Test #58 - Success - Resolved status and value passed through finally

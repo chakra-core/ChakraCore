@@ -1631,13 +1631,13 @@ var tests = [
 
             Promise.any(list).then(
                 function(result) {
-                    echo('Test #' + index + ' - Success handler #' + idx + ' called with result = ' + result);
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
                 },
                 function(err){
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err = ' + err);
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err.message = ' + JSON.stringify(err.message));
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err.name = ' + err.name);
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err.errors = ' + JSON.stringify(err.errors));
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + JSON.stringify(err.message));
+                    echo('Test #' + index + ' - Error handler #1 called with err.name = ' + err.name);
+                    echo('Test #' + index + ' - Error handler #1 called with err.errors = ' + JSON.stringify(err.errors));
                 }
             );
         }
@@ -1654,13 +1654,13 @@ var tests = [
             ]
             Promise.any(list).then(
                 function(result) {
-                    echo('Test #' + index + ' - Success handler #' + idx + ' called with result = ' + result);
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
                 },
                 function(err){
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err = ' + err);
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err.message = ' + JSON.stringify(err.message));
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err.name = ' + err.name);
-                    echo('Test #' + index + ' - Error handler #' + idx + ' called with err.errors = ' + JSON.stringify(err.errors));
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + JSON.stringify(err.message));
+                    echo('Test #' + index + ' - Error handler #1 called with err.name = ' + err.name);
+                    echo('Test #' + index + ' - Error handler #1 called with err.errors = ' + JSON.stringify(err.errors));
                 }
             );
         }

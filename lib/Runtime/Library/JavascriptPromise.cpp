@@ -460,7 +460,7 @@ namespace Js
             JavascriptError::SetErrorMessage(pError, JSERR_PromiseAllRejected, _u(""), scriptContext);
 
             // c. Return ? Call(promiseCapability.[[Reject]], undefined, << error >> ).
-            return TryCallResolveOrRejectHandler(pError, promiseCapability->GetReject(), scriptContext);
+            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), pError, scriptContext);
         }
 
         return undefinedVar;
