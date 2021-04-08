@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -56,6 +57,28 @@ function simpleThrowFunc() {
 var global = (function() { return this; }());
 
 var tests = [
+    {
+        name: "Generator function with overwritten prototype",
+        body: function () {
+            function* gf() {};
+            var gfp = gf.prototype;
+            assert.strictEqual(gf().__proto__, gfp, "Generator function uses prototype.");
+            var obj = {};
+            gf.prototype = obj;
+            assert.strictEqual(gf().__proto__, obj, "Generator function uses overwritten prototype.");
+            gf.prototype = 1;
+            assert.areEqual(gf().__proto__.toString(), gfp.toString(), "Generator function falls back to original prototype.");
+            if (gf().__proto__ === gfp) { assert.error("Original prototype should not be same object as gfp")}
+            var originalGfp = gf().__proto__;
+            assert.strictEqual(gf().__proto__, originalGfp, "Generator function falls back to original prototype.");
+            gf.prototype = 0;
+            assert.strictEqual(gf().__proto__, originalGfp, "Generator function falls back to original prototype.");
+            gf.prototype = "hi";
+            assert.strictEqual(gf().__proto__, originalGfp, "Generator function falls back to original prototype.");
+            delete gfp.prototype;
+            assert.strictEqual(gf().__proto__, originalGfp, "Generator function falls back to original prototype.");
+        }
+    },
     {
         name: "Simple generator functions with no parameters or locals or captures",
         body: function () {

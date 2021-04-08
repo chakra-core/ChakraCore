@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -30,6 +31,28 @@ function testMethod(object, name, objectName, methodName = name) {
 }
 
 const tests = [
+    {
+        name: "Async Generator function with overwritten prototype",
+        body: function () {
+            async function* agf() {};
+            var gfp = agf.prototype;
+            assert.strictEqual(agf().__proto__, gfp, "Async Generator function uses prototype.");
+            var obj = {};
+            agf.prototype = obj;
+            assert.strictEqual(agf().__proto__, obj, "Async Generator function uses overwritten prototype.");
+            agf.prototype = 1;
+            assert.areEqual(agf().__proto__.toString(), gfp.toString(), "Generator function falls back to original prototype.");
+            if (agf().__proto__ === gfp) { assert.error("Original prototype should not be same object as gfp")}
+            var originalGfp = agf().__proto__;
+            assert.strictEqual(agf().__proto__, originalGfp, "Async Generator function falls back to original prototype.");
+            agf.prototype = 0;
+            assert.strictEqual(agf().__proto__, originalGfp, "Async Generator function falls back to original prototype.");
+            agf.prototype = "hi";
+            assert.strictEqual(agf().__proto__, originalGfp, "Async Generator function falls back to original prototype.");
+            delete gfp.prototype;
+            assert.strictEqual(agf().__proto__, originalGfp, "Async Generator function falls back to original prototype.");
+        }
+    },
     {
         name: "AsyncGeneratorFunction is not exposed on the global object",
         body: function () {
