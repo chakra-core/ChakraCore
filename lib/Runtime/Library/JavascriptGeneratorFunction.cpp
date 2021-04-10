@@ -112,13 +112,16 @@ using namespace Js;
         auto* library = scriptContext->GetLibrary();
         auto* generatorFunction = VarTo<JavascriptGeneratorFunction>(function);
 
-        DynamicObject* prototype = VarTo<DynamicObject>(JavascriptOperators::GetPropertyNoCache(
-            function, Js::PropertyIds::prototype, scriptContext));
+        Var prototype = JavascriptOperators::GetPropertyNoCache(function, Js::PropertyIds::prototype, scriptContext);
+
+        // fall back to the original prototype if we have an invalid prototype object
+        DynamicObject* protoObject = VarIs<DynamicObject>(prototype) ?
+            UnsafeVarTo<DynamicObject>(prototype) : library->GetGeneratorPrototype();
 
         JavascriptGenerator* generator = library->CreateGenerator(
             args,
             generatorFunction->scriptFunction,
-            prototype);
+            protoObject);
 
         // Call a next on the generator to execute till the beginning of the body
         FunctionInfo* funcInfo = generatorFunction->scriptFunction->GetFunctionInfo();
