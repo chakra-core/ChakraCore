@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -170,6 +171,18 @@ Var JavascriptGenerator::CallGenerator(Var data, ResumeYieldKind resumeKind)
     ScriptContext* scriptContext = this->GetScriptContext();
     JavascriptLibrary* library = scriptContext->GetLibrary();
     Var result = nullptr;
+
+    if (this->frame)
+    {
+        // if the function already has a state it may be going to resume in the jit
+        // if so copy any innerScopes into registers jit can access
+        uint32 innerScopeCount = this->scriptFunction->GetFunctionBody()->GetInnerScopeCount();
+        for (uint32 i = 0; i < innerScopeCount; ++i)
+        {
+            Js::RegSlot reg = this->scriptFunction->GetFunctionBody()->GetFirstInnerScopeRegister() + i;
+            this->frame->SetNonVarReg(reg, this->frame->InnerScopeFromIndex(i));
+        }
+    }
 
     SetResumeYieldProperties(data, resumeKind);
 
