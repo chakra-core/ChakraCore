@@ -4,7 +4,7 @@
 [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 [![PR's Welcome](https://img.shields.io/badge/PRs%20-welcome-brightgreen.svg)](#contribute)
 
-ChakraCore is a Javascript engine with a C API you can use to add support for Javascript to any C or C compatible project. It can be compiled for x64 processors on Linux macOS and Windows. And x86 and ARM for windows only. It is a future goal to support x86 and ARM processors on Linux and ARM on macOS. 
+ChakraCore is a JavaScript engine with a C API you can use to add support for JavaScript to any C or C compatible project. It can be compiled for x64 processors on Linux macOS and Windows. And x86 and ARM for Windows only. It is a future goal to support x86 and ARM processors on Linux and ARM on macOS. 
 
 ## Future of ChakraCore
 
@@ -16,13 +16,13 @@ ChakraCore is planned to continue as a community project targeted primarily at e
 
 Also see discussion in issue [#6384](https://github.com/microsoft/ChakraCore/issues/6384)
 
-If you'd like to contact the community team please either open an issue or join the discord chat linked above.
+If you'd like to contact the community team please either open an issue or join the Discord chat linked above.
 
 ## Security
 
 If you believe you have found a security issue in ChakraCore 1.11, please share it with Microsoft privately following the guidance at the Microsoft [Security TechCenter](https://technet.microsoft.com/en-us/security/ff852094). Reporting it via this channel helps minimize risk to projects built with ChakraCore.
 
-If you find a security issue in the Master branch of Chakracore but not in 1.11 please join our discord server and private message one of the Core team members.
+If you find a security issue in the Master branch of Chakracore but not in 1.11 please join our Discord server and private message one of the Core team members.
 
 ## Documentation
 
@@ -53,10 +53,10 @@ Once built, you have a few options for how you can use ChakraCore:
 
 * The most basic is to test the engine is running correctly with the application *ch.exe* (ch on linux or macOS).  This app is a lightweight host of ChakraCore that you can use to run small applications.  After building, you can find this binary in:
   * Windows: `Build\VcBuild\bin\${platform}_${configuration}` (e.g. `Build\VcBuild\bin\x64_debug`)
-  * Mac/Linux: `buildFolder/config/ch` (e.g. `out/Release/ch`)
+  * macOS/Linux: `buildFolder/config/ch` (e.g. `out/Release/ch`)
 * You can [embed ChakraCore](https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore) in your applications - see [documentation](https://github.com/chakra-core/ChakraCore/wiki/Embedding-ChakraCore) and [samples](https://aka.ms/chakracoresamples).
 
-_A note about using ChakraCore_: ChakraCore is a JavaScript engine, it does not include the external APIs that are provided by a Web Browser or nodejs.  For example, DOM APIs like ```document.write()``` are additional APIs that are not provided by ChakraCore, when embedding ChakraCore in an application you will need to implement your own input and output APIs.  For debugging, in `ch` you can use ```print()``` to put text to the terminal.
+_A note about using ChakraCore_: ChakraCore is a JavaScript engine, it does not include the external APIs that are provided by a Web Browser or Node.js.  For example, DOM APIs like ```document.write()``` are additional APIs that are not provided by ChakraCore, when embedding ChakraCore in an application you will need to implement your own input and output APIs. For debugging, in `ch` you can use ```print()``` to put text to the terminal.
 
 Alternatively, if you are using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager you can download and install ChakraCore with CMake integration in a single command:
 * vcpkg install chakracore
