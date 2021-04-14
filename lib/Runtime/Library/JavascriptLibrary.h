@@ -629,6 +629,9 @@ namespace Js
         DynamicObject* GetWebAssemblyLinkErrorPrototype() const { return webAssemblyLinkErrorPrototype; }
         DynamicObject* GetWebAssemblyLinkErrorConstructor() const { return webAssemblyLinkErrorConstructor; }
 
+        DynamicObject* GetAsyncGeneratorPrototype() const { return asyncGeneratorPrototype; }
+        DynamicObject* GetGeneratorPrototype() const { return generatorPrototype; }
+
         DynamicObject* GetChakraLib() const { return chakraLibraryObject; }
 
 #if ENABLE_TTD
