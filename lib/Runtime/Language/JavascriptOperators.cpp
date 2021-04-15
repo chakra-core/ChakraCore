@@ -7497,8 +7497,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 DynamicType* newType = nullptr;
                 if (nonSimpleParamList)
                 {
-                    bool skipLetAttrForArguments = ((JavascriptGeneratorFunction::IsBaseGeneratorFunction(funcCallee) || VarIs<JavascriptAsyncFunction>(funcCallee)) ?
-                        VarTo<JavascriptGeneratorFunction>(funcCallee)->GetGeneratorVirtualScriptFunction()->GetFunctionBody()->HasReferenceableBuiltInArguments()
+                    bool skipLetAttrForArguments = ( VarIs<JavascriptGeneratorFunction>(funcCallee) ?
+                        UnsafeVarTo<JavascriptGeneratorFunction>(funcCallee)->GetGeneratorVirtualScriptFunction()->GetFunctionBody()->HasReferenceableBuiltInArguments()
                         : funcCallee->GetFunctionBody()->HasReferenceableBuiltInArguments());
 
                     if (skipLetAttrForArguments)
