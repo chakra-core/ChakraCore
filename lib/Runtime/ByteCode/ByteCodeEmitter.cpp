@@ -1792,7 +1792,7 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo* funcInfo, Js::FunctionBody* 
         }
     }
 
-    // NOTE: The FB expects the yield reg to be the final non-temp.
+    // NOTE: The FunctionBody expects the yield reg to be the final non-temp.
     if (byteCodeFunction->IsCoroutine())
     {
         if (funcInfo->root->IsAsync())
