@@ -3,9 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "Library/JSONStack.h"
-#include "Library/JSONParser.h"
-#include "Library/JSON.h"
+#include "Library/JSON/JSONStack.h"
+#include "Library/JSON/JSONParser.h"
+#include "Library/JSON/JSON.h"
 
 using namespace Js;
 

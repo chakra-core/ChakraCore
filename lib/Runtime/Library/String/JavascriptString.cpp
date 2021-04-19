@@ -3230,7 +3230,7 @@ case_2:
                                                                                                 \
             return StringBracketHelper(args, scriptContext, __VA_ARGS__);                       \
         }
-#include "JavascriptStringTagEntries.h"
+#include "Library/String/JavascriptStringTagEntries.h"
 #undef TAGENTRY
 
     Var JavascriptString::StringBracketHelper(Arguments args, ScriptContext *scriptContext, __in_ecount(cchTag) char16 const *pszTag,

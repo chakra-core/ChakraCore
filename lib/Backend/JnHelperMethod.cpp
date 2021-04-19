@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -7,13 +8,13 @@
 // Parser includes
 #include "RegexCommon.h"
 
-#include "Library/RegexHelper.h"
+#include "Library/Regex/RegexHelper.h"
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/DiagHelperMethodWrapper.h"
 #endif
 #include "Math/CrtSSE2Math.h"
-#include "Library/JavascriptGeneratorFunction.h"
+#include "Library/Generators/JavascriptGeneratorFunction.h"
 #include "RuntimeMathPch.h"
 
 namespace IR

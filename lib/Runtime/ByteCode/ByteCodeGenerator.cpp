@@ -5,7 +5,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
 #include "FormalsUtil.h"
-#include "Library/StackScriptFunction.h"
+#include "Library/Functions/StackScriptFunction.h"
 
 #if DBG
 #include "pnodewalk.h"

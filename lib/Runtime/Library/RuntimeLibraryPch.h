@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -12,7 +13,7 @@
 #include "Base/EtwTrace.h"
 
 #include "Library/JavascriptNumberObject.h"
-#include "Library/JavascriptStringObject.h"
+#include "Library/String/JavascriptStringObject.h"
 #include "Library/JavascriptBooleanObject.h"
 #include "Library/JavascriptBigIntObject.h"
 
@@ -21,25 +22,25 @@
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
 
-#include "Library/LazyJSONString.h"
-#include "Library/JSONStringBuilder.h"
-#include "Library/JSONStringifier.h"
-#include "Library/ProfileString.h"
-#include "Library/SingleCharString.h"
-#include "Library/SubString.h"
-#include "Library/BufferStringBuilder.h"
+#include "Library/JSON/LazyJSONString.h"
+#include "Library/JSON/JSONStringBuilder.h"
+#include "Library/JSON/JSONStringifier.h"
+#include "Library/String/ProfileString.h"
+#include "Library/String/SingleCharString.h"
+#include "Library/String/SubString.h"
+#include "Library/String/BufferStringBuilder.h"
 
-#include "Library/BoundFunction.h"
-#include "Library/JavascriptGeneratorFunction.h"
-#include "Library/JavascriptAsyncFunction.h"
-#include "Library/JavascriptAsyncGeneratorFunction.h"
+#include "Library/Functions/BoundFunction.h"
+#include "Library/Generators/JavascriptGeneratorFunction.h"
+#include "Library/Generators/JavascriptAsyncFunction.h"
+#include "Library/Generators/JavascriptAsyncGeneratorFunction.h"
 
-#include "Library/RegexHelper.h"
-#include "Library/JavascriptRegularExpression.h"
-#include "Library/JavascriptRegExpConstructor.h"
-#include "Library/JavascriptRegularExpressionResult.h"
+#include "Library/Regex/RegexHelper.h"
+#include "Library/Regex/JavascriptRegularExpression.h"
+#include "Library/Regex/JavascriptRegExpConstructor.h"
+#include "Library/Regex/JavascriptRegularExpressionResult.h"
 
-#include "Library/JavascriptAsyncFromSyncIterator.h"
+#include "Library/Iterators/JavascriptAsyncFromSyncIterator.h"
 #include "Library/JavascriptPromise.h"
 #include "Library/JavascriptSymbolObject.h"
 #ifdef _CHAKRACOREBUILD
@@ -47,8 +48,8 @@
 #endif
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptReflect.h"
-#include "Library/JavascriptGenerator.h"
-#include "Library/JavascriptAsyncGenerator.h"
+#include "Library/Generators/JavascriptGenerator.h"
+#include "Library/Generators/JavascriptAsyncGenerator.h"
 
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"
@@ -62,24 +63,24 @@
 #include "Types/DictionaryPropertyDescriptor.h"
 #include "Types/DictionaryTypeHandler.h"
 #include "Types/ES5ArrayTypeHandler.h"
-#include "Library/ES5Array.h"
+#include "Library/Array/ES5Array.h"
 
-#include "Library/JavascriptArrayIndexEnumeratorBase.h"
-#include "Library/JavascriptArrayIndexEnumerator.h"
-#include "Library/JavascriptArrayIndexSnapshotEnumerator.h"
-#include "Library/JavascriptArrayIndexStaticEnumerator.h"
-#include "Library/ES5ArrayIndexEnumerator.h"
-#include "Library/ES5ArrayIndexStaticEnumerator.h"
-#include "Library/TypedArrayIndexEnumerator.h"
-#include "Library/JavascriptStringEnumerator.h"
-#include "Library/JavascriptRegExpEnumerator.h"
+#include "Library/Array/JavascriptArrayIndexEnumeratorBase.h"
+#include "Library/Array/JavascriptArrayIndexEnumerator.h"
+#include "Library/Array/JavascriptArrayIndexSnapshotEnumerator.h"
+#include "Library/Array/JavascriptArrayIndexStaticEnumerator.h"
+#include "Library/Array/ES5ArrayIndexEnumerator.h"
+#include "Library/Array/ES5ArrayIndexStaticEnumerator.h"
+#include "Library/Array/TypedArrayIndexEnumerator.h"
+#include "Library/String/JavascriptStringEnumerator.h"
+#include "Library/Regex/JavascriptRegExpEnumerator.h"
 
-#include "Library/JavascriptIterator.h"
-#include "Library/JavascriptArrayIterator.h"
-#include "Library/JavascriptMapIterator.h"
-#include "Library/JavascriptSetIterator.h"
-#include "Library/JavascriptStringIterator.h"
-#include "Library/JavascriptListIterator.h"
+#include "Library/Iterators/JavascriptIterator.h"
+#include "Library/Iterators/JavascriptArrayIterator.h"
+#include "Library/Iterators/JavascriptMapIterator.h"
+#include "Library/Iterators/JavascriptSetIterator.h"
+#include "Library/String/JavascriptStringIterator.h"
+#include "Library/Iterators/JavascriptListIterator.h"
 
 #include "Library/UriHelper.h"
 #include "Library/HostObjectBase.h"
@@ -88,18 +89,18 @@
 #include "Library/JavascriptDate.h"
 
 #include "Library/ModuleRoot.h"
-#include "Library/ArgumentsObject.h"
+#include "Library/Functions/ArgumentsObject.h"
 // SIMD
 #include "Language/SimdOps.h"
 
-#include "Library/WebAssemblyInstance.h"
+#include "Library/WASM/WebAssemblyInstance.h"
 
 #include "Language/JavascriptStackWalker.h"
 #include "Language/CacheOperators.h"
 #include "Types/TypePropertyCache.h"
 // .inl files
-#include "Library/JavascriptString.inl"
-#include "Library/ConcatString.inl"
+#include "Library/String/JavascriptString.inl"
+#include "Library/String/ConcatString.inl"
 #include "Language/CacheOperators.inl"
 
 #endif // !IsJsDiag

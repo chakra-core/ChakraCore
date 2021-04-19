@@ -4,122 +4,133 @@ endif()
 
 if(CC_TARGETS_AMD64)
     set(Wasm_dep
-    WasmLibrary.cpp
-    WebAssembly.cpp
-    WebAssemblyEnvironment.cpp
-    WebAssemblyInstance.cpp
-    WebAssemblyMemory.cpp
-    WebAssemblyModule.cpp
-    WebAssemblyTable.cpp
-    WabtInterface.cpp
+    WASM/WabtInterface.cpp
+    WASM/WasmLibrary.cpp
+    WASM/WebAssembly.cpp
+    WASM/WebAssemblyEnvironment.cpp
+    WASM/WebAssemblyInstance.cpp
+    WASM/WebAssemblyMemory.cpp
+    WASM/WebAssemblyModule.cpp
+    WASM/WebAssemblyTable.cpp
     )
 endif()
 
 if(CAN_BUILD_WABT)
     include_directories(
     ../../wabt/chakra
+    ./WASM
     )
 endif()
 
+include_directories(
+./Array
+./Functions
+./Generators
+./Iterators
+./JSON
+./Regex
+./String
+)
+
 set(CRLIB_SOURCE_CODES
-    ArgumentsObject.cpp
-    ArgumentsObjectEnumerator.cpp
-    DelayFreeArrayBufferHelper.cpp
     ArrayBuffer.cpp
-    AtomicsOperations.cpp
+    Array/ES5Array.cpp
+    Array/ES5ArrayIndexEnumerator.cpp
+    Array/JavascriptArray.cpp
+    Array/JavascriptArrayIndexEnumerator.cpp
+    Array/JavascriptArrayIndexEnumeratorBase.cpp
+    Array/JavascriptArrayIndexSnapshotEnumerator.cpp
+    Array/SparseArraySegment.cpp
+    Array/TypedArray.cpp
+    Array/TypedArrayIndexEnumerator.cpp
     AtomicsObject.cpp
-    BoundFunction.cpp
-    BufferStringBuilder.cpp
+    AtomicsOperations.cpp
     CommonExternalApiImpl.cpp
-    CompoundString.cpp
-    ConcatString.cpp
     CustomExternalWrapperObject.cpp
     DataView.cpp
     DateImplementation.cpp
-    ES5Array.cpp
-    ES5ArrayIndexEnumerator.cpp
+    DelayFreeArrayBufferHelper.cpp
     EngineInterfaceObject.cpp
     ExternalLibraryBase.cpp
     ForInObjectEnumerator.cpp
+    Functions/ArgumentsObject.cpp
+    Functions/ArgumentsObjectEnumerator.cpp
+    Functions/BoundFunction.cpp
+    Functions/JavascriptBuiltInFunctions.cpp
+    Functions/JavascriptExternalFunction.cpp
+    Functions/JavascriptFunction.cpp
+    Functions/RuntimeFunction.cpp
+    Functions/ScriptFunction.cpp
+    Functions/StackScriptFunction.cpp
+    Generators/JavascriptAsyncFunction.cpp
+    Generators/JavascriptAsyncGenerator.cpp
+    Generators/JavascriptAsyncGeneratorFunction.cpp
+    Generators/JavascriptGenerator.cpp
+    Generators/JavascriptGeneratorFunction.cpp
     GlobalObject.cpp
     IntlEngineInterfaceExtensionObject.cpp
-    JSON.cpp
-    JSONParser.cpp
-    JSONScanner.cpp
-    JSONStack.cpp
-    JSONStringBuilder.cpp
-    JSONStringifier.cpp
-    JavascriptArray.cpp
-    JavascriptArrayIndexEnumerator.cpp
-    JavascriptArrayIndexEnumeratorBase.cpp
-    JavascriptArrayIndexSnapshotEnumerator.cpp
-    JavascriptArrayIterator.cpp
-    JavascriptAsyncFromSyncIterator.cpp
-    JavascriptAsyncFunction.cpp
-    JavascriptAsyncGenerator.cpp
-    JavascriptAsyncGeneratorFunction.cpp
+    Iterators/CustomExternalIterator.cpp
+    Iterators/JavascriptArrayIterator.cpp
+    Iterators/JavascriptAsyncFromSyncIterator.cpp
+    Iterators/JavascriptIterator.cpp
+    Iterators/JavascriptListIterator.cpp
+    Iterators/JavascriptMapIterator.cpp
+    Iterators/JavascriptSetIterator.cpp
+    JSON/JSON.cpp
+    JSON/JSONParser.cpp
+    JSON/JSONScanner.cpp
+    JSON/JSONStack.cpp
+    JSON/JSONStringBuilder.cpp
+    JSON/JSONStringifier.cpp
+    JSON/LazyJSONString.cpp
+    JavascriptBigInt.cpp
+    JavascriptBigIntObject.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
-    JavascriptBuiltInFunctions.cpp
     JavascriptDate.cpp
     JavascriptError.cpp
-    # JavascriptErrorDebug.cpp
     JavascriptExceptionMetadata.cpp
-    JavascriptExternalFunction.cpp
-    JavascriptFunction.cpp
-    JavascriptGenerator.cpp
-    JavascriptGeneratorFunction.cpp
-    JavascriptIterator.cpp
     JavascriptLibrary.cpp
-    JavascriptListIterator.cpp
     JavascriptMap.cpp
-    JavascriptMapIterator.cpp
     JavascriptNumber.cpp
     JavascriptNumberObject.cpp
     JavascriptObject.cpp
     JavascriptPromise.cpp
     JavascriptProxy.cpp
     JavascriptReflect.cpp
-    JavascriptRegExpConstructor.cpp
-    JavascriptRegExpEnumerator.cpp
-    JavascriptRegularExpression.cpp
-    JavascriptRegularExpressionResult.cpp
     JavascriptSet.cpp
-    JavascriptSetIterator.cpp
-    JavascriptString.cpp
-    JavascriptStringEnumerator.cpp
-    JavascriptStringIterator.cpp
-    JavascriptStringObject.cpp
-    JavascriptBigInt.cpp
-    JavascriptBigIntObject.cpp
     JavascriptSymbol.cpp
     JavascriptSymbolObject.cpp
     JavascriptTypedNumber.cpp
     JavascriptWeakMap.cpp
     JavascriptWeakSet.cpp
     JsBuiltInEngineInterfaceExtensionObject.cpp
-    LazyJSONString.cpp
-    LiteralString.cpp
     MathLibrary.cpp
     ModuleRoot.cpp
     ObjectPrototypeObject.cpp
-    ProfileString.cpp
     PropertyRecordUsageCache.cpp
-    PropertyString.cpp
-    RegexHelper.cpp
+    Regex/JavascriptRegExpConstructor.cpp
+    Regex/JavascriptRegExpEnumerator.cpp
+    Regex/JavascriptRegularExpression.cpp
+    Regex/JavascriptRegularExpressionResult.cpp
+    Regex/RegexHelper.cpp
     RootObjectBase.cpp
-    RuntimeFunction.cpp
     RuntimeLibraryPch.cpp
-    ScriptFunction.cpp
     SharedArrayBuffer.cpp
-    SingleCharString.cpp
-    SparseArraySegment.cpp
-    StackScriptFunction.cpp
-    StringCopyInfo.cpp
-    SubString.cpp
+    String/BufferStringBuilder.cpp
+    String/CompoundString.cpp
+    String/ConcatString.cpp
+    String/JavascriptString.cpp
+    String/JavascriptStringEnumerator.cpp
+    String/JavascriptStringIterator.cpp
+    String/JavascriptStringObject.cpp
+    String/LiteralString.cpp
+    String/ProfileString.cpp
+    String/PropertyString.cpp
+    String/SingleCharString.cpp
+    String/StringCopyInfo.cpp
+    String/SubString.cpp
     ThrowErrorObject.cpp
-    TypedArray.cpp
-    TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
     VerifyMarkFalseReference.cpp
     ${Wasm_dep}

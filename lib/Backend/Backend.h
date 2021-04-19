@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -20,15 +21,15 @@
 #include "Language/JavascriptMathOperators.inl"
 #include "Language/JavascriptStackWalker.h"
 #include "Language/CodeGenRecyclableData.h"
-#include "Library/JavascriptGenerator.h"
-#include "Library/JavascriptRegularExpression.h"
-#include "Library/StackScriptFunction.h"
+#include "Library/Generators/JavascriptGenerator.h"
+#include "Library/Regex/JavascriptRegularExpression.h"
+#include "Library/Functions/StackScriptFunction.h"
 #include "Library/JavascriptProxy.h"
-#include "Library/JavascriptGeneratorFunction.h"
+#include "Library/Generators/JavascriptGeneratorFunction.h"
 
 #include "Language/InterpreterStackFrame.h"
 
-#include "Library/StackScriptFunction.h"
+#include "Library/Functions/StackScriptFunction.h"
 
 // SIMD
 #include "Language/SimdOps.h"

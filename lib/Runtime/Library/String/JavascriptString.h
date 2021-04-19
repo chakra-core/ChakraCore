@@ -257,7 +257,7 @@ namespace Js
 #undef TAGENTRY
 #endif
 #define TAGENTRY(name, ...) static FunctionInfo name;
-#include "JavascriptStringTagEntries.h"
+#include "Library/String/JavascriptStringTagEntries.h"
 #undef TAGENTRY
             static FunctionInfo ValueOf;
             static FunctionInfo SymbolIterator;

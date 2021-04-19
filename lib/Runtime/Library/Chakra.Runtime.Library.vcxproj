@@ -33,6 +33,13 @@
         $(MSBuildThisFileDirectory)..\..\wabt\chakra;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
+        $(MSBuildThisFileDirectory)Array;
+        $(MSBuildThisFileDirectory)Functions;
+        $(MSBuildThisFileDirectory)Iterators;
+        $(MSBuildThisFileDirectory)JSON;
+        $(MSBuildThisFileDirectory)Regex;
+        $(MSBuildThisFileDirectory)String;
+        $(MSBuildThisFileDirectory)WASM;
         $(ChakraJITIDLIntDir);
         $(MSBuildThisFileDirectory)..\Math;
         $(ChakraManifestsIncludeDirectory);
@@ -46,115 +53,115 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)DelayFreeArrayBufferHelper.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\ES5Array.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\ES5ArrayIndexEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\JavascriptArray.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\JavascriptArrayIndexEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\JavascriptArrayIndexEnumeratorBase.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\JavascriptArrayIndexSnapshotEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\SparseArraySegment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\TypedArray.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Array\TypedArrayIndexEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsOperations.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonExternalApiImpl.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CompoundString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalWrapperObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DataView.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)EngineInterfaceObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFromSyncIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGenerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptAsyncGeneratorFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptGenerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptGeneratorFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptMap.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptMapIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptPromise.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptProxy.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptReflect.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptRegExpEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSet.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSetIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptStringIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSymbol.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSymbolObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptWeakMap.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptWeakSet.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptTypedNumber.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JSONParser.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JSONScanner.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ProfileString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)RootObjectBase.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ScriptFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SingleCharString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)StackScriptFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)StringCopyInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ThrowErrorObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)TypedArray.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)TypedArrayIndexEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ArgumentsObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ArgumentsObjectEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ConcatString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DateImplementation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DelayFreeArrayBufferHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)EngineInterfaceObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ForInObjectEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\ArgumentsObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\ArgumentsObjectEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\BoundFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\JavascriptBuiltInFunctions.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\JavascriptExternalFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\JavascriptFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\RuntimeFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\ScriptFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\StackScriptFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Generators\JavascriptAsyncFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Generators\JavascriptAsyncGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Generators\JavascriptAsyncGeneratorFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Generators\JavascriptGenerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Generators\JavascriptGeneratorFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)GlobalObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ES5Array.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ES5ArrayIndexEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArray.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumeratorBase.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIndexSnapshotEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\CustomExternalIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\JavascriptArrayIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\JavascriptAsyncFromSyncIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\JavascriptIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\JavascriptListIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\JavascriptMapIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Iterators\JavascriptSetIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\JSON.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\JSONParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\JSONScanner.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\JSONStack.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\JSONStringBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\JSONStringifier.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JSON\LazyJSONString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBoolean.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBooleanObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptDate.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptError.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptFunction.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptLibrary.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptMap.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNumber.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNumberObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptRegExpConstructor.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptRegularExpression.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptRegularExpressionResult.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptStringEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStack.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JSON.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)LiteralString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptStringObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptPromise.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptProxy.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptReflect.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSet.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSymbol.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptSymbolObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptTypedNumber.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptWeakMap.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptWeakSet.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MathLibrary.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleRoot.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ObjectPrototypeObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)PropertyString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)RegexHelper.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SparseArraySegment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Regex\JavascriptRegExpConstructor.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Regex\JavascriptRegExpEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Regex\JavascriptRegularExpression.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Regex\JavascriptRegularExpressionResult.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Regex\RegexHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)RootObjectBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeLibraryPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)SubString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)IntlEngineInterfaceExtensionObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JsBuiltInEngineInterfaceExtensionObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WasmLibrary.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptListIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SharedArrayBuffer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssembly.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyInstance.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyMemory.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalIterator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\BufferStringBuilder.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\CompoundString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\ConcatString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\JavascriptString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\JavascriptStringEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\JavascriptStringIterator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\JavascriptStringObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\LiteralString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\ProfileString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\PropertyString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\SingleCharString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\StringCopyInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)String\SubString.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ThrowErrorObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UriHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)VerifyMarkFalseReference.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)AtomicsOperations.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalWrapperObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WabtInterface.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WasmLibrary.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WebAssembly.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WebAssemblyEnvironment.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WebAssemblyInstance.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WebAssemblyMemory.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WebAssemblyModule.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WASM\WebAssemblyTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DetachedStateBase.h" />

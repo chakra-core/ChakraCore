@@ -5,7 +5,7 @@
 #include "RuntimeLibraryPch.h"
 #include "Language/JavascriptFunctionArgIndex.h"
 #include "Language/InterpreterStackFrame.h"
-#include "Library/StackScriptFunction.h"
+#include "Library/Functions/StackScriptFunction.h"
 
 namespace Js
 {

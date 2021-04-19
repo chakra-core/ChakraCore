@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -25,5 +26,5 @@
 #include "ByteCode/FuncInfo.h"
 #include "ByteCode/ScopeInfo.h"
 
-#include "Library/JavascriptFunction.h"
+#include "Library/Functions/JavascriptFunction.h"
 #include "Language/JavascriptStackWalker.h"

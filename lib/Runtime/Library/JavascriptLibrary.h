@@ -13,9 +13,9 @@
 #define PreInitializedObjectTypeCount ((MaxPreInitializedObjectTypeInlineSlotCount / InlineSlotCountIncrement) + 1)
 CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
-#include "StringCache.h"
-#include "Library/JavascriptGenerator.h"
-#include "Library/JavascriptAsyncGenerator.h"
+#include "Library/String/StringCache.h"
+#include "Library/Generators/JavascriptGenerator.h"
+#include "Library/Generators/JavascriptAsyncGenerator.h"
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
@@ -605,7 +605,7 @@ namespace Js
 
 #define STRING(name, str) JavascriptString* Get##name##String() { return stringCache.Get##name(); }
 #define PROPERTY_STRING(name, str) STRING(name, str)
-#include "StringCacheList.h"
+#include "Library/String/StringCacheList.h"
 #undef PROPERTY_STRING
 #undef STRING
 

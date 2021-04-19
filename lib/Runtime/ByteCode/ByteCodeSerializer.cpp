@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
 // Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -8,7 +8,7 @@
 
 #include "RegexCommon.h"
 #include "RegexPattern.h"
-#include "Library/RegexHelper.h"
+#include "Library/Regex/RegexHelper.h"
 
 #include "DataStructures/Option.h"
 #include "DataStructures/ImmutableList.h"
@@ -17,7 +17,7 @@
 #include "ByteCode/ByteCodeSerializer.h"
 
 #include "Language/AsmJsModule.h"
-#include "Library/ES5Array.h"
+#include "Library/Array/ES5Array.h"
 
 void ChakraBinaryBuildDateTimeHash(DWORD * buildDateHash, DWORD * buildTimeHash);
 

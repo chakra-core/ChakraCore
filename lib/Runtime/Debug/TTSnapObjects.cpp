@@ -4,7 +4,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
-#include "Library/JavascriptGenerator.h"
+#include "Library/Generators/JavascriptGenerator.h"
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptPromise.h"
 

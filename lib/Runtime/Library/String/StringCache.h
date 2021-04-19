@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -18,7 +19,7 @@ public:
 // NOTE: the trailing comma is important!
 #define STRING(name, str) __##name(nullptr),
 #define PROPERTY_STRING(name, str) STRING(name, str)
-#include "StringCacheList.h"
+#include "Library/String/StringCacheList.h"
 #undef PROPERTY_STRING
 #undef STRING
         scriptContext(nullptr),
@@ -52,7 +53,7 @@ public:                                                   \
     }
 #define STRING(name, str) INITIALIZE(name, str, false)
 #define PROPERTY_STRING(name, str) INITIALIZE(name, str, true)
-#include "StringCacheList.h"
+#include "Library/String/StringCacheList.h"
 #undef PROPERTY_STRING
 #undef STRING
 #undef INITIALIZE
