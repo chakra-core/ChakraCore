@@ -5135,13 +5135,13 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
 
         if (unrestorableSymbols.TestAndClear(value->m_id))
         {
-            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
+            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Value()))
             {
                 BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, value->m_id /* toBackendId */);
                 bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
             }
         }
-        else if (unrestorableSymbols.TestAndClear(key->m_id))
+        if (unrestorableSymbols.TestAndClear(key->m_id))
         {
             if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
             {
