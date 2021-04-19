@@ -3339,7 +3339,7 @@ LinearScan::KillImplicitRegs(IR::Instr *instr)
         return;
     }
 
-    if (instr->m_opcode == Js::OpCode::Yield)
+    if (instr->m_opcode == Js::OpCode::GeneratorBailInLabel)
     {
         this->bailIn.SpillRegsForBailIn();
         return;
@@ -5041,6 +5041,7 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr*
     // - We don't need to restore argObjSyms because StackArgs is currently not enabled
     //   Commented out here in case we do want to enable it in the future:
     // this->InsertRestoreSymbols(bailOutInfo->capturedValues->argObjSyms, insertionPoint, saveInitializedReg);
+    Assert(!this->func->IsStackArgsEnabled());
     // 
     // - We move all argout symbols right before the call so we don't need to restore argouts either
 
@@ -5050,13 +5051,7 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr*
         bailInInstr->capturedValues
     );
 
-    this->InsertRestoreSymbols(
-        *bailOutInfo->byteCodeUpwardExposedUsed,
-        bailInInstr->upwardExposedUses,
-        bailInInstr->capturedValues,
-        insertionPoint
-    );
-    Assert(!this->func->IsStackArgsEnabled());
+    this->InsertRestoreSymbols(insertionPoint);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (PHASE_TRACE(Js::Phase::BailInPhase, this->func))
@@ -5201,12 +5196,7 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
     AssertOrFailFastMsg(unrestorableSymbols.IsEmpty(), "There are unrestorable backend-only symbols across yield points");
 }
 
-void LinearScan::GeneratorBailIn::InsertRestoreSymbols(
-    const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
-    const BVSparse<JitArenaAllocator>& upwardExposedUses,
-    const CapturedValues& capturedValues,
-    BailInInsertionPoint& insertionPoint
-)
+void LinearScan::GeneratorBailIn::InsertRestoreSymbols(BailInInsertionPoint& insertionPoint)
 {
     FOREACH_SLISTBASE_ENTRY(BailInSymbol, bailInSymbol, this->bailInSymbols)
     {

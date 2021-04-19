@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -296,12 +297,7 @@ private:
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
         // Insert instructions to restore symbols in the `bailInSymbols` list
-        void InsertRestoreSymbols(
-            const BVSparse<JitArenaAllocator>& bytecodeUpwardExposedUses,
-            const BVSparse<JitArenaAllocator>& upwardExposedUses,
-            const CapturedValues& capturedValues,
-            BailInInsertionPoint& insertionPoint
-        );
+        void InsertRestoreSymbols(BailInInsertionPoint& insertionPoint);
 
         // Fill `bailInSymbols` list with all of the symbols that need to be restored
         void BuildBailInSymbolList(
