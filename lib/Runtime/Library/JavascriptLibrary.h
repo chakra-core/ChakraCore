@@ -14,8 +14,8 @@
 CompileAssert(MaxPreInitializedObjectTypeInlineSlotCount <= USHRT_MAX);
 
 #include "StringCache.h"
-#include "Library/JavascriptGenerator.h"
-#include "Library/JavascriptAsyncGenerator.h"
+#include "Library/Generators/JavascriptGenerator.h"
+#include "Library/Generators/JavascriptAsyncGenerator.h"
 
 class ScriptSite;
 class ActiveScriptExternalLibrary;
