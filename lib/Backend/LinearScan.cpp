@@ -5185,8 +5185,6 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
         Assert(stackSym);
         Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
         if (
-            // Special backend symbols that don't need to be restored
-            (!stackSym->HasByteCodeRegSlot() && !this->NeedsReloadingBackendSymWhenBailingIn(stackSym)) ||
             // Symbols already in the constant table don't need to be restored either
             stackSym->IsFromByteCodeConstantTable() ||
             // Symbols having no lifetimes
@@ -5298,18 +5296,6 @@ void LinearScan::GeneratorBailIn::InsertRestoreSymbols(
     NEXT_SLISTBASE_ENTRY;
 }
 
-bool LinearScan::GeneratorBailIn::NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const
-{
-    // for-in enumerator in generator is loaded as part of the resume jump table.
-    // By the same reasoning as `initializedRegs`'s, we don't have to restore this whether or not it's been spilled.
-    if (this->func->GetGeneratorFrameSym() && this->func->GetGeneratorFrameSym()->m_id == sym->m_id)
-    {
-        return false;
-    }
-
-    return true;
-}
-
 bool LinearScan::GeneratorBailIn::NeedsReloadingSymWhenBailingIn(StackSym* sym) const
 {
     if (sym->IsFromByteCodeConstantTable())
@@ -5325,7 +5311,7 @@ bool LinearScan::GeneratorBailIn::NeedsReloadingSymWhenBailingIn(StackSym* sym) 
 
     if (!sym->HasByteCodeRegSlot())
     {
-        return this->NeedsReloadingBackendSymWhenBailingIn(sym);
+        return true;
     }
 
     if (sym->IsConst())

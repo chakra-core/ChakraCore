@@ -290,7 +290,6 @@ private:
         IR::RegOpnd* const interpreterFrameRegOpnd;
         IR::RegOpnd* const tempRegOpnd;
 
-        bool NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const;
         bool NeedsReloadingSymWhenBailingIn(StackSym* sym) const;
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;

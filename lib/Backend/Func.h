@@ -1064,22 +1064,10 @@ private:
     StackSym* m_loopParamSym;
     StackSym* m_bailoutReturnValueSym;
     StackSym* m_hasBailedOutSym;
-    StackSym* m_generatorFrameSym;
 
 public:
     StackSym* tempSymDouble;
     StackSym* tempSymBool;
-
-    void SetGeneratorFrameSym(StackSym* sym)
-    {
-        Assert(this->m_generatorFrameSym == nullptr);
-        this->m_generatorFrameSym = sym;
-    }
-
-    StackSym* GetGeneratorFrameSym() const
-    {
-        return this->m_generatorFrameSym;
-    }
 
     // StackSyms' corresponding getters/setters
     void SetInlineeFrameStartSym(StackSym* sym)
