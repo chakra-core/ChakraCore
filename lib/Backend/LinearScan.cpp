@@ -3339,7 +3339,7 @@ LinearScan::KillImplicitRegs(IR::Instr *instr)
         return;
     }
 
-    if (instr->m_opcode == Js::OpCode::Yield)
+    if (instr->m_opcode == Js::OpCode::GeneratorBailInLabel)
     {
         this->bailIn.SpillRegsForBailIn();
         return;
