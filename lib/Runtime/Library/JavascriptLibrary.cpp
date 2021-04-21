@@ -331,6 +331,7 @@ namespace Js
         INIT_ERROR_PROTO(syntaxErrorPrototype, InitializeSyntaxErrorPrototype);
         INIT_ERROR_PROTO(typeErrorPrototype, InitializeTypeErrorPrototype);
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
+        INIT_ERROR_PROTO(aggregateErrorPrototype, InitializeAggregateErrorPrototype);
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -566,6 +567,7 @@ namespace Js
         INIT_SIMPLE_TYPE(syntaxErrorType, TypeIds_Error, syntaxErrorPrototype);
         INIT_SIMPLE_TYPE(typeErrorType, TypeIds_Error, typeErrorPrototype);
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
+        INIT_SIMPLE_TYPE(aggregateErrorType, TypeIds_Error, aggregateErrorPrototype);
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -1018,6 +1020,9 @@ namespace Js
 
         case kjstURIError:
             return GetURIErrorType();
+
+        case kjstAggregateError:
+            return GetAggregateErrorType();
 
         case kjstWebAssemblyCompileError:
             return GetWebAssemblyCompileErrorType();
@@ -1792,6 +1797,14 @@ namespace Js
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
+        if (scriptContext->GetConfig()->IsESPromiseAnyEnabled())
+        {
+            aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewAggregateErrorInstance,
+                DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
+                nativeErrorPrototype);
+            AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
+        }
+
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
@@ -2503,13 +2516,13 @@ namespace Js
         return true;
     }
 
-#define INIT_ERROR_IMPL(error, errorName) \
+#define INIT_ERROR_IMPL(error, errorName, ctorLength) \
     bool JavascriptLibrary::Initialize##error##Constructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
     { \
         typeHandler->Convert(constructor, mode, 3); \
         JavascriptLibrary* library = constructor->GetLibrary(); \
         library->AddMember(constructor, PropertyIds::prototype, library->Get##error##Prototype(), PropertyNone); \
-        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable); \
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(ctorLength), PropertyConfigurable); \
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable; \
         library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u(#errorName)), prototypeNameMessageAttributes); \
         constructor->SetHasNoEnumerableProperties(true); \
@@ -2528,16 +2541,17 @@ namespace Js
         return true; \
     }
 
-#define INIT_ERROR(error) INIT_ERROR_IMPL(error, error)
+#define INIT_ERROR(error) INIT_ERROR_IMPL(error, error, 1)
     INIT_ERROR(EvalError);
     INIT_ERROR(RangeError);
     INIT_ERROR(ReferenceError);
     INIT_ERROR(SyntaxError);
     INIT_ERROR(TypeError);
     INIT_ERROR(URIError);
-    INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError);
-    INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError);
-    INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError);
+    INIT_ERROR_IMPL(AggregateError, AggregateError, 2);
+    INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError, 1);
+    INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError, 1);
+    INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError, 1);
 
 #undef INIT_ERROR
 
@@ -2666,7 +2680,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializePromiseConstructor(DynamicObject* promiseConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(promiseConstructor, mode, 8);
+        typeHandler->Convert(promiseConstructor, mode, 9);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterPromise
         // so that the update is in sync with profiler
         JavascriptLibrary* library = promiseConstructor->GetLibrary();
@@ -2678,6 +2692,10 @@ namespace Js
 
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::all, &JavascriptPromise::EntryInfo::All, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::allSettled, &JavascriptPromise::EntryInfo::AllSettled, 1);
+        if (scriptContext->GetConfig()->IsESPromiseAnyEnabled())
+        {
+            library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::any, &JavascriptPromise::EntryInfo::Any, 1);
+        }
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::race, &JavascriptPromise::EntryInfo::Race, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::reject, &JavascriptPromise::EntryInfo::Reject, 1);
         library->AddMember(promiseConstructor, PropertyIds::resolve, library->EnsurePromiseResolveFunction(), PropertyBuiltInMethodDefaults);
@@ -6278,6 +6296,9 @@ namespace Js
         case kjstURIError:
             baseErrorType = uriErrorType;
             break;
+        case kjstAggregateError:
+            baseErrorType = aggregateErrorType;
+            break;
         case kjstWebAssemblyCompileError:
             baseErrorType = webAssemblyCompileErrorType;
             break;
@@ -6309,6 +6330,7 @@ namespace Js
     CREATE_ERROR(SyntaxError, syntaxErrorType, kjstSyntaxError);
     CREATE_ERROR(TypeError, typeErrorType, kjstTypeError);
     CREATE_ERROR(URIError, uriErrorType, kjstURIError);
+    CREATE_ERROR(AggregateError, aggregateErrorType, kjstAggregateError);
     CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
     CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
     CREATE_ERROR(WebAssemblyLinkError, webAssemblyLinkErrorType, kjstWebAssemblyLinkError);
@@ -6631,6 +6653,15 @@ namespace Js
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
+        return function;
+    }
+
+    JavascriptPromiseAnyRejectElementFunction* JavascriptLibrary::CreatePromiseAnyRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* errors, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper)
+    {
+        FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AnyRejectElementFunction;
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+        JavascriptPromiseAnyRejectElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAnyRejectElementFunction, type, functionInfo, index, errors, capabilities, remainingElements, alreadyCalledWrapper);
+        // Length should be 1 but not accessible from script.
         return function;
     }
 
@@ -7469,6 +7500,7 @@ namespace Js
         REGISTER_ERROR_OBJECT(SyntaxError);
         REGISTER_ERROR_OBJECT(TypeError);
         REGISTER_ERROR_OBJECT(URIError);
+        REGISTER_ERROR_OBJECT(AggregateError);
 
         return hr;
     }

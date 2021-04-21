@@ -53,6 +53,7 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
+            static FunctionInfo NewAggregateErrorInstance;
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
@@ -144,6 +145,11 @@ namespace Js
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);
         static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName = nullptr);
         static JavascriptError* CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse, const WCHAR * sourceUrl = nullptr);
+
+        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
+
+        static void SetErrorsList(JavascriptError* pError, SList<Var, Recycler>* errorsList, ScriptContext* scriptContext);
+        static void SetErrorsList(JavascriptError* pError, JavascriptArray* errors, ScriptContext* scriptContext);
 
     private:
 
