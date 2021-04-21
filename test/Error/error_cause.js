@@ -7,15 +7,17 @@
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 
-function makeTestsFor(ErrorConstructor) {
-    const name = ErrorConstructor.name;
+function makeTestsFor(ErrorConstructor, options) {
+    const name = options ? options.getNameOfConstructor() : ErrorConstructor.name;
+    const prototype = options ? options.getPrototypeOfConstructor() : ErrorConstructor.prototype;
+    const rawConstructor = options ? options.rawConstructor : ErrorConstructor
     const message = "Test message";
     const o = {};
     return [
         {
             name: `"cause" in ${ name }.prototype.cause === false`,
             body: function () {
-                assert.isFalse("cause" in ErrorConstructor.prototype, `Cause property must not exist in ${ name }.prototype`);
+                assert.isFalse("cause" in prototype, `Cause property must not exist in ${ name }.prototype`);
             }
         },
         {
@@ -74,7 +76,7 @@ function makeTestsFor(ErrorConstructor) {
                         throw ErrorConstructor();
                     }
                 }
-                assert.throws(() => ErrorConstructor(message, options), ErrorConstructor);
+                assert.throws(() => ErrorConstructor(message, options), rawConstructor);
             }
         },
         {
@@ -123,6 +125,11 @@ const tests = [
     ...makeTestsFor(SyntaxError),
     ...makeTestsFor(RangeError),
     ...makeTestsFor(EvalError),
+    ...makeTestsFor((message, options) => AggregateError([], message, options), {
+        getNameOfConstructor: () => AggregateError.name,
+        getPrototypeOfConstructor: () => AggregateError.prototype,
+        rawConstructor: AggregateError
+    })
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

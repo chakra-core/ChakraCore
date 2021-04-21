@@ -237,6 +237,9 @@ var tests = [
             assert.throws(function() { Promise.any.call(null); }, TypeError, "Promise.any throws when called when this parameter is null", "Function expected");
             assert.throws(function() { Promise.any.call({}); }, TypeError, "Promise.any throws when called when this parameter is non-callable", "Function expected");
             assert.throws(function() { Promise.any.call(Math.sin); }, TypeError, "Promise.any throws when this parameter is a non-constructor", "Function expected");
+            assert.throws(function() { Promise.any.call(5); }, TypeError, "Promise.any throws when this parameter is a integer", "Function expected");
+            assert.throws(function() { Promise.any.call(5.0); }, TypeError, "Promise.any throws when this parameter is a float", "Function expected");
+            assert.throws(function() { Promise.any.call("literal"); }, TypeError, "Promise.any throws when this parameter is a string literal", "Function expected");
         }
     },
     {

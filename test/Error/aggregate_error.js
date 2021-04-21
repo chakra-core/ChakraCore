@@ -8,7 +8,7 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
    {
-       name: "proptotype and constructor",
+       name: "AggregateError Prototype and Constructor Shape",
        body: function ()
        {
             assert.areEqual(AggregateError, AggregateError.prototype.constructor);
@@ -19,59 +19,50 @@ var tests = [
             assert.areEqual(Error.prototype, Object.getPrototypeOf(AggregateError.prototype));
             assert.areEqual("AggregateError", AggregateError.name);
             assert.areEqual(2, AggregateError.length);
+            assert.areEqual("function", typeof AggregateError);
+            var proto = Object.getPrototypeOf(AggregateError);
+            assert.areEqual(Error, proto);
+            var obj = new AggregateError([]);
+            assert.areEqual(AggregateError.prototype, Object.getPrototypeOf(obj));
         }
     },
     {
-        name: "errors iterable to list failures",
+        name: "Failures in the iterable errors argument to list",
         body: function ()
         {
             class TestError extends Error {}
 
+            // Iterator that throws with getter
             var case1 = {
-                get [Symbol.iterator]() {
-                    throw new TestError();
-                }
+                get [Symbol.iterator]() { throw new TestError(); }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case1);
-            }, TestError);
+            assert.throws(() => { new AggregateError(case1); }, TestError);
 
+            // Iterator with no 'next' method
             var case2 = {
-                get [Symbol.iterator]() {
-                    return {};
-                }
+                get [Symbol.iterator]() { return {}; }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case2);
-            }, TypeError);
+            assert.throws(() => { new AggregateError(case2); }, TypeError);
 
+            // Iterator that throws with property
             var case3 = {
-                [Symbol.iterator]() {
-                    throw new TestError();
-                }
+                [Symbol.iterator]() { throw new TestError(); }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case3);
-            }, TestError);
+            assert.throws(() => { new AggregateError(case3); }, TestError);
 
+            // Iterator with string
             var case4 = {
-                [Symbol.iterator]() {
-                  return "a string";
-                }
+                [Symbol.iterator]() { return "a string"; }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case4);
-            }, TypeError);
+            assert.throws(() => { new AggregateError(case4); }, TypeError);
 
+            // Iterator with undefined
             var case5 = {
-                [Symbol.iterator]() {
-                    return undefined;
-                }
+                [Symbol.iterator]() { return undefined; }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case5);
-            }, TypeError);
+            assert.throws(() => { new AggregateError(case5); }, TypeError);
 
+            // Iterator that throws in 'next' method
             var case6 = {
                 [Symbol.iterator]() {
                     return {
@@ -81,36 +72,29 @@ var tests = [
                     }
                 }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case6);
-            }, TestError);
+            assert.throws(() => { new AggregateError(case6); }, TestError);
 
+            // Iterator with empty object returns in 'next' method
             var case7 = {
                 [Symbol.iterator]() {
                     return {
-                        get next() {
-                            return {};
-                        }
+                        get next() { return {}; }
                     }
                 }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case7);
-            }, TypeError);
+            assert.throws(() => { new AggregateError(case7); }, TypeError);
 
+            // Iterator throws in 'next' method
             var case8 = {
                 [Symbol.iterator]() {
                     return {
-                        next() {
-                            throw new TestError();
-                        }
+                        next() { throw new TestError(); }
                     }
                 }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case8);
-            }, TestError);
+            assert.throws(() => { new AggregateError(case8); }, TestError);
 
+            // Iterator with undefined returns in 'next' method
             var case9 = {
                 [Symbol.iterator]() {
                     return {
@@ -120,50 +104,59 @@ var tests = [
                     }
                 }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case9);
-            }, TypeError);
+            assert.throws(() => { new AggregateError(case9); }, TypeError);
 
+            // Iterator with string returns in 'next' method
             var case10 = {
                 [Symbol.iterator]() {
                     return {
-                        next() {
-                            return "a string";
-                        }
+                        next() { return "a string"; }
                     }
                 }
             };
-            assert.throws(() => {
-                var obj = new AggregateError(case10);
-            }, TypeError);
+            assert.throws(() => { new AggregateError(case10); }, TypeError);
 
+            // Iterator with string returns in 'done'
             var case11 = {
                 [Symbol.iterator]() {
                     return {
                         next() {
                             return {
-                                get done() {
-                                    throw new TestError();
-                                }
+                                get done() { throw new TestError(); }
                             };
                         }
                     }
                 }
             };
-
-            assert.throws(() => {
-                var obj = new AggregateError(case8);
-            }, TestError);
-
+            assert.throws(() => { new AggregateError(case11); }, TestError);
         }
     },
     {
-        name: "errors iterable to list",
+        name: "Failures in the iterable errors argument to list with non-objects",
+        body: function ()
+        {
+            const values = [
+                undefined,
+                null,
+                42,
+                false,
+                true
+            ];
+            for (const value of values) {
+                assert.throws(() => new AggregateError(value), TypeError);
+            }
+
+            var o = new AggregateError("string");
+            assert.areEqual(o.errors, "string".split(""));
+        }
+    },
+    {
+        name: "Iterable errors argument to list",
         body: function ()
         {
             var count = 0;
             var values = [];
-            var case1 = {
+            var obj = {
                 [Symbol.iterator]() {
                     return {
                         next() {
@@ -178,7 +171,7 @@ var tests = [
                     };
                 }
             };
-            new AggregateError(case1);
+            new AggregateError(obj);
             assert.areEqual(3, count)
             assert.areEqual([1, 2], values)
         }
@@ -336,19 +329,6 @@ var tests = [
                 const error = Reflect.construct(AggregateError, [[]], NewTargetProxy);
                 assert.areEqual(AggregateError.prototype, Object.getPrototypeOf(error));
             }
-        }
-    },
-    {
-        name: "proto",
-        body: function ()
-        {
-            assert.areEqual("function", typeof AggregateError);
-
-            var proto = Object.getPrototypeOf(AggregateError);
-            assert.areEqual(Error, proto);
-
-            var obj = new AggregateError([]);
-            assert.areEqual(AggregateError.prototype, Object.getPrototypeOf(obj));
         }
     },
     {

@@ -8,12 +8,6 @@
   </test>
   <test>
     <default>
-      <files>error_cause_with_aggregate_error.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>aggregate_error.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>

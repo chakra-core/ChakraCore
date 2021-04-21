@@ -280,10 +280,10 @@ namespace Js
 
         // 1. Let C be the this value.
         Var C = args[0];
-        RecyclableObject* constructor = VarTo<RecyclableObject>(C);
 
         // 2. Let promiseCapability be ? NewPromiseCapability(C).
         JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(C, scriptContext);
+        RecyclableObject* constructor = UnsafeVarTo<RecyclableObject>(C);
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
         RecyclableObject* promiseResolve = nullptr;
