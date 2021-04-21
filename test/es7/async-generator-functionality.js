@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -246,6 +247,15 @@ const tests = [
                 ErrorPromise(this.name, ag.throw.call(input), TypeError, `AsyncGenerator.prototype.throw should reject with TypeError when called on ${typeof input} ${input}`);
                 ErrorPromise(this.name, ag.return.call(input), TypeError, `AsyncGenerator.prototype.return should reject with TypeError when called on ${typeof input} ${input}`);
             }
+        }
+    },
+    {
+        name : "AsyncGenerator with complex params containing eval",
+        body() {
+            async function* agf(param = 0) {
+                eval('');
+            }
+            AddPromise(this.name, "Evaluate complex params and perform eval - but nothing to do should close", agf().next(), {done : true});
         }
     }
 ];
