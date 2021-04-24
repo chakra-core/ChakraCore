@@ -20,30 +20,7 @@ endif()
 
 add_library (ChakraCoreStatic STATIC
   ChakraCoreStatic.cpp
-  $<TARGET_OBJECTS:Chakra.Pal>
-  $<TARGET_OBJECTS:Chakra.Common.Core>
-  $<TARGET_OBJECTS:Chakra.Jsrt>
-  $<TARGET_OBJECTS:Chakra.Jsrt.Core>
-  ${chakra_backend_objects}
-  $<TARGET_OBJECTS:Chakra.Common.Common>
-  $<TARGET_OBJECTS:Chakra.Common.Codex>
-  $<TARGET_OBJECTS:Chakra.Common.DataStructures>
-  $<TARGET_OBJECTS:Chakra.Common.Exceptions>
-  $<TARGET_OBJECTS:Chakra.Common.Memory>
-  $<TARGET_OBJECTS:Chakra.Common.Util>
-  $<TARGET_OBJECTS:Chakra.Runtime.Base>
-  $<TARGET_OBJECTS:Chakra.Runtime.ByteCode>
-  $<TARGET_OBJECTS:Chakra.Runtime.Debug>
-  $<TARGET_OBJECTS:Chakra.Runtime.Language>
-  $<TARGET_OBJECTS:Chakra.Runtime.Library>
-  $<TARGET_OBJECTS:Chakra.Runtime.Math>
-  $<TARGET_OBJECTS:Chakra.Runtime.Types>
   $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
-  $<TARGET_OBJECTS:Chakra.Parser>
-  $<TARGET_OBJECTS:Chakra.SCACore>
-  ${wasm_objects}
-  ${wabt_objects}
-  ${lttng_objects}
 )
 
 if(USE_LTTNG)
@@ -87,11 +64,11 @@ if(BuildJIT)
     add_subdirectory (Backend)
 endif()
 
-add_subdirectory (Common)
-add_subdirectory (Parser)
-add_subdirectory (SCACore)
+#add_subdirectory (Common)
+#add_subdirectory (Parser)
+#add_subdirectory (SCACore)
 add_subdirectory (Runtime)
-add_subdirectory (Jsrt)
+#add_subdirectory (Jsrt)
 if (CC_TARGETS_AMD64)
     add_subdirectory (WasmReader)
     set(BUILD_TESTS OFF)
@@ -125,18 +102,18 @@ if (EMBED_ICU)
   # Declare ICU dependencies in bulk.
   # TODO Not the most idiomatic solution, need to understand if all of those
   # libraries needed to depend on it
-  add_dependencies(Chakra.Backend ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Jsrt ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Jsrt.Core ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Parser ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.Base ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.ByteCode ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.Debug ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.Library ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.Math ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.Language ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Backend ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Jsrt ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Jsrt.Core ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Parser ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.Base ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.ByteCode ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.Debug ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.Library ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.Math ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.Language ${EMBEDDED_ICU_TARGET})
   add_dependencies(Chakra.Runtime.PlatformAgnostic ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.Runtime.Types ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.SCACore ${EMBEDDED_ICU_TARGET})
-  add_dependencies(Chakra.WasmReader ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.Runtime.Types ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.SCACore ${EMBEDDED_ICU_TARGET})
+  #add_dependencies(Chakra.WasmReader ${EMBEDDED_ICU_TARGET})
 endif()
