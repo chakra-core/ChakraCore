@@ -89,7 +89,7 @@
 #include "Library/JavascriptDate.h"
 
 #include "Library/ModuleRoot.h"
-#include "Library/Functions/ArgumentsObject.h"
+#include "Library/ArgumentsObject.h"
 // SIMD
 #include "Language/SimdOps.h"
 

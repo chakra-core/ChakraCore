@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)ArgumentsObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ArgumentsObjectEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Array\ES5Array.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Array\ES5ArrayIndexEnumerator.cpp" />
@@ -21,10 +23,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)EngineInterfaceObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ExternalLibraryBase.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ForInObjectEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\ArgumentsObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\ArgumentsObjectEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Functions\BoundFunction.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Functions\JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Functions\JavascriptExternalFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Functions\JavascriptFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Functions\RuntimeFunction.cpp" />
@@ -55,6 +54,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBoolean.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBooleanObject.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptDate.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptError.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExceptionMetadata.cpp" />

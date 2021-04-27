@@ -33,6 +33,8 @@ include_directories(
 )
 
 set(CRLIB_SOURCE_CODES
+    ArgumentsObject.cpp
+    ArgumentsObjectEnumerator.cpp
     ArrayBuffer.cpp
     Array/ES5Array.cpp
     Array/ES5ArrayIndexEnumerator.cpp
@@ -53,10 +55,7 @@ set(CRLIB_SOURCE_CODES
     EngineInterfaceObject.cpp
     ExternalLibraryBase.cpp
     ForInObjectEnumerator.cpp
-    Functions/ArgumentsObject.cpp
-    Functions/ArgumentsObjectEnumerator.cpp
     Functions/BoundFunction.cpp
-    Functions/JavascriptBuiltInFunctions.cpp
     Functions/JavascriptExternalFunction.cpp
     Functions/JavascriptFunction.cpp
     Functions/RuntimeFunction.cpp
@@ -87,6 +86,7 @@ set(CRLIB_SOURCE_CODES
     JavascriptBigIntObject.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
+    JavascriptBuiltInFunctions.cpp
     JavascriptDate.cpp
     JavascriptError.cpp
     JavascriptExceptionMetadata.cpp

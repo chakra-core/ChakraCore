@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "Library/Functions/ArgumentsObjectEnumerator.h"
+#include "ArgumentsObjectEnumerator.h"
 
 namespace Js
 {

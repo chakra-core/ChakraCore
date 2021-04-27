@@ -31,7 +31,7 @@
 
 #include "Base/EtwTrace.h"
 
-#include "Library/Functions/ArgumentsObject.h"
+#include "Library/ArgumentsObject.h"
 
 #include "Types/TypePropertyCache.h"
 #include "Library/Iterators/JavascriptAsyncFromSyncIterator.h"

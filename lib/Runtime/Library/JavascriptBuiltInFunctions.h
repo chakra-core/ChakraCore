@@ -13,7 +13,7 @@ namespace Js
         enum BuiltInEnum
         {
 #define BUILTIN(c, n, e, i) c ## _ ## n,
-#include "Library/Functions/JavascriptBuiltInFunctionList.h"
+#include "JavascriptBuiltInFunctionList.h"
 #undef BUILTIN
             MaxBuiltInEnum
         };

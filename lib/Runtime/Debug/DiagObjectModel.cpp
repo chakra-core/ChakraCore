@@ -24,7 +24,7 @@
 #include "Library/JavascriptSet.h"
 #include "Library/JavascriptWeakMap.h"
 #include "Library/JavascriptWeakSet.h"
-#include "Library/Functions/ArgumentsObject.h"
+#include "Library/ArgumentsObject.h"
 
 #include "Types/DynamicObjectPropertyEnumerator.h"
 #include "Types/JavascriptStaticEnumerator.h"

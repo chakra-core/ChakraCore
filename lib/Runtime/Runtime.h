@@ -427,7 +427,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "ByteCode/ByteBlock.h"
 
-#include "Library/Functions/JavascriptBuiltInFunctions.h"
+#include "Library/JavascriptBuiltInFunctions.h"
 #include "Library/String/JavascriptString.h"
 #include "Library/String/StringCopyInfo.h"
 
