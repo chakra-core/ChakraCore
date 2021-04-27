@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #define IDS_COMPILATION_ERROR_SOURCE    4096
@@ -205,7 +206,7 @@ RT_ERROR_MSG(JSERR_InvalidTypedArraySubarrayLength, 5085, "", "Invalid begin/end
 RT_ERROR_MSG(JSERR_TypedArray_NeedSource, 5086, "", "Invalid source in typed array set", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_This_NeedDataView, 5087, "", "'this' is not a DataView object", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DataView_NeedArgument, 5088, "Required argument %s in DataView method is not specified", "Invalid arguments in DataView", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_DataView_InvalidOffset, 5089, "", "DataView operation access beyond specified buffer length",  kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_DataView_InvalidOffset, 5089, "", "DataView operation access beyond specified buffer length", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_DataView_InvalidArgument, 5090, "DataView constructor argument %s is invalid", "Invalid arguments in DataView", kjstRangeError, 0)
 
 RT_ERROR_MSG(JSERR_InvalidFunctionSignature, 5091, "The function '%s' has an invalid signature and cannot be called", "invalid function signature", kjstTypeError, 0)
@@ -305,7 +306,9 @@ RT_ERROR_MSG(JSERR_GeneratorAlreadyExecuting, 5618, "%s: Cannot execute generato
 RT_ERROR_MSG(JSERR_LengthIsTooBig, 5619, "Length property would exceed maximum value in output from '%s'", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_NonObjectFromIterable, 5620, "Iterable provided to %s must not return non-object or null value.", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_EmptyArrayAndInitValueNotPresent, 5621, "%s: Array contains no elements and initialValue is not provided", "", kjstTypeError, 0)
-// 5622-5626 Unused
+RT_ERROR_MSG(JSERR_PromiseAllRejected, 5622, "", "Promise.any all promises rejected.", kjstAggregateError, 0)
+
+// 5623-5626 Unused
 RT_ERROR_MSG(JSERR_NeedConstructor, 5627, "'%s' is not a constructor", "Constructor expected", kjstTypeError, 0)
 
 RT_ERROR_MSG(VBSERR_CantDisplayDate, 32812, "", "The specified date is not available in the current locale's calendar", kjstRangeError, 0)

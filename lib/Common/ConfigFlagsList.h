@@ -671,6 +671,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESHashbang              (true)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
 #define DEFAULT_CONFIG_ESArrayFindFromLast     (false)
+#define DEFAULT_CONFIG_ESPromiseAny            (true)
 #define DEFAULT_CONFIG_ESNullishCoalescingOperator (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
 
@@ -1207,6 +1208,9 @@ FLAGR(Boolean, ESHashbang, "Enable Hashbang syntax", DEFAULT_CONFIG_ESHashbang)
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)
 
 FLAGR(Boolean, ESArrayFindFromLast, "Enable findLast, findLastIndex for Array.prototype and TypedArray.prorotype", DEFAULT_CONFIG_ESArrayFindFromLast)
+
+// ES Promise.any and AggregateError flag
+FLAGR(Boolean, ESPromiseAny, "Enable Promise.any and AggregateError", DEFAULT_CONFIG_ESPromiseAny)
 
 // ES import.meta keyword meta-property
 FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImportMeta)

@@ -124,6 +124,7 @@ namespace Js
     class JavascriptPromiseResolveThenableTaskFunction;
     class JavascriptPromiseAllResolveElementFunction;
     class JavascriptPromiseAllSettledResolveOrRejectElementFunction;
+    class JavascriptPromiseAnyRejectElementFunction;
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper;
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
     class JavascriptAsyncSpawnExecutorFunction;
@@ -163,6 +164,7 @@ namespace Js
 
     struct RestrictedErrorStrings;
     class JavascriptError;
+    class JavascriptAggregateError;
     class RecyclableObject;
     class JavascriptRegExp;
     class JavascriptRegularExpressionResult;
