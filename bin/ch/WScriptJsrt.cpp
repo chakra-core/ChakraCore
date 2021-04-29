@@ -1028,12 +1028,6 @@ JsValueRef WScriptJsrt::RequestAsyncBreakCallback(JsValueRef callee, bool isCons
     return JS_INVALID_REFERENCE;
 }
 
-JsValueRef WScriptJsrt::EmptyCallback(JsValueRef callee, bool isConstructCall,
-    JsValueRef * arguments, unsigned short argumentCount, void * callbackState)
-{
-    return JS_INVALID_REFERENCE;
-}
-
 bool WScriptJsrt::CreateNamedFunction(const char* nameString, JsNativeFunction callback,
     JsValueRef* functionVar)
 {

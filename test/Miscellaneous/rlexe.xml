@@ -29,7 +29,6 @@
   <test>
     <default>
       <files>monotonicNow.js</files>
-      <baseline>monotonicNow.baseline</baseline>
     </default>
   </test>
   <test>
