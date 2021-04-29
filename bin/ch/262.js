@@ -22,9 +22,9 @@ var $262 = {
                 ${ src }
             `, 'crossthread');
         },
-        receiveBroadcast: WScript.ReceiveBroadcast,
-        report: WScript.Report,
-        leaving: WScript.Leaving,
+        broadcast: WScript.Broadcast,
+        sleep: WScript.Sleep,
+        getReport: WScript.GetReport,
         monotonicNow: WScript.monotonicNow
     }
 };
