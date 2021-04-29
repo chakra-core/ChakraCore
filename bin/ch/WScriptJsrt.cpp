@@ -843,7 +843,7 @@ JsValueRef WScriptJsrt::MonotonicNowCallback(JsValueRef callee, bool isConstruct
     HRESULT hr = S_OK;
     JsValueRef result;
     
-    IfJsrtErrorSetGo(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(std::chrono::steady_clock::now().time_since_epoch().count()), &result));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(std::chrono::steady_clock::now().time_since_epoch().count()) / 1e6 /* ns in ms */, &result));
 
     return result;
 
