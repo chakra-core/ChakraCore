@@ -5,7 +5,16 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "PlatformAgnostic/ChakraICU.h"
+#if defined(__APPLE__)
+#ifdef ctime
+#undef ctime
+#define CTIME_UNDEFED
+#endif
+#endif
 #include <vector>
+#include <ctime>
+#include <ratio>
+#include <chrono>
 
 #if defined(_X86_) || defined(_M_IX86)
 #define CPU_ARCH_TEXT "x86"
@@ -833,6 +842,26 @@ Error:
     return value;
 }
 
+JsValueRef WScriptJsrt::MonotonicNowCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    LPCWSTR errorMessage = _u("invalid call to WScript.monotonicNow");
+    JsErrorCode errorCode = JsNoError;
+    HRESULT hr = S_OK;
+    JsValueRef result;
+    
+    IfJsrtErrorSetGo(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(std::chrono::steady_clock::now().time_since_epoch().count()) / 1e6 /* ns in ms */, &result));
+
+#ifdef CTIME_UNDEFED
+#define ctime PAL_ctime
+#undef CTIME_UNDEFED
+#endif
+    return result;
+
+Error:
+    SetExceptionIf(errorCode, errorMessage);
+    return JS_INVALID_REFERENCE;
+}
+
 JsValueRef WScriptJsrt::SetTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     LPCWSTR errorMessage = _u("invalid call to WScript.SetTimeout");
@@ -1009,12 +1038,6 @@ JsValueRef WScriptJsrt::RequestAsyncBreakCallback(JsValueRef callee, bool isCons
     return JS_INVALID_REFERENCE;
 }
 
-JsValueRef WScriptJsrt::EmptyCallback(JsValueRef callee, bool isConstructCall,
-    JsValueRef * arguments, unsigned short argumentCount, void * callbackState)
-{
-    return JS_INVALID_REFERENCE;
-}
-
 bool WScriptJsrt::CreateNamedFunction(const char* nameString, JsNativeFunction callback,
     JsValueRef* functionVar)
 {
@@ -1059,6 +1082,7 @@ bool WScriptJsrt::Initialize()
     JsValueRef wscript;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&wscript), false);
 
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "monotonicNow", MonotonicNowCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Echo", EchoCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Quit", QuitCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScriptFile", LoadScriptFileCallback));
@@ -1079,9 +1103,6 @@ bool WScriptJsrt::Initialize()
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "SerializeObject", SerializeObject));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Deserialize", Deserialize));
-
-    // ToDo Remove
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
 
     // Platform
     JsValueRef platformObject;
