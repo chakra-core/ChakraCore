@@ -215,6 +215,11 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
             addDisplay = true;
             break;
 
+        case Js::TypeIds_ModuleNamespace:
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetModuleTypeDisplayString(), scriptContext);
+            addDisplay = true;
+            break;
+
         case Js::TypeIds_Enumerator:
         case Js::TypeIds_HostDispatch:
         case Js::TypeIds_UnscopablesWrapperObject:
