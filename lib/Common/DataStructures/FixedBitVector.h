@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -250,9 +251,10 @@ void BVFixed::SetRange(Container* value, BVIndex start, BVIndex len)
     BVUnit::BVUnitTContainer* bits;
     static_assert(sizeof(Container) == 1 || sizeof(Container) == sizeof(BVUnit::BVUnitTContainer),
         "Container is not suitable to represent the calculated value");
-    if (sizeof(BVUnit::BVUnitTContainer) == 1)
+    if (sizeof(Container) == 1)
     {
-        temp = *((BVUnit::BVUnitTContainer*)value);
+        static_assert(sizeof(byte) == 1, "Size of byte should be 1.");
+        temp = *(byte*)value;
         bits = &temp;
     }
     else
