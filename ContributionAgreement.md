@@ -40,4 +40,5 @@ This agreement has been signed by:
 |Yevhen Lukomskyi|ylukomskyi|
 |Evgeniy Istomin|MadProbe|
 |Wenlu Wang| Kingwl|
+|Kevin Cadieux|kevcadieux|
 |Aidan Bickford| BickfordA|
