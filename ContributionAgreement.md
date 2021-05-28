@@ -41,3 +41,4 @@ This agreement has been signed by:
 |Evgeniy Istomin|MadProbe|
 |Wenlu Wang| Kingwl|
 |Kevin Cadieux|kevcadieux|
+|Aidan Bickford| BickfordA|
