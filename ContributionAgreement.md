@@ -42,3 +42,4 @@ This agreement has been signed by:
 |Wenlu Wang| Kingwl|
 |Kevin Cadieux|kevcadieux|
 |Aidan Bickford| BickfordA|
+|Ryoichi Kaida| camcam-lemon|
