@@ -21,7 +21,6 @@
   <test>
     <default>
       <files>hasOwnProperty.js</files>
-      <baseline>hasOwnProperty.baseline</baseline>
     </default>
   </test>
   <test>

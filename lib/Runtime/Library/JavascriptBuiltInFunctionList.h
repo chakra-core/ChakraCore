@@ -174,6 +174,7 @@ BUILTIN(JavascriptNumber, ValueOf, EntryValueOf, FunctionInfo::ErrorOnNew | Func
 BUILTIN(JavascriptObject, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(JavascriptObject, HasOwnProperty, EntryHasOwnProperty, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, PropertyIsEnumerable, EntryPropertyIsEnumerable, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptObject, HasOwn, EntryHasOwn, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, IsPrototypeOf, EntryIsPrototypeOf, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, ToLocaleString, EntryToLocaleString, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptObject, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)

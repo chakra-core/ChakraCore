@@ -3876,6 +3876,9 @@ namespace Js
         case PropertyIds::hasOwnProperty:
             return BuiltinFunction::JavascriptObject_HasOwnProperty;
 
+        case PropertyIds::hasOwn:
+            return BuiltinFunction::JavascriptObject_HasOwn;
+
         default:
             return BuiltinFunction::None;
         }
@@ -4129,7 +4132,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptLibrary* library = objectConstructor->GetLibrary();
         ScriptContext* scriptContext = objectConstructor->GetScriptContext();
-        int propertyCount = 18;
+        int propertyCount = 19;
         if (scriptContext->GetConfig()->IsES6ObjectExtensionsEnabled())
         {
             propertyCount += 2;
@@ -4207,6 +4210,9 @@ namespace Js
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Entries.GetOriginalEntryPoint(),
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::entries, &JavascriptObject::EntryInfo::Entries, 1));
         }
+
+        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::HasOwn.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::hasOwn, &JavascriptObject::EntryInfo::HasOwn, 2));
 
 #ifdef ENABLE_JS_BUILTINS
         if (scriptContext->IsJsBuiltInEnabled())
@@ -7505,7 +7511,7 @@ namespace Js
         return hr;
     }
 
-     HRESULT JavascriptLibrary::ProfilerRegisterObject()
+    HRESULT JavascriptLibrary::ProfilerRegisterObject()
     {
         HRESULT hr = S_OK;
 
@@ -7537,6 +7543,7 @@ namespace Js
 
         REG_OBJECTS_LIB_FUNC(getOwnPropertySymbols, JavascriptObject::EntryGetOwnPropertySymbols);
 
+        REG_OBJECTS_LIB_FUNC(hasOwn, JavascriptObject::EntryHasOwn);
         REG_OBJECTS_LIB_FUNC(hasOwnProperty, JavascriptObject::EntryHasOwnProperty);
         REG_OBJECTS_LIB_FUNC(propertyIsEnumerable, JavascriptObject::EntryPropertyIsEnumerable);
         REG_OBJECTS_LIB_FUNC(isPrototypeOf, JavascriptObject::EntryIsPrototypeOf);

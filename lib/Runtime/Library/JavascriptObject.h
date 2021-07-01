@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -21,6 +22,7 @@ namespace Js
         public:
             static FunctionInfo NewInstance;
             static FunctionInfo HasOwnProperty;
+            static FunctionInfo HasOwn;
             static FunctionInfo PropertyIsEnumerable;
             static FunctionInfo IsPrototypeOf;
             static FunctionInfo ToLocaleString;
@@ -54,6 +56,7 @@ namespace Js
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryHasOwnProperty(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryHasOwn(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryPropertyIsEnumerable(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIsPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryToLocaleString(RecyclableObject* function, CallInfo callInfo, ...);
