@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -150,12 +151,12 @@ var tests = [
                     super();
                     var super_arrow = () => {
                         super.increment.call(this);
-                        assert.areEqual(2,super.getCount.call(this), "confirm we can make the the method call on class A's method inside a lambda");
+                        assert.areEqual(2,super.getCount.call(this), "confirm we can make the method call on class A's method inside a lambda");
                         assert.areEqual(1,super[1].call(this), "confirm we can make index method call on class A's method inside a lambda");
                     }
                     super_arrow();
                     super.decrement.call(this);
-                    assert.areEqual(1,super.getCount.call(this),"confirm we can make the the method call on class A's method");
+                    assert.areEqual(1,super.getCount.call(this),"confirm we can make the method call on class A's method");
                     assert.areEqual(2,super[2].call(this), "confirm we can make index method call on class A's method");
                 }
             }
@@ -171,11 +172,11 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual(1,super.getCount(),"confirm we can make the the method call on class A's method");
+                        assert.areEqual(1,super.getCount(),"confirm we can make the method call on class A's method");
                         super.increment();
-                        assert.areEqual(2, super.getCount(), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(2, super.getCount(), "confirm we can make the method call on class A's method");
                         super.decrement();
-                        assert.areEqual(1, super.getCount(), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(1, super.getCount(), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
                 }
@@ -192,11 +193,11 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual(1,super["getCount"](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(1,super["getCount"](), "confirm we can make the method call on class A's method");
                         super["increment"]();
-                        assert.areEqual(2, super["getCount"](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(2, super["getCount"](), "confirm we can make the method call on class A's method");
                         super["decrement"]();
-                        assert.areEqual(1, super["getCount"](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(1, super["getCount"](), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
                 }
@@ -212,8 +213,8 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual(1.1,super[1.1](), "confirm we can make the the method call on class A's method");
-                        assert.areEqual(2.2, super[2.2](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(1.1,super[1.1](), "confirm we can make the method call on class A's method");
+                        assert.areEqual(2.2, super[2.2](), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
 
@@ -230,8 +231,8 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual(1,super[1](), "confirm we can make the the method call on class A's method");
-                        assert.areEqual(2, super[2](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(1,super[1](), "confirm we can make the method call on class A's method");
+                        assert.areEqual(2, super[2](), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
 
@@ -248,7 +249,7 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual(2.1,super[2.1](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual(2.1,super[2.1](), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
                 }
@@ -263,7 +264,7 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(4,super[4](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(4,super[4](), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
@@ -277,7 +278,7 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual("foo1",super["foo1"](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual("foo1",super["foo1"](), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
                 }
@@ -293,7 +294,7 @@ var tests = [
                 constructor() {
                     var super_arrow = () => {
                         super();
-                        assert.areEqual("bart",super[sym1](), "confirm we can make the the method call on class A's method");
+                        assert.areEqual("bart",super[sym1](), "confirm we can make the method call on class A's method");
                     }
                     super_arrow();
                 }
@@ -309,11 +310,11 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(1,super.getCount(), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(1,super.getCount(), "confirm we can make the method call on class A's method");
                     super.increment();
-                    assert.areEqual(2, super.getCount(), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(2, super.getCount(), "confirm we can make the method call on class A's method");
                     super.decrement();
-                    assert.areEqual(1, super.getCount(), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(1, super.getCount(), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
@@ -327,11 +328,11 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(1,super["getCount"](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(1,super["getCount"](), "confirm we can make the method call on class A's method");
                     super["increment"]();
-                    assert.areEqual(2, super["getCount"](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(2, super["getCount"](), "confirm we can make the method call on class A's method");
                     super["decrement"]();
-                    assert.areEqual(1, super["getCount"](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(1, super["getCount"](), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
@@ -344,8 +345,8 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(1.1,super[1.1](), "confirm we can make the the method call on class A's method");
-                    assert.areEqual(2.2, super[2.2](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(1.1,super[1.1](), "confirm we can make the method call on class A's method");
+                    assert.areEqual(2.2, super[2.2](), "confirm we can make the method call on class A's method");
 
                 }
             }
@@ -359,8 +360,8 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(1,super[1](), "confirm we can make the the method call on class A's method");
-                    assert.areEqual(2, super[2](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(1,super[1](), "confirm we can make the method call on class A's method");
+                    assert.areEqual(2, super[2](), "confirm we can make the method call on class A's method");
 
                 }
             }
@@ -374,7 +375,7 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(2.1,super[2.1](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(2.1,super[2.1](), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
@@ -387,7 +388,7 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual(4,super[4](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual(4,super[4](), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
@@ -400,7 +401,7 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual("foo1",super["foo1"](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual("foo1",super["foo1"](), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
@@ -413,7 +414,7 @@ var tests = [
             class B extends A {
                 constructor() {
                     super();
-                    assert.areEqual("bart",super[sym1](), "confirm we can make the the method call on class A's method");
+                    assert.areEqual("bart",super[sym1](), "confirm we can make the method call on class A's method");
                 }
             }
             var bar = new B();
