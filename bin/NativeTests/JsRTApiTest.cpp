@@ -2262,12 +2262,13 @@ namespace JsRTApiTest
         JsRTApiTest::WithSetup(JsRuntimeAttributeEnableExperimentalFeatures, ModuleSuccessTest);
     }
 
-    void JsIsCallableTest()
+    void JsIsCallableTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef callables, callable, index, nonCallables, nonCallable;
         bool check;
 
-        REQUIRE(JsRunScript(_u("[function(){},function*(){},async function(){},async function*(){},_=>_,async _=>_]"), JS_SOURCE_CONTEXT_NONE, _u(""), &callables) == JsNoError);
+        REQUIRE(JsRunScript(_u("[function(){},function*(){},async function(){},async function*(){},_=>_,async _=>_]"),
+                            JS_SOURCE_CONTEXT_NONE, _u(""), &callables) == JsNoError);
 
         for (int i = 0; i < 6; i++)
         {
@@ -2293,7 +2294,7 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsIsCallableTest);
     }
 
-    void JsIsConstructorTest()
+    void JsIsConstructorTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef constructables, constructable, index, nonConstructables, nonConstructable;
         bool check;
@@ -2309,7 +2310,8 @@ namespace JsRTApiTest
         }
 
         
-        REQUIRE(JsRunScript(_u("[Math,Reflect,{},function*(){},async function(){},async function*(){},_=>_,async _=>_]"), JS_SOURCE_CONTEXT_NONE, _u(""), &nonConstructables) == JsNoError);
+        REQUIRE(JsRunScript(_u("[Math,Reflect,{},function*(){},async function(){},async function*(){},_=>_,async _=>_]"),
+                            JS_SOURCE_CONTEXT_NONE, _u(""), &nonConstructables) == JsNoError);
 
         for (int i = 0; i < 8; i++)
         {
