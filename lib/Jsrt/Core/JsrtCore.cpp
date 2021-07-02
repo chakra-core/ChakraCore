@@ -1461,8 +1461,7 @@ CHAKRA_API JsIsCallable(_In_ JsValueRef object, _Out_ bool *isCallable)
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(isCallable);
 
-        *isCallable = (Js::JavascriptConversion::IsCallable(object) && !Js::JavascriptOperators::IsClassConstructor(object)) ||
-                       Js::VarIs<Js::JavascriptGeneratorFunction>(object);
+        *isCallable = Js::JavascriptConversion::IsCallable(object) && !Js::JavascriptOperators::IsClassConstructor(object);
 
         return JsNoError;
     });
