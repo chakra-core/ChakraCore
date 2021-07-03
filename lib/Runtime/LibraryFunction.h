@@ -84,5 +84,6 @@ LIBRARY_FUNCTION(Math,          Fround,             1,    BIF_TypeSpecUnaryToFlo
 LIBRARY_FUNCTION(JavascriptString,        PadStart,           2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadStart)
 LIBRARY_FUNCTION(JavascriptString,        PadEnd,             2,    BIF_UseSrc0 | BIF_VariableArgsNumber                  , JavascriptString::EntryInfo::PadEnd)
 LIBRARY_FUNCTION(JavascriptObject,        HasOwnProperty,     2,    BIF_UseSrc0                                           , JavascriptObject::EntryInfo::HasOwnProperty)
+LIBRARY_FUNCTION(JavascriptObject,        HasOwn,             3,    BIF_None                                              , JavascriptObject::EntryInfo::HasOwn)
 
 // Note: 1st column is currently used only for debug tracing.

@@ -6,7 +6,7 @@
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
 // This file was generated with tools/regenByteCode.py
 
-// {7e624f04-e6a9-408a-9a53-d067a2b1c80e}
+// {0758006c-1750-4081-b107-c08101300fac}
 const GUID byteCodeCacheReleaseFileVersion =
-{ 0x7e624f04, 0xe6a9, 0x408a, {0x9a, 0x53, 0xd0, 0x67, 0xa2, 0xb1, 0xc8, 0x0e } };
+{ 0x0758006c, 0x1750, 0x4081, {0xb1, 0x07, 0xc0, 0x81, 0x01, 0x30, 0x0f, 0xac } };
 
