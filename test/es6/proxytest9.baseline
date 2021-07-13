@@ -103,8 +103,9 @@ a
 Symbol(b)
 Symbol(c)
 prototype
-1
 prototype
+2
+prototype,prototype
 2
 true
 hasTrap, property : p1

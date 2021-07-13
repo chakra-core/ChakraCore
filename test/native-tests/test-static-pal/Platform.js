@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -16,9 +17,9 @@ if (!isStaticBuild) {
     // discard `ch` from path
     binaryPath = binaryPath.substr(0, binaryPath.lastIndexOf(path_sep));
     var makefile =
-"ROOT=" + binaryPath + "/../..\n\
+"ROOT=" + WScript.Arguments[0] + "\n\
 $(info $$ROOT is [${ROOT})\n\
-IDIR=" + binaryPath + "/../../lib/Jsrt\n\
+IDIR=" + WScript.Arguments[0] + "/lib/Jsrt \n\
 \n\
 LIBRARY_PATH=" + binaryPath + "/lib\n\
 PLATFORM=" + platform + "\n\

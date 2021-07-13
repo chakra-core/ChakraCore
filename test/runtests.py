@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
+# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -47,19 +48,15 @@ parser.add_argument('-v', '--verbose', action='store_true',
 parser.add_argument('--sanitize', metavar='sanitizers',
                     help='ignore tests known to be broken with these sanitizers')
 parser.add_argument('-d', '--debug', action='store_true',
-                    help='use debug build');
+                    help='use debug build')
 parser.add_argument('-t', '--test', '--test-build', action='store_true',
                     help='use test build')
-parser.add_argument('--static', action='store_true',
-                    help='mark that we are testing a static build')
 parser.add_argument('--variants', metavar='variant', nargs='+',
                     help='run specified test variants')
 parser.add_argument('--include-slow', action='store_true',
                     help='include slow tests (timeout ' + str(SLOW_TIMEOUT) + ' seconds)')
 parser.add_argument('--only-slow', action='store_true',
                     help='run only slow tests')
-parser.add_argument('--nightly', action='store_true',
-                    help='run as nightly tests')
 parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', action='append',
@@ -149,7 +146,7 @@ if binary == None:
         binary = os.path.join(repo_root, 'out', flavor, binary_name)
 
 if not os.path.isfile(binary):
-    print('{} not found. Did you run ./build.sh already?'.format(binary))
+    print('{} not found. Aborting.'.format(binary))
     sys.exit(1)
 
 # global tags/not_tags
@@ -164,8 +161,6 @@ elif not args.include_slow:
     not_tags.add('Slow')
 elif args.include_slow and args.timeout == DEFAULT_TIMEOUT:
     args.timeout = SLOW_TIMEOUT
-
-not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
 # verbosity
 verbose = False
@@ -192,9 +187,6 @@ if arch == 'arm' or arch == 'arm64':
 # exclude tests known to fail under certain sanitizers
 if args.sanitize != None:
     not_tags.add('exclude_sanitize_'+args.sanitize)
-
-if args.static != None:
-    not_tags.add('exclude_static')
 
 if sys.platform == 'darwin':
     not_tags.add('exclude_mac')
@@ -356,7 +348,9 @@ class TestVariant(object):
     # queue a test result from multi-process runs
     def _log_result(self, test, fail):
         if fail or show_passes:
-            output = u'\n'.join(self._print_lines).encode('utf-8') # collect buffered _print output
+            output = ''
+            for line in self._print_lines:
+                output = output + line + '\n' # collect buffered _print output
         else:
             output = ''
         self._print_lines = []
@@ -412,11 +406,11 @@ class TestVariant(object):
                     if lst_output[i] != lst_expected[i]:
                         self._print("Output: (at line " + str(i+1) + ")")
                         self._print("----------------------------")
-                        self._print(lst_output[i])
+                        self._print(lst_output[i].decode('utf-8'))
                         self._print("----------------------------")
                         self._print("Expected Output:")
                         self._print("----------------------------")
-                        self._print(lst_expected[i])
+                        self._print(lst_expected[i].decode('utf-8'))
                         self._print("----------------------------")
                         break
 
@@ -715,6 +709,8 @@ def main():
     if hasattr(time, 'tzset'):
         os.environ['TZ'] = 'US/Pacific'
         time.tzset()
+    elif sys.platform == 'win32':
+        os.system('tzutil /s "Pacific Standard time"')
 
     # By default run all tests
     if len(args.folders) == 0:
@@ -745,12 +741,8 @@ def main():
             ])
     ] if x.name in args.variants]
 
-    # rm profile.dpl.*
-    for f in glob.glob(test_root + '/*/profile.dpl.*'):
-        os.remove(f)
-
     print('############# ChakraCore Test Suite #############')
-    print('Testing {} build'.format('Test' if flavor is 'Test' else 'Debug'))
+    print('Testing {} build'.format('Test' if flavor == 'Test' else 'Debug'))
     print('Using {} threads'.format(processcount))
     # run each variant
     pool, sequential_pool = Pool(processcount), Pool(1)
@@ -762,6 +754,10 @@ def main():
     failed = any(variant.test_result.fail_count > 0 for variant in variants)
     print('[{} seconds] {}'.format(
         round(elapsed_time.total_seconds(),2), 'Success!' if not failed else 'Failed!'))
+
+    # rm profile.dpl.*
+    for f in glob.glob(test_root + '/*/profile.dpl.*'):
+        os.remove(f)
 
     return 1 if failed else 0
 

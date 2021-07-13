@@ -6,10 +6,10 @@
 
 :: ============================================================================
 ::
-:: jenkins.testone.cmd
+:: testone.cmd
 ::
-:: Runs tests for Jenkins continuous integration. This script is called from
-:: the Jenkins CI build and it runs all tests for x86 and x64, debug and test
+:: Runs tests for continuous integration. This script is called from
+:: the CI build and it runs all tests for x86 and x64, debug and test
 :: build configs.
 ::
 :: Do not use this script to run all tests on your dev box.
@@ -29,6 +29,18 @@
 @echo off
 setlocal
 
+REM check that we have enough parameters
+if "%1"=="" (
+    goto :usage
+)
+if "%2"=="" (
+    goto :usage
+)
+
+if "%_ENTRY_SCRIPT_NAME%"=="" (
+    set _ENTRY_SCRIPT_NAME=%0
+)
+
 set _RootDir=%~dp0..
 set _HadFailures=0
 set _error=0
@@ -38,15 +50,10 @@ set _error=0
 :: ============================================================================
 :main
 
-  if not "%JENKINS_BUILD%" == "True" (
-    echo This script should be run under a Jenkins Build environment
-    exit /b 2
-  )
-
   pushd %_RootDir%\test
   set _TestDir=%CD%
 
-  call jenkins.parsetestargs.cmd %*
+  call ci.parsetestargs.cmd %*
 
   set _LogDir=%_TestDir%\logs\%_TestArch%_%_TestType%
   set _TestArgs=%_TestArch%%_TestType%
@@ -60,28 +67,27 @@ set _error=0
     call :runTests %_TestArgs%
 
     if "%_ReducedTestRun%" == "1" (
-      echo -- jenkins.testone.cmd ^>^> Reduced test run: skipping native tests.
+      echo -- ci.testone.cmd ^>^> Reduced test run: skipping native tests.
     ) else (
       call :runNativeTests %_TestArgs%
     )
-
-    call :summarizeLogs
   )
 
   echo.
-  echo -- jenkins.testone.cmd ^>^> Failure code: %_HadFailures%
+  echo -- ci.testone.cmd ^>^> Failure code: %_HadFailures%
   if "%_HadFailures%" NEQ "0" (
     if "%_HadFailures%" == "2" (
-      echo -- jenkins.testone.cmd ^>^> Bytecode test failed, bytecode needs to be updated! 1>&2
+      echo -- ci.testone.cmd ^>^> Bytecode test failed, bytecode needs to be updated! 1>&2
     ) else if "%_HadFailures%" == "3" (
-      echo -- jenkins.testone.cmd ^>^> Unit tests failed! 1>&2
+      echo -- ci.testone.cmd ^>^> Unit tests failed! 1>&2
     ) else if "%_HadFailures%" == "4" (
-      echo -- jenkins.testone.cmd ^>^> Native tests failed! 1>&2
+      echo -- ci.testone.cmd ^>^> Native tests failed! 1>&2
+      call :summarizeLogs
     ) else (
-      echo -- jenkins.testone.cmd ^>^> Unknown failure! 1>&2
+      echo -- ci.testone.cmd ^>^> Unknown failure! 1>&2
     )
   ) else (
-    echo -- jenkins.testone.cmd ^>^> Tests passed!
+    echo -- ci.testone.cmd ^>^> Tests passed!
   )
 
   popd
@@ -103,7 +109,7 @@ set _error=0
   call :do python %_RootDir%\tools\regenByteCode.py --verify %bytecode_type% --%_TestArch% --binary=%_BinDir%\%_TestArch%_%_TestType%\ch.exe
 
   if "%_error%" NEQ "0" (
-    echo -- jenkins.testone.cmd ^>^> verifying bytecode failed
+    echo -- ci.testone.cmd ^>^> verifying bytecode failed
     set _HadFailures=2
   )
 
@@ -114,10 +120,14 @@ set _error=0
 :: ============================================================================
 :runTests
 
-  call :do %_TestDir%\runtests.cmd -%1 -quiet -cleanupall -nottags exclude_jenkins %_ExtraTestArgs% -binDir %_BinDir%
+  if "%_SpecialBuild%" == ".NoJIT" (
+    set OverideVariant=--variants=disable_jit
+  )
+
+  call :do python %_TestDir%\runtests.py --%_TestArch% --%_TestType% %OverideVariant% %_ExtraTestArgs% --binary=%_BinDir%\%_TestArch%_%_TestType%\ch.exe
 
   if "%_error%" NEQ "0" (
-    echo -- jenkins.testone.cmd ^>^> runtests.cmd failed
+    echo -- ci.testone.cmd ^>^> runtests.py failed
     set _HadFailures=3
   )
 
@@ -128,14 +138,14 @@ set _error=0
 :: ============================================================================
 :runNativeTests
 
-  echo -- jenkins.testone.cmd ^>^> Running native tests... this can take some time
+  echo -- ci.testone.cmd ^>^> Running native tests... this can take some time
   if not exist %_LogDir%\ mkdir %_LogDir%
   set _LogFile=%_LogDir%\nativetests.log
   call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% -d yes > %_LogFile% 2>&1
-  echo -- jenkins.testone.cmd ^>^> Running native tests... DONE!
+  echo -- ci.testone.cmd ^>^> Running native tests... DONE!
 
   if "%_error%" NEQ "0" (
-    echo -- jenkins.testone.cmd ^>^> runnativetests.cmd failed; printing %_LogFile%
+    echo -- ci.testone.cmd ^>^> runnativetests.cmd failed; printing %_LogFile%
     powershell "if (Test-Path %_LogFile%) { Get-Content %_LogFile% }"
     set _HadFailures=4
   )
@@ -148,11 +158,9 @@ set _error=0
 :summarizeLogs
 
   pushd %_LogDir%
-  findstr /sp failed rl.results.log > summary.log
   findstr /sip failed nativetests.log >> summary.log
   rem Echo to stderr so that VSO includes the output in the build summary
 
-  echo -- jenkins.testone.cmd ^>^> Printing summary...
   type summary.log 1>&2
   popd
 
@@ -161,7 +169,7 @@ set _error=0
 :: ============================================================================
 :do
 
-  echo -- jenkins.testone.cmd ^>^> :do %*
+  echo -- ci.testone.cmd ^>^> :do %*
   cmd /s /c "%*"
   set _error=%ERRORLEVEL%
 
@@ -173,8 +181,25 @@ set _error=0
 :: ============================================================================
 :doSilent
 
-  echo -- jenkins.testone.cmd ^>^> :doSilent %* ^> nul 2^>^&1
+  echo -- ci.testone.cmd ^>^> :doSilent %* ^> nul 2^>^&1
   cmd /s /c "%* > nul 2>&1"
   set _error=%ERRORLEVEL%
 
   goto :eof
+
+
+:: ============================================================================
+:: Not enough params
+:: ============================================================================
+:usage
+
+    echo Not enough parameters. Please specify architecture and type.
+    echo Examples:
+    echo.
+    echo     %_ENTRY_SCRIPT_NAME% x86 debug
+    echo     %_ENTRY_SCRIPT_NAME% x86 test
+    echo.
+    echo     %_ENTRY_SCRIPT_NAME% x64 debug
+    echo     %_ENTRY_SCRIPT_NAME% x64 test
+
+    goto :end

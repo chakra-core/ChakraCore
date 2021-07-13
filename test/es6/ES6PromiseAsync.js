@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -1399,6 +1400,419 @@ var tests = [
             });
 
             Promise.race.call(FakePromise, [1, 2]);
+        }
+    },
+    {
+        name: "Promise.any gets the constructor's resolve function only once",
+        body: function(index) {
+            function FakePromise(fn) {
+                fn(function() {}, function() {});
+                this.then = function(onResolve, onReject) {};
+            }
+            FakePromise.reject = Promise.reject;
+
+            Object.defineProperty(FakePromise, 'resolve', {
+                get: function() {
+                    echo(`Test #${index} - get constructor resolve`);
+                    return function(x) {
+                        echo(`Test #${index} - constructor resolve called`);
+                        return Promise.resolve(x);
+                    };
+                }
+            });
+
+            Promise.any.call(FakePromise, [
+                FakePromise.reject(1),
+                FakePromise.reject(2)
+            ]);
+        }
+    },
+    {
+        name: "Promise.any with an object containing a non-function iterator property",
+        body: function (index) {
+            var objectWithNonObjectIterator = {
+                [Symbol.iterator]: 123
+            };
+            
+            var p = Promise.any(objectWithNonObjectIterator);
+            p.catch(
+                function(err) {
+                    echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any with this argument missing the resolve function",
+        body: function (index) {
+            var _resolve = Promise.resolve;
+            Promise.resolve = undefined;
+            
+            var p = Promise.any([Promise.reject(42)]);
+            p.catch(
+                function(err) {
+                    echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
+                }
+            );
+            
+            Promise.resolve = _resolve;
+        }
+    },
+    {
+        name: "Promise.any with this argument resolve function returning a non-object",
+        body: function (index) {
+            var _resolve = Promise.resolve;
+            Promise.resolve = function() { return undefined; };
+            
+            var p = Promise.any([Promise.reject(42)]);
+            p.catch(
+                function(err) {
+                    echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
+                }
+            );
+            
+            Promise.resolve = _resolve;
+        }
+    },
+    {
+        name: "Promise.any with this argument resolve function returning an object with no then function",
+        body: function (index) {
+            var _resolve = Promise.resolve;
+            Promise.resolve = function() { return {}; };
+            
+            var p = Promise.any([Promise.reject(42)]);
+            p.catch(
+                function(err) {
+                    echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
+                }
+            );
+            
+            Promise.resolve = _resolve;
+        }
+    },
+    {
+        name: "Promise.any with an object containing an iterator that throws",
+        body: function (index) {
+            var objectWithIterator = {
+                [Symbol.iterator]: function() {
+                    return {
+                        next: function () { 
+                            throw new TypeError('failure inside iterator');
+                        }
+                    };
+                }
+            };
+            
+            var p = Promise.any(objectWithIterator);
+            p.catch(
+                function(err) {
+                    echo('Test #' + index + ' - Catch handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Catch handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any still returns a rejected promise if anything throws while iterating, even if resolved promises are encountered",
+        body: function (index) {
+            var objectWithIterator = {
+                [Symbol.iterator]: function() {
+                    return {
+                        i: 0,
+                        next: function () { 
+                            if (this.i > 2)
+                            {
+                                throw new TypeError('failure inside iterator');
+                            }
+                            
+                            this.i++;
+                            
+                            return {
+                                done: this.i == 5,
+                                value: Promise.resolve('resolved promise completion #' + this.i)
+                            };
+                        }
+                    };
+                }
+            };
+            
+            var p = Promise.any(objectWithIterator);
+            p.then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any fulfills with the same value as the first encountered resolved promise",
+        body: function (index) {
+            var promises = [
+                new Promise(function() {}),
+                Promise.resolve('first promise'),
+                Promise.resolve('second promise'),
+                Promise.reject('third promise')
+            ];
+            
+            var p = Promise.any(promises);
+            p.then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any fulfills with the same value as the first encountered resolved promise (promises complete async)",
+        body: function (index) {
+            var promises = [
+                new Promise(function() {}),
+                getAsyncResolvePromise('Test #' + index + ' - ', 'p1'),
+                getAsyncResolvePromise('Test #' + index + ' - ', 'p2'),
+                getAsyncRejectPromise('Test #' + index + ' - ', 'p3')
+            ];
+            
+            var p = Promise.any(promises);
+            p.then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any fulfills with the same value as the first encountered rejected promise (promises complete async)",
+        body: function (index) {
+            var promises = [
+                new Promise(function() {}),
+                getAsyncRejectPromise('Test #' + index + ' - ', 'p1'),
+                getAsyncResolvePromise('Test #' + index + ' - ', 'p2'),
+                getAsyncResolvePromise('Test #' + index + ' - ', 'p3')
+            ];
+            
+            var p = Promise.any(promises);
+            p.then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should wait until one resolve",
+        body: function (index) {
+            const list = [
+                Promise.reject(1),
+                getAsyncRejectPromise('Test #' + index + ' - ', 2),
+                getAsyncResolvePromise('Test #' + index + ' - ', 3),
+                getAsyncRejectPromise('Test #' + index + ' - ', 4),
+                Promise.reject(5),
+            ]
+
+            Promise.any(list).then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err){
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + JSON.stringify(err.message));
+                    echo('Test #' + index + ' - Error handler #1 called with err.name = ' + err.name);
+                    echo('Test #' + index + ' - Error handler #1 called with err.errors = ' + JSON.stringify(err.errors));
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should wait until all reject",
+        body: function (index) {
+            const list = [
+                Promise.reject(1),
+                getAsyncRejectPromise('Test #' + index + ' - ', 2),
+                getAsyncRejectPromise('Test #' + index + ' - ', 3),
+                getAsyncRejectPromise('Test #' + index + ' - ', 4),
+                Promise.reject(5),
+            ]
+            Promise.any(list).then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err){
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + JSON.stringify(err.message));
+                    echo('Test #' + index + ' - Error handler #1 called with err.name = ' + err.name);
+                    echo('Test #' + index + ' - Error handler #1 called with err.errors = ' + JSON.stringify(err.errors));
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should not call return",
+        body: function (index) {
+            function it() {
+                return {
+                    [Symbol.iterator]() {
+                        echo(`Test #${index} - get iterator called`);
+                        return this;
+                    },
+                    i: 2,
+                    next() {
+                        if (this.i > 0) {
+                            let i = this.i--;
+                            echo(`Test #${index} - iterator next called: ${i}`);
+                            return { value: i, done: false }
+                        } else {
+                            echo(`Test #${index} - iterator next throw`);
+                            throw new Error("BANG");
+                        }
+                    },
+                    return() {
+                        echo(`Test #${index} - iterator return called`);
+                    }
+                }
+            }
+
+            Promise.any(it()).then(
+                function (result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function (err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should call return once",
+        body: function (index) {
+            function it() {
+                return {
+                    [Symbol.iterator]() {
+                        echo(`Test #${index} - get iterator called`);
+                        return this;
+                    },
+                    i: 2,
+                    next() {
+                        if (this.i > 0) {
+                            let i = this.i--;
+                            echo(`Test #${index} - iterator next called: ${i}`);
+                            return { value: i, done: false }
+                        } else {
+                            echo(`Test #${index} - iterator next throw`);
+                            throw new Error("BANG");
+                        }
+                    },
+                    return() {
+                        echo(`Test #${index} - iterator return called`);
+                    }
+                }
+            }
+
+            Promise.resolve = function () { throw new Error(); }
+            Promise.any(it()).then(
+                function (result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function (err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should throw TypeError if resolve not a function",
+        body: function (index) {
+            class foo extends Promise {
+                static get resolve() {
+                    echo('Test #' + index + ' - resolve getter called');
+                    return 5;
+                }
+            }
+            Promise.any.call(foo, [2, 3]).then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any passes each element in it's argument to Promise.resolve",
+        body: function (index) {
+            var promises = [
+                'first promise value',
+                42,
+                new TypeError('some error')
+            ];
+            
+            var p = Promise.any(promises);
+            p.then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err) {
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
+                }
+            );
+        }
+    },
+    {
+        name: "Promise.any should failure with empty list",
+        body: function (index) {
+            Promise.any([]).then(
+                function(result) {
+                    echo('Test #' + index + ' - Success handler #1 called with result = ' + result);
+                },
+                function(err){
+                    echo('Test #' + index + ' - Error handler #1 called with err = ' + err);
+                    echo('Test #' + index + ' - Error handler #1 called with err.errors = ' + JSON.stringify(err.errors));
+                    echo('Test #' + index + ' - Error handler #1 called with err.message = ' + err.message);
+                }
+            )
+        }
+    },
+    {
+        name: "Promise.any should reject with aggregate error and errors",
+        body: function (index) {
+            function applyTest(list, idx) {
+                Promise.any(list).then(
+                    function(result) {
+                        echo('Test #' + index + ' - Success handler #' + idx + ' called with result = ' + result);
+                    },
+                    function(err){
+                        echo('Test #' + index + ' - Error handler #' + idx + ' called with err = ' + err);
+                        echo('Test #' + index + ' - Error handler #' + idx + ' called with err.message = ' + JSON.stringify(err.message));
+                        echo('Test #' + index + ' - Error handler #' + idx + ' called with err.name = ' + err.name);
+                        echo('Test #' + index + ' - Error handler #' + idx + ' called with err.errors = ' + JSON.stringify(err.errors));
+                    }
+                );
+            }
+
+            applyTest([], 1)
+            applyTest([Promise.reject(1)], 2)
+            applyTest([Promise.reject(1), Promise.reject(2), Promise.reject(3)], 3)
         }
     }
 ];

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -5134,13 +5135,13 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
 
         if (unrestorableSymbols.TestAndClear(value->m_id))
         {
-            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
+            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Value()))
             {
                 BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, value->m_id /* toBackendId */);
                 bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
             }
         }
-        else if (unrestorableSymbols.TestAndClear(key->m_id))
+        if (unrestorableSymbols.TestAndClear(key->m_id))
         {
             if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
             {
@@ -5301,7 +5302,7 @@ bool LinearScan::GeneratorBailIn::NeedsReloadingBackendSymWhenBailingIn(StackSym
 {
     // for-in enumerator in generator is loaded as part of the resume jump table.
     // By the same reasoning as `initializedRegs`'s, we don't have to restore this whether or not it's been spilled.
-    if (this->func->GetForInEnumeratorSymForGeneratorSym() && this->func->GetForInEnumeratorSymForGeneratorSym()->m_id == sym->m_id)
+    if (this->func->GetGeneratorFrameSym() && this->func->GetGeneratorFrameSym()->m_id == sym->m_id)
     {
         return false;
     }

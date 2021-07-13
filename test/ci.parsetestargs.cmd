@@ -1,12 +1,8 @@
 ::-------------------------------------------------------------------------------------------------------
 :: Copyright (C) Microsoft. All rights reserved.
+:: Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 :: Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ::-------------------------------------------------------------------------------------------------------
-
-if not "%JENKINS_BUILD%" == "True" (
-    echo This script should be run under a Jenkins Build environment
-    exit /b 2
-)
 
 if "%_ENTRY_SCRIPT_NAME%"=="" (
     echo This script is a utility and should not be called as a script entry point.
@@ -74,7 +70,8 @@ if not "%1"=="" (
 
     if "%1"=="-disablejit" (
         set _SpecialBuild=.NoJIT
-        REM fallthrough to default (also add this to %_ExtraTestArgs%)
+        shift
+        goto :ContinueArgParse
     )
 
     if "%1"=="-lite" (

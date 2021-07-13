@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -113,6 +114,11 @@ IRBuilder::DoBailOnNoProfile()
 #endif
 
     if (!this->m_func->HasProfileInfo())
+    {
+        return false;
+    }
+
+    if (m_func->GetTopFunc()->GetJITFunctionBody()->IsCoroutine())
     {
         return false;
     }
@@ -1255,7 +1261,7 @@ IRBuilder::EnsureLoopBodyForInEnumeratorArrayOpnd()
 }
 
 IR::Opnd *
-IRBuilder::BuildForInEnumeratorOpnd(uint forInLoopLevel)
+IRBuilder::BuildForInEnumeratorOpnd(uint forInLoopLevel, uint32 offset)
 {
     Assert(forInLoopLevel < this->m_func->GetJITFunctionBody()->GetForInLoopDepth());
     if (this->IsLoopBody())
@@ -1270,7 +1276,7 @@ IRBuilder::BuildForInEnumeratorOpnd(uint forInLoopLevel)
     else if (this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         return IR::IndirOpnd::New(
-            this->m_generatorJumpTable.EnsureForInEnumeratorArrayOpnd(),
+            this->m_generatorJumpTable.BuildForInEnumeratorArrayOpnd(offset),
             forInLoopLevel * sizeof(Js::ForInObjectEnumerator),
             TyMachPtr,
             this->m_func
@@ -1630,6 +1636,15 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             const auto floatConstOpnd = IR::FloatConstOpnd::New(Js::JavascriptNumber::NaN, TyFloat64, m_func);
             srcOpnd = floatConstOpnd;
             newOpcode = Js::OpCode::LdC_A_R8;
+            break;
+        }
+
+    case Js::OpCode::LdBaseFncProto:
+        {
+            // reuseLoc set to true as this is only used when that is wanted - during class extension
+            reuseLoc = true;
+            srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            newOpcode = Js::OpCode::Ld_A;
             break;
         }
 
@@ -2949,7 +2964,7 @@ IRBuilder::BuildProfiledReg1Unsigned1(Js::OpCode newOpcode, uint32 offset, Js::R
     if (newOpcode == Js::OpCode::InitForInEnumerator)
     {
         IR::RegOpnd * src1Opnd = this->BuildSrcOpnd(R0);
-        IR::Opnd * src2Opnd = this->BuildForInEnumeratorOpnd(C1);
+        IR::Opnd * src2Opnd = this->BuildForInEnumeratorOpnd(C1, offset);
         IR::Instr *instr = IR::ProfiledInstr::New(Js::OpCode::InitForInEnumerator, nullptr, src1Opnd, src2Opnd, m_func);
         instr->AsProfiledInstr()->u.profileId = profileId;
         this->AddInstr(instr, offset);
@@ -3084,7 +3099,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
         {
             IR::Instr *instr = IR::Instr::New(Js::OpCode::InitForInEnumerator, m_func);
             instr->SetSrc1(this->BuildSrcOpnd(R0));
-            instr->SetSrc2(this->BuildForInEnumeratorOpnd(C1));
+            instr->SetSrc2(this->BuildForInEnumeratorOpnd(C1, offset));
             this->AddInstr(instr, offset);
             return;
         }
@@ -6896,24 +6911,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset)
 
 template <typename SizePolicy>
 void
-IRBuilder::BuildBrReg3(Js::OpCode newOpcode, uint32 offset)
-{
-    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
-    Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_BrReg3<SizePolicy>>();
-
-    if (!PHASE_OFF(Js::ClosureRegCheckPhase, m_func))
-    {
-        this->DoClosureRegCheck(layout->R0);
-        this->DoClosureRegCheck(layout->R1);
-        this->DoClosureRegCheck(layout->R2);
-    }
-
-    BuildBrReg3(newOpcode, offset, m_jnReader.GetCurrentOffset() + layout->RelativeJumpOffset, layout->R0, layout->R1, layout->R2);
-}
-
-template <typename SizePolicy>
-void
 IRBuilder::BuildBrReg1Unsigned1(Js::OpCode newOpcode, uint32 offset)
 {
     Assert(newOpcode == Js::OpCode::BrOnEmpty
@@ -6935,7 +6932,7 @@ IRBuilder::BuildBrReg1Unsigned1(Js::OpCode newOpcode, uint32 offset)
 void
 IRBuilder::BuildBrBReturn(Js::OpCode newOpcode, uint32 offset, Js::RegSlot DestRegSlot, uint32 forInLoopLevel, uint32 targetOffset)
 {
-    IR::Opnd *srcOpnd = this->BuildForInEnumeratorOpnd(forInLoopLevel);
+    IR::Opnd *srcOpnd = this->BuildForInEnumeratorOpnd(forInLoopLevel, offset);
     IR::RegOpnd *     destOpnd = this->BuildDstOpnd(DestRegSlot);
     IR::BranchInstr * branchInstr = IR::BranchInstr::New(newOpcode, destOpnd, nullptr, srcOpnd, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);
@@ -6995,64 +6992,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     {
         branchInstr = IR::BranchInstr::New(newOpcode, nullptr, src1Opnd, src2Opnd, m_func);
         this->AddBranchInstr(branchInstr, offset, targetOffset);
-    }
-}
-
-
-void
-IRBuilder::BuildBrReg3(Js::OpCode newOpcode, uint32 offset, uint targetOffset, Js::RegSlot R0, Js::RegSlot R1, Js::RegSlot R2)
-{
-    switch (newOpcode)
-    {
-        case Js::OpCode::CheckExtends:
-        {
-            IR::RegOpnd * opndExtends = BuildSrcOpnd(R2);
-            // If extends is Null, assign appropriate values to ctorParent and protoParent and jump to target offset.
-            IR::LabelInstr * labelNotNull = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-            IR::BranchInstr * branchInstr = IR::BranchInstr::New(Js::OpCode::BrOnNotNullObj_A, labelNotNull, opndExtends, m_func);
-            this->AddInstr(branchInstr, offset);
-
-            IR::AddrOpnd * opndNullAddr = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetNullAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
-            IR::RegOpnd * opndProtoParent = BuildDstOpnd(R1);
-            IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, opndProtoParent, opndNullAddr, m_func);
-            opndNullAddr->SetValueType(ValueType::Null);
-            this->AddInstr(instr, offset);
-
-            IR::AddrOpnd * opndFuncProto = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFunctionPrototypeAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
-            IR::RegOpnd * opndCtorParent = BuildDstOpnd(R0);
-            instr = IR::Instr::New(Js::OpCode::Ld_A, opndCtorParent, opndFuncProto, m_func);
-            this->AddInstr(instr, offset);
-
-            branchInstr = IR::BranchInstr::New(Js::OpCode::Br, nullptr, m_func);
-            this->AddBranchInstr(branchInstr, offset, targetOffset);
-
-            this->AddInstr(labelNotNull, offset);
-
-            IR::LabelInstr * labelIsCtor = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-            IR::BranchInstr * brIsCtor = IR::BranchInstr::New(Js::OpCode::BrOnConstructor_A, labelIsCtor, opndExtends, m_func);
-            this->AddInstr(brIsCtor, offset);
-
-            instr = IR::Instr::New(Js::OpCode::RuntimeTypeError, m_func);
-            instr->SetSrc1(IR::IntConstOpnd::New(SCODE_CODE(JSERR_ErrorOnNew), TyInt32, m_func, true));
-            this->AddInstr(instr, offset);
-
-            this->AddInstr(labelIsCtor, offset);
-
-            if (R0 == R2 && opndCtorParent->m_sym != opndExtends->m_sym)
-            {
-                // The byte code doesn't contain a Ld_A, since the byte code regs are the same, but they've been renumbered in the JIT,
-                // so we have to assign from one to the other.
-                instr = IR::Instr::New(Js::OpCode::Ld_A, opndCtorParent, opndExtends, m_func);
-                this->AddInstr(instr, offset);
-            }
-
-            break;
-        }
-
-        default:
-            AssertMsg(false, "Unknown BrReg3 opcode");
-            break;
-
     }
 }
 
@@ -7922,14 +7861,12 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     //
     // s1 = Ld_A prm1
     // s2 = Ld_A s1[offset of JavascriptGenerator::frame]
-    //      BrNotAddr_A s2 !nullptr $initializationCode
+    //      BrNotAddr_A s2 !nullptr $jumpTable
     //
     // $createInterpreterStackFrame:
     // call helper
     //
-    // $initializationCode:
-    // load for-in enumerator address from interpreter stack frame
-    //
+    // Br $startOfFunc
     // 
     // $jumpTable:
     //
@@ -7963,23 +7900,25 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     IR::LabelInstr* functionBegin = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     LABELNAMESET(functionBegin, "GeneratorFunctionBegin");
 
-    IR::LabelInstr* initCode = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    LABELNAMESET(initCode, "GeneratorInitializationAndJumpTable");
+    IR::LabelInstr* jumpTable = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    LABELNAMESET(jumpTable, "GeneratorJumpTable");
 
-    // BrNotAddr_A s2 nullptr $initializationCode
-    IR::BranchInstr* skipCreateInterpreterFrame = IR::BranchInstr::New(Js::OpCode::BrNotAddr_A, initCode, genFrameOpnd, IR::AddrOpnd::NewNull(this->m_func), this->m_func);
+    // If there is already a stack frame, generator function has previously begun execution - don't recreate, skip down to jump table
+    // BrNotAddr_A s2 nullptr $jumpTable
+    IR::BranchInstr* skipCreateInterpreterFrame = IR::BranchInstr::New(Js::OpCode::BrNotAddr_A, jumpTable, genFrameOpnd, IR::AddrOpnd::NewNull(this->m_func), this->m_func);
     this->m_irBuilder->AddInstr(skipCreateInterpreterFrame, this->m_irBuilder->m_functionStartOffset);
 
     // Create interpreter stack frame
     IR::Instr* createInterpreterFrame = IR::Instr::New(Js::OpCode::GeneratorCreateInterpreterStackFrame, genFrameOpnd /* dst */, genRegOpnd /* src */, this->m_func);
     this->m_irBuilder->AddInstr(createInterpreterFrame, this->m_irBuilder->m_functionStartOffset);
 
+    // Having created the frame, skip over the jump table and start executing from the beginning of the function
     IR::BranchInstr* skipJumpTable = IR::BranchInstr::New(Js::OpCode::Br, functionBegin, this->m_func);
     this->m_irBuilder->AddInstr(skipJumpTable, this->m_irBuilder->m_functionStartOffset);
 
-    // Label to insert any initialization code
-    // $initializationCode:
-    this->m_irBuilder->AddInstr(initCode, this->m_irBuilder->m_functionStartOffset);
+    // Label for start of jumpTable - where we look for the correct Yield resume point
+    // $jumpTable:
+    this->m_irBuilder->AddInstr(jumpTable, this->m_irBuilder->m_functionStartOffset);
 
     // s3 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_currentLocation]
     IR::RegOpnd* curLocOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
@@ -8015,46 +7954,24 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
 
     this->m_irBuilder->AddInstr(functionBegin, this->m_irBuilder->m_functionStartOffset);
 
-    // Save these values for later use
-    this->m_initLabel = initCode;
+    // Save this value for later use
     this->m_generatorFrameOpnd = genFrameOpnd;
+    this->m_func->SetGeneratorFrameSym(genFrameOpnd->GetStackSym());
 
     return this->m_irBuilder->m_lastInstr;
 }
 
-IR::LabelInstr*
-IRBuilder::GeneratorJumpTable::GetInitLabel() const
-{
-    Assert(this->m_initLabel != nullptr);
-    return this->m_initLabel;
-}
-
 IR::RegOpnd*
-IRBuilder::GeneratorJumpTable::CreateForInEnumeratorArrayOpnd()
-{
-    Assert(this->m_initLabel != nullptr);
+IRBuilder::GeneratorJumpTable::BuildForInEnumeratorArrayOpnd(uint32 offset)
+{   
     Assert(this->m_generatorFrameOpnd != nullptr);
 
-    IR::RegOpnd* forInEnumeratorOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    IR::Instr* instr = IR::Instr::New(
-        Js::OpCode::Ld_A,
-        forInEnumeratorOpnd,
+    IR::RegOpnd* forInEnumeratorArrayOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::Ld_A, forInEnumeratorArrayOpnd,
         POINTER_OFFSET(this->m_generatorFrameOpnd, Js::InterpreterStackFrame::GetOffsetOfForInEnumerators(), ForInEnumerators),
         this->m_func
     );
-    this->m_initLabel->InsertAfter(instr);
+    this->m_irBuilder->AddInstr(instr, offset);
 
-    return forInEnumeratorOpnd;
-}
-
-IR::RegOpnd*
-IRBuilder::GeneratorJumpTable::EnsureForInEnumeratorArrayOpnd()
-{
-    if (this->m_forInEnumeratorArrayOpnd == nullptr)
-    {
-        this->m_forInEnumeratorArrayOpnd = this->CreateForInEnumeratorArrayOpnd();
-        this->m_func->SetForInEnumeratorSymForGeneratorSym(m_forInEnumeratorArrayOpnd->GetStackSym());
-    }
-
-    return this->m_forInEnumeratorArrayOpnd;
+    return forInEnumeratorArrayOpnd;
 }

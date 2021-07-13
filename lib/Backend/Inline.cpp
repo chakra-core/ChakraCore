@@ -3813,6 +3813,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperObject_HasOwnProperty, callInstr->m_func));
         break;
 
+    case Js::BuiltinFunction::JavascriptObject_HasOwn:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperObject_HasOwn, callInstr->m_func));
+        break;
+
     case Js::BuiltinFunction::JavascriptArray_IsArray:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_IsArray, callInstr->m_func));
         break;

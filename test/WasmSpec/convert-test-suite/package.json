@@ -9,11 +9,12 @@
   "author": "Michael Ferris",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "fs-extra": "^0.30.0",
-    "json5": "^2.1.0",
+    "bluebird": "^3.7.2",
+    "fs-extra": "^9.1.0",
+    "json5": "^2.2.0",
+    "klaw": "^3.0.0",
     "sexpr-plus": "^7.0.0",
-    "slash": "^1.0.0",
-    "yargs": "^4.7.1"
+    "slash": "^3.0.0",
+    "yargs": "^16.2.0"
   }
 }

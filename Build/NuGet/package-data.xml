@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<packageData
+  xmlns="https://github.com/chakra-core/ChakraCore"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="https://github.com/chakra-core/ChakraCore package-data.xsd">
+  <commonProperties>
+    <defaultProperties>
+      <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
+      <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Roadmap#release-notes</releaseNotes>
+      <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
+    </defaultProperties>
+    <commonMetadataElements>
+      <authors>Microsoft</authors>
+      <owners>Chakra Team</owners>
+      <license type="file">LICENSE.txt</license>
+      <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
+      <requireLicenseAcceptance>false</requireLicenseAcceptance>
+      <developmentDependency>true</developmentDependency>
+      <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+      <language>en-US</language>
+    </commonMetadataElements>
+    <commonFileElements>
+      <file src="..\..\..\LICENSE.txt" target="" />
+    </commonFileElements>
+  </commonProperties>
+  <packages>
+    <package id="Microsoft.ChakraCore" nuspecFile="Windows.DotNet.All\Primary.nuspec" />
+    <package id="Microsoft.ChakraCore.symbols" nuspecFile="Windows.DotNet.All\Symbols.nuspec" />
+    <package id="Microsoft.ChakraCore.win-x86" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+      <properties>
+        <platformArchitecture>x86</platformArchitecture>
+        <runtimeIdentifier>win-x86</runtimeIdentifier>
+      </properties>
+      <preprocessableFiles>
+        <file src="Windows.DotNet.Arch\Items.props.mustache"
+              target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.props" />
+      </preprocessableFiles>
+    </package>
+    <package id="Microsoft.ChakraCore.win-x64" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+      <properties>
+        <platformArchitecture>x64</platformArchitecture>
+        <runtimeIdentifier>win-x64</runtimeIdentifier>
+      </properties>
+      <preprocessableFiles>
+        <file src="Windows.DotNet.Arch\Items.props.mustache"
+              target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.props" />
+      </preprocessableFiles>
+    </package>
+    <package id="Microsoft.ChakraCore.win-arm" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+      <properties>
+        <platformArchitecture>arm</platformArchitecture>
+        <runtimeIdentifier>win-arm</runtimeIdentifier>
+      </properties>
+      <preprocessableFiles>
+        <file src="Windows.DotNet.Arch\Items.props.mustache"
+              target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.props" />
+      </preprocessableFiles>
+    </package>
+    <package id="Microsoft.ChakraCore.vc140" nuspecFile="Windows.Cpp.All\Primary.nuspec">
+      <properties>
+        <tags>{{{base}}},nativepackage,C++,vc140</tags>
+      </properties>
+    </package>
+  </packages>
+</packageData>

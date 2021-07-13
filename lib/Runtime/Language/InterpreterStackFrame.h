@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -476,6 +477,7 @@ namespace Js
         BOOL OP_BrFalse_A(Var aValue, ScriptContext* scriptContext);
         BOOL OP_BrTrue_A(Var aValue, ScriptContext* scriptContext);
         BOOL OP_BrNotNull_A(Var aValue);
+        bool OP_BrOnNotNullObj_A(Var aValue);
         BOOL OP_BrUndecl_A(Var aValue);
         BOOL OP_BrNotUndecl_A(Var aValue);
         BOOL OP_BrOnHasProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
@@ -483,6 +485,7 @@ namespace Js
         BOOL OP_BrOnHasEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
         BOOL OP_BrOnBaseConstructorKind(Var aValue);
+        bool OP_BrOnConstructor(Var aValue);
 
         RecyclableObject * OP_CallGetFunc(Var target);
 
@@ -789,7 +792,7 @@ namespace Js
         Var OP_InitBaseClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RegSlot protoReg);
         Var OP_InitClass(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var ctorParent, Var protoParent, RegSlot protoReg);
         Var InitClassHelper(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, RecyclableObject *protoParent, RecyclableObject *constructorParent, RegSlot protoReg);
-        bool OP_CheckExtends(RegSlot ctorParent, RegSlot protoParent, RegSlot extends);
+        Var OP_LdBaseFncProto();
         inline Var OP_LdHomeObj(ScriptContext * scriptContext);
         inline Var OP_LdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);

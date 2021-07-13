@@ -15,16 +15,16 @@ jobs:
       vmImage: 'ubuntu-latest'
 
     steps:
-    - script: jenkins/check_copyright.sh
+    - script: tools/StyleChecks/check_copyright.sh
       displayName: "Copyright Check"
 
-    - script: jenkins/check_ascii.sh
+    - script: tools/StyleChecks/check_ascii.sh
       displayName: "Ascii Check"
 
-    - script: jenkins/check_eol.sh
+    - script: tools/StyleChecks/check_eol.sh
       displayName: "EOL Check"
 
-    - script: jenkins/check_tabs.sh
+    - script: tools/StyleChecks/check_tabs.sh
       displayName: "Tab Check"
 
   - job: CMake
@@ -32,60 +32,46 @@ jobs:
     strategy:
       maxParallel: 6
       matrix:
-        Linux.Debug:
+        Linux.NoJit:
           image_name: 'ubuntu-20.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Debug'
-          do_test: true
-          libtype_flag: ''
+          libtype_flag: '-DDISABLE_JIT=ON'
         Linux.ReleaseWithDebug:
           image_name: 'ubuntu-20.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
-          do_test: true
           libtype_flag: ''
         Linux.Release:
           image_name: 'ubuntu-20.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
-          do_test: false
           libtype_flag: ''
-        Ubuntu18.Debug:
+        Ubuntu18.ReleaseWithDebug:
           image_name: 'ubuntu-18.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
-          build_type: 'Debug'
-          do_test: true
+          build_type: 'RelWithDebInfo'
           libtype_flag: ''
         Ubuntu18.Release:
           image_name: 'ubuntu-18.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
-          do_test: false
           libtype_flag: ''
-        OSX.noJit:
+        OSX.DebugNoICU:
           image_name: 'macOS-latest'
-          deps: 'brew install ninja icu4c'
+          deps: 'brew install ninja'
           build_type: 'Debug'
-          do_test: true
-          libtype_flag: '-DSTATIC_LIBRARY=ON -DDISABLE_JIT=1'
-        OSX.Debug:
-          image_name: 'macOS-latest'
-          deps: 'brew install ninja icu4c'
-          build_type: 'Debug'
-          do_test: true
           libtype_flag: '-DSTATIC_LIBRARY=ON'
         OSX.ReleaseWithDebug:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'RelWithDebInfo'
-          do_test: true
-          libtype_flag: ''
+          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
         OSX.Release:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'Release'
-          do_test: false
-          libtype_flag: ''
+          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
 
     pool:
       vmImage: $(image_name)
@@ -115,7 +101,6 @@ jobs:
         cd build
         ninja check
       displayName: 'Test'
-      condition: eq(variables['do_test'], true)
 
   - job: MSVC
     timeoutInMinutes: 120
@@ -127,38 +112,58 @@ jobs:
         x86.Debug:
           build_type: 'debug'
           target: 'x86'
+          special_build: ''
           do_test: true
+          test_tags: ''
         x86.Test:
           build_type: 'test'
           target: 'x86'
+          special_build: ''
           do_test: true
+          test_tags: '--include-slow'
+        x86.NoJit:
+          build_type: 'debug'
+          target: 'x86'
+          special_build: '"/p:BuildJIT=false"'
+          do_test: true
+          test_tags: '-disablejit'
         x86.Release:
           build_type: 'release'
           target: 'x86'
+          special_build: ''
           do_test: false
+          test_tags: ''
         x64.Debug:
           build_type: 'debug'
           target: 'x64'
+          special_build: ''
           do_test: true
+          test_tags: ''
         x64.Test:
           build_type: 'test'
           target: 'x64'
+          special_build: ''
           do_test: true
+          test_tags: '--include-slow'
         x64.Release:
           build_type: 'release'
           target: 'x64'
+          special_build: ''
           do_test: false
+          test_tags: ''
       
     steps:
-    - script: jenkins\buildone.cmd %TARGET% %BUILD%
+    - script: test\ci.buildone.cmd %TARGET% %BUILD% %SPECIAL%
       displayName: 'Build'
       env:
         TARGET: $(target)
         BUILD: $(build_type)
+        SPECIAL: $(special_build)
 
-    - script: jenkins\testone.cmd %TARGET% %BUILD%
+    - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
       displayName: 'Test'
       condition: eq(variables['do_test'], true)
       env:
         TARGET: $(target)
         BUILD: $(build_type)
+        TEST_TAGS: ${test_tags}

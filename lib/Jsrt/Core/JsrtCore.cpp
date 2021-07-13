@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
@@ -1460,7 +1461,7 @@ CHAKRA_API JsIsCallable(_In_ JsValueRef object, _Out_ bool *isCallable)
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(isCallable);
 
-        *isCallable = Js::JavascriptConversion::IsCallable(object);
+        *isCallable = Js::JavascriptConversion::IsCallable(object) && !Js::JavascriptOperators::IsClassConstructor(object);
 
         return JsNoError;
     });

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -49,12 +50,17 @@ Var JavascriptAsyncGeneratorFunction::EntryAsyncGeneratorFunctionImplementation(
 
     auto* asyncGeneratorFn = VarTo<JavascriptAsyncGeneratorFunction>(function);
     auto* library = scriptContext->GetLibrary();
-    auto* prototype = VarTo<DynamicObject>(JavascriptOperators::GetPropertyNoCache(
-            function, Js::PropertyIds::prototype, scriptContext));
+    Var prototype = JavascriptOperators::GetPropertyNoCache(function, Js::PropertyIds::prototype, scriptContext);
+
+    // fall back to the original prototype if we have an invalid prototype object
+    DynamicObject* protoObject = VarIs<DynamicObject>(prototype) ?
+        UnsafeVarTo<DynamicObject>(prototype) : library->GetAsyncGeneratorPrototype();
+
     auto* scriptFn = asyncGeneratorFn->GetGeneratorVirtualScriptFunction();
-    auto* generator = library->CreateAsyncGenerator(args, scriptFn, prototype);
+    auto* generator = library->CreateAsyncGenerator(args, scriptFn, protoObject);
 
     // Run the generator to execute until the beginning of the body
+    if (scriptFn->GetFunctionInfo()->GetGeneratorWithComplexParams())
     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
     {
         generator->CallGenerator(library->GetUndefined(), ResumeYieldKind::Normal);

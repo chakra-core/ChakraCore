@@ -1,7 +1,9 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #if defined(PHASE) || defined(PHASE_DEFAULT_ON) || defined(PHASE_DEFAULT_OFF)
 #ifndef PHASE
 #define PHASE(name)
@@ -668,8 +670,19 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESNumericSeparator      (true)
 #define DEFAULT_CONFIG_ESHashbang              (true)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
+#define DEFAULT_CONFIG_ESArrayFindFromLast     (false)
+#define DEFAULT_CONFIG_ESPromiseAny            (true)
 #define DEFAULT_CONFIG_ESNullishCoalescingOperator (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
+
+// Jitting generators has not been tested on ARM
+// enabled only for x86 and x64 for now
+#ifdef _M_ARM32_OR_ARM64
+    #define DEFAULT_CONFIG_JitES6Generators            (false)
+#else
+    #define DEFAULT_CONFIG_JitES6Generators            (true)
+#endif
+
 #ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
     // If ES6RegExPrototypeProperties needs to be disabled by compile flag, DEFAULT_CONFIG_ES6RegExPrototypeProperties should be false
     #define DEFAULT_CONFIG_ES6RegExPrototypeProperties (false)
@@ -1194,6 +1207,11 @@ FLAGR(Boolean, ESHashbang, "Enable Hashbang syntax", DEFAULT_CONFIG_ESHashbang)
 // ES Symbol.prototype.description flag
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)
 
+FLAGR(Boolean, ESArrayFindFromLast, "Enable findLast, findLastIndex for Array.prototype and TypedArray.prorotype", DEFAULT_CONFIG_ESArrayFindFromLast)
+
+// ES Promise.any and AggregateError flag
+FLAGR(Boolean, ESPromiseAny, "Enable Promise.any and AggregateError", DEFAULT_CONFIG_ESPromiseAny)
+
 // ES import.meta keyword meta-property
 FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImportMeta)
 
@@ -1201,7 +1219,7 @@ FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImpo
 FLAGR(Boolean, ESGlobalThis, "Enable globalThis", DEFAULT_CONFIG_ESGlobalThis)
 
 // This flag to be removed once JITing generator functions is stable
-FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", false)
+FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", DEFAULT_CONFIG_JitES6Generators)
 
 FLAGNR(Boolean, FastLineColumnCalculation, "Enable fast calculation of line/column numbers from the source.", DEFAULT_CONFIG_FastLineColumnCalculation)
 FLAGR (String,  Filename              , "Jscript source file", nullptr)

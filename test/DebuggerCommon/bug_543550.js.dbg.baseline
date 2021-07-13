@@ -56,7 +56,6 @@
         "size": {
           "#__proto__": "Object {...}",
           "message": "string Map.prototype.size: 'this' is not a Map object",
-          "description": "string Map.prototype.size: 'this' is not a Map object",
           "number": "number -2146823172",
           "stack": "string TypeError: Map.prototype.size: 'this' is not a Map object\n\tat Global code (bug_543550.js:8:1)"
         },

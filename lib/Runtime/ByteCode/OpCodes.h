@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // Default all macro to nothing
@@ -161,15 +162,15 @@ MACRO_WMS(              BrSrEq_A,           BrReg2,         OpSideEffect|OpOpndH
 MACRO_WMS(              BrSrNeq_A,          BrReg2,         OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources)        // Branch if '!=='  (not strict equals)   (NOTE: May have DOM implicit calls)
 MACRO_EXTEND(           BrOnHasProperty,    BrProperty,     OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources)        // Branch if object has the given property (NOTE: May have DOM implicit calls)
 MACRO_EXTEND(           BrOnNoProperty,     BrProperty,     OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources)        // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
-MACRO(                  BrOnHasLocalProperty,BrLocalProperty,OpSideEffect|OpTempNumberSources|OpTempObjectSources)                              // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
+MACRO(                  BrOnHasLocalProperty,BrLocalProperty,OpSideEffect|OpTempNumberSources|OpTempObjectSources)                              // Branch if object has the given property (NOTE: May have DOM implicit calls)
 MACRO_BACKEND_ONLY(     BrOnNoLocalProperty,BrLocalProperty,OpSideEffect|OpTempNumberSources|OpTempObjectSources)                              // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
-MACRO_EXTEND(           BrOnHasEnvProperty,  BrEnvProperty, OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources)        // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
+MACRO_EXTEND(           BrOnHasEnvProperty,  BrEnvProperty, OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources)        // Branch if object has the given property (NOTE: May have DOM implicit calls)
 MACRO_BACKEND_ONLY(     BrOnNoEnvProperty,  BrEnvProperty,  OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources)        // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
-MACRO(                  BrOnHasLocalEnvProperty, BrEnvProperty,  OpSideEffect|OpTempNumberSources|OpTempObjectSources)                     // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
+MACRO(                  BrOnHasLocalEnvProperty, BrEnvProperty,  OpSideEffect|OpTempNumberSources|OpTempObjectSources)                     // Branch if object has the given property (NOTE: May have DOM implicit calls)
 MACRO_EXTEND(           BrOnNoLocalEnvProperty,  BrEnvProperty,  OpSideEffect|OpTempNumberSources|OpTempObjectSources)                     // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
 MACRO_WMS(              BrOnObject_A,       BrReg1,         OpSideEffect|OpTempNumberSources|OpTempObjectSources)                          // Branch if typeId is not primitive type (i.e. > TypeIds_LastJavascriptPrimitiveType)
 MACRO_WMS(              BrNotNull_A,        BrReg1,         OpSideEffect|OpTempNumberSources|OpTempObjectSources)                          // Branch if not NULL
-MACRO_BACKEND_ONLY(     BrOnNotNullObj_A,   BrReg1,         OpTempNumberSources|OpTempObjectSources)
+MACRO_WMS(              BrOnNotNullObj_A,   BrReg1,         OpTempNumberSources|OpTempObjectSources)
 MACRO_EXTEND_WMS(       BrOnObjectOrNull_A, BrReg1,         OpTempNumberSources|OpTempObjectSources)
 MACRO_EXTEND_WMS(       BrNotUndecl_A,      BrReg1,         OpSideEffect|OpTempNumberSources|OpTempObjectSources)                          // Branch if source reg is NEQ to Undecl
 MACRO_BACKEND_ONLY(     BrNotEq_A,          Empty,          OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources) // Branch if !'>='
@@ -394,9 +395,9 @@ MACRO_EXTEND_WMS(       InitClassMemberSetComputedName,ElementI,    OpSideEffect
 MACRO_EXTEND_WMS(       InitClassMemberGetComputedName,ElementI,    OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Class member in get syntax with computed property name
 MACRO_EXTEND_WMS(       BrOnClassConstructor,       BrReg1,         None)               // Branch if argument is a class constructor
 MACRO_EXTEND_WMS(       BrOnBaseConstructorKind,    BrReg1,         None)               // Branch if argument's [[ConstructorKind]] is 'base'
+MACRO_EXTEND_WMS(       BrOnConstructor_A,          BrReg1,         None)               // Branch if argument is a Constructor
 MACRO_BACKEND_ONLY(     NewClassProto,              Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     NewClassConstructor,        Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     BrOnConstructor_A,          BrReg1,         None)
 
 MACRO_BACKEND_ONLY(     ArgIn_A,                    Empty,          None)       // Copy from "in slot" to "local slot", unchecked
 MACRO_WMS(              ArgIn0,                     Reg1,           OpByteCodeOnly)     // Copy from "in slot" to "local slot", unchecked
@@ -553,6 +554,7 @@ MACRO_BACKEND_ONLY(     LdEnv,              Reg1,           None)           // L
 MACRO_BACKEND_ONLY(     LdAsmJsEnv,         Reg1,           None)           // Load the asm.js memory
 
 MACRO_WMS(              LdArgCnt,           Reg1,           None)           // Load the argument count from the current function
+MACRO_WMS(              LdBaseFncProto,     Reg1,           None)
 
 MACRO_BACKEND_ONLY(     InitLoopBodyCount,  Reg1,           None)           // fake instruction for loop body counter init
 MACRO_BACKEND_ONLY(     IncrLoopBodyCount,  Reg2,           None)           // fake instruction for loop body counter increment
@@ -611,7 +613,6 @@ MACRO_EXTEND_WMS(       InitBaseClass,      Reg2U,          OpSideEffect|OpPostO
 MACRO_EXTEND_WMS(       InitInnerBaseClass, Reg3U,          OpSideEffect|OpPostOpDbgBailOut)
 MACRO_EXTEND_WMS(       InitClass,          Reg4U,          OpSideEffect|OpPostOpDbgBailOut)
 MACRO_EXTEND_WMS(       InitInnerClass,     Reg5U,          OpSideEffect|OpPostOpDbgBailOut)
-MACRO_EXTEND_WMS(       CheckExtends,       BrReg3,         OpSideEffect)
 
 MACRO_WMS(              NewScFunc,          ElementSlotI1,  OpSideEffect)   // Create new ScriptFunction instance
 MACRO_BACKEND_ONLY(     NewScFuncData,      Reg2,           None)

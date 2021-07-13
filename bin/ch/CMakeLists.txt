@@ -1,5 +1,6 @@
+find_package (Python COMPONENTS Interpreter)
 add_custom_target(dbg_controller_h
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/jstoc.py ${CMAKE_CURRENT_SOURCE_DIR}/DbgController.js controllerScript
+  COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/jstoc.py ${CMAKE_CURRENT_SOURCE_DIR}/DbgController.js controllerScript
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/jstoc.py ${CMAKE_CURRENT_SOURCE_DIR}/DbgController.js
   )

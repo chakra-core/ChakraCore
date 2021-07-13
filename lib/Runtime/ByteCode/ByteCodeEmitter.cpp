@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -1791,7 +1792,7 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo* funcInfo, Js::FunctionBody* 
         }
     }
 
-    // NOTE: The FB expects the yield reg to be the final non-temp.
+    // NOTE: The FunctionBody expects the yield reg to be the final non-temp.
     if (byteCodeFunction->IsCoroutine())
     {
         if (funcInfo->root->IsAsync())
@@ -3023,10 +3024,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
         }
 
         // If the function has non simple parameter list, the params needs to be evaluated when the generator object is created
-        // (that is when the function is called). This yield opcode is to mark the  begining of the function body.
-        // TODO: Inserting a yield should have almost no impact on perf as it is a direct return from the function. But this needs
-        // to be verified. Ideally if the function has simple parameter list then we can avoid inserting the opcode and the additional call.
-        if (pnodeFnc->IsGenerator())
+        // (that is when the function is called). So insert an extra yield we can execute up to, to do this.
+        // In a Module we execute until this yield to hoist functions accross modules.
+        if (pnodeFnc->IsGenerator() && (pnodeFnc->HasNonSimpleParameterList() || pnodeFnc->IsModule()))
         {
             EmitStartupYield(this, funcInfo);
         }
@@ -9703,9 +9703,11 @@ void EmitGetAsyncIterator(
     // Iterable does not have a Symbol.asyncIterator method: attempt to get a sync
     // iterable and wrap it with an AsyncFromSyncIterator
     writer->MarkLabel(noAsyncIterator);
-    EmitGetIterator(resultReg, iterableReg, byteCodeGenerator, funcInfo);
-    writer->Reg2(Js::OpCode::NewAsyncFromSyncIterator, resultReg, resultReg);
-
+    Js::RegSlot iteratorReg = funcInfo->AcquireTmpRegister();
+    EmitGetIterator(iteratorReg, iterableReg, byteCodeGenerator, funcInfo);
+    writer->Reg2(Js::OpCode::NewAsyncFromSyncIterator, iteratorReg, iteratorReg);
+    writer->Reg2(Js::OpCode::Ld_A_ReuseLoc, resultReg, iteratorReg);    
+    funcInfo->ReleaseTmpRegister(iteratorReg);
     byteCodeGenerator->Writer()->MarkLabel(finished);
 }
 
@@ -10775,9 +10777,18 @@ void EmitYieldStar(
     writer->MarkLabel(noReturnMethod);
 
     if (isAsync)
-        EmitAwait(resumeValueReg, resumeValueReg, byteCodeGenerator, funcInfo);
+    {
+        Js::RegSlot awaitValue = funcInfo->AcquireTmpRegister();
+        writer->Reg2(Js::OpCode::Ld_A, awaitValue, resumeValueReg);
 
-    writer->Reg2(Js::OpCode::Ld_A, yieldStarReg, resumeValueReg);    
+        EmitAwait(awaitValue, awaitValue, byteCodeGenerator, funcInfo);
+        writer->Reg2(Js::OpCode::Ld_A_ReuseLoc, yieldStarReg, awaitValue);
+
+        funcInfo->ReleaseTmpRegister(awaitValue);
+    }
+    else
+        writer->Reg2(Js::OpCode::Ld_A_ReuseLoc, yieldStarReg, resumeValueReg);
+
     writer->Br(finishReturn);
 
     // Throw case: attempt to call throw
@@ -10880,16 +10891,31 @@ void EmitClass(ParseNodeClass * pnodeClass, ByteCodeGenerator * byteCodeGenerato
         Js::RegSlot ctorParentLoc = funcInfo->IsTmpReg(pnodeClass->pnodeExtends->location) ? pnodeClass->pnodeExtends->location : funcInfo->AcquireTmpRegister();
         Js::RegSlot protoParentLoc = funcInfo->AcquireTmpRegister();
 
-        Js::ByteCodeLabel labelParentsFound = byteCodeGenerator->Writer()->DefineLabel();
-        byteCodeGenerator->Writer()->BrReg3(Js::OpCode::CheckExtends, labelParentsFound, ctorParentLoc, protoParentLoc, pnodeClass->pnodeExtends->location);
         if (pnodeClass->pnodeExtends->location != ctorParentLoc)
         {
             byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, ctorParentLoc, pnodeClass->pnodeExtends->location);
         }
+
+        Js::ByteCodeLabel needProto = byteCodeGenerator->Writer()->DefineLabel();
+        Js::ByteCodeLabel haveConstructor = byteCodeGenerator->Writer()->DefineLabel();
+        Js::ByteCodeLabel labelParentsFound = byteCodeGenerator->Writer()->DefineLabel();
+
+        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrOnNotNullObj_A, needProto, ctorParentLoc);
+
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdC_A_Null, protoParentLoc);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdBaseFncProto, ctorParentLoc);
+        byteCodeGenerator->Writer()->Br(labelParentsFound);
+
+        byteCodeGenerator->Writer()->MarkLabel(needProto);
+        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrOnConstructor_A, haveConstructor, ctorParentLoc);
+        byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_ErrorOnNew));
+
+        byteCodeGenerator->Writer()->MarkLabel(haveConstructor);
         uint cacheId = funcInfo->FindOrAddInlineCacheId(ctorParentLoc, Js::PropertyIds::prototype, false, false);
         byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld_ReuseLoc, protoParentLoc, ctorParentLoc, cacheId);
         byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrOnObjectOrNull_A, labelParentsFound, protoParentLoc);
         byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeTypeError, SCODE_CODE(JSERR_InvalidPrototype));
+
         byteCodeGenerator->Writer()->MarkLabel(labelParentsFound);
         if (frameDisplayLoc == funcInfo->frameDisplayRegister || frameDisplayLoc  == funcInfo->GetEnvRegister())
         {

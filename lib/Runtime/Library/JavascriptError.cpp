@@ -42,12 +42,12 @@ namespace Js
 
     void JavascriptError::SetNotEnumerable(PropertyId propertyId)
     {
-        // Not all the properties of Error objects (like description, stack, number etc.) are in the spec.
+        // Not all the properties of Error objects (like stack, number etc.) are in the spec.
         // Other browsers have all the properties as not-enumerable.
         SetEnumerable(propertyId, false);
     }
 
-    Var JavascriptError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message)
+    Var JavascriptError::NewInstance(RecyclableObject* function, JavascriptError* pError, CallInfo callInfo, Var newTarget, Var message, Var options)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -65,6 +65,14 @@ namespace Js
             pError->SetNotEnumerable(PropertyIds::message);
         }
 
+        if (JavascriptOperators::IsObject(options) && JavascriptOperators::HasProperty(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause))
+        {
+            Var cause = JavascriptOperators::GetPropertyNoCache(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause, scriptContext);
+            JavascriptOperators::SetProperty(pError, pError, PropertyIds::cause, cause, scriptContext);
+            pError->SetNotEnumerable(PropertyIds::cause);
+        }
+        
+
         JavascriptExceptionContext exceptionContext;
         JavascriptExceptionOperators::WalkStackForExceptionContext(*scriptContext, exceptionContext, pError,
             JavascriptExceptionOperators::StackCrawlLimitOnThrow(pError, *scriptContext), /*returnAddress=*/ nullptr, /*isThrownException=*/ false, /*resetSatck=*/ false);
@@ -73,53 +81,6 @@ namespace Js
         return isCtorSuperCall ?
             JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pError, nullptr, scriptContext) :
             pError;
-    }
-
-    Var JavascriptError::NewErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        ARGUMENTS(args, callInfo);
-
-        ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptError* pError = scriptContext->GetLibrary()->CreateError();
-
-        // Process the arguments for IE specific behaviors for numbers and description
-
-        JavascriptString* descriptionString = nullptr;
-        Var message;
-        bool hasNumber = false;
-        double number = 0;
-        if (args.Info.Count >= 3)
-        {
-            hasNumber = true;
-            number = JavascriptConversion::ToNumber(args[1], scriptContext);
-            message = args[2];
-
-            descriptionString = JavascriptConversion::ToString(message, scriptContext);
-        }
-        else if (args.Info.Count == 2)
-        {
-            message = args[1];
-            descriptionString = JavascriptConversion::ToString(message, scriptContext);
-        }
-        else
-        {
-            hasNumber = true;
-            message = scriptContext->GetLibrary()->GetUndefined();
-            descriptionString = scriptContext->GetLibrary()->GetEmptyString();
-        }
-
-        Assert(descriptionString != nullptr);
-        if (hasNumber)
-        {
-            JavascriptOperators::InitProperty(pError, PropertyIds::number, JavascriptNumber::ToVarNoCheck(number, scriptContext));
-            pError->SetNotEnumerable(PropertyIds::number);
-        }
-        JavascriptOperators::SetProperty(pError, pError, PropertyIds::description, descriptionString, scriptContext);
-        pError->SetNotEnumerable(PropertyIds::description);
-
-        Var newTarget = args.GetNewTarget();
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 
 #define NEW_ERROR(name) \
@@ -131,8 +92,10 @@ namespace Js
         JavascriptError* pError = scriptContext->GetLibrary()->Create##name(); \
         Var newTarget = args.GetNewTarget(); \
         Var message = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined(); \
-        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message); \
+        Var options = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined(); \
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message, options); \
     }
+    NEW_ERROR(Error);
     NEW_ERROR(EvalError);
     NEW_ERROR(RangeError);
     NEW_ERROR(ReferenceError);
@@ -144,6 +107,79 @@ namespace Js
     NEW_ERROR(WebAssemblyLinkError);
 
 #undef NEW_ERROR
+
+    Var JavascriptError::NewAggregateErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JavascriptError* pError = scriptContext->GetLibrary()->CreateAggregateError();
+        Var newTarget = args.GetNewTarget();
+        Var errors = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        Var message = args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
+        Var options = args.Info.Count > 3 ? args[3] : scriptContext->GetLibrary()->GetUndefined();
+
+        bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
+        JavascriptString* messageString = nullptr;
+
+        if (JavascriptOperators::GetTypeId(message) != TypeIds_Undefined)
+        {
+            messageString = JavascriptConversion::ToString(message, scriptContext);
+        }
+
+        if (messageString)
+        {
+            JavascriptOperators::SetProperty(pError, pError, PropertyIds::message, messageString, scriptContext);
+            pError->SetNotEnumerable(PropertyIds::message);
+        }
+
+        if (JavascriptOperators::IsObject(options) && JavascriptOperators::HasProperty(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause))
+        {
+            Var cause = JavascriptOperators::GetPropertyNoCache(UnsafeVarTo<RecyclableObject>(options), PropertyIds::cause, scriptContext);
+            JavascriptOperators::SetProperty(pError, pError, PropertyIds::cause, cause, scriptContext);
+            pError->SetNotEnumerable(PropertyIds::cause);
+        }
+
+        using ErrorListType = SList<Var, Recycler>;
+        Recycler* recycler = scriptContext->GetRecycler();
+        ErrorListType* errorsList = RecyclerNew(recycler, ErrorListType, recycler);
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(errors, scriptContext);
+        JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
+            {
+                errorsList->Push(next);
+            });
+        errorsList->Reverse();
+        JavascriptError::SetErrorsList(pError, errorsList, scriptContext);
+
+        JavascriptExceptionContext exceptionContext;
+        JavascriptExceptionOperators::WalkStackForExceptionContext(*scriptContext, exceptionContext, pError,
+            JavascriptExceptionOperators::StackCrawlLimitOnThrow(pError, *scriptContext), /*returnAddress=*/ nullptr, /*isThrownException=*/ false, /*resetSatck=*/ false);
+        JavascriptExceptionOperators::AddStackTraceToObject(pError, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ false, /*resetSatck=*/ false);
+
+        return isCtorSuperCall ?
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pError, nullptr, scriptContext) :
+            pError;
+    }
+
+    void JavascriptError::SetErrorsList(JavascriptError* pError, SList<Var, Recycler>* errorsList, ScriptContext* scriptContext)
+    {
+        JavascriptArray* errors = scriptContext->GetLibrary()->CreateArray(errorsList->Count());
+        uint32 n = 0;
+        SList<Var, Recycler>::Iterator it = errorsList->GetIterator();
+        while (it.Next())
+        {
+            errors->DirectSetItemAt(n, it.Data());
+            n++;
+        }
+
+        JavascriptError::SetErrorsList(pError, errors, scriptContext);
+    }
+
+    void JavascriptError::SetErrorsList(JavascriptError* pError, JavascriptArray* errors, ScriptContext* scriptContext)
+    {
+        JavascriptOperators::SetProperty(pError, pError, PropertyIds::errors, errors, scriptContext);
+        pError->SetNotEnumerable(PropertyIds::errors);
+    }
 
     Var JavascriptError::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
     {
@@ -161,7 +197,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Error.prototype.toString"));
         }
 
-        RecyclableObject * thisError = VarTo<RecyclableObject>(args[0]);
+        RecyclableObject* thisError = VarTo<RecyclableObject>(args[0]);
         Var value = NULL;
         JavascriptString *outputStr, *message;
 
@@ -194,8 +230,8 @@ namespace Js
 
         if (nameLen > 0 && msgLen > 0)
         {
-           outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(": ")));
-           outputStr = JavascriptString::Concat(outputStr, message);
+            outputStr = JavascriptString::Concat(outputStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u(": ")));
+            outputStr = JavascriptString::Concat(outputStr, message);
         }
         else if (msgLen > 0)
         {
@@ -326,22 +362,19 @@ namespace Js
         JavascriptString * messageString;
         if (message != nullptr)
         {
-            // Save the runtime error message to be reported to IE.
+            // Save the runtime error message
             pError->originalRuntimeErrorMessage = message;
             messageString = Js::JavascriptString::NewWithSz(message, scriptContext);
         }
         else
         {
             messageString = scriptContext->GetLibrary()->GetEmptyString();
-            // Set an empty string so we will return it as a runtime message with the error code to IE
+            // Set an empty string so we will return it as a runtime message with the error code
             pError->originalRuntimeErrorMessage = _u("");
         }
 
         JavascriptOperators::InitProperty(pError, PropertyIds::message, messageString);
         pError->SetNotEnumerable(PropertyIds::message);
-
-        JavascriptOperators::InitProperty(pError, PropertyIds::description, messageString);
-        pError->SetNotEnumerable(PropertyIds::description);
 
         hr = JavascriptError::GetErrorNumberFromResourceID(hr);
         JavascriptOperators::InitProperty(pError, PropertyIds::number, JavascriptNumber::ToVar((int32)hr, scriptContext));
@@ -531,14 +564,14 @@ namespace Js
 
         if (pMessage != NULL)
         {
-            *pMessage = _u("");  // default to have IE load the error message, by returning empty-string
+            *pMessage = _u("");  // default empty-string
 
-            // The description property always overrides any error message
-            Var description = Js::JavascriptOperators::GetProperty(errorObject, Js::PropertyIds::description, scriptContext, NULL);
-            if (VarIs<JavascriptString>(description))
+            // The message property always overrides any error message
+            Var message = Js::JavascriptOperators::GetProperty(errorObject, Js::PropertyIds::message, scriptContext, NULL);
+            if (VarIs<JavascriptString>(message))
             {
                 // Always report the description to IE if it is a string, even if the user sets it
-                JavascriptString * messageString = VarTo<JavascriptString>(description);
+                JavascriptString * messageString = VarTo<JavascriptString>(message);
                 *pMessage = messageString->GetSz();
             }
             else if (Js::VarIs<Js::JavascriptError>(errorObject) && Js::VarTo<Js::JavascriptError>(errorObject)->originalRuntimeErrorMessage != nullptr)
@@ -554,8 +587,8 @@ namespace Js
             }
         }
 
-        // If neither the description or original runtime error message is set, and there are no error message.
-        // Then just return false and we will report Uncaught exception to IE.
+        // If neither the message or original runtime error message is set, and there are no error message.
+        // Then just return false and we will report Uncaught exception
         return hr;
     }
 
@@ -811,6 +844,9 @@ namespace Js
         case kjstURIError:
             jsNewError = targetJavascriptLibrary->CreateURIError();
             break;
+        case kjstAggregateError:
+            jsNewError = targetJavascriptLibrary->CreateAggregateError();
+            break;
         case kjstWebAssemblyCompileError:
             jsNewError = targetJavascriptLibrary->CreateWebAssemblyCompileError();
         case kjstWebAssemblyRuntimeError:
@@ -856,7 +892,6 @@ namespace Js
         if (cse->ei.bstrDescription)
         {
             value = JavascriptString::NewCopySz(cse->ei.bstrDescription, scriptContext);
-            JavascriptOperators::OP_SetProperty(error, PropertyIds::description, value, scriptContext);
             JavascriptOperators::OP_SetProperty(error, PropertyIds::message, value, scriptContext);
         }
 

@@ -39,3 +39,7 @@ This agreement has been signed by:
 |Petr Penzin| ppenzin|
 |Yevhen Lukomskyi|ylukomskyi|
 |Evgeniy Istomin|MadProbe|
+|Wenlu Wang| Kingwl|
+|Kevin Cadieux|kevcadieux|
+|Aidan Bickford| BickfordA|
+|Ryoichi Kaida| camcam-lemon|

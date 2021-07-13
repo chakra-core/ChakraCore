@@ -22,6 +22,7 @@ echo "Check Copyright > Begin Checking..."
 git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.git.*' |
     grep -v -E '\.xml$' |
+    grep -v -E '\.xsd$' |
     grep -v -E '\.yml$' |
     grep -v -E '\.props$' |
     grep -v -E '\.md$' |
@@ -33,6 +34,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.filters$' |
     grep -v -E '\.targets$' |
     grep -v -E '\.nuspec$' |
+    grep -v -E '\.mustache$' |
     grep -v -E '\.pack-version$' |
     grep -v -E '\.def$' |
     grep -v -E '\.inc$' |
@@ -52,7 +54,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E 'pal/.*' |
     grep -v -E 'libChakraCoreLib.version|ch.version' |
     grep -v -E 'lib/Backend/CRC.h' |
-    xargs -I % sh -c "echo 'Check Copyright > Checking %'; python jenkins/check_copyright.py % > $ERRFILETEMP || cat $ERRFILETEMP >> $ERRFILE"
+    xargs -I % sh -c "echo 'Check Copyright > Checking %'; python tools/StyleChecks/check_copyright.py % > $ERRFILETEMP || cat $ERRFILETEMP >> $ERRFILE"
 
 rm -f $ERRFILETEMP
 

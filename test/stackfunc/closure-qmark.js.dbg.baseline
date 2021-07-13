@@ -46,7 +46,6 @@
       "z": "undefined",
       "e": {
         "[prototype]": "undefined",
-        "description": "<large string>",
         "message": "<large string>",
         "number": "-2146823286",
         "stack": "<large string>"
@@ -683,7 +682,6 @@
       "z": "undefined",
       "e": {
         "[prototype]": "undefined",
-        "description": "<large string>",
         "message": "<large string>",
         "number": "-2146823286",
         "stack": "<large string>"

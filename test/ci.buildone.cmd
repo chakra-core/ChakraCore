@@ -1,5 +1,6 @@
 ::-------------------------------------------------------------------------------------------------------
 :: Copyright (C) Microsoft. All rights reserved.
+:: Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 :: Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ::-------------------------------------------------------------------------------------------------------
 
@@ -18,15 +19,17 @@ if "%2"=="" (
     goto :usage
 )
 
-:: ============================================================================
-:: Main script
-:: ============================================================================
-:main
+pushd %~dp0
 
-    set JENKINS_BUILD=True
-    call %~dp0..\test\jenkins.testone.cmd %*
+call ci.build.init.cmd %*
 
-    goto :end
+set _BuildArch=
+set _BuildType=
+
+call ci.build.cmd %JENKINS_BUILD_ARGS%
+
+popd
+goto :end
 
 :: ============================================================================
 :: Not enough params
@@ -38,14 +41,11 @@ if "%2"=="" (
     echo.
     echo     %_ENTRY_SCRIPT_NAME% x86 debug
     echo     %_ENTRY_SCRIPT_NAME% x86 test
+    echo     %_ENTRY_SCRIPT_NAME% x86 release
     echo.
     echo     %_ENTRY_SCRIPT_NAME% x64 debug
     echo     %_ENTRY_SCRIPT_NAME% x64 test
+    echo     %_ENTRY_SCRIPT_NAME% x64 release
 
-    goto :end
-
-:: ============================================================================
-:: Epilogue of script (cleanup)
-:: ============================================================================
 :end
 endlocal

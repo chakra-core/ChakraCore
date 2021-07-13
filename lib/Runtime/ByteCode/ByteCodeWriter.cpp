@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -872,35 +873,6 @@ namespace Js
         R2 = ConsumeReg(R2);
 
         MULTISIZE_LAYOUT_WRITE(BrReg2, op, labelID, R1, R2);
-    }
-
-    template <typename SizePolicy>
-    bool ByteCodeWriter::TryWriteBrReg3(OpCode op, ByteCodeLabel labelID, RegSlot R0, RegSlot R1, RegSlot R2)
-    {
-        OpLayoutT_BrReg3<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.R2, R2))
-        {
-            size_t const offsetOfRelativeJumpOffsetFromEnd = sizeof(OpLayoutT_BrReg3<SizePolicy>) - offsetof(OpLayoutT_BrReg3<SizePolicy>, RelativeJumpOffset);
-            layout.RelativeJumpOffset = offsetOfRelativeJumpOffsetFromEnd;
-            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
-            AddJumpOffset(op, labelID, offsetOfRelativeJumpOffsetFromEnd);
-            return true;
-        }
-        return false;
-    }
-
-    void ByteCodeWriter::BrReg3(OpCode op, ByteCodeLabel labelID, RegSlot R0, RegSlot R1, RegSlot R2)
-    {
-        CheckOpen();
-        CheckOp(op, OpLayoutType::BrReg3);
-        Assert(OpCodeAttr::HasMultiSizeLayout(op));
-        CheckLabel(labelID);
-
-        R0 = ConsumeReg(R0);
-        R1 = ConsumeReg(R1);
-        R2 = ConsumeReg(R2);
-
-        MULTISIZE_LAYOUT_WRITE(BrReg3, op, labelID, R0, R1, R2);
     }
 
     void ByteCodeWriter::BrProperty(OpCode op, ByteCodeLabel labelID, RegSlot instance, PropertyIdIndexType index)

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <description>$description$</description>
+    <releaseNotes>$releaseNotes$</releaseNotes>
+    <tags>$tags$</tags>
+    $CommonMetadataElements$
+  </metadata>
+  <files>
+    <!--Build-->
+    <file src="Items.targets" target="build\native\$id$.targets" />
+
+    <!--Include-->
+    <file src="..\..\..\lib\Jsrt\ChakraCommon.h" target="build\native\include" />
+    <file src="..\..\..\lib\Jsrt\ChakraCommonWindows.h" target="build\native\include" />
+    <file src="..\..\..\lib\Jsrt\ChakraCore.h" target="build\native\include" />
+    <file src="..\..\..\lib\Jsrt\ChakraCoreWindows.h" target="build\native\include" />
+    <file src="..\..\..\lib\Jsrt\ChakraDebug.h" target="build\native\include" />
+
+    <!--Lib-->
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.dll" target="lib\native\v140\x86\release" />
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.lib" target="lib\native\v140\x86\release" />
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.pdb" target="lib\native\v140\x86\release" />
+    <file src="..\..\VcBuild\bin\x86_release\ch.exe" target="lib\native\v140\x86\release" />
+    <file src="..\..\VcBuild\bin\x86_release\ch.pdb" target="lib\native\v140\x86\release" />
+
+    <!--Copying Release to Debug for now to save on build time-->
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.dll" target="lib\native\v140\x86\debug" />
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.lib" target="lib\native\v140\x86\debug" />
+    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.pdb" target="lib\native\v140\x86\debug" />
+    <file src="..\..\VcBuild\bin\x86_release\ch.exe" target="lib\native\v140\x86\debug" />
+    <file src="..\..\VcBuild\bin\x86_release\ch.pdb" target="lib\native\v140\x86\debug" />
+
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.dll" target="lib\native\v140\x64\release" />
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.lib" target="lib\native\v140\x64\release" />
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.pdb" target="lib\native\v140\x64\release" />
+    <file src="..\..\VcBuild\bin\x64_release\ch.exe" target="lib\native\v140\x64\release" />
+    <file src="..\..\VcBuild\bin\x64_release\ch.pdb" target="lib\native\v140\x64\release" />
+
+    <!--Copying Release to Debug for now to save on build time-->
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.dll" target="lib\native\v140\x64\debug" />
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.lib" target="lib\native\v140\x64\debug" />
+    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.pdb" target="lib\native\v140\x64\debug" />
+    <file src="..\..\VcBuild\bin\x64_release\ch.exe" target="lib\native\v140\x64\debug" />
+    <file src="..\..\VcBuild\bin\x64_release\ch.pdb" target="lib\native\v140\x64\debug" />
+
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.dll" target="lib\native\v140\arm\release" />
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.lib" target="lib\native\v140\arm\release" />
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.pdb" target="lib\native\v140\arm\release" />
+    <file src="..\..\VcBuild\bin\arm_release\ch.exe" target="lib\native\v140\arm\release" />
+    <file src="..\..\VcBuild\bin\arm_release\ch.pdb" target="lib\native\v140\arm\release" />
+
+    <!--Copying Release to Debug for now to save on build time-->
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.dll" target="lib\native\v140\arm\debug" />
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.lib" target="lib\native\v140\arm\debug" />
+    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.pdb" target="lib\native\v140\arm\debug" />
+    <file src="..\..\VcBuild\bin\arm_release\ch.exe" target="lib\native\v140\arm\debug" />
+    <file src="..\..\VcBuild\bin\arm_release\ch.pdb" target="lib\native\v140\arm\debug" />
+
+    $CommonFileElements$
+  </files>
+</package>

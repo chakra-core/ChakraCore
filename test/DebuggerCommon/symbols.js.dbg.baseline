@@ -16,6 +16,7 @@
                 "defineProperty": "function <large string>",
                 "getOwnPropertyDescriptor": "function <large string>",
                 "getOwnPropertyDescriptors": "function <large string>",
+                "hasOwn": "function <large string>",
                 "defineProperties": "function <large string>",
                 "create": "function <large string>",
                 "seal": "function <large string>",

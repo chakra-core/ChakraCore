@@ -41,6 +41,8 @@ namespace Js
             static FunctionInfo Filter;
             static FunctionInfo Find;
             static FunctionInfo FindIndex;
+            static FunctionInfo FindLast;
+            static FunctionInfo FindLastIndex;
             static FunctionInfo ForEach;
             static FunctionInfo IndexOf;
             static FunctionInfo Includes;
@@ -80,6 +82,8 @@ namespace Js
         static Var EntryFilter(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFind(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFindIndex(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFindLast(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryFindLastIndex(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryForEach(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIndexOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryIncludes(RecyclableObject* function, CallInfo callInfo, ...);

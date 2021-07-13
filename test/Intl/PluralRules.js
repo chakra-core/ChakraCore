@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -159,6 +160,9 @@ testRunner.runTests([
             test({ maximumSignificantDigits: 1 }, 1.0, "one");
             test({ maximumSignificantDigits: 1 }, 1.1, "one");
             test({ maximumSignificantDigits: 1 }, 1.001, "one");
+            test({ maximumSignificantDigits: 1 }, 110.001, "other");
+            test({ maximumSignificantDigits: 1 }, -110.001, "other");
+            test({ maximumSignificantDigits: 1 }, -1, "one");
 
             // significantDigits should override fractionDigits and integerDigits
             test({ maximumSignificantDigits: 2, maximumFractionDigits: 0 }, 1.1, "other");

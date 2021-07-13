@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -13,13 +14,25 @@ JavascriptAsyncGenerator* JavascriptAsyncGenerator::New(
     Arguments& args,
     ScriptFunction* scriptFunction)
 {
+    // InterpreterStackFrame takes a pointer to the args, so copy them to the recycler
+    // heap and use that buffer for the asyncgenerator's InterpreterStackFrame
+    Field(Var)* argValuesCopy = nullptr;
+
+    if (args.Info.Count > 0)
+    {
+        argValuesCopy = RecyclerNewArray(recycler, Field(Var), args.Info.Count);
+        CopyArray(argValuesCopy, args.Info.Count, args.Values, args.Info.Count);
+    }
+
+    Arguments heapArgs(args.Info, unsafe_write_barrier_cast<Var*>(argValuesCopy));
+
     auto* requestQueue = RecyclerNew(recycler, JavascriptAsyncGenerator::RequestQueue, recycler);
 
-    JavascriptAsyncGenerator* generator = RecyclerNew(
+    JavascriptAsyncGenerator* generator = RecyclerNewFinalized(
         recycler,
         JavascriptAsyncGenerator,
         generatorType,
-        args,
+        heapArgs,
         scriptFunction,
         requestQueue);
 

@@ -3128,8 +3128,10 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         }, scriptContext->GetRecycler(), &formattedN, &formattedNLength);
 
         double nWithOptions = unum_parseDouble(*nf, reinterpret_cast<UChar *>(formattedN), formattedNLength, nullptr, &status);
-        double roundtripDiff = n - nWithOptions;
-        ICU_ASSERT(status, roundtripDiff <= 1.0 && roundtripDiff >= -1.0);
+
+        ICU_ASSERT(status, (n > 0.0 && nWithOptions <= n && nWithOptions >= 0.0) ||
+            (n < 0.0 && nWithOptions >= n && nWithOptions <= 0) ||
+            (n == 0.0 && nWithOptions == 0));
 
         char16 *selected = nullptr;
         int selectedLength = 0;

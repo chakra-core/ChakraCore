@@ -2,8 +2,7 @@
 Error()
 message      =             (string)
 name         = Error       (string)
-description  =             (string)
-number       = 0           (number)
+number       = undefined   (undefined)
 stack        = Error
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -13,8 +12,7 @@ stack        = Error
 Error(NaN, NaN)
 message      = NaN         (string)
 name         = Error       (string)
-description  = NaN         (string)
-number       = NaN         (number)
+number       = undefined   (undefined)
 stack        = Error: NaN
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -24,8 +22,7 @@ stack        = Error: NaN
 Error(1, 1)
 message      = 1           (string)
 name         = Error       (string)
-description  = 1           (string)
-number       = 1           (number)
+number       = undefined   (undefined)
 stack        = Error: 1
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -35,8 +32,7 @@ stack        = Error: 1
 Error(1.1, 1.1)
 message      = 1.1         (string)
 name         = Error       (string)
-description  = 1.1         (string)
-number       = 1.1         (number)
+number       = undefined   (undefined)
 stack        = Error: 1.1
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -46,8 +42,7 @@ stack        = Error: 1.1
 Error(undefined, undefined)
 message      =             (string)
 name         = Error       (string)
-description  = undefined   (string)
-number       = NaN         (number)
+number       = undefined   (undefined)
 stack        = Error
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -57,8 +52,7 @@ stack        = Error
 Error(null, null)
 message      = null        (string)
 name         = Error       (string)
-description  = null        (string)
-number       = 0           (number)
+number       = undefined   (undefined)
 stack        = Error: null
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -68,8 +62,7 @@ stack        = Error: null
 Error(true, true)
 message      = true        (string)
 name         = Error       (string)
-description  = true        (string)
-number       = 1           (number)
+number       = undefined   (undefined)
 stack        = Error: true
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -79,8 +72,7 @@ stack        = Error: true
 Error(false, false)
 message      = false       (string)
 name         = Error       (string)
-description  = false       (string)
-number       = 0           (number)
+number       = undefined   (undefined)
 stack        = Error: false
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -90,8 +82,7 @@ stack        = Error: false
 Error('blah', 'blah')
 message      = blah        (string)
 name         = Error       (string)
-description  = blah        (string)
-number       = NaN         (number)
+number       = undefined   (undefined)
 stack        = Error: blah
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -101,8 +92,7 @@ stack        = Error: blah
 Error(new Object(), new Object())
 message      = [object Object](string)
 name         = Error       (string)
-description  = [object Object](string)
-number       = NaN         (number)
+number       = undefined   (undefined)
 stack        = Error: [object Object]
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -112,8 +102,7 @@ stack        = Error: [object Object]
 Error(new String('blah'), new String('blah'))
 message      = blah        (string)
 name         = Error       (string)
-description  = blah        (string)
-number       = NaN         (number)
+number       = undefined   (undefined)
 stack        = Error: blah
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -123,8 +112,7 @@ stack        = Error: blah
 Error(new Number(1.1), new Number(1.1))
 message      = 1.1         (string)
 name         = Error       (string)
-description  = 1.1         (string)
-number       = 1.1         (number)
+number       = undefined   (undefined)
 stack        = Error: 1.1
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -134,8 +122,7 @@ stack        = Error: 1.1
 Error(new Boolean(true), new Boolean(true))
 message      = true        (string)
 name         = Error       (string)
-description  = true        (string)
-number       = 1           (number)
+number       = undefined   (undefined)
 stack        = Error: true
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -143,28 +130,21 @@ stack        = Error: true
    at Global code (errorCtor.js:111:1)(string)
 -----------------------------------------
 Error(Test, Test)
-message      = function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+message      = function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }(string)
 name         = Error       (string)
-description  = function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
-}(string)
-number       = NaN         (number)
-stack        = Error: function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+number       = undefined   (undefined)
+stack        = Error: function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -174,7 +154,6 @@ stack        = Error: function Test(typename, s)
 Error(NaN)
 message      = NaN         (string)
 name         = Error       (string)
-description  = NaN         (string)
 number       = undefined   (undefined)
 stack        = Error: NaN
    at eval code (eval code:1:1)
@@ -185,7 +164,6 @@ stack        = Error: NaN
 Error(1)
 message      = 1           (string)
 name         = Error       (string)
-description  = 1           (string)
 number       = undefined   (undefined)
 stack        = Error: 1
    at eval code (eval code:1:1)
@@ -196,7 +174,6 @@ stack        = Error: 1
 Error(undefined)
 message      =             (string)
 name         = Error       (string)
-description  = undefined   (string)
 number       = undefined   (undefined)
 stack        = Error
    at eval code (eval code:1:1)
@@ -207,7 +184,6 @@ stack        = Error
 Error(null)
 message      = null        (string)
 name         = Error       (string)
-description  = null        (string)
 number       = undefined   (undefined)
 stack        = Error: null
    at eval code (eval code:1:1)
@@ -218,7 +194,6 @@ stack        = Error: null
 Error(true)
 message      = true        (string)
 name         = Error       (string)
-description  = true        (string)
 number       = undefined   (undefined)
 stack        = Error: true
    at eval code (eval code:1:1)
@@ -229,7 +204,6 @@ stack        = Error: true
 Error(false)
 message      = false       (string)
 name         = Error       (string)
-description  = false       (string)
 number       = undefined   (undefined)
 stack        = Error: false
    at eval code (eval code:1:1)
@@ -240,7 +214,6 @@ stack        = Error: false
 Error('blah')
 message      = blah        (string)
 name         = Error       (string)
-description  = blah        (string)
 number       = undefined   (undefined)
 stack        = Error: blah
    at eval code (eval code:1:1)
@@ -251,7 +224,6 @@ stack        = Error: blah
 Error(new Object())
 message      = [object Object](string)
 name         = Error       (string)
-description  = [object Object](string)
 number       = undefined   (undefined)
 stack        = Error: [object Object]
    at eval code (eval code:1:1)
@@ -262,7 +234,6 @@ stack        = Error: [object Object]
 Error(new String('blah'))
 message      = blah        (string)
 name         = Error       (string)
-description  = blah        (string)
 number       = undefined   (undefined)
 stack        = Error: blah
    at eval code (eval code:1:1)
@@ -273,7 +244,6 @@ stack        = Error: blah
 Error(new Number(1.1))
 message      = 1.1         (string)
 name         = Error       (string)
-description  = 1.1         (string)
 number       = undefined   (undefined)
 stack        = Error: 1.1
    at eval code (eval code:1:1)
@@ -284,7 +254,6 @@ stack        = Error: 1.1
 Error(new Boolean(1.1))
 message      = true        (string)
 name         = Error       (string)
-description  = true        (string)
 number       = undefined   (undefined)
 stack        = Error: true
    at eval code (eval code:1:1)
@@ -293,28 +262,21 @@ stack        = Error: true
    at Global code (errorCtor.js:111:1)(string)
 -----------------------------------------
 Error(Test)
-message      = function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+message      = function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }(string)
 name         = Error       (string)
-description  = function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
-}(string)
 number       = undefined   (undefined)
-stack        = Error: function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+stack        = Error: function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -324,7 +286,6 @@ stack        = Error: function Test(typename, s)
 TypeError()
 message      =             (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError
    at eval code (eval code:1:1)
@@ -335,7 +296,6 @@ stack        = TypeError
 TypeError(NaN, NaN)
 message      = NaN         (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: NaN
    at eval code (eval code:1:1)
@@ -346,7 +306,6 @@ stack        = TypeError: NaN
 TypeError(1, 1)
 message      = 1           (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: 1
    at eval code (eval code:1:1)
@@ -357,7 +316,6 @@ stack        = TypeError: 1
 TypeError(1.1, 1.1)
 message      = 1.1         (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: 1.1
    at eval code (eval code:1:1)
@@ -368,7 +326,6 @@ stack        = TypeError: 1.1
 TypeError(undefined, undefined)
 message      =             (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError
    at eval code (eval code:1:1)
@@ -379,7 +336,6 @@ stack        = TypeError
 TypeError(null, null)
 message      = null        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: null
    at eval code (eval code:1:1)
@@ -390,7 +346,6 @@ stack        = TypeError: null
 TypeError(true, true)
 message      = true        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: true
    at eval code (eval code:1:1)
@@ -401,7 +356,6 @@ stack        = TypeError: true
 TypeError(false, false)
 message      = false       (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: false
    at eval code (eval code:1:1)
@@ -412,7 +366,6 @@ stack        = TypeError: false
 TypeError('blah', 'blah')
 message      = blah        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: blah
    at eval code (eval code:1:1)
@@ -423,7 +376,6 @@ stack        = TypeError: blah
 TypeError(new Object(), new Object())
 message      = [object Object](string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: [object Object]
    at eval code (eval code:1:1)
@@ -434,7 +386,6 @@ stack        = TypeError: [object Object]
 TypeError(new String('blah'), new String('blah'))
 message      = blah        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: blah
    at eval code (eval code:1:1)
@@ -445,7 +396,6 @@ stack        = TypeError: blah
 TypeError(new Number(1.1), new Number(1.1))
 message      = 1.1         (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: 1.1
    at eval code (eval code:1:1)
@@ -456,7 +406,6 @@ stack        = TypeError: 1.1
 TypeError(new Boolean(true), new Boolean(true))
 message      = true        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: true
    at eval code (eval code:1:1)
@@ -465,22 +414,21 @@ stack        = TypeError: true
    at Global code (errorCtor.js:112:1)(string)
 -----------------------------------------
 TypeError(Test, Test)
-message      = function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+message      = function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }(string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
-stack        = TypeError: function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+stack        = TypeError: function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)
@@ -490,7 +438,6 @@ stack        = TypeError: function Test(typename, s)
 TypeError(NaN)
 message      = NaN         (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: NaN
    at eval code (eval code:1:1)
@@ -501,7 +448,6 @@ stack        = TypeError: NaN
 TypeError(1)
 message      = 1           (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: 1
    at eval code (eval code:1:1)
@@ -512,7 +458,6 @@ stack        = TypeError: 1
 TypeError(undefined)
 message      =             (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError
    at eval code (eval code:1:1)
@@ -523,7 +468,6 @@ stack        = TypeError
 TypeError(null)
 message      = null        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: null
    at eval code (eval code:1:1)
@@ -534,7 +478,6 @@ stack        = TypeError: null
 TypeError(true)
 message      = true        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: true
    at eval code (eval code:1:1)
@@ -545,7 +488,6 @@ stack        = TypeError: true
 TypeError(false)
 message      = false       (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: false
    at eval code (eval code:1:1)
@@ -556,7 +498,6 @@ stack        = TypeError: false
 TypeError('blah')
 message      = blah        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: blah
    at eval code (eval code:1:1)
@@ -567,7 +508,6 @@ stack        = TypeError: blah
 TypeError(new Object())
 message      = [object Object](string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: [object Object]
    at eval code (eval code:1:1)
@@ -578,7 +518,6 @@ stack        = TypeError: [object Object]
 TypeError(new String('blah'))
 message      = blah        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: blah
    at eval code (eval code:1:1)
@@ -589,7 +528,6 @@ stack        = TypeError: blah
 TypeError(new Number(1.1))
 message      = 1.1         (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: 1.1
    at eval code (eval code:1:1)
@@ -600,7 +538,6 @@ stack        = TypeError: 1.1
 TypeError(new Boolean(1.1))
 message      = true        (string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
 stack        = TypeError: true
    at eval code (eval code:1:1)
@@ -609,22 +546,21 @@ stack        = TypeError: true
    at Global code (errorCtor.js:112:1)(string)
 -----------------------------------------
 TypeError(Test)
-message      = function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+message      = function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }(string)
 name         = TypeError   (string)
-description  = undefined   (undefined)
 number       = undefined   (undefined)
-stack        = TypeError: function Test(typename, s)
-{
-    WScript.Echo("-----------------------------------------");
-    WScript.Echo(typename + "(" + s + ")");
-    var e = eval("new " + typename + "(" + s + ")");
-    DumpObject(e);
+stack        = TypeError: function Test(typename, s)
+{
+    WScript.Echo("-----------------------------------------");
+    WScript.Echo(typename + "(" + s + ")");
+    var e = eval("new " + typename + "(" + s + ")");
+    DumpObject(e);
 }
    at eval code (eval code:1:1)
    at Test(string, string) (errorCtor.js:68:5)

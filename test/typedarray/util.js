@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -22,7 +23,7 @@ function verifyThrow(func, obj)
     }
     catch(e)
     {
-        print("SUCCEEDED: get expected exception " + e.description);
+        print("SUCCEEDED: get expected exception " + e.message);
         hasThrown = true;
     }
     if (!hasThrown)
@@ -47,7 +48,7 @@ function verifyNoThrow(func, obj)
     }
     catch(e)
     {
-        print("FAILED: get exception " + e.description);
+        print("FAILED: get exception " + e.message);
         hasThrown = true;
     }
     return result;

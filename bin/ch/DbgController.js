@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -63,6 +64,7 @@ var controllerObj = (function () {
         [
             "#__proto__",
             "globalThis",
+            "AggregateError",
             "Array",
             "ArrayBuffer",
             "Atomics",
@@ -157,9 +159,10 @@ var controllerObj = (function () {
     function filterFileName(fileName) {
         try {
             var index = fileName.lastIndexOf("\\");
-            if (index >= 0) {
-                return fileName.substring(index + 1);
+            if (index === -1) {
+                index = fileName.lastIndexOf("/");
             }
+            return fileName.substring(index + 1);
         } catch (ex) { }
         return "";
     }
