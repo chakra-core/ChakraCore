@@ -1229,20 +1229,28 @@ CHAKRA_API JsGetStringLength(_In_ JsValueRef value, _Out_ int *length)
     END_JSRT_NO_EXCEPTION
 }
 
-CHAKRA_API JsPointerToString(_In_reads_(stringLength) const WCHAR *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
+CHAKRA_API JsPointerToString(_In_reads_opt_(stringLength) const WCHAR *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
 {
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue, stringLength);
+		
+		PARAM_NOT_NULL(string);
 
-        PARAM_NOT_NULL(stringValue);
-        PARAM_NOT_NULL(string);
+		if (stringLength == 0)
+		{
+			*string = scriptContext->GetLibrary()->GetEmptyString();
+		}
+		else
+		{
+			PARAM_NOT_NULL(stringValue);
+			
 
-        if (!Js::IsValidCharCount(stringLength))
-        {
-            Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-
-        *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+			if (!Js::IsValidCharCount(stringLength))
+			{
+				Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
+			}
+			*string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+		}
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, string);
 

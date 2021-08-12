@@ -165,6 +165,13 @@ namespace JsRTApiTest
         JsValueRef value2 = JS_INVALID_REFERENCE;
         REQUIRE(JsPointerToString(_u("value1"), wcslen(_u("value1")), &value2) == JsNoError);
 
+		// Test JsPointerToString and JsCreateString on NULL inputs
+		JsValueRef nullStr;
+		REQUIRE(JsPointerToString(NULL, 0, &nullStr) == JsNoError);
+
+		JsValueRef nullFname;
+		REQUIRE(JsCreateString(NULL, 0, &nullFname) == JsNoError);
+
         REQUIRE(JsSetProperty(object, name1, value1, true) == JsNoError);
         REQUIRE(JsSetProperty(object, name2, value2, true) == JsNoError);
 

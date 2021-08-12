@@ -868,10 +868,15 @@ static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
 }
 
 CHAKRA_API JsCreateString(
-    _In_ const char *content,
+    _In_opt_ const char *content,
     _In_ size_t length,
     _Out_ JsValueRef *value)
 {
+	if (length == 0)
+	{
+		content = "";
+	}
+
     PARAM_NOT_NULL(content);
     PARAM_NOT_NULL(value);
     *value = JS_INVALID_REFERENCE;

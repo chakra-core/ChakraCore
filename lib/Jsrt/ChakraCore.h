@@ -505,6 +505,9 @@ typedef bool (CHAKRA_CALLBACK * JsSerializedLoadScriptCallback)
 ///     <para>
 ///         Input string can be either ASCII or Utf8
 ///     </para>
+///     <para>
+///         Providing length of 0 will ignore input string pointer and return a Js empty string.
+///     </para>
 /// </remarks>
 /// <param name="content">Pointer to string memory.</param>
 /// <param name="length">Number of bytes within the string</param>
@@ -514,7 +517,7 @@ typedef bool (CHAKRA_CALLBACK * JsSerializedLoadScriptCallback)
 /// </returns>
 CHAKRA_API
     JsCreateString(
-        _In_ const char *content,
+        _In_opt_ const char *content,
         _In_ size_t length,
         _Out_ JsValueRef *value);
 
