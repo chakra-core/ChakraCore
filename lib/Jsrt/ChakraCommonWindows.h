@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -323,12 +324,12 @@
     ///     Creates a string value from a string pointer.
     /// </summary>
     /// <remarks>
-	///		<para>
-	///         Requires an active script context.
-	///     </para>
-	///     <para>
-	///         Providing length of 0 will ignore input string pointer and return a Js empty string.
-	///     </para>
+    ///     <para>
+    ///         Requires an active script context.
+    ///     </para>
+    ///     <para>
+    ///         Providing length of 0 will ignore input string pointer and return a Js empty string.
+    ///     </para>
     /// </remarks>
     /// <param name="stringValue">The string pointer to convert to a string value.</param>
     /// <param name="stringLength">The length of the string to convert.</param>

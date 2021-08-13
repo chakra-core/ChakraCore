@@ -872,12 +872,11 @@ CHAKRA_API JsCreateString(
     _In_ size_t length,
     _Out_ JsValueRef *value)
 {
-	if (length == 0)
-	{
-		content = "";
-	}
+    if (length != 0)
+    {
+        PARAM_NOT_NULL(content);
+    }
 
-    PARAM_NOT_NULL(content);
     PARAM_NOT_NULL(value);
     *value = JS_INVALID_REFERENCE;
 
@@ -893,12 +892,19 @@ CHAKRA_API JsCreateString(
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
-        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
+        if (length != 0)
+        {
+            Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
+                NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
 
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
+            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
 
-        *value = stringValue;
+            *value = stringValue;
+        }
+        else
+        {
+            *value = scriptContext->GetLibrary()->GetEmptyString();
+        }
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
 
