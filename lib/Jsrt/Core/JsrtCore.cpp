@@ -868,7 +868,7 @@ static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
 }
 
 CHAKRA_API JsCreateString(
-    _In_ const char *content,
+    _In_opt_ const char *content,
     _In_ size_t length,
     _Out_ JsValueRef *value)
 {
@@ -902,7 +902,7 @@ CHAKRA_API JsCreateString(
 }
 
 CHAKRA_API JsCreateStringUtf16(
-    _In_ const uint16_t *content,
+    _In_opt_ const uint16_t *content,
     _In_ size_t length,
     _Out_ JsValueRef *value)
 {

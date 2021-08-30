@@ -511,10 +511,12 @@ typedef bool (CHAKRA_CALLBACK * JsSerializedLoadScriptCallback)
 /// <param name="value">JsValueRef representing the JavascriptString</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+//<para> Have handled NULL Values by changing _In_ to _In_opt_ </para>
 /// </returns>
 CHAKRA_API
     JsCreateString(
-        _In_ const char *content,
+        
+        _In_opt_ const char *content,
         _In_ size_t length,
         _Out_ JsValueRef *value);
 
