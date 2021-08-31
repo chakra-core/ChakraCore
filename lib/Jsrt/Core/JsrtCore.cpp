@@ -891,14 +891,11 @@ CHAKRA_API JsCreateString(
     }
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-
+        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
+        NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
         if (length != 0)
         {
-            Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-                NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
-
-            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
-
             *value = stringValue;
         }
         else
