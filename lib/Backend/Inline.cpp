@@ -2203,7 +2203,7 @@ Inline::InlineBuiltInFunction(
             if (OpCodeAttr::BailOutRec(inlineCallOpCode))
             {
                 StackSym * sym = argInstr->GetSrc1()->GetStackSym();
-                if (!sym->m_isSingleDef || !sym->m_instrDef->GetSrc1() || !sym->m_instrDef->GetSrc1()->IsConstOpnd())
+                if (sym->HasByteCodeRegSlot() && (!sym->m_isSingleDef || !sym->m_instrDef->GetSrc1() || !sym->m_instrDef->GetSrc1()->IsConstOpnd()))
                 {
                     if (!sym->IsFromByteCodeConstantTable() && sym->GetByteCodeRegSlot() != callInstrDst->GetStackSym()->GetByteCodeRegSlot())
                     {
