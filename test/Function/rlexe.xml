@@ -485,6 +485,11 @@
   </test>
   <test>
     <default>
+      <files>bug6738.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>crosssite_bind_main.js</files>
     </default>
   </test>
