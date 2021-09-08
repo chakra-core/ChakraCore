@@ -161,6 +161,10 @@ namespace Js
                 {
                     timeValue = JavascriptConversion::ToNumber(value, scriptContext);
                 }
+                
+                if(timeValue == -0) {
+                    timeValue = 0;
+                }
             }
 
             pDate->m_date.SetTvUtc(timeValue);
