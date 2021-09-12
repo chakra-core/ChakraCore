@@ -64,6 +64,7 @@ var controllerObj = (function () {
         [
             "#__proto__",
             "globalThis",
+            "AggregateError",
             "Array",
             "ArrayBuffer",
             "Atomics",

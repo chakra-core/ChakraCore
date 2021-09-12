@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -362,6 +363,7 @@ namespace Js
             static FunctionInfo Then;
             static FunctionInfo Finally;
             static FunctionInfo AllSettled;
+            static FunctionInfo Any;
 
             static FunctionInfo Identity;
             static FunctionInfo Thrower;
@@ -372,6 +374,7 @@ namespace Js
             static FunctionInfo CapabilitiesExecutorFunction;
             static FunctionInfo AllResolveElementFunction;
             static FunctionInfo AllSettledResolveOrRejectElementFunction;
+            static FunctionInfo AnyRejectElementFunction;
 
             static FunctionInfo GetterSymbolSpecies;
         };
@@ -388,6 +391,7 @@ namespace Js
         static Var EntryThen(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFinally(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAllSettled(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAny(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryThunkFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThenFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
@@ -399,6 +403,7 @@ namespace Js
         static Var EntryThrowerFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAllResolveElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAllSettledResolveOrRejectElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAnyRejectElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
 
@@ -485,4 +490,27 @@ namespace Js
     {
         return Js::JavascriptOperators::GetTypeId(obj) == TypeIds_Promise;
     }
+
+    class JavascriptPromiseAnyRejectElementFunction : public JavascriptPromiseAllResolveElementFunction {
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptPromiseAnyRejectElementFunction, JavascriptPromiseAllResolveElementFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAnyRejectElementFunction);
+
+    public:
+        JavascriptPromiseAnyRejectElementFunction(DynamicType* type);
+        JavascriptPromiseAnyRejectElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper);
+
+    private:
+        Field(JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper*) alreadyCalledWrapper;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
+    };
+
+    template <> bool VarIsImpl<JavascriptPromiseAnyRejectElementFunction>(RecyclableObject* obj);
 }

@@ -2203,7 +2203,7 @@ Inline::InlineBuiltInFunction(
             if (OpCodeAttr::BailOutRec(inlineCallOpCode))
             {
                 StackSym * sym = argInstr->GetSrc1()->GetStackSym();
-                if (!sym->m_isSingleDef || !sym->m_instrDef->GetSrc1() || !sym->m_instrDef->GetSrc1()->IsConstOpnd())
+                if (sym->HasByteCodeRegSlot() && (!sym->m_isSingleDef || !sym->m_instrDef->GetSrc1() || !sym->m_instrDef->GetSrc1()->IsConstOpnd()))
                 {
                     if (!sym->IsFromByteCodeConstantTable() && sym->GetByteCodeRegSlot() != callInstrDst->GetStackSym()->GetByteCodeRegSlot())
                     {
@@ -3811,6 +3811,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
 
     case Js::BuiltinFunction::JavascriptObject_HasOwnProperty:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperObject_HasOwnProperty, callInstr->m_func));
+        break;
+
+    case Js::BuiltinFunction::JavascriptObject_HasOwn:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperObject_HasOwn, callInstr->m_func));
         break;
 
     case Js::BuiltinFunction::JavascriptArray_IsArray:

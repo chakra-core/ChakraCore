@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -92,6 +93,40 @@ Var JavascriptObject::EntryHasOwnProperty(RecyclableObject* function, CallInfo c
     return scriptContext->GetLibrary()->GetFalse();
     JIT_HELPER_END(Object_HasOwnProperty);
 }
+
+Var JavascriptObject::EntryHasOwn(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    JIT_HELPER_REENTRANT_HEADER(Object_HasOwn);
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    RecyclableObject* dynamicObject = nullptr;
+    // first parameter must exist and be an object coercible or throw type error
+    if (args.Info.Count < 2 || FALSE == JavascriptConversion::ToObject(args[1], scriptContext, &dynamicObject))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.hasOwn"));
+    }
+
+    // if there is only one parameter use undefined as the property to query
+    Var propertyName = args.Info.Count == 2 ? scriptContext->GetLibrary()->GetUndefined() : args[2];
+
+    const PropertyRecord* propertyRecord;
+    PropertyString* propertyString;
+    JavascriptConversion::ToPropertyKey(propertyName, scriptContext, &propertyRecord, &propertyString);
+
+    if (JavascriptOperators::HasOwnProperty(dynamicObject, propertyRecord->GetPropertyId(), scriptContext, propertyString))
+    {
+        return scriptContext->GetLibrary()->GetTrue();
+    }
+
+    return scriptContext->GetLibrary()->GetFalse();
+    JIT_HELPER_END(Object_HasOwn);
+}
+
 
 Var JavascriptObject::EntryPropertyIsEnumerable(RecyclableObject* function, CallInfo callInfo, ...)
 {

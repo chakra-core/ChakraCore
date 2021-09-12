@@ -7290,7 +7290,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_IsClassConstructor);
         JavascriptFunction * function = JavascriptOperators::TryFromVar<JavascriptFunction>(instance);
-        return function && (function->GetFunctionInfo()->IsClassConstructor() || (!function->IsScriptFunction() && !function->IsExternalFunction()));
+        return function && function->GetFunctionInfo()->IsClassConstructor();
         JIT_HELPER_END(Op_IsClassConstructor);
     }
 

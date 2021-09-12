@@ -28,6 +28,11 @@
   </test>
   <test>
     <default>
+      <files>monotonicNow.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>nullByte-comment.js</files>
       <baseline>nullByte-comment.baseline</baseline>
     </default>

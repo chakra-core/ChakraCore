@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -265,6 +266,204 @@ namespace Js
         }
 
         return promiseCapability->GetPromise();
+    }
+
+    Var JavascriptPromise::EntryAny(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Promise.any"));
+
+        // 1. Let C be the this value.
+        Var C = args[0];
+
+        // 2. Let promiseCapability be ? NewPromiseCapability(C).
+        JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(C, scriptContext);
+        RecyclableObject* constructor = UnsafeVarTo<RecyclableObject>(C);
+
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        RecyclableObject* promiseResolve = nullptr;
+        RecyclableObject* iteratorRecord = nullptr;
+        try {
+            // 3. Let promiseResolve be GetPromiseResolve(C).
+            // 4. IfAbruptRejectPromise(promiseResolve, promiseCapability).
+            Var resolveVar = JavascriptOperators::GetProperty(constructor, Js::PropertyIds::resolve, scriptContext);
+            if (!JavascriptConversion::IsCallable(resolveVar))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+            promiseResolve = UnsafeVarTo<RecyclableObject>(resolveVar);
+
+            // 5. Let iteratorRecord be GetIterator(iterable).
+            // 6. IfAbruptRejectPromise(iteratorRecord, promiseCapability).
+            Var iterable = args.Info.Count > 1 ? args[1] : library->GetUndefined();
+            iteratorRecord = JavascriptOperators::GetIterator(iterable, scriptContext); 
+        }
+        catch (const JavascriptException& err)
+        {
+            JavascriptExceptionObject* exception = err.GetAndClear();
+            return JavascriptPromise::CreateRejectedPromise(exception->GetThrownObject(scriptContext), scriptContext);
+        }
+
+        // Abstract operation PerformPromiseAny
+        // 7. Let result be PerformPromiseAny(iteratorRecord, C, promiseCapability, promiseResolve).
+        try {
+            // 1. Assert: ! IsConstructor(constructor) is true. 
+            // 2. Assert: resultCapability is a PromiseCapability Record.
+            // 3. Assert: ! IsCallable(promiseResolve) is true.
+            // 4. Let errors be a new empty List.
+            JavascriptArray* errors = library->CreateArray();
+
+            // 5. Let remainingElementsCount be a new Record { [[Value]]: 1 }.
+            JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper);
+            remainingElementsWrapper->remainingElements = 1;
+
+            // 6. Let index be 0.
+            uint32 index = 0;
+
+            // 7. Repeat,
+            JavascriptOperators::DoIteratorStepAndValue(iteratorRecord, scriptContext, [&](Var nextValue) {
+                // a. Let next be IteratorStep(iteratorRecord).
+                // e. Let nextValue be IteratorValue(next).
+                // h. Append undefined to errors.
+                errors->DirectAppendItem(library->GetUndefined());
+
+                // i. Let nextPromise be ? Call(promiseResolve, constructor, << nextValue >> ).
+                ThreadContext* threadContext = scriptContext->GetThreadContext();
+                Var nextPromise = nullptr;
+                BEGIN_SAFE_REENTRANT_CALL(threadContext);
+                {
+                    nextPromise = CALL_FUNCTION(threadContext,
+                        promiseResolve, Js::CallInfo(CallFlags_Value, 2),
+                        constructor,
+                        nextValue);
+                }
+                END_SAFE_REENTRANT_CALL;
+
+
+                JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
+                alreadyCalledWrapper->alreadyResolved = false;
+
+                // j. Let steps be the algorithm steps defined in Promise.any Reject Element Functions.
+                // k. Let rejectElement be ! CreateBuiltinFunction(steps, << [[AlreadyCalled]], [[Index]], [[Errors]], [[Capability]], [[RemainingElements]] >> ).
+                // p. Set rejectElement.[[RemainingElements]] to remainingElementsCount.
+                Var rejectElement = library->CreatePromiseAnyRejectElementFunction(EntryAnyRejectElementFunction, index, errors, promiseCapability, remainingElementsWrapper, alreadyCalledWrapper);
+
+                // q. Set remainingElementsCount.[[Value]] to remainingElementsCount.[[Value]] + 1.
+                remainingElementsWrapper->remainingElements++;
+
+                // r. Perform ? Invoke(nextPromise, "then", << resultCapability.[[Resolve]], rejectElement >> ).
+                RecyclableObject* nextPromiseObject;
+                if (!JavascriptConversion::ToObject(nextPromise, scriptContext, &nextPromiseObject))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
+                }
+                Var thenVar = JavascriptOperators::GetProperty(nextPromiseObject, Js::PropertyIds::then, scriptContext);
+                if (!JavascriptConversion::IsCallable(thenVar))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+                }
+
+                RecyclableObject* thenFunc = UnsafeVarTo<RecyclableObject>(thenVar);
+
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    CALL_FUNCTION(scriptContext->GetThreadContext(),
+                        thenFunc, Js::CallInfo(CallFlags_Value, 3),
+                        nextPromiseObject,
+                        promiseCapability->GetResolve(),
+                        rejectElement);
+                }
+                END_SAFE_REENTRANT_CALL;
+
+                // s.Increase index by 1.
+                index++;
+            });
+
+            // 7.d. If next is false, then
+            // 7.d.i. Set iteratorRecord.[[Done]] to true.
+            // 7.d.ii. Set remainingElementsCount.[[Value]] to remainingElementsCount.[[Value]] - 1.
+            remainingElementsWrapper->remainingElements--;
+            // 7.d.iii. If remainingElementsCount.[[Value]] is 0, then
+            if (remainingElementsWrapper->remainingElements == 0)
+            {
+                // 7.d.iii.1 Let error be a newly created AggregateError object.
+                JavascriptError* pError = library->CreateAggregateError();
+                JavascriptError::SetErrorsList(pError, errors, scriptContext);
+                JavascriptError::SetErrorMessage(pError, JSERR_PromiseAllRejected, _u(""), scriptContext);
+                JavascriptExceptionOperators::Throw(pError, scriptContext);
+            }
+        }
+        catch (const JavascriptException& err)
+        {
+            // 8. If result is an abrupt completion, then
+            //   a. If iteratorRecord.[[Done]] is false, set result to IteratorClose(iteratorRecord, result).
+            //   b. IfAbruptRejectPromise(result, promiseCapability).
+            JavascriptExceptionObject* exception = err.GetAndClear();
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
+        }
+
+        return promiseCapability->GetPromise();
+    }
+
+    Var JavascriptPromise::EntryAnyRejectElementFunction(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        ScriptContext* scriptContext = function->GetScriptContext();
+        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        Var undefinedVar = library ->GetUndefined();
+        Var x = args.Info.Count > 1 ? args[1] : undefinedVar;
+
+
+        // 1. Let F be the active function object.
+        JavascriptPromiseAnyRejectElementFunction* anyRejectElementFunction = VarTo<JavascriptPromiseAnyRejectElementFunction>(function);
+
+        // 2. Let alreadyCalled be F. [[AlreadyCalled]].
+        // 3. If alreadyCalled. [[Value]] is true, return undefined.
+        if (anyRejectElementFunction->IsAlreadyCalled())
+        {
+            return undefinedVar;
+        }
+
+        // 4. Set alreadyCalled.[[Value]] to true.
+        anyRejectElementFunction->SetAlreadyCalled(true);
+
+        // 5. Let index be F.[[Index]].
+        uint32 index = anyRejectElementFunction->GetIndex();
+
+        // 6. Let errors be F.[[Errors]].
+        JavascriptArray* errors = anyRejectElementFunction->GetValues();
+
+
+        // 7. Let promiseCapability be F.[[Capability]].
+        JavascriptPromiseCapability* promiseCapability = anyRejectElementFunction->GetCapabilities();
+
+        // 9. Set errors[index] to x.
+        errors->DirectSetItemAt(index, x);
+
+        // 8. Let remainingElementsCount be F.[[RemainingElements]].
+        // 10. Set remainingElementsCount.[[Value]] to remainingElementsCount.[[Value]] - 1.
+        // 11. If remainingElementsCount.[[Value]] is 0, then
+        if (anyRejectElementFunction->DecrementRemainingElements() == 0)
+        {
+            // a. Let error be a newly created AggregateError object.
+            JavascriptError* pError = library->CreateAggregateError();
+            // b. Perform ! DefinePropertyOrThrow(error, "errors", Property Descriptor { [[Configurable]]: true, [[Enumerable]]: false, [[Writable]]: true, [[Value]]: ! CreateArrayFromList(errors) }).
+            JavascriptError::SetErrorsList(pError, errors, scriptContext);
+            JavascriptError::SetErrorMessage(pError, JSERR_PromiseAllRejected, _u(""), scriptContext);
+
+            // c. Return ? Call(promiseCapability.[[Reject]], undefined, << error >> ).
+            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), pError, scriptContext);
+        }
+
+        return undefinedVar;
     }
 
     Var JavascriptPromise::EntryAllSettled(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2168,6 +2367,68 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject>(objData, sprai, alloc, depOnCount, depOnArray);
     }
 #endif
+
+    JavascriptPromiseAnyRejectElementFunction::JavascriptPromiseAnyRejectElementFunction(DynamicType* type)
+        : JavascriptPromiseAllResolveElementFunction(type), alreadyCalledWrapper(nullptr)
+    { }
+
+    JavascriptPromiseAnyRejectElementFunction::JavascriptPromiseAnyRejectElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper)
+        : JavascriptPromiseAllResolveElementFunction(type, functionInfo, index, values, capabilities, remainingElementsWrapper), alreadyCalledWrapper(alreadyCalledWrapper)
+    { }
+
+#if ENABLE_TTD
+    void JavascriptPromiseAnyRejectElementFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        TTDAssert(this->capabilities != nullptr && this->remainingElementsWrapper != nullptr && this->alreadyCalledWrapper != nullptr && this->values != nullptr, "Don't think these can be null");
+
+        this->capabilities->MarkVisitPtrs(extractor);
+        extractor->MarkVisitVar(this->values);
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAnyRejectElementFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapPromiseAnyRejectElementFunctionObject;
+    }
+
+    void JavascriptPromiseAnyRejectElementFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo* sprai = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo>();
+
+        JsUtil::List<TTD_PTR_ID, HeapAllocator> depOnList(&HeapAllocator::Instance);
+        this->capabilities->ExtractSnapPromiseCapabilityInto(&sprai->Capabilities, depOnList, alloc);
+
+        sprai->Index = this->index;
+        sprai->RemainingElementsWrapperId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this->remainingElementsWrapper);
+        sprai->RemainingElementsValue = this->remainingElementsWrapper->remainingElements;
+
+        sprai->Values = TTD_CONVERT_VAR_TO_PTR_ID(this->values);
+        depOnList.Add(sprai->Values);
+
+        sprai->AlreadyCalled = this->alreadyCalled;
+
+        uint32 depOnCount = depOnList.Count();
+        TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+
+        for (uint32 i = 0; i < depOnCount; ++i)
+        {
+            depOnArray[i] = depOnList.Item(i);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject>(objData, sprai, alloc, depOnCount, depOnArray);
+    }
+#endif
+
+    template <> bool VarIsImpl<JavascriptPromiseAnyRejectElementFunction>(RecyclableObject* obj)
+    {
+        if (VarIs<JavascriptFunction>(obj))
+        {
+            return VirtualTableInfo<JavascriptPromiseAnyRejectElementFunction>::HasVirtualTable(obj)
+                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAnyRejectElementFunction>>::HasVirtualTable(obj);
+        }
+
+        return false;
+    }
+
 
     JavascriptPromiseAllResolveElementFunction::JavascriptPromiseAllResolveElementFunction(DynamicType* type)
         : RuntimeFunction(type, &Js::JavascriptPromise::EntryInfo::AllResolveElementFunction), index(0), values(nullptr), capabilities(nullptr), remainingElementsWrapper(nullptr), alreadyCalled(false)

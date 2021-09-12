@@ -540,6 +540,7 @@ bool InliningDecider::GetBuiltInInfoCommon(
 
     case Js::JavascriptBuiltInFunction::JavascriptArray_Includes:
     case Js::JavascriptBuiltInFunction::JavascriptObject_HasOwnProperty:
+    case Js::JavascriptBuiltInFunction::JavascriptObject_HasOwn:
     case Js::JavascriptBuiltInFunction::JavascriptArray_IsArray:
         *returnType = ValueType::Boolean;
         goto CallDirectCommon;
