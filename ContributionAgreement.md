@@ -43,3 +43,4 @@ This agreement has been signed by:
 |Kevin Cadieux|kevcadieux|
 |Aidan Bickford| BickfordA|
 |Ryoichi Kaida| camcam-lemon|
+|Nazeeh Vahora| Nazeeh21|

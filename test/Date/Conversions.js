@@ -186,6 +186,12 @@ writeLine(t.toLocaleString());
 writeLine(t.toUTCString());
 writeLine("");
 
+writeLine("Test to check date constructor with negative value of 0");
+var t = new Date(-0);
+writeLine(t.toUTCString());
+writeLine(t.toLocaleString());
+writeLine("");
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Helpers
 
