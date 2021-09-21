@@ -1,7 +1,9 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 
 // This test file verifies conversion from local to UTC, and UTC to local, including DST adjustments, for old and new years.
 
@@ -184,12 +186,6 @@ writeLine(t.toUTCString());
 var t = new Date(Date.parse("November 4, 2007 2:30 AM"));
 writeLine(t.toLocaleString());
 writeLine(t.toUTCString());
-writeLine("");
-
-writeLine("Test to check date constructor with negative value of 0");
-var t = new Date(-0);
-writeLine(t.toUTCString());
-writeLine(t.toLocaleString());
 writeLine("");
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

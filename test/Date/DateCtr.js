@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -59,6 +60,8 @@ function Test()
     d = new Date("", 1e81); if (!CHECK(d + "")) return; // WOOB 1139099
     d = new Date(); d.setSeconds(Number.MAX_VALUE); if (!CHECK(d + "")) return;  // WOOB 1142298
     d = new Date(); d.setSeconds(-Number.MAX_VALUE); if (!CHECK(d + "")) return; // WOOB 1142298
+    d = new Date(-0); if(CHECK(d.toISOString())) return; // Test to check date constructor with negative value of 0
+
     console.log("PASS");
 }
 
