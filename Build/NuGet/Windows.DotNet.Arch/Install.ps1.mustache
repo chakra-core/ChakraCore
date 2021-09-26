@@ -1,0 +1,19 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
+param($installPath, $toolsPath, $package, $project)
+
+if ($project.Type -eq 'Web Site') {
+    $projectDir = $project.Properties.Item('FullPath').Value
+
+    $assemblyDestDir = Join-Path $projectDir 'bin/{{{platformArchitecture}}}'
+    if (!(Test-Path $assemblyDestDir)) {
+        New-Item -ItemType Directory -Force -Path $assemblyDestDir
+    }
+
+    $assemblySourceFiles = Join-Path $installPath 'runtimes/{{{runtimeIdentifier}}}/native/*.*'
+    Copy-Item $assemblySourceFiles $assemblyDestDir -Force
+}

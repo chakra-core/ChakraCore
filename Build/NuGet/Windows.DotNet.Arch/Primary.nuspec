@@ -10,6 +10,8 @@
   </metadata>
   <files>
     <file src="Items.$platformArchitecture$.props" target="build\$id$.props" />
+    <file src="Install.$platformArchitecture$.ps1" target="tools\Install.ps1" />
+    <file src="Uninstall.$platformArchitecture$.ps1" target="tools\Uninstall.ps1" />
 
     <file src="..\..\VcBuild\bin\$platformArchitecture$_release\ChakraCore.dll" target="runtimes\$runtimeIdentifier$\native" />
 
