@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <description>$description$</description>
+    <releaseNotes>$releaseNotes$</releaseNotes>
+    <tags>$tags$</tags>
+    $CommonMetadataElements$
+  </metadata>
+  <files>
+    <file src="Items.$platformArchitecture$.symbols.props" target="build\$id$.props" />
+    <file src="Install.$platformArchitecture$.symbols.ps1" target="tools\Install.ps1" />
+    <file src="Uninstall.$platformArchitecture$.symbols.ps1" target="tools\Uninstall.ps1" />
+
+    <file src="..\..\VcBuild\bin\$platformArchitecture$_release\ChakraCore.pdb" target="runtimes\$runtimeIdentifier$\native" />
+
+    $CommonFileElements$
+  </files>
+</package>
