@@ -7,14 +7,13 @@
     <releaseNotes>$releaseNotes$</releaseNotes>
     <tags>$tags$</tags>
     $CommonMetadataElements$
+    <dependencies>
+      <dependency id="Microsoft.ChakraCore.win-x86.symbols" version="$version$" />
+      <dependency id="Microsoft.ChakraCore.win-x64.symbols" version="$version$" />
+      <dependency id="Microsoft.ChakraCore.win-arm.symbols" version="$version$" />
+    </dependencies>
   </metadata>
   <files>
-    <file src="Items.props" target="build\$id$.props" />
-
-    <file src="..\..\VcBuild\bin\x86_release\ChakraCore.pdb" target="runtimes\win-x86\native" />
-    <file src="..\..\VcBuild\bin\x64_release\ChakraCore.pdb" target="runtimes\win-x64\native" />
-    <file src="..\..\VcBuild\bin\arm_release\ChakraCore.pdb" target="runtimes\win-arm\native" />
-
     $CommonFileElements$
   </files>
 </package>
