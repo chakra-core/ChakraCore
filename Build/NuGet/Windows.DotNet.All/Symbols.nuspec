@@ -11,6 +11,7 @@
       <dependency id="Microsoft.ChakraCore.win-x86.symbols" version="$version$" />
       <dependency id="Microsoft.ChakraCore.win-x64.symbols" version="$version$" />
       <dependency id="Microsoft.ChakraCore.win-arm.symbols" version="$version$" />
+      <dependency id="Microsoft.ChakraCore.win-arm64.symbols" version="$version$" />
     </dependencies>
   </metadata>
   <files>
