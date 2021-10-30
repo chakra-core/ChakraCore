@@ -7,9 +7,13 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 option(CHAKRACORE_BUILD_SH "Use build.sh")
 
 if(NOT CHAKRACORE_BUILD_SH)
+    option(DISABLE_JIT "Disable JIT compilation" OFF)
     option(INTL_ICU "Enable Intl" ON)
     option(EMBED_ICU "Build ICU within ChakraCore build" OFF)
     set(ICU_INCLUDE_PATH "" CACHE STRING "libicu iclude path")
+    if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+      set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+    endif (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 else(NOT CHAKRACORE_BUILD_SH)
 
     # Keep CMake from caching static/shared library
