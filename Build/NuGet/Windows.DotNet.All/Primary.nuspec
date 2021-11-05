@@ -11,6 +11,7 @@
       <dependency id="Microsoft.ChakraCore.win-x86" version="$version$" />
       <dependency id="Microsoft.ChakraCore.win-x64" version="$version$" />
       <dependency id="Microsoft.ChakraCore.win-arm" version="$version$" />
+      <dependency id="Microsoft.ChakraCore.win-arm64" version="$version$" />
     </dependencies>
   </metadata>
   <files>

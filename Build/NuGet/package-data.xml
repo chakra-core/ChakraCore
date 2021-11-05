@@ -110,6 +110,34 @@
               target="Windows.DotNet.Arch\Uninstall.{{{platformArchitecture}}}.symbols.ps1" />
       </preprocessableFiles>
     </package>
+    <package id="Microsoft.ChakraCore.win-arm64" nuspecFile="Windows.DotNet.Arch\Primary.nuspec">
+      <properties>
+        <platformArchitecture>arm64</platformArchitecture>
+        <runtimeIdentifier>win-arm64</runtimeIdentifier>
+      </properties>
+      <preprocessableFiles>
+        <file src="Windows.DotNet.Arch\Items.props.mustache"
+              target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.props" />
+        <file src="Windows.DotNet.Arch\Install.ps1.mustache"
+              target="Windows.DotNet.Arch\Install.{{{platformArchitecture}}}.ps1" />
+        <file src="Windows.DotNet.Arch\Uninstall.ps1.mustache"
+              target="Windows.DotNet.Arch\Uninstall.{{{platformArchitecture}}}.ps1" />
+      </preprocessableFiles>
+    </package>
+    <package id="Microsoft.ChakraCore.win-arm64.symbols" nuspecFile="Windows.DotNet.Arch\Symbols.nuspec">
+      <properties>
+        <platformArchitecture>arm64</platformArchitecture>
+        <runtimeIdentifier>win-arm64</runtimeIdentifier>
+      </properties>
+      <preprocessableFiles>
+        <file src="Windows.DotNet.Arch\Items.props.mustache"
+              target="Windows.DotNet.Arch\Items.{{{platformArchitecture}}}.symbols.props" />
+        <file src="Windows.DotNet.Arch\Install.ps1.mustache"
+              target="Windows.DotNet.Arch\Install.{{{platformArchitecture}}}.symbols.ps1" />
+        <file src="Windows.DotNet.Arch\Uninstall.ps1.mustache"
+              target="Windows.DotNet.Arch\Uninstall.{{{platformArchitecture}}}.symbols.ps1" />
+      </preprocessableFiles>
+    </package>
     <package id="Microsoft.ChakraCore.vc140" nuspecFile="Windows.Cpp.All\Primary.nuspec">
       <properties>
         <tags>{{{base}}},nativepackage,C++,vc140</tags>
