@@ -14,12 +14,15 @@
       <owners>Chakra Team</owners>
       <license type="file">LICENSE.txt</license>
       <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
+      <icon>icon.png</icon>
+      <iconUrl>https://raw.githubusercontent.com/chakra-core/ChakraCore/master/Build/NuGet/icon.png</iconUrl>
       <requireLicenseAcceptance>false</requireLicenseAcceptance>
       <developmentDependency>true</developmentDependency>
       <copyright>© Microsoft Corporation. All rights reserved.</copyright>
       <language>en-US</language>
     </commonMetadataElements>
     <commonFileElements>
+      <file src="..\icon.png" target="icon.png" />
       <file src="..\..\..\LICENSE.txt" target="" />
     </commonFileElements>
   </commonProperties>
