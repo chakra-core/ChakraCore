@@ -43,6 +43,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.man$' |
     grep -v -E '\.testconfig$' |
     grep -v -E '\.proj$' |
+    grep -v -E '\.png$' |
     grep -v -E 'packages.config$' |
     grep -v -E 'lib/wabt/.*' |
     grep -v -E 'test/WasmSpec.*$' |
