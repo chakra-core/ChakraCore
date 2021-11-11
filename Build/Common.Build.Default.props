@@ -18,6 +18,7 @@
     <PlatformToolset Condition="'$(BuildToolVersion)'=='14.0'">v140</PlatformToolset>
     <PlatformToolset Condition="'$(BuildToolVersion)'=='15.0'">v141</PlatformToolset>
     <PlatformToolset Condition="'$(BuildToolVersion)'=='16.0'">v142</PlatformToolset>
+    <PlatformToolset Condition="'$(BuildToolVersion)'=='17.0'">v143</PlatformToolset>
   </PropertyGroup>
 
   <!-- Default ChakraDevConfigDir -->
