@@ -84,6 +84,7 @@ var tests = [
             var includes        = globalScope;
             var keys            = globalScope;
             var values          = globalScope;
+            var slice           = globalScope;
             var flat            = globalScope;
             var flatMap         = globalScope;
             var a = [];
