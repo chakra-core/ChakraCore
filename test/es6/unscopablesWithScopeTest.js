@@ -36,31 +36,35 @@ var tests = [
         name: "Global scope test on Arrays",
         body: function ()
         {
-            var globalScope = -1;
-            var at          = globalScope;
-            var find        = globalScope;
-            var findIndex   = globalScope;
-            var fill        = globalScope;
-            var copyWithin  = globalScope;
-            var entries     = globalScope;
-            var includes    = globalScope;
-            var keys        = globalScope;
-            var values      = globalScope;
-            var flat        = globalScope;
-            var flatMap     = globalScope;
+            var globalScope     = -1;
+            var at              = globalScope;
+            var find            = globalScope;
+            var findIndex       = globalScope;
+            var findLast        = globalScope;
+            var findLastIndex   = globalScope;
+            var fill            = globalScope;
+            var copyWithin      = globalScope;
+            var entries         = globalScope;
+            var includes        = globalScope;
+            var keys            = globalScope;
+            var values          = globalScope;
+            var flat            = globalScope;
+            var flatMap         = globalScope;
             with([])
             {
-                assert.areEqual(globalScope, at,         "at property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, find,       "find property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, findIndex,  "findIndex property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, fill,       "fill property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, copyWithin, "copyWithin property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, entries,    "entries property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, includes,   "includes property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, keys,       "keys property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, values,     "values property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, flat,       "flat property is not brought into scope by the with statement");
-                assert.areEqual(globalScope, flatMap,    "flatMap property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, at,            "at property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, find,          "find property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, findIndex,     "findIndex property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, findLast,      "findLast property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, findLastIndex, "findLastIndex property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, fill,          "fill property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, copyWithin,    "copyWithin property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, entries,       "entries property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, includes,      "includes property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, keys,          "keys property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, values,        "values property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, flat,          "flat property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, flatMap,       "flatMap property is not brought into scope by the with statement");
             }
         }
     },
@@ -88,6 +92,8 @@ var tests = [
                 assert.areEqual(globalScope, at,         "at property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, find,       "find property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, findIndex,  "findIndex property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, findLast,      "findLast property is not brought into scope by the with statement");
+                assert.areEqual(globalScope, findLastIndex, "findLastIndex property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, fill,       "fill property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, copyWithin, "copyWithin property is not brought into scope by the with statement");
                 assert.areEqual(globalScope, entries,    "entries property is not brought into scope by the with statement");
