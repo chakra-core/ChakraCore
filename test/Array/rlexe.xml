@@ -21,13 +21,13 @@
   <test>
     <default>
       <files>array_findlast.js</files>
-      <compile-flags>-ESArrayFindFromLast -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>array_findlastindex.js</files>
-      <compile-flags>-ESArrayFindFromLast -args summary -endargs</compile-flags>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
