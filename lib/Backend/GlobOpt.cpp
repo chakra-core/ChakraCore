@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -2364,7 +2365,10 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instrBegin, IR::Instr *instr, Value *src1Va
             // Line #2: s3(s1) = Ld_A   s4(s2)
             // do not consider line #2 as a violating instr
             (instr->m_opcode == Js::OpCode::Ld_I4 &&
-                prevInstr && (prevInstr->m_opcode == Js::OpCode::Add_I4 || prevInstr->m_opcode == Js::OpCode::Sub_I4) &&
+                // note Ld_A is for the case where the add was 0
+                prevInstr && (prevInstr->m_opcode == Js::OpCode::Add_I4 ||
+                              prevInstr->m_opcode == Js::OpCode::Sub_I4 ||
+                              prevInstr->m_opcode == Js::OpCode::Ld_A   ) &&
                 instr->GetSrc1()->IsRegOpnd() &&
                 instr->GetDst()->IsRegOpnd() &&
                 prevInstr->GetDst()->IsRegOpnd() &&
