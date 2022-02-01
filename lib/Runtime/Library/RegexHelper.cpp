@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -364,25 +365,7 @@ namespace Js
     template <bool updateHistory>
     Var RegexHelper::RegexMatchImpl(ScriptContext* scriptContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
-        ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
-
-        // Normally, this check would be done in JavascriptRegExp::EntrySymbolMatch. However,
-        // since the lowerer inlines String.prototype.match and directly calls the helper,
-        // the check then would be bypassed. That's the reason we do the check here.
-        if (scriptConfig->IsES6RegExSymbolsEnabled()
-            && IsRegexSymbolMatchObservable(thisObj, scriptContext))
-        {
-            // We don't need to pass "updateHistory" here since the call to "exec" will handle it.
-            return RegexEs6MatchImpl(scriptContext, thisObj, input, noResult, stackAllocationPointer);
-        }
-        else
-        {
-            PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
-                ? _u("RegExp.prototype[Symbol.match]")
-                : _u("String.prototype.match");
-            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
-            return RegexEs5MatchImpl<updateHistory>(scriptContext, regularExpression, input, noResult, stackAllocationPointer);
-        }
+        return RegexEs6MatchImpl(scriptContext, thisObj, input, noResult, stackAllocationPointer);
     }
 
     bool RegexHelper::IsRegexSymbolMatchObservable(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -597,6 +580,50 @@ namespace Js
 
         return arrayResult;
     }
+
+    // // RegExpBuiltinExec (ES6 22.2.5.2.2)
+    // Var RegexHelper::RegexExecImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer)
+    // {
+    //     UnifiedRegex::RegexPattern* pattern = regularExpression->GetPattern();
+
+    //     CharCount inputLength = input->GetLength();
+    //     /*Var lastIndex = */JavascriptOperators::GetProperty(regularExpression, PropertyIds::lastIndex, scriptContext);
+    //     const bool isGlobal = pattern->IsGlobal();
+    //     const bool isSticky = pattern->IsSticky();
+    //     CharCount offset;
+    //     if (!GetInitialOffset(isGlobal, isSticky, regularExpression, inputLength, offset))
+    //     {
+    //         return scriptContext->GetLibrary()->GetNull();
+    //     }
+
+    //     UnifiedRegex::GroupInfo match; // initially undefined
+    //     const char16* inputStr = input->GetString();
+    //     if (offset <= inputLength)
+    //     {
+    //         // TODO: Understand what SimpleMatch does
+    //         match = SimpleMatch(scriptContext, pattern, inputStr, inputLength, offset);
+    //     }
+
+    //     // else: match remains undefined
+    //     PropagateLastMatch(scriptContext, isGlobal, isSticky, regularExpression, input, match, match, true, true);
+
+    //     if (noResult || match.IsUndefined())
+    //     {
+    //         return scriptContext->GetLibrary()->GetNull();
+    //     }
+
+    //     const int numGroups = pattern->NumGroups();
+    //     Assert(numGroups >= 0);
+    //     JavascriptArray* result = CreateExecResult(stackAllocationPointer, scriptContext, numGroups, input, match);
+    //     Var nonMatchValue = NonMatchValue(scriptContext, false);
+    //     Field(Var) *elements = ((SparseArraySegment<Var>*)result->GetHead())->elements;
+    //     for (uint groupId = 0; groupId < (uint)numGroups; groupId++)
+    //     {
+    //         Assert(groupId < result->GetHead()->left + result->GetHead()->length);
+    //         elements[groupId] = GetGroup(scriptContext, pattern, input, nonMatchValue, groupId);
+    //     }
+    //     return result;
+    // }
 
     // RegExp.prototype.exec (ES5 15.10.6.2)
     Var RegexHelper::RegexExecImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer)
@@ -893,20 +920,7 @@ namespace Js
 
     Var RegexHelper::RegexReplaceImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult)
     {
-        ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
-
-        if (scriptConfig->IsES6RegExSymbolsEnabled() && IsRegexSymbolReplaceObservable(thisObj, scriptContext))
-        {
-            return RegexEs6ReplaceImpl(scriptContext, thisObj, input, replace, noResult);
-        }
-        else
-        {
-            PCWSTR varName = scriptConfig->IsES6RegExSymbolsEnabled()
-                ? _u("RegExp.prototype[Symbol.replace]")
-                : _u("String.prototype.replace");
-            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
-            return RegexEs5ReplaceImpl(scriptContext, regularExpression, input, replace, noResult);
-        }
+        return RegexEs6ReplaceImpl(scriptContext, thisObj, input, replace, noResult);
     }
 
     bool RegexHelper::IsRegexSymbolReplaceObservable(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -1576,23 +1590,9 @@ namespace Js
         return splitPattern;
     }
 
-    Var RegexHelper::RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, Arguments& args, bool noResult, void *const stackAllocationPointer)
     {
-        ScriptConfiguration const * scriptConfig = scriptContext->GetConfig();
-
-        if (scriptConfig->IsES6RegExSymbolsEnabled()
-            && IsRegexSymbolSplitObservable(thisObj, scriptContext))
-        {
-            return RegexEs6SplitImpl(scriptContext, thisObj, input, limit, noResult, stackAllocationPointer);
-        }
-        else
-        {
-            PCWSTR varName = scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                ? _u("RegExp.prototype[Symbol.split]")
-                : _u("String.prototype.split");
-            JavascriptRegExp* regularExpression = JavascriptRegExp::ToRegExp(thisObj, varName, scriptContext);
-            return RegexEs5SplitImpl(scriptContext, regularExpression, input, limit, noResult, stackAllocationPointer);
-        }
+        return RegexEs6SplitImpl(scriptContext, thisObj, input, args, noResult, stackAllocationPointer);
     }
 
     bool RegexHelper::IsRegexSymbolSplitObservable(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -1604,7 +1604,7 @@ namespace Js
             || JavascriptRegExp::HasObservableExec(regexPrototype);
     }
 
-    Var RegexHelper::RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, Arguments& args, bool noResult, void *const stackAllocationPointer)
     {
         PCWSTR const varName = _u("RegExp.prototype[Symbol.split]");
 
@@ -1635,12 +1635,17 @@ namespace Js
 
         JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
 
+        uint32 limit = (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2]))
+            ? UINT_MAX
+            : JavascriptConversion::ToUInt32(args[2], scriptContext);
+
+        CharCount inputLength = input->GetLength(); // 'size' in spec
+
         if (limit == 0)
         {
             return arrayResult;
         }
 
-        CharCount inputLength = input->GetLength();
         if (inputLength == 0)
         {
             Var result = JavascriptRegExp::CallExec(splitter, input, varName, scriptContext);
@@ -1727,6 +1732,7 @@ namespace Js
         return flags;
     }
 
+    // TODO: Cleanup
     // String.prototype.split (ES5 15.5.4.14)
     Var RegexHelper::RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
     {
@@ -1945,6 +1951,8 @@ namespace Js
                 , w
 #endif
                 );
+
+
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (REGEX_CONFIG_FLAG(RegexProfile))
@@ -2215,27 +2223,28 @@ namespace Js
         return value;
     }
 
-    Var RegexHelper::RegexMatchResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
-    {
-        return RegexHelper::RegexMatch(scriptContext, regularExpression, input, false);
-    }
+    // TODO: Cleanup
+    // Var RegexHelper::RegexMatchResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
+    // {
+    //     return RegexHelper::RegexMatch(scriptContext, regularExpression, input, false);
+    // }
 
-    Var RegexHelper::RegexMatchResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
-    {
-        return RegexHelper::RegexMatch(scriptContext, regularExpression, input, false, stackAllocationPointer);
-    }
+    // Var RegexHelper::RegexMatchResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
+    // {
+    //     return RegexHelper::RegexMatch(scriptContext, regularExpression, input, false, stackAllocationPointer);
+    // }
 
-    Var RegexHelper::RegexMatchResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
-    {
-        if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
-        {
-            return RegexHelper::RegexMatch(scriptContext, regularExpression, input, true);
-        }
-        else
-        {
-            return RegexHelper::RegexMatch(scriptContext, regularExpression, input, false);
-        }
-    }
+    // Var RegexHelper::RegexMatchResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
+    // {
+    //     if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
+    //     {
+    //         return RegexHelper::RegexMatch(scriptContext, regularExpression, input, true);
+    //     }
+    //     else
+    //     {
+    //         return RegexHelper::RegexMatch(scriptContext, regularExpression, input, false);
+    //     }
+    // }
 
     Var RegexHelper::RegexMatch(ScriptContext* entryFunctionContext, RecyclableObject *thisObj, JavascriptString *input, bool noResult, void *const stackAllocationPointer)
     {
@@ -2251,27 +2260,28 @@ namespace Js
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
-    Var RegexHelper::RegexExecResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
-    {
-        return RegexHelper::RegexExec(scriptContext, regularExpression, input, false);
-    }
+    // TODO: Cleanup
+    // Var RegexHelper::RegexExecResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
+    // {
+    //     return RegexHelper::RegexExec(scriptContext, regularExpression, input, false);
+    // }
 
-    Var RegexHelper::RegexExecResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
-    {
-        return RegexHelper::RegexExec(scriptContext, regularExpression, input, false, stackAllocationPointer);
-    }
+    // Var RegexHelper::RegexExecResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
+    // {
+    //     return RegexHelper::RegexExec(scriptContext, regularExpression, input, false, stackAllocationPointer);
+    // }
 
-    Var RegexHelper::RegexExecResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
-    {
-        if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
-        {
-            return RegexHelper::RegexExec(scriptContext, regularExpression, input, true);
-        }
-        else
-        {
-            return RegexHelper::RegexExec(scriptContext, regularExpression, input, false);
-        }
-    }
+    // Var RegexHelper::RegexExecResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input)
+    // {
+    //     if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
+    //     {
+    //         return RegexHelper::RegexExec(scriptContext, regularExpression, input, true);
+    //     }
+    //     else
+    //     {
+    //         return RegexHelper::RegexExec(scriptContext, regularExpression, input, false);
+    //     }
+    // }
 
     Var RegexHelper::RegexExec(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer)
     {
@@ -2279,29 +2289,29 @@ namespace Js
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
-    Var RegexHelper::RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace)
-    {
-        return entryFunctionContext->GetConfig()->IsES6RegExSymbolsEnabled()
-            ? RegexHelper::RegexReplace(entryFunctionContext, regularExpression, input, replace, false)
-            : RegexHelper::RegexEs5Replace(entryFunctionContext, regularExpression, input, replace, false);
-    }
+    // Var RegexHelper::RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace)
+    // {
+    //     return entryFunctionContext->GetConfig()->IsES6RegExSymbolsEnabled()
+    //         ? RegexHelper::RegexReplace(entryFunctionContext, regularExpression, input, replace, false)
+    //         : RegexHelper::RegexEs5Replace(entryFunctionContext, regularExpression, input, replace, false);
+    // }
 
-    Var RegexHelper::RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace)
-    {
-        if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
-        {
-            return entryFunctionContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                ? RegexHelper::RegexReplace(entryFunctionContext, regularExpression, input, replace, true)
-                : RegexHelper::RegexEs5Replace(entryFunctionContext, regularExpression, input, replace, true);
-        }
-        else
-        {
-            return entryFunctionContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                ? RegexHelper::RegexReplace(entryFunctionContext, regularExpression, input, replace, false)
-                : RegexHelper::RegexEs5Replace(entryFunctionContext, regularExpression, input, replace, false);
-        }
+    // Var RegexHelper::RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace)
+    // {
+    //     if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
+    //     {
+    //         return entryFunctionContext->GetConfig()->IsES6RegExSymbolsEnabled()
+    //             ? RegexHelper::RegexReplace(entryFunctionContext, regularExpression, input, replace, true)
+    //             : RegexHelper::RegexEs5Replace(entryFunctionContext, regularExpression, input, replace, true);
+    //     }
+    //     else
+    //     {
+    //         return entryFunctionContext->GetConfig()->IsES6RegExSymbolsEnabled()
+    //             ? RegexHelper::RegexReplace(entryFunctionContext, regularExpression, input, replace, false)
+    //             : RegexHelper::RegexEs5Replace(entryFunctionContext, regularExpression, input, replace, false);
+    //     }
 
-    }
+    // }
 
     Var RegexHelper::RegexReplace(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult)
     {
@@ -2332,33 +2342,34 @@ namespace Js
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
-    Var RegexHelper::RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
-    {
-        return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false);
-    }
+    // TODO: Cleanup
+    // Var RegexHelper::RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
+    // {
+    //     return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false);
+    // }
 
-    Var RegexHelper::RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
-    {
-        Assert(ThreadContext::IsOnStack(stackAllocationPointer));
+    // Var RegexHelper::RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
+    // {
+    //     Assert(ThreadContext::IsOnStack(stackAllocationPointer));
 
-        return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false, stackAllocationPointer);
-    }
+    //     return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false, stackAllocationPointer);
+    // }
 
-    Var RegexHelper::RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
-    {
-        if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
-        {
-            return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, true);
-        }
-        else
-        {
-            return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false);
-        }
-    }
+    // Var RegexHelper::RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit)
+    // {
+    //     if (!PHASE_OFF1(Js::RegexResultNotUsedPhase))
+    //     {
+    //         return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, true);
+    //     }
+    //     else
+    //     {
+    //         return RegexHelper::RegexSplit(scriptContext, regularExpression, input, limit, false);
+    //     }
+    // }
 
-    Var RegexHelper::RegexSplit(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer)
+    Var RegexHelper::RegexSplit(ScriptContext* entryFunctionContext, RecyclableObject* thisObj, JavascriptString* input, Arguments& args, bool noResult, void *const stackAllocationPointer)
     {
-        Var result = RegexHelper::RegexSplitImpl(entryFunctionContext, thisObj, input, limit, noResult, stackAllocationPointer);
+        Var result = RegexHelper::RegexSplitImpl(entryFunctionContext, thisObj, input, args, noResult, stackAllocationPointer);
         return RegexHelper::CheckCrossContextAndMarshalResult(result, entryFunctionContext);
     }
 
@@ -2387,18 +2398,39 @@ namespace Js
     {
         if (matchStr->GetLength() == 0)
         {
-            CharCount lastIndex = JavascriptRegExp::GetLastIndexProperty(instance, scriptContext);
+            
+            int64 lastIndex = JavascriptConversion::ToLength(
+                JavascriptOperators::GetProperty(instance, PropertyIds::lastIndex, scriptContext),
+                scriptContext);
             lastIndex = AdvanceStringIndex(input, lastIndex, unicode);
-            JavascriptRegExp::SetLastIndexProperty(instance, lastIndex, scriptContext);
+            JavascriptRegExp::SetLastIndexProperty(
+                instance,
+                JavascriptNumber::ToVar(lastIndex, scriptContext),
+                scriptContext);
         }
+    }
+
+    int64_t RegexHelper::AdvanceStringIndex(JavascriptString* string, int64_t index, bool isUnicode)
+    {
+        if (isUnicode && string->GetLength() > (0 > index || (uint64_t)index + 1ui64 > 0xffffffffui64 ? UINT32_MAX : (uint32_t)(index + 1)) &&
+            NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
+        {
+            return index + 2;
+        }
+        
+        return index + 1;
     }
 
     CharCount RegexHelper::AdvanceStringIndex(JavascriptString* string, CharCount index, bool isUnicode)
     {
-        // TODO: Change the increment to 2 depending on the "unicode" flag and
-        // the code point at "index". The increment is currently constant at 1
-        // in order to be compatible with the rest of the RegExp code.
-
+        if (isUnicode && string->GetLength() > index + 1 &&
+            NumberUtilities::IsSurrogateLowerPart(string->GetString()[index]) &&
+            NumberUtilities::IsSurrogateUpperPart(string->GetString()[index + 1]))
+        {
+            return JavascriptRegExp::AddIndex(index, 2);
+        }
+        
         return JavascriptRegExp::AddIndex(index, 1);
     }
 }

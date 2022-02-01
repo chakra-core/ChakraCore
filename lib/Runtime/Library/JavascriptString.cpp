@@ -1811,10 +1811,11 @@ case_2:
 
     Var JavascriptString::GetRegExSymbolFunction(Var regExp, PropertyId propertyId, ScriptContext* scriptContext)
     {
-        return JavascriptOperators::GetPropertyNoCache(
+        Var func = JavascriptOperators::GetPropertyNoCache(
             JavascriptOperators::ToObject(regExp, scriptContext),
             propertyId,
             scriptContext);
+        return JavascriptOperators::IsUndefinedOrNull(func) ? scriptContext->GetLibrary()->GetUndefined() : func;
     }
 
     template<int argCount>
@@ -1915,6 +1916,7 @@ case_2:
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
 
+    // ES6: 22.1.3.21 String.prototype.split ( separator, limit )
     Var JavascriptString::EntrySplit(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1928,65 +1930,141 @@ case_2:
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
 
-        auto fallback = [&](JavascriptString* stringObj)
+        if (args.Info.Count < 1 || JavascriptOperators::IsUndefinedOrNull(args[0]))
         {
-            return DoStringSplit(args, callInfo, stringObj, scriptContext);
-        };
-        return DelegateToRegExSymbolFunction<2>(args, PropertyIds::_symbolSplit, fallback, varName, scriptContext);
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NullOrUndefined, varName);
+        }
+
+        if (args.Info.Count > 1 && !JavascriptOperators::IsUndefinedOrNull(args[1]))
+        {
+            Var splitter = GetRegExSymbolFunction(args[1], PropertyIds::_symbolSplit, scriptContext);
+            if (!JavascriptOperators::IsUndefined(splitter))
+            {
+                Var limit =  args.Info.Count > 2 ? args[2] : scriptContext->GetLibrary()->GetUndefined();
+
+                if (!JavascriptConversion::IsCallable(splitter))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
+                }
+
+                // ! NOTE: Execute with exactly 2 arguments
+                ThreadContext* threadContext = scriptContext->GetThreadContext();
+                return threadContext->ExecuteImplicitCall(UnsafeVarTo<RecyclableObject>(splitter), ImplicitCall_Accessor, [=]()->Js::Var
+                {
+                    Var result = nullptr;
+                    result = CALL_FUNCTION(threadContext, UnsafeVarTo<RecyclableObject>(splitter), CallInfo(CallFlags_Value, 3), args[1], args[0], limit);
+                    return result;
+                });
+            }
+        }
+        
+
+        return DoStringSplit(args, scriptContext);
     }
 
-    Var JavascriptString::DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext)
+    Var JavascriptString::DoStringSplit(Arguments& args, ScriptContext* scriptContext)
     {
-        if (args.Info.Count == 1)
+        JavascriptString* S = JavascriptConversion::ToString(args[0], scriptContext);
+        JavascriptArray* A = scriptContext->GetLibrary()->CreateArray((uint32_t)0);
+        uint32_t lengthA = 0;
+        uint32_t limit = args.Info.Count > 2 && !JavascriptOperators::IsUndefined(args[2]) ?
+            JavascriptConversion::ToUInt32(args[2], scriptContext) : UINT32_MAX;
+        
+        Var separator = args.Info.Count > 1 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
+        JavascriptString* R = JavascriptConversion::ToString(separator, scriptContext);
+        
+        if (limit == 0)
         {
-            JavascriptArray* ary = scriptContext->GetLibrary()->CreateArray(1);
-            ary->DirectSetItemAt(0, input);
-            return ary;
+            return A;
         }
-        else
+
+        if (JavascriptOperators::IsUndefined(separator))          
         {
-            uint32 limit;
-            if (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2]))
+            A->DirectAppendItem(S);
+            return A;
+        }
+        
+        charcount_t s = S->GetLength();
+
+        if (s == 0)
+        {
+            if (R->GetLength() != 0)
             {
-                limit = UINT_MAX;
+                A->DirectAppendItem(S);
+            }
+            return A;
+        }
+        
+        charcount_t p = 0;
+        charcount_t q = p;
+
+        do
+        {
+            charcount_t e;
+
+            if (!SplitMatch(S, q, R, &e))
+            {
+                q++;
             }
             else
             {
-                limit = JavascriptConversion::ToUInt32(args[2], scriptContext);
-            }
-
-            // When the config is enabled, the operation is handled by RegExp.prototype[@@split].
-            if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                && VarIs<JavascriptRegExp>(args[1]))
-            {
-                return RegexHelper::RegexSplit(scriptContext, UnsafeVarTo<JavascriptRegExp>(args[1]), input, limit,
-                    RegexHelper::IsResultNotUsed(callInfo.Flags));
-            }
-            else
-            {
-                JavascriptString* separator = JavascriptConversion::ToString(args[1], scriptContext);
-
-                if (callInfo.Flags & CallFlags_NotUsed)
+                Assert(e <= s);
+                if (e == p)
                 {
-                    return scriptContext->GetLibrary()->GetNull();
+                    q++;
                 }
-
-                if (!limit)
+                else 
                 {
-                    JavascriptArray* ary = scriptContext->GetLibrary()->CreateArray(0);
-                    return ary;
-                }
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+                    S = (JavascriptString*)BreakSpeculation(S);
+#endif
 
-                if (JavascriptOperators::GetTypeId(args[1]) == TypeIds_Undefined)
-                {
-                    JavascriptArray* ary = scriptContext->GetLibrary()->CreateArray(1);
-                    ary->DirectSetItemAt(0, input);
-                    return ary;
-                }
+                    Var T = SubstringCore(S, p, q - p, scriptContext);
 
-                return RegexHelper::StringSplit(separator, input, limit);
+                    A->DirectAppendItem(T);
+
+                    lengthA++;
+
+                    if (lengthA == limit)
+                    {
+                        return A;
+                    }
+                    
+                    p = e;
+                    q = p;
+                }
+                
             }
+        } while (q != s);
+        
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+        S = (JavascriptString*)BreakSpeculation(S);
+#endif
+
+        Var T = SubstringCore(S, p, s - p, scriptContext);
+
+        A->DirectAppendItem(T);
+
+        return A;
+    }
+
+    // ES6: 22.1.3.21.1 SplitMatch ( S, q, R )
+    bool JavascriptString::SplitMatch(JavascriptString* S, charcount_t q, JavascriptString* R, charcount_t* e) {
+        charcount_t s = S->GetLength();
+        charcount_t r = R->GetLength();
+
+        if (q + r > s)
+        {
+            return false;
         }
+
+        if (wmemcmp(S->GetString() + q, R->GetString(), r) != 0)
+        {
+            return false;
+        }
+
+        *e = q + r;
+        return true;
     }
 
     Var JavascriptString::EntrySubstring(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2851,6 +2929,60 @@ case_2:
             Assert(m_pszValue);
         }
         return m_pszValue;
+    }
+
+    codepoint_t* JavascriptString::GetCodePoints(ScriptContext* scriptContext)
+    {
+        if (m_codePointString != nullptr)
+        {
+            return m_codePointString;
+        }
+        
+        const char16* initialString = GetString();
+        charcount_t codePointLength = 0;
+        charcount_t stringLength = GetLength(), i = 0;
+        while (i < stringLength)
+        {
+            if (i + 1 < stringLength &&
+                NumberUtilities::IsSurrogateLowerPart((codepoint_t)initialString[i]) &&
+                NumberUtilities::IsSurrogateUpperPart((codepoint_t)initialString[i + 1]))
+            {
+                codePointLength++;
+                i++;
+            }
+
+            i++;
+        }
+        codepoint_t* codePoints;
+        charcount_t j = 0;
+        i = 0;
+        codePoints = AllocatorNewArrayLeafZ(Recycler, scriptContext->GetRecycler(), codepoint_t, codePointLength);
+        while (i < stringLength)
+        {
+            if (i + 1 < stringLength &&
+                NumberUtilities::IsSurrogateLowerPart((codepoint_t)initialString[i]) &&
+                NumberUtilities::IsSurrogateUpperPart((codepoint_t)initialString[i + 1]))
+            {
+                *(codePoints + j++) = NumberUtilities::SurrogatePairAsCodePoint((codepoint_t)initialString[i], (codepoint_t)initialString[i + 1]);
+                i += 2ui32;
+                continue;
+            }
+            *(codePoints + j++) = (codepoint_t)initialString[i];
+            i++;
+        }
+        m_codePointString = codePoints;
+        m_codePointsLength = codePointLength;
+        return codePoints;
+    }
+
+    charcount_t JavascriptString::GetCodePointsLength()
+    {
+        if (m_codePointsLength == k_InvalidCharCount)
+        {
+            GetCodePoints(); // Init the m_codePointsLength and m_codePoints properties
+        }
+
+        return m_codePointsLength;
     }
 
     void const * JavascriptString::GetOriginalStringReference()

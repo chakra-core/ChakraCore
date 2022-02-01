@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -71,14 +72,15 @@ namespace Js
         //
 
     public:
-        static Var RegexMatchResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        static Var RegexMatchResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        static Var RegexMatchResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        // TODO: Cleanup
+        // static Var RegexMatchResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        // static Var RegexMatchResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        // static Var RegexMatchResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexMatch(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexMatchNoHistory(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult);
-        static Var RegexExecResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        static Var RegexExecResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
-        static Var RegexExecResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        // static Var RegexExecResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        // static Var RegexExecResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
+        // static Var RegexExecResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var RegexExec(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexTest(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input);
         template<bool mustMatchEntireInput> static BOOL RegexTest_NonScript(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, const char16 *const input, const CharCount inputLength);
@@ -102,16 +104,17 @@ namespace Js
             , CompoundString::Builder<64 * sizeof(void *) / sizeof(char16)>& concatenated );
 
     public:
-        static Var RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
-        static Var RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
+        // TODO: Cleanup
+        // static Var RegexReplaceResultUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
+        // static Var RegexReplaceResultNotUsed(ScriptContext* entryFunctionContext, JavascriptRegExp* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var RegexReplace(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, JavascriptString* replace, bool noResult);
         static Var RegexReplaceFunction(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, RecyclableObject* replacefn);
         static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var StringReplace(ScriptContext* scriptContext, JavascriptString* regularExpression, JavascriptString* input, RecyclableObject* replacefn);
-        static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
-        static Var RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
-        static Var RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
-        static Var RegexSplit(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
+        // static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
+        // static Var RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
+        // static Var RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
+        static Var RegexSplit(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, Arguments& args, bool noResult, void *const stackAllocationPointer = nullptr);
         static Var RegexSearch(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         static Var StringSplit(JavascriptString* regularExpression, JavascriptString* input, CharCount limit);
         static bool IsResultNotUsed(CallFlags flags);
@@ -138,8 +141,8 @@ namespace Js
         static Var RegexSearchImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input);
         inline static UnifiedRegex::RegexPattern *GetSplitPattern(ScriptContext* scriptContext, JavascriptRegExp *regularExpression);
         static bool IsRegexSymbolSplitObservable(RecyclableObject* instance, ScriptContext* scriptContext);
-        static Var RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
-        static Var RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
+        static Var RegexSplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, Arguments& args, bool noResult, void *const stackAllocationPointer = nullptr);
+        static Var RegexEs6SplitImpl(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, Arguments& args, bool noResult, void *const stackAllocationPointer = nullptr);
         static JavascriptString* AppendStickyToFlagsIfNeeded(JavascriptString* flags, ScriptContext* scriptContext);
         static Var RegexEs5SplitImpl(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit, bool noResult, void *const stackAllocationPointer = nullptr);
         static bool IsRegexTestObservable(RecyclableObject* instance, ScriptContext* scriptContext);
@@ -149,6 +152,7 @@ namespace Js
         static RecyclableObject* ExecResultToRecyclableObject(Var result);
         static JavascriptString* GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext);
         static void AdvanceLastIndex(RecyclableObject* instance, JavascriptString* input, JavascriptString* matchStr, bool unicode, ScriptContext* scriptContext);
+        static int64_t AdvanceStringIndex(JavascriptString* string, int64_t index, bool isUnicode);
         static charcount_t AdvanceStringIndex(JavascriptString* string, charcount_t index, bool isUnicode);
     };
 }

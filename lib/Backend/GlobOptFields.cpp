@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -533,17 +534,17 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
                 break;
 
             case IR::JnHelperMethod::HelperRegExp_Exec:
-            case IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed:
-            case IR::JnHelperMethod::HelperRegExp_ExecResultUsed:
-            case IR::JnHelperMethod::HelperRegExp_ExecResultUsedAndMayBeTemp:
-            case IR::JnHelperMethod::HelperRegExp_MatchResultNotUsed:
-            case IR::JnHelperMethod::HelperRegExp_MatchResultUsed:
-            case IR::JnHelperMethod::HelperRegExp_MatchResultUsedAndMayBeTemp:
-            case IR::JnHelperMethod::HelperRegExp_ReplaceStringResultUsed:
-            case IR::JnHelperMethod::HelperRegExp_ReplaceStringResultNotUsed:
-            case IR::JnHelperMethod::HelperRegExp_SplitResultNotUsed:
-            case IR::JnHelperMethod::HelperRegExp_SplitResultUsed:
-            case IR::JnHelperMethod::HelperRegExp_SplitResultUsedAndMayBeTemp:
+            // case IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed:
+            // case IR::JnHelperMethod::HelperRegExp_ExecResultUsed:
+            // case IR::JnHelperMethod::HelperRegExp_ExecResultUsedAndMayBeTemp:
+            // case IR::JnHelperMethod::HelperRegExp_MatchResultNotUsed:
+            // case IR::JnHelperMethod::HelperRegExp_MatchResultUsed:
+            // case IR::JnHelperMethod::HelperRegExp_MatchResultUsedAndMayBeTemp:
+            // case IR::JnHelperMethod::HelperRegExp_ReplaceStringResultUsed:
+            // case IR::JnHelperMethod::HelperRegExp_ReplaceStringResultNotUsed:
+            // case IR::JnHelperMethod::HelperRegExp_SplitResultNotUsed:
+            // case IR::JnHelperMethod::HelperRegExp_SplitResultUsed:
+            // case IR::JnHelperMethod::HelperRegExp_SplitResultUsedAndMayBeTemp:
             case IR::JnHelperMethod::HelperRegExp_SymbolSearch:
             case IR::JnHelperMethod::HelperString_Match:
             case IR::JnHelperMethod::HelperString_Search:

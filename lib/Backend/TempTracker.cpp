@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -1165,33 +1166,33 @@ ObjectTemp::ProcessBailOnNoProfile(IR::Instr * instr)
 void
 ObjectTemp::ProcessInstr(IR::Instr * instr)
 {
-    if (instr->m_opcode != Js::OpCode::CallDirect)
-    {
-        return;
-    }
+    // if (instr->m_opcode != Js::OpCode::CallDirect)
+    // {
+    //     return;
+    // }
 
-    IR::HelperCallOpnd * helper = instr->GetSrc1()->AsHelperCallOpnd();
-    switch (helper->m_fnHelper)
-    {
-        case IR::JnHelperMethod::HelperString_Match:
-        case IR::JnHelperMethod::HelperString_Replace:
-        {
-            // First (non-this) parameter is either a regexp or search string.
-            // It doesn't escape.
-            IR::Instr * instrArgDef = nullptr;
-            instr->FindCallArgumentOpnd(2, &instrArgDef);
-            instrArgDef->dstIsTempObject = true;
-            break;
-        }
+    // IR::HelperCallOpnd * helper = instr->GetSrc1()->AsHelperCallOpnd();
+    // switch (helper->m_fnHelper)
+    // {
+    //     case IR::JnHelperMethod::HelperString_Match:
+    //     case IR::JnHelperMethod::HelperString_Replace:
+    //     {
+    //         // First (non-this) parameter is either a regexp or search string.
+    //         // It doesn't escape.
+    //         IR::Instr * instrArgDef = nullptr;
+    //         instr->FindCallArgumentOpnd(2, &instrArgDef);
+    //         instrArgDef->dstIsTempObject = true;
+    //         break;
+    //     }
 
-        case IR::JnHelperMethod::HelperRegExp_Exec:
-        {
-            IR::Instr * instrArgDef = nullptr;
-            instr->FindCallArgumentOpnd(1, &instrArgDef);
-            instrArgDef->dstIsTempObject = true;
-            break;
-        }
-    };
+    //     case IR::JnHelperMethod::HelperRegExp_Exec:
+    //     {
+    //         IR::Instr * instrArgDef = nullptr;
+    //         instr->FindCallArgumentOpnd(1, &instrArgDef);
+    //         instrArgDef->dstIsTempObject = true;
+    //         break;
+    //     }
+    // };
 }
 
 
@@ -1354,33 +1355,33 @@ ObjectTempVerify::ProcessInstr(IR::Instr * instr, BackwardPass * backwardPass)
         return;
     }
 
-    if (instr->m_opcode != Js::OpCode::CallDirect)
-    {
-        return;
-    }
+    // if (instr->m_opcode != Js::OpCode::CallDirect)
+    // {
+    //     return;
+    // }
 
-    IR::HelperCallOpnd * helper = instr->GetSrc1()->AsHelperCallOpnd();
-    switch (helper->m_fnHelper)
-    {
-        case IR::JnHelperMethod::HelperString_Match:
-        case IR::JnHelperMethod::HelperString_Replace:
-        {
-            // First (non-this) parameter is either a regexp or search string
-            // It doesn't escape
-            IR::Instr * instrArgDef;
-            instr->FindCallArgumentOpnd(2, &instrArgDef);
-            Assert(instrArgDef->dstIsTempObject);
-            break;
-        }
+    // IR::HelperCallOpnd * helper = instr->GetSrc1()->AsHelperCallOpnd();
+    // switch (helper->m_fnHelper)
+    // {
+    //     case IR::JnHelperMethod::HelperString_Match:
+    //     case IR::JnHelperMethod::HelperString_Replace:
+    //     {
+    //         // First (non-this) parameter is either a regexp or search string
+    //         // It doesn't escape
+    //         IR::Instr * instrArgDef;
+    //         instr->FindCallArgumentOpnd(2, &instrArgDef);
+    //         Assert(instrArgDef->dstIsTempObject);
+    //         break;
+    //     }
 
-        case IR::JnHelperMethod::HelperRegExp_Exec:
-        {
-            IR::Instr * instrArgDef;
-            instr->FindCallArgumentOpnd(1, &instrArgDef);
-            Assert(instrArgDef->dstIsTempObject);
-            break;
-        }
-    };
+    //     case IR::JnHelperMethod::HelperRegExp_Exec:
+    //     {
+    //         IR::Instr * instrArgDef;
+    //         instr->FindCallArgumentOpnd(1, &instrArgDef);
+    //         Assert(instrArgDef->dstIsTempObject);
+    //         break;
+    //     }
+    // };
 }
 
 

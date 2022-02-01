@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -811,12 +812,25 @@ using namespace Js;
 
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
 
+        // 4. Let previousLastIndex be ? Get(rx, "lastIndex").
         Var previousLastIndex = JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext);
-        SetLastIndexProperty(regEx, TaggedInt::ToVarUnchecked(0), scriptContext);
+        // 5. If SameValue(previousLastIndex, +0F) is false, then
+        //    a. Perform ? Set(rx, "lastIndex", +0F, true).
+        if (!JavascriptConversion::SameValue(previousLastIndex, TaggedInt::ToVarUnchecked(0)))
+        {
+            SetLastIndexProperty(regEx, TaggedInt::ToVarUnchecked(0), scriptContext);
+        }
 
         Var result = CallExec(thisObj, string, varName, scriptContext);
-
-        SetLastIndexProperty(regEx, previousLastIndex, scriptContext);
+        
+        // 7. Let currentLastIndex be ? Get(rx, "lastIndex").
+        Var currentLastIndex = JavascriptOperators::GetProperty(thisObj, PropertyIds::lastIndex, scriptContext);
+        // 8. If SameValue(currentLastIndex, previousLastIndex) is false, then
+        //    a. Perform ? Set(rx, "lastIndex", previousLastIndex, true).
+        if (!JavascriptConversion::SameValue(currentLastIndex, previousLastIndex))
+        {
+            SetLastIndexProperty(regEx, previousLastIndex, scriptContext);
+        }
 
         return JavascriptOperators::IsNull(result)
             ? TaggedInt::ToVarUnchecked(-1)
@@ -833,28 +847,15 @@ using namespace Js;
 
         CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ES6, RegexSymbolSplit, scriptContext);
 
-        RecyclableObject *thisObj = GetThisObject(args, _u("RegExp.prototype[Symbol.match]"), scriptContext);
+        // !               Fun Note: In some time there was RegExp.prototype[Symbol.match] Lol
+        RecyclableObject *thisObj = GetThisObject(args, _u("RegExp.prototype[Symbol.split]"), scriptContext);
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
-
-        // TODO: SPEC DEVIATION
-        //
-        // In RegexHelper::RegexSplit, we check if RegExp properties are overridden in order to determine
-        // if the algorithm is observable. If it is, we go through the new ES6 algorithm, but otherwise, we
-        // run the faster ES5 version.
-        //
-        // According to the spec, we're supposed to process "limit" after we use some of the RegExp properties.
-        // However, there doesn't seem to be any reason why "limit" processing can't be pulled above the rest
-        // in the spec. Therefore, we should see if such a spec update is OK. If not, this would have to be
-        // moved to its correct place in the code.
-        uint32 limit = (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2]))
-            ? UINT_MAX
-            : JavascriptConversion::ToUInt32(args[2], scriptContext);
 
         return RegexHelper::RegexSplit(
             scriptContext,
             thisObj,
             string,
-            limit,
+            args,
             RegexHelper::IsResultNotUsed(callInfo.Flags));
     }
 
