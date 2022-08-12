@@ -105,7 +105,7 @@ jobs:
   - job: MSVC
     timeoutInMinutes: 120
     pool:
-      vmImage: 'windows-latest'
+      vmImage: 'windows-2019'
     strategy:
       maxParallel: 4
       matrix:
