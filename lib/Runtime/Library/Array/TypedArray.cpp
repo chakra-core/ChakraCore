@@ -8,7 +8,7 @@
 // can share the same array buffer.
 //----------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
-#include "AtomicsOperations.h"
+#include "Library/AtomicsOperations.h"
 
 #define INSTANTIATE_BUILT_IN_ENTRYPOINTS(typeName) \
     template Var typeName::NewInstance(RecyclableObject* function, CallInfo callInfo, ...); \

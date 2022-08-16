@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
@@ -13,8 +14,8 @@
 // Runtime includes
 #include "Library/ObjectPrototypeObject.h"
 #include "Library/JavascriptNumberObject.h"
-#include "Library/BoundFunction.h"
-#include "Library/JavascriptRegExpConstructor.h"
+#include "Library/Functions/BoundFunction.h"
+#include "Library/Regex/JavascriptRegExpConstructor.h"
 #include "Library/SameValueComparer.h"
 #include "Library/MapOrSetDataList.h"
 #include "Library/JavascriptPromise.h"
@@ -28,7 +29,7 @@
 #include "Types/DynamicObjectPropertyEnumerator.h"
 #include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ForInObjectEnumerator.h"
-#include "Library/ES5Array.h"
+#include "Library/Array/ES5Array.h"
 
 namespace Js
 {

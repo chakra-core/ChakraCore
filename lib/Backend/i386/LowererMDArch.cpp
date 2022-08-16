@@ -1,11 +1,12 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
 #include "LowererMDArch.h"
-#include "Library/JavascriptGeneratorFunction.h"
+#include "Library/Generators/JavascriptGeneratorFunction.h"
 
 const Js::OpCode LowererMD::MDExtend32Opcode = Js::OpCode::MOV;
 

@@ -1,24 +1,25 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 #include "SCACorePch.h"
 #include "Common/ByteSwap.h"
 #include "Library/JavascriptNumberObject.h"
-#include "Library/JavascriptStringObject.h"
+#include "Library/String/JavascriptStringObject.h"
 #include "Library/JavascriptBooleanObject.h"
 #include "Library/DateImplementation.h"
 #include "Library/JavascriptDate.h"
 #include "Library/DataView.h"
-#include "Library/ES5Array.h"
+#include "Library/Array/ES5Array.h"
 
 #include "Types/PropertyIndexRanges.h"
 #include "Types/DictionaryPropertyDescriptor.h"
 #include "Types/DictionaryTypeHandler.h"
 #include "Types/ES5ArrayTypeHandler.h"
-#include "Library/JavascriptArrayIndexStaticEnumerator.h"
-#include "Library/ES5ArrayIndexStaticEnumerator.h"
+#include "Library/Array/JavascriptArrayIndexStaticEnumerator.h"
+#include "Library/Array/ES5ArrayIndexStaticEnumerator.h"
 
 namespace Js
 {

@@ -30,7 +30,7 @@
 #include "Parser.h"
 #include "RegexCommon.h"
 #include "RegexPattern.h"
-#include "Library/RegexHelper.h"
+#include "Library/Regex/RegexHelper.h"
 
 #include "Language/InterpreterStackFrame.h"
 #include "Library/ModuleRoot.h"

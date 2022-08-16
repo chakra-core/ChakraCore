@@ -428,16 +428,16 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "ByteCode/ByteBlock.h"
 
 #include "Library/JavascriptBuiltInFunctions.h"
-#include "Library/JavascriptString.h"
-#include "Library/StringCopyInfo.h"
+#include "Library/String/JavascriptString.h"
+#include "Library/String/StringCopyInfo.h"
 
 
 #include "Library/JavascriptNumber.h"
-#include "Library/JavascriptFunction.h"
-#include "Library/BoundFunction.h"
-#include "Library/RuntimeFunction.h"
-#include "Library/JavascriptExternalFunction.h"
-#include "Library/CustomExternalIterator.h"
+#include "Library/Functions/JavascriptFunction.h"
+#include "Library/Functions/BoundFunction.h"
+#include "Library/Functions/RuntimeFunction.h"
+#include "Library/Functions/JavascriptExternalFunction.h"
+#include "Library/Iterators/CustomExternalIterator.h"
 
 #include "Base/CharStringCache.h"
 
@@ -458,8 +458,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/JavascriptExceptionOperators.h"
 #include "Language/JavascriptOperators.h"
 
-#include "Library/WasmLibrary.h"
-#include "Library/WabtInterface.h"
+#include "Library/WASM/WasmLibrary.h"
+#include "Library/WASM/WabtInterface.h"
 // xplat-todo: We should get rid of this altogether and move the functionality it
 // encapsulates to the Platform Agnostic Interface
 #ifdef _WIN32
@@ -504,38 +504,38 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/RootObjectBase.h"
 #include "Library/GlobalObject.h"
 
-#include "Library/LiteralString.h"
-#include "Library/ConcatString.h"
-#include "Library/CompoundString.h"
+#include "Library/String/LiteralString.h"
+#include "Library/String/ConcatString.h"
+#include "Library/String/CompoundString.h"
 #include "Library/PropertyRecordUsageCache.h"
-#include "Library/PropertyString.h"
-#include "Library/SingleCharString.h"
+#include "Library/String/PropertyString.h"
+#include "Library/String/SingleCharString.h"
 
 #include "Library/JavascriptTypedNumber.h"
-#include "Library/SparseArraySegment.h"
+#include "Library/Array/SparseArraySegment.h"
 #include "Library/JavascriptError.h"
-#include "Library/JavascriptArray.h"
+#include "Library/Array/JavascriptArray.h"
 #include "Library/JavascriptSymbol.h"
 
 #include "Library/AtomicsObject.h"
 #include "DetachedStateBase.h"
 #include "Library/ArrayBuffer.h"
 #include "Library/SharedArrayBuffer.h"
-#include "Library/TypedArray.h"
+#include "Library/Array/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
 #include "Library/JavascriptBigInt.h"
-#include "Library/WebAssemblyEnvironment.h"
-#include "Library/WebAssemblyTable.h"
-#include "Library/WebAssemblyMemory.h"
-#include "Library/WebAssemblyModule.h"
-#include "Library/WebAssembly.h"
+#include "Library/WASM/WebAssemblyEnvironment.h"
+#include "Library/WASM/WebAssemblyTable.h"
+#include "Library/WASM/WebAssemblyMemory.h"
+#include "Library/WASM/WebAssemblyModule.h"
+#include "Library/WASM/WebAssembly.h"
 
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"
 //#include "Language/ModuleNamespace.h"
 #include "Types/ScriptFunctionType.h"
-#include "Library/ScriptFunction.h"
-#include "Library/StackScriptFunction.h"
+#include "Library/Functions/ScriptFunction.h"
+#include "Library/Functions/StackScriptFunction.h"
 
 #ifdef _CHAKRACOREBUILD
 #include "Library/CustomExternalWrapperObject.h"
@@ -559,9 +559,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Debug/TTEventLog.h"
 #endif
 
-#include "Library/JavascriptGeneratorFunction.h"
-#include "Library/JavascriptAsyncFunction.h"
-#include "Library/JavascriptAsyncGeneratorFunction.h"
+#include "Library/Generators/JavascriptGeneratorFunction.h"
+#include "Library/Generators/JavascriptAsyncFunction.h"
+#include "Library/Generators/JavascriptAsyncGeneratorFunction.h"
 
 #include "../WasmReader/WasmReader.h"
 
@@ -580,8 +580,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/JavascriptConversion.inl"
 #include "Types/RecyclableObject.inl"
 #include "Types/DynamicObject.inl"
-#include "Library/JavascriptArray.inl"
-#include "Library/SparseArraySegment.inl"
+#include "Library/Array/JavascriptArray.inl"
+#include "Library/Array/SparseArraySegment.inl"
 #include "Library/JavascriptNumber.inl"
 #include "Library/JavascriptLibrary.inl"
 #include "Language/InlineCache.inl"

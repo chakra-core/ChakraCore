@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
 // Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -7,13 +7,13 @@
 #include "RuntimeLanguagePch.h"
 #include "RuntimeMathPch.h"
 #include "EHBailoutData.h"
-#include "Library/JavascriptRegularExpression.h"
+#include "Library/Regex/JavascriptRegularExpression.h"
 #if DBG_DUMP
 #include "ByteCode/OpCodeUtilAsmJs.h"
 #endif
 
 #include "Language/InterpreterStackFrame.h"
-#include "Library/JavascriptGeneratorFunction.h"
+#include "Library/Generators/JavascriptGeneratorFunction.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/AtomicsOperations.h"
 #include "../../WasmReader/WasmParseTree.h"

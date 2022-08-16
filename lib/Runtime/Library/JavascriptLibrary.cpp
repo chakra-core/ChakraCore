@@ -6,7 +6,7 @@
 
 #include "RuntimeLibraryPch.h"
 
-#include "Library/JSON.h"
+#include "Library/JSON/JSON.h"
 #include "Types/MissingPropertyTypeHandler.h"
 #include "Types/NullTypeHandler.h"
 #include "Types/SimpleTypeHandler.h"
@@ -23,7 +23,7 @@
 #include "Library/JsBuiltInEngineInterfaceExtensionObject.h"
 #endif
 #include "Library/ThrowErrorObject.h"
-#include "Library/StackScriptFunction.h"
+#include "Library/Functions/StackScriptFunction.h"
 
 namespace Js
 {

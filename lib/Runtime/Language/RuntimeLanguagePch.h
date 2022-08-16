@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -33,14 +34,14 @@
 #include "Library/ArgumentsObject.h"
 
 #include "Types/TypePropertyCache.h"
-#include "Library/JavascriptAsyncFromSyncIterator.h"
+#include "Library/Iterators/JavascriptAsyncFromSyncIterator.h"
 #ifdef _CHAKRACOREBUILD
 #include "Library/CustomExternalWrapperObject.h"
 #endif
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptSymbolObject.h"
-#include "Library/JavascriptGenerator.h"
-#include "Library/StackScriptFunction.h"
+#include "Library/Generators/JavascriptGenerator.h"
+#include "Library/Functions/StackScriptFunction.h"
 #include "Library/HostObjectBase.h"
 
 #ifdef ENABLE_MUTATION_BREAKPOINT

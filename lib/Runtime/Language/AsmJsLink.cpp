@@ -1,12 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
 
 #ifdef ASMJS_PLAT
-#include "Library/BoundFunction.h"
+#include "Library/Functions/BoundFunction.h"
 namespace Js{
     bool ASMLink::CheckArrayBuffer(ScriptContext* scriptContext, Var bufferView, const AsmJsModuleInfo * info)
     {
