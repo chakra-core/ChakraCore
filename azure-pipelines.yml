@@ -104,53 +104,60 @@ jobs:
 
   - job: MSVC
     timeoutInMinutes: 120
-    pool:
-      vmImage: 'windows-2019'
     strategy:
       maxParallel: 4
       matrix:
         x86.Debug:
+          image_name: 'windows-2019'
           build_type: 'debug'
           target: 'x86'
           special_build: ''
           do_test: true
           test_tags: ''
         x86.Test:
+          image_name: 'windows-2019'
           build_type: 'test'
           target: 'x86'
           special_build: ''
           do_test: true
           test_tags: '--include-slow'
         x86.NoJit:
+          image_name: 'windows-2019'
           build_type: 'debug'
           target: 'x86'
           special_build: '"/p:BuildJIT=false"'
           do_test: true
           test_tags: '-disablejit'
         x86.Release:
+          image_name: 'windows-2019'
           build_type: 'release'
           target: 'x86'
           special_build: ''
           do_test: false
           test_tags: ''
         x64.Debug:
+          image_name: 'windows-2019'
           build_type: 'debug'
           target: 'x64'
           special_build: ''
           do_test: true
           test_tags: ''
         x64.Test:
+          image_name: 'windows-2019'
           build_type: 'test'
           target: 'x64'
           special_build: ''
           do_test: true
           test_tags: '--include-slow'
         x64.Release:
+          image_name: 'windows-2019'
           build_type: 'release'
           target: 'x64'
           special_build: ''
           do_test: false
           test_tags: ''
+    pool:
+      vmImage: $(image_name)
       
     steps:
     - script: test\ci.buildone.cmd %TARGET% %BUILD% %SPECIAL%
