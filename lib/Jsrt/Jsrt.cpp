@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
@@ -1229,20 +1230,27 @@ CHAKRA_API JsGetStringLength(_In_ JsValueRef value, _Out_ int *length)
     END_JSRT_NO_EXCEPTION
 }
 
-CHAKRA_API JsPointerToString(_In_reads_(stringLength) const WCHAR *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
+CHAKRA_API JsPointerToString(_In_reads_opt_(stringLength) const WCHAR *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
 {
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue, stringLength);
-
-        PARAM_NOT_NULL(stringValue);
+        
         PARAM_NOT_NULL(string);
 
-        if (!Js::IsValidCharCount(stringLength))
+        if (stringLength == 0)
         {
-            Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
+            *string = scriptContext->GetLibrary()->GetEmptyString();
         }
-
-        *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+        else
+        {
+            PARAM_NOT_NULL(stringValue);
+            
+            if (!Js::IsValidCharCount(stringLength))
+            {
+                Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
+            }
+            *string = Js::JavascriptString::NewCopyBuffer(stringValue, static_cast<charcount_t>(stringLength), scriptContext);
+        }
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, string);
 
