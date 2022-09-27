@@ -239,6 +239,11 @@
       <baseline>pop3.baseline</baseline>
     </default>
   </test>
+	<test>
+		<default>
+			<files>pop4.js</files>
+		</default>
+	</test>
   <test>
     <default>
       <files>push1.js</files>
