@@ -1033,7 +1033,7 @@ namespace Js
         Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax);
         template<typename T, bool checkNaNAndNegZero> Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax); // NativeInt arrays can't have NaNs or -0
 
-        static void PopWithNoDst(Var nativeArray);
+        static void PopWithNoDst(ScriptContext* scriptContext, Var nativeArray);
     };
 
     template <> inline bool VarIsImpl<JavascriptNativeArray>(RecyclableObject* obj)
