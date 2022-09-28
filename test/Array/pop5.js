@@ -19,8 +19,8 @@ Object.defineProperty(proto, 3, {
 array.__proto__ = proto;
 
 function hotFunction() {
-    // Discard return value
-    array.pop();
+    // Store return value
+    const x = array.pop();
 }
 
 for (let i = 0; i < testRuns; i++) {

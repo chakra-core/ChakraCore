@@ -12360,7 +12360,7 @@ Lowerer::GenerateHelperToArrayPopFastPath(IR::Instr * instr, IR::LabelInstr * do
     //Decide the helperMethod based on dst availability and nativity of the array.
     // ToDo: Maybe ignore fast path if `JavascriptArray::HasAnyES5ArrayInPrototypeChain`. See #6582 and #6824.
     if(arrayValueType.IsLikelyNativeArray() && !instr->GetDst())
-    { 
+    {
         helperMethod = IR::HelperArray_NativePopWithNoDst;
     }
     else if(arrayValueType.IsLikelyNativeIntArray())

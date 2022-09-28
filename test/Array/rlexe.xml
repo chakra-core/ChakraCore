@@ -239,11 +239,18 @@
       <baseline>pop3.baseline</baseline>
     </default>
   </test>
-	<test>
-		<default>
-			<files>pop4.js</files>
-		</default>
-	</test>
+  <test>
+    <default>
+      <files>pop4.js</files>
+	  <compile-flags>-bgjit- -mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>pop5.js</files>
+	  <compile-flags>-bgjit- -mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
   <test>
     <default>
       <files>push1.js</files>
