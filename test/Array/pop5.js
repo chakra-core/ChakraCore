@@ -18,9 +18,10 @@ Object.defineProperty(proto, 3, {
 });
 array.__proto__ = proto;
 
+let globalCache = null;
 function hotFunction() {
     // Store return value
-    const x = array.pop();
+    globalCache = array.pop();
 }
 
 for (let i = 0; i < testRuns; i++) {
