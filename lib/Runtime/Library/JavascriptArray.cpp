@@ -4977,7 +4977,9 @@ Case0:
         // we will bailout on length 0
         Assert(arr->GetLength() != 0);
 
-        if (JavascriptArray::HasAnyES5ArrayInPrototypeChain(arr, true)) {
+        // Check for SparseArray and also has array in prototype chain
+        if (JavascriptArray::HasAnyES5ArrayInPrototypeChain(arr, false)) {
+            // Pop (walk chain) and discard the result
             EntryPopJavascriptArray(scriptContext, arr);
             return;
         }
