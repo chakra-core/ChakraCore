@@ -4970,7 +4970,7 @@ Case0:
     */
     void JavascriptNativeArray::PopWithNoDst(ScriptContext* scriptContext, Var nativeArray)
     {
-        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_NativePopWithNoDst);
+        JIT_HELPER_REENTRANT_HEADER(Array_NativePopWithNoDst);
         Assert(VarIs<JavascriptNativeArray>(nativeArray));
         JavascriptArray * arr = VarTo<JavascriptArray>(nativeArray);
 
@@ -5014,6 +5014,7 @@ Case0:
         {
             arr->SetLength(index);
         }
+        
         return element;
         JIT_HELPER_END(Array_NativeIntPop);
     }
