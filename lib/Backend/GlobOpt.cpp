@@ -1586,7 +1586,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
 
     SymID id = 0;
-    
+
     switch(instr->m_opcode)
     {
     case Js::OpCode::LdElemI_A:
@@ -13529,16 +13529,19 @@ GlobOpt::OptStackArgLenAndConst(IR::Instr* instr, Value** src1Val)
                 {
                     int argIndex = indirOpndSrc1->GetOffset() + 1;
                     IR::Instr* defInstr = nullptr;
-                    IR::Instr* inlineeStart = instr->m_func->GetInlineeStart();
-                    inlineeStart->IterateArgInstrs([&](IR::Instr* argInstr) {
-                        StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
-                        if (argSym->GetArgSlotNum() - 1 == argIndex)
-                        {
-                            defInstr = argInstr;
-                            return true;
-                        }
-                        return false;
-                    });
+                    if (argIndex > 0)
+                    {
+                        IR::Instr* inlineeStart = instr->m_func->GetInlineeStart();
+                        inlineeStart->IterateArgInstrs([&](IR::Instr* argInstr) {
+                            StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
+                            if (argSym->GetArgSlotNum() - 1 == argIndex)
+                            {
+                                defInstr = argInstr;
+                                return true;
+                            }
+                            return false;
+                        });
+                    }
 
                     Js::OpCode replacementOpcode;
                     if (instr->m_opcode == Js::OpCode::TypeofElem)
