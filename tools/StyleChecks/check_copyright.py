@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@ import re
 copyright_lines = [
     r'-------------------------------------------------------------------------------------------------------',
     r' Copyright \(C\) Microsoft( Corporation and contributors)?\. All rights reserved\.',
-    r' Copyright \(c\) 2021 ChakraCore Project Contributors\. All rights reserved\.',
+    r' Copyright \(c\)( 2022)? ChakraCore Project Contributors\. All rights reserved\.',
     r' Licensed under the MIT license\. See LICENSE\.txt file in the project root for full license information\.',
     r'.*' # the above should always be followed by at least one other line, so make sure that line is present
 ]
