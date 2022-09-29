@@ -2263,11 +2263,11 @@ namespace Js
 
         RecyclableObject* compareFn = nullptr;
 
-        if (args.Info.Count > 1)
+        if (args.Info.Count > 1 && !JavascriptOperators::IsUndefined(args[1]))
         {
             if (!JavascriptConversion::IsCallable(args[1]))
             {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.sort"));
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunctionOrUndefined, _u("[TypedArray].prototype.sort"));
             }
 
             compareFn = VarTo<RecyclableObject>(args[1]);
