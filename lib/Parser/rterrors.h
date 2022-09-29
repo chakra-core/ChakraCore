@@ -183,7 +183,6 @@ RT_ERROR_MSG(JSERR_FunctionArgument_Invalid, 5065, "%s: invalid argument", "Inva
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedObject, 5066, "%s: argument is not an Object", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedInternalObject, 5067, "%s: argument is not a JavaScript object", "JavaScript object expected", kjstTypeError, JSERR_NeedInternalObj)
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedFunction, 5068, "%s: argument is not a Function object", "Function expected", kjstTypeError, JSERR_NeedFunction)
-RT_ERROR_MSG(JSERR_FunctionArgument_NeedFunctionOrUndefined, 7301, "%s: argument is neither a Function object nor undefined", "Function expected", kjstTypeError, JSERR_NeedFunction)
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedVBArray, 5069, "%s: argument is not a VBArray object", "VBArray expected", kjstTypeError, JSERR_NeedVBArray)
 RT_ERROR_MSG(JSERR_FunctionArgument_NullOrUndefined, 5070, "%s: argument is null or undefined", "Object expected", kjstTypeError, JSERR_NeedObject)
 RT_ERROR_MSG(JSERR_FunctionArgument_NotObjectOrNull, 5071, "%s: argument is not an Object and is not null", "Object expected", kjstTypeError, JSERR_NeedObject)
@@ -425,5 +424,3 @@ RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
 
 // Implicit Conversion Errors
 RT_ERROR_MSG(JSERR_ImplicitStrConv, 7300, "No implicit conversion of %s to String", "Cannot implicitly convert to String", kjstTypeError, 0)
-
-// 7301 - JSERR_FunctionArgument_NeedFunctionOrUndefined
