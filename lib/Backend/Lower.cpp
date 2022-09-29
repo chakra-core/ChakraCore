@@ -12359,6 +12359,7 @@ Lowerer::GenerateHelperToArrayPopFastPath(IR::Instr * instr, IR::LabelInstr * do
     IR::JnHelperMethod helperMethod;
 
     //Decide the helperMethod based on dst availability and nativity of the array.
+    // ToDo: Maybe ignore fast path if `JavascriptArray::HasAnyES5ArrayInPrototypeChain`. See #6582 and #6824.
     if(arrayValueType.IsLikelyNativeArray() && !instr->GetDst())
     {
         helperMethod = IR::HelperArray_NativePopWithNoDst;
@@ -12378,11 +12379,7 @@ Lowerer::GenerateHelperToArrayPopFastPath(IR::Instr * instr, IR::LabelInstr * do
 
     m_lowererMD.LoadHelperArgument(instr, arrayHelperOpnd);
 
-    //We do not need scriptContext for HelperArray_NativePopWithNoDst call.
-    if(helperMethod != IR::HelperArray_NativePopWithNoDst)
-    {
-        LoadScriptContext(instr);
-    }
+    LoadScriptContext(instr);
 
     IR::Instr * retInstr = m_lowererMD.ChangeToHelperCall(instr, helperMethod, bailOutLabelHelper);
 

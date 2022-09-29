@@ -241,6 +241,16 @@
   </test>
   <test>
     <default>
+      <files>pop4.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>pop5.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>push1.js</files>
       <baseline>push1_2.baseline</baseline>
     </default>

@@ -4968,14 +4968,21 @@ Case0:
     *   PopWithNoDst
     *   - For pop calls that do not return a value, we only need to decrement the length of the array.
     */
-    void JavascriptNativeArray::PopWithNoDst(Var nativeArray)
+    void JavascriptNativeArray::PopWithNoDst(ScriptContext* scriptContext, Var nativeArray)
     {
-        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_NativePopWithNoDst);
+        JIT_HELPER_REENTRANT_HEADER(Array_NativePopWithNoDst);
         Assert(VarIs<JavascriptNativeArray>(nativeArray));
         JavascriptArray * arr = VarTo<JavascriptArray>(nativeArray);
 
         // we will bailout on length 0
         Assert(arr->GetLength() != 0);
+
+        // Check for SparseArray and also has array in prototype chain
+        if (JavascriptArray::HasAnyES5ArrayInPrototypeChain(arr, false)) {
+            // Pop (walk chain) and discard the result
+            EntryPopJavascriptArray(scriptContext, arr);
+            return;
+        }
 
         uint32 index = arr->GetLength() - 1;
         arr->SetLength(index);
@@ -5007,6 +5014,7 @@ Case0:
         {
             arr->SetLength(index);
         }
+        
         return element;
         JIT_HELPER_END(Array_NativeIntPop);
     }
