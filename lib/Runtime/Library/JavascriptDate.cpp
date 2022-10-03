@@ -164,10 +164,7 @@ namespace Js
                 }
             }
 
-            if (timeValue == -0)
-            {
-                timeValue = 0;
-            }
+            timeValue = TimeClip(JavascriptNumber::ToVar(timeValue));
 
             pDate->m_date.SetTvUtc(timeValue);
             return pDate;
@@ -219,6 +216,39 @@ namespace Js
         pDate->m_date.SetTvLcl(timeValue, scriptContext);
 
         return pDate;
+    }
+
+    // Implementation of ECMA 262 #sec-timeclip
+    // REVIEW(jahorto): Where is a better place for this function? JavascriptDate? DateUtilities? JavascriptConversion?
+    double JavascriptDate::TimeClip(Var x)
+    {
+        double time = 0.0;
+        if (TaggedInt::Is(x))
+        {
+            time = TaggedInt::ToDouble(x);
+        }
+        else
+        {
+            AssertOrFailFast(JavascriptNumber::Is(x));
+            time = JavascriptNumber::GetValue(x);
+
+            // Only perform steps 1, 3, and 4 if the input was not a TaggedInt, since TaggedInts cant be infinite or -0
+            if (!NumberUtilities::IsFinite(time))
+            {
+                return NumberConstants::NaN;
+            }
+
+            // This performs both steps 3 and 4
+            time = JavascriptConversion::ToInteger(time);
+        }
+
+        // Step 2: If abs(time) > 8.64e15, return NaN.
+        if (Math::Abs(time) > 8.64e15)
+        {
+            return NumberConstants::NaN;
+        }
+
+        return time;
     }
 
     // Date.prototype[@@toPrimitive] as described in ES6 spec (Draft May 22, 2014) 20.3.4.45

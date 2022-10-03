@@ -127,6 +127,7 @@ namespace Js
         static Var EntryUTC(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValueOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);
+        static double JavascriptDate::TimeClip(Var x);
 
         static JavascriptString* ToLocaleString(JavascriptDate* date, ScriptContext* requestContext);
         static JavascriptString* ToString(JavascriptDate* date, ScriptContext* requestContext);
