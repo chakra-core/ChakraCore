@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -951,7 +952,21 @@ var tests = [
             assert.throws(function () { Array.from.call(Arr, "a"); }, TypeError, "of constructs an array with non-config property", "Cannot redefine property '0'");
         }
     },
+    {
+        name: "Issue #6770 (Assertion failure in copyWithin)",
+        body() {
+            function opt() {
+                const v2 = [-1000000000.0];
+                v2.length = 4294967295;
+                const v3 = v2.copyWithin();
+                return v3;
+            }
 
+            for (let i = 0; i < 0x200; i++) {
+                opt(false);
+            }
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
