@@ -163,8 +163,8 @@ namespace Js
                     timeValue = JavascriptConversion::ToNumber(value, scriptContext);
                 }
             }
-
-            timeValue = TimeClip(JavascriptNumber::ToVar(timeValue));
+            
+            timeValue = TimeClip(JavascriptNumber::New(timeValue, scriptContext));
 
             pDate->m_date.SetTvUtc(timeValue);
             return pDate;
