@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
@@ -949,10 +950,9 @@ CommonNumber:
 
     double JavascriptConversion::ToInteger(double val)
     {
-        if(JavascriptNumber::IsNan(val))
+        if(JavascriptNumber::IsNan(val) || JavascriptNumber::IsZero(val))
             return 0;
-        if(JavascriptNumber::IsPosInf(val) || JavascriptNumber::IsNegInf(val) ||
-            JavascriptNumber::IsZero(val))
+        if(JavascriptNumber::IsPosInf(val) || JavascriptNumber::IsNegInf(val))
         {
             return val;
         }
