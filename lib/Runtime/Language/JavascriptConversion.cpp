@@ -949,7 +949,7 @@ CommonNumber:
 
     double JavascriptConversion::ToInteger(double val)
     {
-        if(JavascriptNumber::IsNan(val))
+        if(JavascriptNumber::IsNan(val) || val == -0 || val == 0)
             return 0;
         if(JavascriptNumber::IsPosInf(val) || JavascriptNumber::IsNegInf(val) ||
             JavascriptNumber::IsZero(val))
