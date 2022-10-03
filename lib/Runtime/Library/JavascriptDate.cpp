@@ -219,7 +219,6 @@ namespace Js
     }
 
     // Implementation of ECMA 262 #sec-timeclip
-    // REVIEW(jahorto): Where is a better place for this function? JavascriptDate? DateUtilities? JavascriptConversion?
     double JavascriptDate::TimeClip(Var x)
     {
         double time = 0.0;
