@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -134,6 +135,35 @@ const tests = [
         }
     },
     {
+        name : "Array.prototype.sort with edited prototypes and compare function side effects",
+        body () {
+            const arrayOne = new Array(2);
+            arrayOne[0] = 12;
+            arrayOne[1] = 10;
+            const resultOne = [10, 12];
+            compareSparseArrays(resultOne, arrayOne.sort((x,y) => { arrayOne[0] = "test"; return x - y; }), "Compare function set element does not effect array");
+            compareSparseArrays(resultOne, arrayOne, "Compare function side effect does not effect array");
+
+            const arrayTwo = new Array(3);
+            arrayTwo[0] = 12;
+            arrayTwo[2] = 10;
+            const resultTwo = [10,12,,];
+            compareSparseArrays(resultTwo, arrayTwo.sort((x, y) => { delete arrayTwo[0]; return x - y; }), "Compare function delete element does not effect array");
+            compareSparseArrays(resultTwo, arrayTwo, "Compare function delete element does not effect array");
+        }
+    },
+    {
+        name : "Array.prototype.sort default comparison should not call valueOf",
+        body () {
+            valueOf = false;
+            const arr = [{
+                valueOf() { valueOf = true; return 0; }
+            }, 1, 1, 1,];
+            arr.sort();
+            assert.isFalse(valueOf);
+        }
+    },
+    { // NOTE this test edits the array prototype and hence must be placed after other tests
         name : "Array.prototype.sort prototype lookups",
         body () {
             for (let i = 0; i < 20; i = i+4) {
@@ -196,6 +226,7 @@ const tests = [
     },
     {
         //Test that bug 5719 is fixed https://github.com/Microsoft/ChakraCore/issues/5719
+        //NOTE this test depends upon the prototype editing done in the previous test
         name : "Array-like object does not pull values from Array.prototype",
         body () {
             const arrayLike = {
@@ -204,35 +235,6 @@ const tests = [
             Array.prototype.sort.call(arrayLike);
             assert.areEqual("o0", arrayLike[0], "Array.prototype.sort pulls values form Object.prototype for array-like object");
             assert.areNotEqual("p3", arrayLike[1], "Array.prototype.sort does not pull values form Array.prototype for array-like object");
-        }
-    },
-    {
-        name : "Array.prototype.sort with edited prototypes and compare function side effects",
-        body () {
-            const arrayOne = new Array(2);
-            arrayOne[0] = 12;
-            arrayOne[1] = 10;
-            const resultOne = [10, "test"];
-            compareSparseArrays(resultOne, arrayOne.sort((x,y) => { arrayOne[0] = "test"; return x - y; }), "Compare function set element effects array");
-            compareSparseArrays(resultOne, arrayOne, "Compare function side effect effects array");
-
-            const arrayTwo = new Array(3);
-            arrayTwo[0] = 12;
-            arrayTwo[2] = 10;
-            const resultTwo = [0,0,10];
-            compareSparseArrays(resultTwo, arrayTwo.sort((x, y) => { delete arrayTwo[0]; return x - y; }), "Compare function delete element effects array");
-            compareSparseArrays(resultTwo, arrayTwo, "Compare function delete element effects array");
-        }
-    },
-    {
-        name : "Array.prototype.sort default comparison should not call valueOf",
-        body () {
-            valueOf = false;
-            const arr = [{
-                valueOf() { valueOf = true; return 0; }
-            }, 1, 1, 1,];
-            arr.sort();
-            assert.isFalse(valueOf);
         }
     }
 ];
