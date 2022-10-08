@@ -6679,364 +6679,333 @@ Case0:
     struct CompareVarsInfo
     {
         ScriptContext* scriptContext;
-        RecyclableObject* compFn;
+        Field(RecyclableObject*) compFn;
+        bool (*compareType)(void*, const void*, const void*);
     };
 
-    int __cdecl compareVars(void* cvInfoV, const void* aRef, const void* bRef)
+    struct StringItem
+    {
+        Field(Var) Value;
+        Field(JavascriptString*) StringValue;
+    };
+
+    bool stringCompare(void* cvInfoV, const void* aRef, const void* bRef)
+    {
+        const StringItem* item1 = static_cast<const StringItem*>(aRef);
+        const StringItem* item2 = static_cast<const StringItem*>(bRef);
+
+        return JavascriptString::strcmp(item1->StringValue, item2->StringValue) < 0;
+    }
+
+    bool compareVarsCrossContext(void* cvInfoV, const void* aRef, const void* bRef)
     {
         CompareVarsInfo* cvInfo=(CompareVarsInfo*)cvInfoV;
-        ScriptContext* requestContext=cvInfo->scriptContext;
         RecyclableObject* compFn=cvInfo->compFn;
 
         AssertMsg(*(Var*)aRef, "No null expected in sort");
         AssertMsg(*(Var*)bRef, "No null expected in sort");
 
-        if (compFn != nullptr)
-        {
-            ScriptContext* scriptContext = compFn->GetScriptContext();
-            ThreadContext* threadContext = scriptContext->GetThreadContext();
-            // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-            CallFlags flags = CallFlags_Value;
-            Var undefined = scriptContext->GetLibrary()->GetUndefined();
-            Var retVal;
-            if (requestContext != scriptContext)
-            {
-                Var leftVar = CrossSite::MarshalVar(scriptContext, *(Var*)aRef);
-                Var rightVar = CrossSite::MarshalVar(scriptContext, *(Var*)bRef);
-                BEGIN_SAFE_REENTRANT_CALL(threadContext)
-                {
-                    retVal = CALL_FUNCTION(threadContext, compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
-                }
-                END_SAFE_REENTRANT_CALL
-            }
-            else
-            {
-                BEGIN_SAFE_REENTRANT_CALL(threadContext)
-                {
-                    retVal = CALL_FUNCTION(scriptContext->GetThreadContext(), compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
-                }
-                END_SAFE_REENTRANT_CALL
-            }
+        ScriptContext* scriptContext = compFn->GetScriptContext();
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var undefined = scriptContext->GetLibrary()->GetUndefined();
+        Var retVal;
 
-            if (TaggedInt::Is(retVal))
-            {
-                return TaggedInt::ToInt32(retVal);
-            }
-            double dblResult;
-            if (JavascriptNumber::Is_NoTaggedIntCheck(retVal))
-            {
-                dblResult = JavascriptNumber::GetValue(retVal);
-            }
-            else
-            {
-                dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
-            }
-            if (dblResult < 0)
-            {
-                return -1;
-            }
-            return (dblResult > 0) ? 1 : 0;
+        Var leftVar = CrossSite::MarshalVar(scriptContext, *(Var*)aRef);
+        Var rightVar = CrossSite::MarshalVar(scriptContext, *(Var*)bRef);
+        BEGIN_SAFE_REENTRANT_CALL(threadContext)
+        {
+            retVal = CALL_FUNCTION(threadContext, compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
+        }
+        END_SAFE_REENTRANT_CALL
+
+        if (TaggedInt::Is(retVal))
+        {
+            return TaggedInt::ToInt32(retVal) < 0;
+        }
+        double dblResult;
+        if (JavascriptNumber::Is_NoTaggedIntCheck(retVal))
+        {
+            dblResult = JavascriptNumber::GetValue(retVal);
         }
         else
         {
-            JavascriptString* pStr1 = JavascriptConversion::ToString(*(Var*)aRef, requestContext);
-            JavascriptString* pStr2 = JavascriptConversion::ToString(*(Var*)bRef, requestContext);
-
-            return JavascriptString::strcmp(pStr1, pStr2);
+            dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
         }
+        return dblResult < 0;
     }
 
-    static void hybridSort(__inout_ecount(length) Field(Var) *elements, uint32 length, CompareVarsInfo* compareInfo)
+    bool compareVars(void* cvInfoV, const void* aRef, const void* bRef)
     {
-        // The cost of memory moves starts to be more expensive than additional comparer calls (given a simple comparer)
-        // for arrays of more than 512 elements.
-        if (length > 512)
-        {
-            qsort_s(elements, length, compareVars, compareInfo);
-            return;
-        }
+        CompareVarsInfo* cvInfo=(CompareVarsInfo*)cvInfoV;
+        RecyclableObject* compFn=cvInfo->compFn;
 
-        for (int i = 1; i < (int)length; i++)
-        {
-            if (compareVars(compareInfo, elements + i, elements + i - 1) < 0) {
-                // binary search for the left-most element greater than value:
-                int first = 0;
-                int last = i - 1;
-                while (first <= last)
-                {
-                    int middle = (first + last) / 2;
-                    if (compareVars(compareInfo, elements + i, elements + middle) < 0)
-                    {
-                        last = middle - 1;
-                    }
-                    else
-                    {
-                        first = middle + 1;
-                    }
-                }
+        AssertMsg(*(Var*)aRef, "No null expected in sort");
+        AssertMsg(*(Var*)bRef, "No null expected in sort");
 
-                // insert value right before first:
-                Var value = elements[i];
-                MoveArray(elements + first + 1, elements + first, (i - first));
-                elements[first] = value;
-            }
+        ScriptContext* scriptContext = compFn->GetScriptContext();
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var undefined = scriptContext->GetLibrary()->GetUndefined();
+        Var retVal;
+
+        BEGIN_SAFE_REENTRANT_CALL(threadContext)
+        {
+            retVal = CALL_FUNCTION(scriptContext->GetThreadContext(), compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
         }
+        END_SAFE_REENTRANT_CALL
+
+        if (TaggedInt::Is(retVal))
+        {
+            return TaggedInt::ToInt32(retVal) < 0;
+        }
+        double dblResult;
+        if (JavascriptNumber::Is_NoTaggedIntCheck(retVal))
+        {
+            dblResult = JavascriptNumber::GetValue(retVal);
+        }
+        else
+        {
+            dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
+        }
+        return dblResult < 0;
     }
 
-    void JavascriptArray::Sort(RecyclableObject* compFn)
+    template<typename T>
+    void JavascriptArray::InsertionSort(T* list, uint32 length, void* cvInfo)
     {
-        JS_REENTRANCY_LOCK(jsReentLock, this->GetScriptContext()->GetThreadContext());
-
-        if (length <= 1)
+        bool (*compareType)(void*, const void*, const void*) = ((CompareVarsInfo*)cvInfo)->compareType;
+        uint32 sortedCount = 1, lowerBound = 0, insertPoint = 0, upperBound = 0;
+        T item;
+        while (sortedCount < length)
         {
-            return;
-        }
-
-        SETOBJECT_FOR_MUTATION(jsReentLock, this);
-
-        this->EnsureHead<Var>();
-        ScriptContext* scriptContext = this->GetScriptContext();
-        Recycler* recycler = scriptContext->GetRecycler();
-
-        CompareVarsInfo cvInfo;
-        cvInfo.scriptContext = scriptContext;
-        cvInfo.compFn = compFn;
-
-        Assert(head != nullptr);
-
-        // Just dump the segment map on sort
-        ClearSegmentMap();
-
-        uint32 countUndefined = 0;
-        SparseArraySegment<Var>* startSeg = SparseArraySegment<Var>::From(head);
-
-        // Sort may have side effects on the array. Setting a dummy head so that original array is not affected
-        uint32 saveLength = length;
-        // that if compare function tries to modify the array it won't AV.
-        head = const_cast<SparseArraySegmentBase*>(EmptySegment);
-        SetFlags(DynamicObjectFlags::None);
-        this->InvalidateLastUsedSegment();
-        length = 0;
-
-        TryFinally([&]()
-        {
-            //The array is a continuous array if there is only one segment
-            if (startSeg->next == nullptr
-                // If this flag is specified, we want to improve the consistency of our array sorts
-                // by removing missing values from all kinds of arrays before sorting (done here by
-                // using the copy-to-one-segment path for array sorts) and by using a stronger sort
-                // comparer than the spec requires (done in CompareElements).
-                && !CONFIG_FLAG(StrongArraySort)
-                ) // Single segment fast path
+            item = list[sortedCount];
+            upperBound = sortedCount;
+            insertPoint = sortedCount - 1; // this lets us check for already ordered first
+            lowerBound = 0;
+            for (;;)
             {
-                if (compFn != nullptr)
+                if (compareType (cvInfo, &item, &list[insertPoint]) )
                 {
-                    countUndefined = startSeg->RemoveUndefined(scriptContext);
-
-#ifdef VALIDATE_ARRAY
-                    ValidateSegment(startSeg);
-#endif
-                    JS_REENTRANT(jsReentLock, hybridSort(startSeg->elements, startSeg->length, &cvInfo));
-                    startSeg->CheckLengthvsSize();
+                    upperBound = insertPoint;
                 }
                 else
                 {
-                    JS_REENTRANT(jsReentLock, countUndefined = sort(startSeg->elements, &startSeg->length, scriptContext));
+                    lowerBound = insertPoint + 1;
                 }
-                head = startSeg;
-            }
-            else
-            {
-                SparseArraySegment<Var>* allElements = SparseArraySegment<Var>::AllocateSegment(recycler, 0, 0, nullptr);
-                SparseArraySegment<Var>* next = startSeg;
-
-                uint32 nextIndex = 0;
-                // copy all the elements to single segment
-                while (next)
-                {
-                    countUndefined += next->RemoveUndefined(scriptContext);
-                    if (next->length != 0)
-                    {
-                        allElements = SparseArraySegment<Var>::CopySegment(recycler, allElements, nextIndex, next, next->left, next->length);
-                    }
-                    next = SparseArraySegment<Var>::From(next->next);
-                    nextIndex = allElements->length;
-
-#ifdef VALIDATE_ARRAY
-                    ValidateSegment(allElements);
-#endif
-                }
-
-                if (compFn != nullptr)
-                {
-                    JS_REENTRANT(jsReentLock, hybridSort(allElements->elements, allElements->length, &cvInfo));
-                }
-                else
-                {
-                    JS_REENTRANT(jsReentLock, sort(allElements->elements, &allElements->length, scriptContext));
-                    allElements->CheckLengthvsSize();
-                }
-
-                head = allElements;
-                head->next = nullptr;
-            }
-        },
-        [&](bool hasException)
-        {
-            length = saveLength;
-            ClearSegmentMap(); // Dump the segmentMap again in case user compare function rebuilds it
-            if (hasException)
-            {
-                // The current array might have affected due to callbacks. As we have got the exception we should be resetting the missing value.
-                SetHasNoMissingValues(false);
-                head = startSeg;
-                this->InvalidateLastUsedSegment();
-            }
-        });
-
-#if DEBUG
-        {
-            uint32 countNull = 0;
-            uint32 index = head->length - 1;
-            while (countNull < head->length)
-            {
-                if (SparseArraySegment<Var>::From(head)->elements[index] != NULL)
+                if (lowerBound >= upperBound)
                 {
                     break;
                 }
-                index--;
-                countNull++;
+                insertPoint = lowerBound + ((upperBound - lowerBound) / 2);
             }
-            AssertMsg(countNull == 0, "No null expected at the end");
-        }
-#endif
-
-        if (countUndefined != 0)
-        {
-            // fill undefined at the end
-            uint32 newLength = head->length + countUndefined;
-            if (newLength > head->size)
+            insertPoint = sortedCount;
+            while (insertPoint > lowerBound)
             {
-                SparseArraySegmentBase *oldHead = head;
-                bool isInlineSegment = JavascriptArray::IsInlineSegment(head, this);
-                head = SparseArraySegment<Var>::From(head)->GrowByMin(recycler, newLength - head->size);
-                if (isInlineSegment)
-                {
-                    this->ClearElements(oldHead, 0);
-                }
+                list[insertPoint] = list[insertPoint - 1];
+                --insertPoint;
             }
-
-            Var undefined = scriptContext->GetLibrary()->GetUndefined();
-            for (uint32 i = head->length; i < newLength; i++)
-            {
-                SparseArraySegment<Var>::From(head)->elements[i] = undefined;
-            }
-            head->length = newLength;
-            head->CheckLengthvsSize();
+            list[lowerBound] = item;
+            ++sortedCount;
         }
-        SetHasNoMissingValues();
-        this->InvalidateLastUsedSegment();
-        this->ClearSegmentMap();
-
-#ifdef VALIDATE_ARRAY
-        ValidateArray();
-#endif
-        return;
     }
 
-    uint32 JavascriptArray::sort(__inout_ecount(*len) Field(Var) *orig, uint32 *len, ScriptContext *scriptContext)
+    template<typename T>
+    void JavascriptArray::MergeSort(T* list, uint32 length, void* cvInfo, ArenaAllocator* allocator)
     {
-        uint32 count = 0, countUndefined = 0;
-        Element *elements = RecyclerNewArrayZ(scriptContext->GetRecycler(), Element, *len);
-        RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
+        bool (*compareType)(void*, const void*, const void*) = ((CompareVarsInfo*)cvInfo)->compareType;
+        T* buffer = AnewArray(allocator, T, length);
+        uint32 bucketSize = 2, lastSize = 1, position = 0, left = 0, mid = 0, right = 0, i = 0, j = 0, k = 0;
+        uint32 doubleLength = length + length;
+        T rightElement, leftElement;
 
-        //
-        // Create the Elements array
-        //
-
-        for (uint32 i = 0; i < *len; ++i)
+        while (bucketSize < doubleLength)
         {
-            if (!SparseArraySegment<Var>::IsMissingItem(&orig[i]))
+            while (position < length)
             {
-                if (!JavascriptOperators::IsUndefinedObject(orig[i], undefined))
-                {
-                    elements[count].Value = orig[i];
-                    elements[count].StringValue =  JavascriptConversion::ToString(orig[i], scriptContext);
+                left = position;
+                mid = left + lastSize;
 
-                    count++;
+                // perform a merge but only if it's necessary
+                if (mid < length && compareType (cvInfo, &list[mid], &list[mid - 1]))
+                {
+                    right = position + bucketSize;
+                    right = right < length ? right : length;
+                    i = mid - 1, j = 0, k = mid;
+
+                    while (k < right)
+                    {
+                        buffer[j++] = list[k++];
+                    }
+    
+                    rightElement = buffer[--j];
+                    leftElement = list[i];
+
+                    for (;;)
+                    {
+                        if (compareType (cvInfo, &rightElement, &leftElement))
+                        {
+                            list[--k] = leftElement;
+                            if (i > left)
+                            {
+                                leftElement = list[--i];
+                            }
+                            else
+                            {
+                                list[--k] = rightElement;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            list[--k] = rightElement;
+                            if (j > 0)
+                            {
+                                rightElement = buffer[--j];
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    while (j > 0)
+                    {
+                        list[--k] = buffer[--j];
+                    }
+                }  
+                position += bucketSize;
+            }
+            position = 0;
+            lastSize = bucketSize;
+            bucketSize *= 2;
+        }
+    }
+
+    inline void SortSetHelper(Field(Var)* list, Var item, uint32 index, JsReentLock* jsReentLock, ScriptContext* scriptContext)
+    {
+        list[index] = item;
+    }
+
+    inline void SortSetHelper(StringItem* list, Var item, uint32 index, JsReentLock* jsReentLock, ScriptContext* scriptContext)
+    {
+        StringItem current;
+        current.Value = item;
+        JsReentLock lock = *jsReentLock;
+        JS_REENTRANT(lock, current.StringValue = JavascriptConversion::ToString(item, scriptContext));
+        list[index] = current;
+    }
+
+    inline Var SortGetHelper(Field(Var)* list, uint32 index)
+    {
+        return list[index];
+    }
+
+    inline Var SortGetHelper(StringItem* list, uint32 index)
+    {
+        return list[index].Value;
+    }
+
+    // Helper for Array.prototype.sort
+    // template function has two paths:
+    // 1. for user supplied comparison functions (uses a list of Var)
+    // 2. for the default comparison (uses a list of StringItem)
+    template<typename T>
+    Var JavascriptArray::SortHelper(Var array, void* compareInfo)
+    {
+        CompareVarsInfo* cvInfo = (CompareVarsInfo*)compareInfo;
+        ScriptContext* scriptContext = cvInfo->scriptContext;
+        
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        SETOBJECT_FOR_MUTATION(jsReentLock, array);
+
+        RecyclableObject* obj = nullptr;
+        if (FALSE == JavascriptConversion::ToObject(array, scriptContext, &obj))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.sort"));
+        }
+
+        JS_REENTRANT(jsReentLock,
+            uint32 len = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext));
+
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
+        {
+            T* list = AnewArray(tempAlloc, T, len);
+
+            uint32 values = 0;
+            uint32 undefinedValues = 0;
+            uint32 holes = 0;
+            uint32 i = 0, j = 0;
+
+            for (; i < len; ++i)
+            {
+                JS_REENTRANT(jsReentLock, BOOL hasItem = JavascriptOperators::HasItem(obj, i));
+                
+                if (hasItem)
+                {
+                    Var item = nullptr;
+                    JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(obj, i, &item, scriptContext));
+                    if (gotItem)
+                    {
+                        TypeId type = JavascriptOperators::GetTypeId(item);
+                        if (type != TypeIds_Undefined)
+                        {
+                            SortSetHelper(list, item, values, &jsReentLock, scriptContext);
+                            values++;
+                        }
+                        else
+                        {
+                            ++undefinedValues;
+                        }
+                    }
+                    else
+                    {
+                        ++holes;
+                    }
                 }
                 else
                 {
-                    countUndefined++;
+                    ++holes;
                 }
             }
-        }
 
-        if (count > 0)
-        {
-            SortElements(elements, 0, count - 1);
-
-            for (uint32 i = 0; i < count; ++i)
+            if (values < 512)
             {
-                orig[i] = elements[i].Value;
+                JS_REENTRANT(jsReentLock, JavascriptArray::InsertionSort<T>(list, values, compareInfo));
             }
-        }
-
-        for (uint32 i = count + countUndefined; i < *len; ++i)
-        {
-            orig[i] = SparseArraySegment<Var>::GetMissingItem();
-        }
-
-        *len = count; // set the correct length
-        return countUndefined;
-    }
-
-    int __cdecl JavascriptArray::CompareElements(void* context, const void* elem1, const void* elem2)
-    {
-        const Element* element1 = static_cast<const Element*>(elem1);
-        const Element* element2 = static_cast<const Element*>(elem2);
-
-        Assert(element1 != NULL);
-        Assert(element2 != NULL);
-
-        if (!CONFIG_FLAG(StrongArraySort))
-        {
-            return JavascriptString::strcmp(element1->StringValue, element2->StringValue);
-        }
-        else
-        {
-            int str_cmp = JavascriptString::strcmp(element1->StringValue, element2->StringValue);
-            if (str_cmp != 0)
+            else
             {
-                return str_cmp;
-            }
-            // If they are equal, we get to a slightly more complex problem. We want to make a very
-            // predictable sort here, regardless of the structure of the array. To achieve this, we
-            // need to get an order for every pair of non-identical elements, else there will be an
-            // identifiable difference between sparse and dense array sorts in some cases.
-
-            // Handle a common set of equivalent nodes first for speed/convenience
-            if (element1->Value == element2->Value)
-            {
-                return 0;
+                JS_REENTRANT(jsReentLock, JavascriptArray::MergeSort<T>(list, values, compareInfo, tempAlloc));
             }
 
-            // Easy way to do most remaining cases is to just compare the type ids if they differ.
-            if (JavascriptOperators::GetTypeId(element1->Value) != JavascriptOperators::GetTypeId(element2->Value))
+
+            for (i = 0; i < values; ++i)
             {
-                return JavascriptOperators::GetTypeId(element1->Value) - JavascriptOperators::GetTypeId(element2->Value);
+                JS_REENTRANT(jsReentLock, JavascriptOperators::SetItem(obj, obj, i, SortGetHelper(list, i), scriptContext, static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNonWritable | PropertyOperation_ThrowIfNotExtensible)));
             }
-
-            // Further comparisons are possible, but get increasingly complex, and aren't necessary
-            // for the cases on hand.
-            return 0;
+            for (; j < undefinedValues; ++j, ++i)
+            {
+                JS_REENTRANT(jsReentLock, JavascriptOperators::SetItem(obj, obj, i, scriptContext->GetLibrary()->GetUndefined(), scriptContext, static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNonWritable | PropertyOperation_ThrowIfNotExtensible)));
+            }
+            for (j = 0; j < holes; ++j, ++i)
+            {
+                JS_REENTRANT(jsReentLock, JavascriptOperators::DeleteItem(obj, i, PropertyOperation_ThrowOnDeleteIfNotConfig));
+            }
         }
-    }
+        END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
 
-    void JavascriptArray::SortElements(Element* elements, uint32 left, uint32 right)
-    {
-        // Note: use write barrier policy of Field(Var)
-        qsort_s<Element, Field(Var)>(elements, right - left + 1, CompareElements, this);
+        if (VarIs<JavascriptArray>(obj))
+        {
+            UnsafeVarTo<JavascriptArray>(obj)->ClearSegmentMap();
+            #ifdef VALIDATE_ARRAY
+            UnsafeVarTo<JavascriptArray>(obj)->ValidateArray();
+            #endif
+        }
+
+        return obj;
     }
 
     Var JavascriptArray::EntrySort(RecyclableObject* function, CallInfo callInfo, ...)
@@ -7045,7 +7014,6 @@ Case0:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.sort"));
 
         Assert(!(callInfo.Flags & CallFlags_New));
@@ -7057,108 +7025,32 @@ Case0:
         {
             if (JavascriptConversion::IsCallable(args[1]))
             {
-                compFn = VarTo<RecyclableObject>(args[1]);
+                compFn = UnsafeVarTo<RecyclableObject>(args[1]);
             }
             else
             {
-                TypeId typeId = JavascriptOperators::GetTypeId(args[1]);
-
-                // Use default comparer:
-                // - In ES5 mode if the argument is undefined.
-                bool useDefaultComparer = typeId == TypeIds_Undefined;
-                if (!useDefaultComparer)
+                // Spec mandates that we throw if arg[1] is both not callable and not undefined
+                if (JavascriptOperators::GetTypeId(args[1]) != TypeIds_Undefined)
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.sort"));
                 }
             }
         }
 
-        SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
-
-        bool useNoSideEffectSort = JavascriptArray::IsNonES5Array(args[0])
-            && !VarTo<JavascriptArray>(args[0])->IsCrossSiteObject()
-            && !HasAnyES5ArrayInPrototypeChain(UnsafeVarTo<JavascriptArray>(args[0]));
-
-        if (useNoSideEffectSort)
+        CompareVarsInfo cvInfo;
+        cvInfo.scriptContext = scriptContext;
+        if (compFn != NULL)
         {
-            JavascriptArray *arr = UnsafeVarTo<JavascriptArray>(args[0]);
-
-            if (arr->length <= 1)
-            {
-                return args[0];
-            }
-
-            uint32 length = arr->length;
-
-            if(arr->IsFillFromPrototypes())
-            {
-                arr->FillFromPrototypes(0, arr->length); // We need find all missing value from [[proto]] object
-            }
-
-            // As we have already established that the FillFromPrototype should not change the bound of the array.
-            if (length != arr->length)
-            {
-                Js::Throw::FatalInternalError();
-            }
-
-            EnsureNonNativeArray(arr);
-            JS_REENTRANT(jsReentLock, arr->Sort(compFn));
+            cvInfo.compFn = compFn;
+            cvInfo.compareType = scriptContext == compFn->GetScriptContext() ? &compareVars : &compareVarsCrossContext;
+            return JavascriptArray::SortHelper<Field(Var)>(args[0], &cvInfo);
         }
         else
         {
-            RecyclableObject* pObj = nullptr;
-            if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &pObj))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.sort"));
-            }
-            JS_REENTRANT(jsReentLock,
-                uint32 len = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(pObj, scriptContext), scriptContext));
-            JavascriptArray* sortArray = scriptContext->GetLibrary()->CreateArray(len);
-            sortArray->EnsureHead<Var>();
-            ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.sort"));
-
-            BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
-            {
-                JsUtil::List<uint32, ArenaAllocator>* indexList = JsUtil::List<uint32, ArenaAllocator>::New(tempAlloc);
-
-                for (uint32 i = 0; i < len; i++)
-                {
-                    Var item;
-                    JS_REENTRANT(jsReentLock, BOOL gotItem = JavascriptOperators::GetItem(pObj, i, &item, scriptContext));
-                    if (gotItem)
-                    {
-                        indexList->Add(i);
-                        sortArray->DirectSetItemAt(i, item);
-                    }
-                }
-                if (indexList->Count() > 0)
-                {
-                    if (sortArray->length > 1)
-                    {
-                        JS_REENTRANT(jsReentLock, sortArray->FillFromPrototypes(0, sortArray->length)); // We need find all missing value from [[proto]] object
-                    }
-                    JS_REENTRANT(jsReentLock, sortArray->Sort(compFn));
-
-                    uint32 removeIndex = sortArray->head->length;
-                    for (uint32 i = 0; i < removeIndex; i++)
-                    {
-                        AssertMsg(!SparseArraySegment<Var>::IsMissingItem(&SparseArraySegment<Var>::From(sortArray->head)->elements[i]), "No gaps expected in sorted array");
-                        JS_REENTRANT(jsReentLock, h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(pObj, pObj, i, SparseArraySegment<Var>::From(sortArray->head)->elements[i], scriptContext)));
-                    }
-                    for (int i = 0; i < indexList->Count(); i++)
-                    {
-                        uint32 value = indexList->Item(i);
-                        if (value >= removeIndex)
-                        {
-                            JS_REENTRANT(jsReentLock, h.ThrowTypeErrorOnFailure((JavascriptOperators::DeleteItem(pObj, value))));
-                        }
-                    }
-                }
-
-            }
-            END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
+            cvInfo.compFn = nullptr;
+            cvInfo.compareType = &stringCompare;
+            return JavascriptArray::SortHelper<StringItem>(args[0], &cvInfo);
         }
-        return args[0];
     }
 
     Var JavascriptArray::EntrySplice(RecyclableObject* function, CallInfo callInfo, ...)
