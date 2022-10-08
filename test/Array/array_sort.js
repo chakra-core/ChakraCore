@@ -135,6 +135,22 @@ const tests = [
         }
     },
     {
+        name : "Array.prototype.sort with cross-context compare function",
+        body() {
+            globalThis.foo = 5;
+            const other = WScript.LoadScript("function comp(a, b) {foo = 10; return b - a;}", "samethread");
+            const compareOther = other.comp;
+            const compareSame = function comp(a, b) { return b - a; }
+            const shortArray = [...Array(100).keys()];
+            const longArray = [...Array(2050).keys()];
+            // test with short array for assertion Sort and Long Array for Merge Sort
+            assert.areEqual(shortArray.slice(0, shortArray.length).sort(compareOther), shortArray.slice(0, shortArray.length).sort(compareSame));
+            assert.areEqual(longArray.slice(0, longArray.length).sort(compareOther), longArray.slice(0, longArray.length).sort(compareSame));
+            assert.areEqual(globalThis.foo, 5);
+            assert.areEqual(other.foo, 10);
+        }
+    },
+    {
         name : "Array.prototype.sort with edited prototypes and compare function side effects",
         body () {
             const arrayOne = new Array(2);
