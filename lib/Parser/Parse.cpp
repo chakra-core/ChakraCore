@@ -3761,7 +3761,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             goto LUnknown;
         }
         this->GetScanner()->Scan();
-        ParseStatement<buildAST>(true);
+        ParseStatement<buildAST>();
         break;
 #endif
 
@@ -9845,7 +9845,7 @@ ParseNodeTry * Parser::ParseTry()
     }
 
     PushStmt<buildAST>(&stmt, pnode, knopTry, nullptr);
-    ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+    ParseNodePtr pnodeBody = ParseStatement<buildAST>();
     if (buildAST)
     {
         pnode->pnodeBody = pnodeBody;
@@ -9873,7 +9873,7 @@ ParseNodeFinally * Parser::ParseFinally()
     }
 
     PushStmt<buildAST>(&stmt, pnode, knopFinally, nullptr);
-    ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+    ParseNodePtr pnodeBody = ParseStatement<buildAST>();
     if (buildAST)
     {
         pnode->pnodeBody = pnodeBody;
@@ -10035,7 +10035,7 @@ ParseNodeCatch * Parser::ParseCatch()
             Error(ERRnoLcurly);
         }
 
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);  //catch(id[:expr]) {block}
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>();  //catch(id[:expr]) {block}
         if (buildAST)
         {
             pnode->pnodeBody = pnodeBody;
@@ -10102,7 +10102,7 @@ ParseNodeCase * Parser::ParseCase(ParseNodePtr *ppnodeBody)
 Parse a single statement. Digest a trailing semicolon.
 ***************************************************************************/
 template<bool buildAST>
-ParseNodePtr Parser::ParseStatement(bool parseBody)
+ParseNodePtr Parser::ParseStatement()
 {
     ParseNodePtr pnode = nullptr;
     LabelId* pLabelIdList = nullptr;
@@ -10170,17 +10170,9 @@ LRestart:
     {
     case tkEOF:
         if (labelledStatement)
-        {
             Error(ERRLabelFollowedByEOF);
-        }
-        if (parseBody)
-        {
+        else
             Error(ERRsyntaxEOF);
-        }
-        if (buildAST)
-        {
-            pnode = nullptr;
-        }
         break;
 
     case tkFUNCTION:
@@ -10534,7 +10526,7 @@ LRestart:
                 TrackAssignment<true>(pnodeT, nullptr);
             }
             PushStmt<buildAST>(&stmt, pnodeForInOrForOf, isForAwait ? knopForAwaitOf : (isForOf ? knopForOf : knopForIn), pLabelIdList);
-            ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+            ParseNodePtr pnodeBody = ParseStatement<buildAST>();
 
             if (buildAST)
             {
@@ -10595,7 +10587,7 @@ LRestart:
                 pnodeFor->ichLim = ichLim;
             }
             PushStmt<buildAST>(&stmt, pnodeFor, knopFor, pLabelIdList);
-            ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+            ParseNodePtr pnodeBody = ParseStatement<buildAST>();
             if (buildAST)
             {
                 pnodeFor->pnodeBody = pnodeBody;
@@ -10741,7 +10733,7 @@ LRestart:
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
         PushStmt<buildAST>(&stmt, pnodeWhile, knopWhile, pLabelIdList);
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>();
         PopStmt(&stmt);
 
         if (buildAST)
@@ -10764,7 +10756,7 @@ LRestart:
         this->GetScanner()->Scan();
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>();
         m_disallowImportExportStmt = stashedDisallowImportExportStmt;
         PopStmt(&stmt);
         charcount_t ichMinT = this->GetScanner()->IchMinTok();
@@ -10829,12 +10821,12 @@ LRestart:
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
         PushStmt<buildAST>(&stmt, pnodeIf, knopIf, pLabelIdList);
-        ParseNodePtr pnodeTrue = ParseStatement<buildAST>(true);
+        ParseNodePtr pnodeTrue = ParseStatement<buildAST>();
         ParseNodePtr pnodeFalse = nullptr;
         if (m_token.tk == tkELSE)
         {
             this->GetScanner()->Scan();
-            pnodeFalse = ParseStatement<buildAST>(true);
+            pnodeFalse = ParseStatement<buildAST>();
         }
         if (buildAST)
         {
@@ -10923,7 +10915,7 @@ LRestart:
         PushBlockInfo(CreateBlockNode());
         PushDynamicBlock();
 
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>();
         if (buildAST)
         {
             pnode->AsParseNodeWith()->pnodeBody = pnodeBody;
