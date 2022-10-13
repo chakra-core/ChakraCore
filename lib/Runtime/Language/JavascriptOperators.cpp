@@ -2712,14 +2712,7 @@ CommonNumber:
         {
             if ((flags & Accessor) == Accessor)
             {
-                if (IsUndefinedAccessor(setterValueOrProxy, requestContext)
-                    && JavascriptError::ThrowCantAssign(propertyOperationFlags, requestContext, propertyId))
-                {
-                    *result = TRUE;
-                    return true;
-                }
-                if (JavascriptError::ThrowIfStrictModeUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext) ||
-                    JavascriptError::ThrowIfNotExtensibleUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext))
+                if (JavascriptError::ThrowIfUndefinedSetter(propertyOperationFlags, setterValueOrProxy, requestContext, propertyId))
                 {
                     *result = TRUE;
                     return true;

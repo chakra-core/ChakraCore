@@ -758,6 +758,34 @@ namespace Js
         return false;
     }
 
+    bool JavascriptError::ThrowIfUndefinedSetter(
+        PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext, PropertyId propertyId)
+    {
+        if (!JavascriptOperators::IsUndefinedAccessor(setterValue, scriptContext))
+            return false;
+
+        bool shouldThrow = scriptContext->GetThreadContext()->RecordImplicitException();
+        if (flags & PropertyOperation_StrictMode)
+        {
+            if (shouldThrow)
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_CantAssignToReadOnly);
+            return true;
+        }
+        else if (flags & PropertyOperation_ThrowIfNotExtensible)
+        {
+            if (shouldThrow)
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotExtensible);
+            return true;
+        }
+        else if (flags & PropertyOperation_ThrowIfNonWritable)
+        {
+            if (shouldThrow)
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotWritable, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+            return true;
+        }
+        return false;
+    }
+
     bool JavascriptError::ThrowIfStrictModeUndefinedSetter(
         PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext)
     {
