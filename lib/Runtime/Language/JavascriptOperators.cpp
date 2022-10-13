@@ -2712,9 +2712,9 @@ CommonNumber:
         {
             if ((flags & Accessor) == Accessor)
             {
-                if (IsUndefinedAccessor(setterValueOrProxy, requestContext))
+                if (IsUndefinedAccessor(setterValueOrProxy, requestContext)
+                    && JavascriptError::ThrowCantAssign(propertyOperationFlags, requestContext, propertyId))
                 {
-                    JavascriptError::ThrowCantAssign(propertyOperationFlags, requestContext, propertyId);
                     *result = TRUE;
                     return true;
                 }
