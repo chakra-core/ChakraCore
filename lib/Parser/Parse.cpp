@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -1810,7 +1810,7 @@ void Parser::FinishParseBlock(ParseNodeBlock *pnodeBlock, bool needScanRCurly)
         // have been set already.
         pnodeBlock->ichLim = this->GetScanner()->IchLimTok();
     }
-
+    
     BindPidRefs<false>(GetCurrentBlockInfo(), m_nextBlockId - 1);
 
     PopStmt(&m_currentBlockInfo->pstmt);
@@ -3761,7 +3761,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             goto LUnknown;
         }
         this->GetScanner()->Scan();
-        ParseStatement<buildAST>();
+        ParseStatement<buildAST>(true);
         break;
 #endif
 
@@ -9845,7 +9845,7 @@ ParseNodeTry * Parser::ParseTry()
     }
 
     PushStmt<buildAST>(&stmt, pnode, knopTry, nullptr);
-    ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+    ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
     if (buildAST)
     {
         pnode->pnodeBody = pnodeBody;
@@ -9873,7 +9873,7 @@ ParseNodeFinally * Parser::ParseFinally()
     }
 
     PushStmt<buildAST>(&stmt, pnode, knopFinally, nullptr);
-    ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+    ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
     if (buildAST)
     {
         pnode->pnodeBody = pnodeBody;
@@ -10035,7 +10035,7 @@ ParseNodeCatch * Parser::ParseCatch()
             Error(ERRnoLcurly);
         }
 
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>();  //catch(id[:expr]) {block}
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);  //catch(id[:expr]) {block}
         if (buildAST)
         {
             pnode->pnodeBody = pnodeBody;
@@ -10102,7 +10102,7 @@ ParseNodeCase * Parser::ParseCase(ParseNodePtr *ppnodeBody)
 Parse a single statement. Digest a trailing semicolon.
 ***************************************************************************/
 template<bool buildAST>
-ParseNodePtr Parser::ParseStatement()
+ParseNodePtr Parser::ParseStatement(bool parseBody)
 {
     ParseNodePtr pnode = nullptr;
     LabelId* pLabelIdList = nullptr;
@@ -10172,6 +10172,10 @@ LRestart:
         if (labelledStatement)
         {
             Error(ERRLabelFollowedByEOF);
+        }
+        if (parseBody)
+        {
+            Error(ERRsyntaxEOF);
         }
         if (buildAST)
         {
@@ -10530,7 +10534,7 @@ LRestart:
                 TrackAssignment<true>(pnodeT, nullptr);
             }
             PushStmt<buildAST>(&stmt, pnodeForInOrForOf, isForAwait ? knopForAwaitOf : (isForOf ? knopForOf : knopForIn), pLabelIdList);
-            ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+            ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
 
             if (buildAST)
             {
@@ -10591,7 +10595,7 @@ LRestart:
                 pnodeFor->ichLim = ichLim;
             }
             PushStmt<buildAST>(&stmt, pnodeFor, knopFor, pLabelIdList);
-            ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+            ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
             if (buildAST)
             {
                 pnodeFor->pnodeBody = pnodeBody;
@@ -10737,7 +10741,7 @@ LRestart:
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
         PushStmt<buildAST>(&stmt, pnodeWhile, knopWhile, pLabelIdList);
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
         PopStmt(&stmt);
 
         if (buildAST)
@@ -10760,7 +10764,7 @@ LRestart:
         this->GetScanner()->Scan();
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
         m_disallowImportExportStmt = stashedDisallowImportExportStmt;
         PopStmt(&stmt);
         charcount_t ichMinT = this->GetScanner()->IchMinTok();
@@ -10825,12 +10829,12 @@ LRestart:
         bool stashedDisallowImportExportStmt = m_disallowImportExportStmt;
         m_disallowImportExportStmt = true;
         PushStmt<buildAST>(&stmt, pnodeIf, knopIf, pLabelIdList);
-        ParseNodePtr pnodeTrue = ParseStatement<buildAST>();
+        ParseNodePtr pnodeTrue = ParseStatement<buildAST>(true);
         ParseNodePtr pnodeFalse = nullptr;
         if (m_token.tk == tkELSE)
         {
             this->GetScanner()->Scan();
-            pnodeFalse = ParseStatement<buildAST>();
+            pnodeFalse = ParseStatement<buildAST>(true);
         }
         if (buildAST)
         {
@@ -10919,7 +10923,7 @@ LRestart:
         PushBlockInfo(CreateBlockNode());
         PushDynamicBlock();
 
-        ParseNodePtr pnodeBody = ParseStatement<buildAST>();
+        ParseNodePtr pnodeBody = ParseStatement<buildAST>(true);
         if (buildAST)
         {
             pnode->AsParseNodeWith()->pnodeBody = pnodeBody;

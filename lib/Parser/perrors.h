@@ -8,6 +8,7 @@
 
 LSC_ERROR_MSG(1001, ERRnoMemory      , "Out of memory")
 LSC_ERROR_MSG(1002, ERRsyntax        , "Syntax error")
+LSC_ERROR_MSG(1104, ERRsyntaxEOF     , "Unexpected end of script.")
 LSC_ERROR_MSG(1003, ERRnoColon       , "Expected ':'")
 LSC_ERROR_MSG(1004, ERRnoSemic       , "Expected ';'")
 LSC_ERROR_MSG(1005, ERRnoLparen      , "Expected '('")
@@ -116,7 +117,9 @@ LSC_ERROR_MSG(1100, ERRUndeclaredExportName, "Export of name '%s' which has no l
 LSC_ERROR_MSG(1101, ERRModuleImportOrExportInScript, "'import' or 'export' can only be used in module code.")
 LSC_ERROR_MSG(1102, ERRInvalidAsgTarget, "Invalid left-hand side in assignment.")
 LSC_ERROR_MSG(1103, ERRMissingFrom, "Expected 'from' after import or export clause.")
-//1104-1199 available for future use
+
+// 1104 ERRsyntaxEOF
+// 1105-1199 available for future use
 
 // Generic errors intended to be re-usable
 LSC_ERROR_MSG(1200, ERRKeywordAfter, "Unexpected keyword '%s' after '%s'")

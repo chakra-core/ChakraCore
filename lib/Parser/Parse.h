@@ -794,7 +794,7 @@ private:
 
     template<bool buildAST> ParseNodeArrLit * ParseArrayLiteral();
 
-    template<bool buildAST> ParseNodePtr ParseStatement();
+    template<bool buildAST> ParseNodePtr ParseStatement(bool parseBody = false);
     template<bool buildAST> ParseNodePtr ParseVariableDeclaration(
         tokens declarationType,
         charcount_t ichMin,
