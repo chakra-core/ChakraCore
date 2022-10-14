@@ -1810,7 +1810,7 @@ void Parser::FinishParseBlock(ParseNodeBlock *pnodeBlock, bool needScanRCurly)
         // have been set already.
         pnodeBlock->ichLim = this->GetScanner()->IchLimTok();
     }
-    
+
     BindPidRefs<false>(GetCurrentBlockInfo(), m_nextBlockId - 1);
 
     PopStmt(&m_currentBlockInfo->pstmt);
