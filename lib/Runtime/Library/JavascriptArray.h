@@ -554,6 +554,15 @@ namespace Js
             return fromIndex;
         }
 
+        struct CompareVarsInfo
+        {
+            ScriptContext* scriptContext;
+            Field(RecyclableObject*) compFn;
+            bool (*compareType)(JavascriptArray::CompareVarsInfo*, const void*, const void*);
+        };
+
+        template <typename T> static void TypedArraySort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* compareInfo, ArenaAllocator* allocator);
+
     protected:
         template<class T> bool IsMissingHeadSegmentItemImpl(const uint32 index) const;
         SegmentBTreeRoot * GetSegmentMap() const;
@@ -638,9 +647,9 @@ namespace Js
         BOOL GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* descriptorFlags);
     private:
-        template<typename T> static void InsertionSort(T* list, uint32 length, void* cvInfo);
-        template<typename T> static void MergeSort(T* list, uint32 length, void* cvInfo, ArenaAllocator* allocator);
-        template<typename T> static Var SortHelper(Var array, void* compareInfo);
+        template<typename T> static void InsertionSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo);
+        template<typename T> static void MergeSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo, ArenaAllocator* allocator);
+        template<typename T> static Var SortHelper(Var array, JavascriptArray::CompareVarsInfo* cvInfo);
 
         template <typename Fn>
         static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);

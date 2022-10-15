@@ -2142,102 +2142,58 @@ namespace Js
         return JavascriptArray::SomeHelper(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
     }
 
-    template<typename T> int __cdecl TypedArrayCompareElementsHelper(void* context, const void* elem1, const void* elem2)
+    template<typename T> bool TypedArrayCompareElementsHelper(JavascriptArray::CompareVarsInfo* cvInfo, const void* elem1, const void* elem2)
     {
         const T* element1 = static_cast<const T*>(elem1);
         const T* element2 = static_cast<const T*>(elem2);
 
         Assert(element1 != nullptr);
         Assert(element2 != nullptr);
-        Assert(context != nullptr);
+        Assert(cvInfo != nullptr);
 
         const T x = *element1;
         const T y = *element2;
 
         if (NumberUtilities::IsNan((double)x))
         {
-            if (NumberUtilities::IsNan((double)y))
-            {
-                return 0;
-            }
-
-            return 1;
+            return false;
         }
-        else
+        else if (NumberUtilities::IsNan((double)y))
         {
-            if (NumberUtilities::IsNan((double)y))
-            {
-                return -1;
-            }
+            return true;
         }
 
-        void **contextArray = (void **)context;
-        if (contextArray[1] != nullptr)
+        if (cvInfo->compFn != nullptr)
         {
-            RecyclableObject* compFn = VarTo<RecyclableObject>(contextArray[1]);
+            RecyclableObject* compFn = cvInfo->compFn;
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
-            double dblResult;
             Var retVal = nullptr;
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {
                 retVal = CALL_FUNCTION(scriptContext->GetThreadContext(),
                             compFn, CallInfo(CallFlags_Value, 3),
                             undefined,
-                            JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
-                            JavascriptNumber::ToVarWithCheck((double)y, scriptContext));
+                            JavascriptNumber::ToVarNoCheck((double)x, scriptContext),
+                            JavascriptNumber::ToVarNoCheck((double)y, scriptContext));
             }
             END_SAFE_REENTRANT_CALL
 
-            Assert(VarIs<TypedArrayBase>(contextArray[0]));
-            if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
-            }
-
             if (TaggedInt::Is(retVal))
             {
-                return TaggedInt::ToInt32(retVal);
+                return TaggedInt::ToInt32(retVal) < 0;
             }
 
             if (JavascriptNumber::Is_NoTaggedIntCheck(retVal))
             {
-                dblResult = JavascriptNumber::GetValue(retVal);
-            }
-            else
-            {
-                dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
-
-                // ToNumber may execute user-code which can cause the array to become detached
-                if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
-                }
+                return JavascriptNumber::GetValue(retVal) < 0;
             }
 
-            if (dblResult < 0)
-            {
-                return -1;
-            }
-            else if (dblResult > 0)
-            {
-                return 1;
-            }
-
-            return 0;
+            return JavascriptConversion::ToNumber_Full(retVal, scriptContext) < 0;
         }
         else
         {
-            if (x < y)
-            {
-                return -1;
-            }
-            else if (x > y)
-            {
-                return 1;
-            }
-
-            return 0;
+            return x < y;
         }
     }
 
@@ -2270,22 +2226,36 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.sort"));
             }
 
-            compareFn = VarTo<RecyclableObject>(args[1]);
+            compareFn = UnsafeVarTo<RecyclableObject>(args[1]);
         }
 
-        // Get the elements comparison function for the type of this TypedArray
-        void* elementCompare = reinterpret_cast<void*>(typedArrayBase->GetCompareElementsFunction());
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
+        {
+            byte* buffer = typedArrayBase->GetByteBuffer();
+            
+            // Spec mandates copy before sort
+            // But it is only detectable if a compare function was provided
+            if (compareFn != nullptr)
+            {
+                uint32 elementSize = typedArrayBase->GetBytesPerElement();
+                uint32 byteLength = elementSize * length;
+                byte* list = AnewArray(tempAlloc, byte, byteLength);
+                memcpy(list, buffer, byteLength);
+                typedArrayBase->SortHelper(list, length, compareFn, scriptContext, tempAlloc);
 
-        Assert(elementCompare);
+                // compare function calls may have detached Type Array
+                if (TypedArrayBase::IsDetachedTypedArray(typedArrayBase))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+                }
 
-        // Cast compare to the correct function type
-        int(__cdecl*elementCompareFunc)(void*, const void*, const void*) = (int(__cdecl*)(void*, const void*, const void*))elementCompare;
-
-        void * contextToPass[] = { typedArrayBase, compareFn };
-
-        // We can always call qsort_s with the same arguments. If user compareFn is non-null, the callback will use it to do the comparison.
-        qsort_s(typedArrayBase->GetByteBuffer(), length, typedArrayBase->GetBytesPerElement(), elementCompareFunc, contextToPass);
-
+                memcpy(buffer, list, byteLength);
+            }
+            else
+            {
+                typedArrayBase->SortHelper(buffer, length, nullptr, scriptContext, tempAlloc);
+            }
+        }
 
         return typedArrayBase;
     }

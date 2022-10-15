@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 //  Implements typed array.
@@ -11,7 +11,7 @@ namespace Js
 {
     typedef Var (*PFNCreateTypedArray)(Js::ArrayBufferBase* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascriptLibrary);
 
-    template<typename T> int __cdecl TypedArrayCompareElementsHelper(void* context, const void* elem1, const void* elem2);
+    template<typename T> bool TypedArrayCompareElementsHelper(JavascriptArray::CompareVarsInfo* cvInfo, const void* elem1, const void* elem2);
 
     class TypedArrayBase : public ArrayBufferParent
     {
@@ -202,8 +202,7 @@ namespace Js
         static BOOL CanonicalNumericIndexString(PropertyId propertyId, ScriptContext *scriptContext);
         static BOOL CanonicalNumericIndexString(JavascriptString *propertyString, ScriptContext *scriptContext);
 
-        typedef int(__cdecl* CompareElementsFunction)(void*, const void*, const void*);
-        virtual CompareElementsFunction GetCompareElementsFunction() = 0;
+        virtual void SortHelper(byte* listBuffer, uint32 length, RecyclableObject* compareFn, ScriptContext* scriptContext, ArenaAllocator* allocator) = 0;
 
         virtual Var Subarray(uint32 begin, uint32 end) = 0;
         Field(int32) BYTES_PER_ELEMENT;
@@ -495,7 +494,6 @@ namespace Js
             return TRUE;
         }
 
-
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override sealed;
         virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override sealed;
         virtual Var  DirectGetItem(__in uint32 index) override sealed;
@@ -519,9 +517,14 @@ namespace Js
         }
 
     protected:
-        CompareElementsFunction GetCompareElementsFunction()
+        void SortHelper(byte* listBuffer, uint32 length, RecyclableObject* compareFn, ScriptContext* scriptContext, ArenaAllocator* allocator)
         {
-            return &TypedArrayCompareElementsHelper<TypeName>;
+            TypeName* list = reinterpret_cast<TypeName*>(listBuffer);
+            JavascriptArray::CompareVarsInfo cvInfo;
+            cvInfo.scriptContext = scriptContext;
+            cvInfo.compFn = compareFn;
+            cvInfo.compareType = &TypedArrayCompareElementsHelper<TypeName>;
+            JavascriptArray::TypedArraySort<TypeName>(list, length, &cvInfo, allocator);
         }
 
     public:
@@ -578,9 +581,14 @@ namespace Js
         virtual Var TypedCompareExchange(__in uint32 index, __in Var comparand, __in Var replacementValue) override;
 
     protected:
-        CompareElementsFunction GetCompareElementsFunction()
+        void SortHelper(byte* listBuffer, uint32 length, RecyclableObject* compareFn, ScriptContext* scriptContext, ArenaAllocator* allocator)
         {
-            return &TypedArrayCompareElementsHelper<char16>;
+            char16* list = reinterpret_cast<char16*>(listBuffer);
+            JavascriptArray::CompareVarsInfo cvInfo;
+            cvInfo.scriptContext = scriptContext;
+            cvInfo.compFn = compareFn;
+            cvInfo.compareType = &TypedArrayCompareElementsHelper<char16>;
+            JavascriptArray::TypedArraySort<char16>(list, length, &cvInfo, allocator);
         }
 
     public:

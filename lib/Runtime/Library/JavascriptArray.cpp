@@ -6676,20 +6676,13 @@ Case0:
         return newObj;
     }
 
-    struct CompareVarsInfo
-    {
-        ScriptContext* scriptContext;
-        Field(RecyclableObject*) compFn;
-        bool (*compareType)(void*, const void*, const void*);
-    };
-
     struct StringItem
     {
         Field(Var) Value;
         Field(JavascriptString*) StringValue;
     };
 
-    bool stringCompare(void* cvInfoV, const void* aRef, const void* bRef)
+    bool stringCompare(JavascriptArray::CompareVarsInfo* cvInfo, const void* aRef, const void* bRef)
     {
         const StringItem* item1 = static_cast<const StringItem*>(aRef);
         const StringItem* item2 = static_cast<const StringItem*>(bRef);
@@ -6697,9 +6690,8 @@ Case0:
         return JavascriptString::strcmp(item1->StringValue, item2->StringValue) < 0;
     }
 
-    bool compareVarsCrossContext(void* cvInfoV, const void* aRef, const void* bRef)
+    bool compareVarsCrossContext(JavascriptArray::CompareVarsInfo* cvInfo, const void* aRef, const void* bRef)
     {
-        CompareVarsInfo* cvInfo=(CompareVarsInfo*)cvInfoV;
         RecyclableObject* compFn=cvInfo->compFn;
 
         AssertMsg(*(Var*)aRef, "No null expected in sort");
@@ -6736,15 +6728,14 @@ Case0:
         return dblResult < 0;
     }
 
-    bool compareVars(void* cvInfoV, const void* aRef, const void* bRef)
+    bool compareVars(JavascriptArray::CompareVarsInfo* cvInfo, const void* aRef, const void* bRef)
     {
-        CompareVarsInfo* cvInfo=(CompareVarsInfo*)cvInfoV;
         RecyclableObject* compFn=cvInfo->compFn;
 
         AssertMsg(*(Var*)aRef, "No null expected in sort");
         AssertMsg(*(Var*)bRef, "No null expected in sort");
 
-        ScriptContext* scriptContext = compFn->GetScriptContext();
+        ScriptContext* scriptContext = cvInfo->scriptContext;
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
@@ -6774,9 +6765,9 @@ Case0:
     }
 
     template<typename T>
-    void JavascriptArray::InsertionSort(T* list, uint32 length, void* cvInfo)
+    void JavascriptArray::InsertionSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo)
     {
-        bool (*compareType)(void*, const void*, const void*) = ((CompareVarsInfo*)cvInfo)->compareType;
+        bool (*compareType)(JavascriptArray::CompareVarsInfo*, const void*, const void*) = cvInfo->compareType;
         uint32 sortedCount = 1, lowerBound = 0, insertPoint = 0, upperBound = 0;
         T item;
         while (sortedCount < length)
@@ -6813,9 +6804,9 @@ Case0:
     }
 
     template<typename T>
-    void JavascriptArray::MergeSort(T* list, uint32 length, void* cvInfo, ArenaAllocator* allocator)
+    void JavascriptArray::MergeSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo, ArenaAllocator* allocator)
     {
-        bool (*compareType)(void*, const void*, const void*) = ((CompareVarsInfo*)cvInfo)->compareType;
+        bool (*compareType)(JavascriptArray::CompareVarsInfo*, const void*, const void*) = cvInfo->compareType;
         T* buffer = AnewArray(allocator, T, length);
         uint32 bucketSize = 2, lastSize = 1, position = 0, left = 0, mid = 0, right = 0, i = 0, j = 0, k = 0;
         uint32 doubleLength = length + length;
@@ -6914,9 +6905,8 @@ Case0:
     // 1. for user supplied comparison functions (uses a list of Var)
     // 2. for the default comparison (uses a list of StringItem)
     template<typename T>
-    Var JavascriptArray::SortHelper(Var array, void* compareInfo)
+    Var JavascriptArray::SortHelper(Var array, JavascriptArray::CompareVarsInfo* cvInfo)
     {
-        CompareVarsInfo* cvInfo = (CompareVarsInfo*)compareInfo;
         ScriptContext* scriptContext = cvInfo->scriptContext;
         
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
@@ -6974,11 +6964,11 @@ Case0:
 
             if (values < 512)
             {
-                JS_REENTRANT(jsReentLock, JavascriptArray::InsertionSort<T>(list, values, compareInfo));
+                JS_REENTRANT(jsReentLock, JavascriptArray::InsertionSort<T>(list, values, cvInfo));
             }
             else
             {
-                JS_REENTRANT(jsReentLock, JavascriptArray::MergeSort<T>(list, values, compareInfo, tempAlloc));
+                JS_REENTRANT(jsReentLock, JavascriptArray::MergeSort<T>(list, values, cvInfo, tempAlloc));
             }
 
 
@@ -7037,7 +7027,7 @@ Case0:
             }
         }
 
-        CompareVarsInfo cvInfo;
+        JavascriptArray::CompareVarsInfo cvInfo;
         cvInfo.scriptContext = scriptContext;
         if (compFn != NULL)
         {
@@ -7050,6 +7040,22 @@ Case0:
             cvInfo.compFn = nullptr;
             cvInfo.compareType = &stringCompare;
             return JavascriptArray::SortHelper<StringItem>(args[0], &cvInfo);
+        }
+    }
+
+    template <typename T>
+    void JavascriptArray::TypedArraySort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo, ArenaAllocator* allocator)
+    {
+        ScriptContext* scriptContext = cvInfo->scriptContext;
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+
+        if (length < 512)
+        {
+            JS_REENTRANT(jsReentLock, JavascriptArray::InsertionSort<T>(list, length, cvInfo));
+        }
+        else
+        {
+            JS_REENTRANT(jsReentLock, JavascriptArray::MergeSort<T>(list, length, cvInfo, allocator));
         }
     }
 
@@ -13155,3 +13161,16 @@ Case0:
     template void  Js::JavascriptArray::SetArrayLiteralItem<void*>(unsigned int, void*);
     template void* Js::JavascriptArray::TemplatedIndexOfHelper<false, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
     template void* Js::JavascriptArray::TemplatedIndexOfHelper<true, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
+
+    template void Js::JavascriptArray::TypedArraySort<char16>(char16*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<int8>(int8*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<uint8>(uint8*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<int16>(int16*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<uint16>(uint16*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<int32>(int32*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<uint32>(uint32*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<float>(float*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<double>(double*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<int64>(int64*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<uint64>(uint64*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
+    template void Js::JavascriptArray::TypedArraySort<bool>(bool*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
