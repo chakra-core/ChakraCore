@@ -554,11 +554,12 @@ namespace Js
             return fromIndex;
         }
 
+        // Struct to hold info used by Sorting algorithms for Array.prototype.sort and TypedArray.prototype.sort
         struct CompareVarsInfo
         {
             ScriptContext* scriptContext;
-            Field(RecyclableObject*) compFn;
-            bool (*compareType)(JavascriptArray::CompareVarsInfo*, const void*, const void*);
+            Field(RecyclableObject*) compFn; // User provided JS comparison method
+            bool (*compareType)(JavascriptArray::CompareVarsInfo*, const void*, const void*); // C++ comparison method to wrap user provided method
         };
 
         template <typename T> static void TypedArraySort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* compareInfo, ArenaAllocator* allocator);

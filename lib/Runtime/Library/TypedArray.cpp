@@ -2142,6 +2142,7 @@ namespace Js
         return JavascriptArray::SomeHelper(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
     }
 
+    // Comparison method used in TypedArray.prototype.sort
     template<typename T> bool TypedArrayCompareElementsHelper(JavascriptArray::CompareVarsInfo* cvInfo, const void* elem1, const void* elem2)
     {
         const T* element1 = static_cast<const T*>(elem1);
@@ -2154,6 +2155,7 @@ namespace Js
         const T x = *element1;
         const T y = *element2;
 
+        // ECMA2023 spec requires that NaN values are sorted to the end
         if (NumberUtilities::IsNan((double)x))
         {
             return false;
@@ -2191,12 +2193,15 @@ namespace Js
 
             return JavascriptConversion::ToNumber_Full(retVal, scriptContext) < 0;
         }
-        else
+        else // simple comparison when no user method provided
         {
             return x < y;
         }
     }
 
+    // TypedArray.prototype.sort entry point
+    // Implements #sec-%typedarray%.prototype.sort from ECMA 2023 spec
+    // 
     Var TypedArrayBase::EntrySort(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -2208,10 +2213,12 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_sort);
 
+        // Throw if not a valid typed array
+        // This step is per spec and allows us to optimise significantly below
         TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.sort"));
         uint32 length = typedArrayBase->GetLength();
 
-        // If TypedArray has no length, we don't have any work to do.
+        // Early return if length is 0
         if (length == 0)
         {
             return typedArrayBase;
@@ -2219,6 +2226,7 @@ namespace Js
 
         RecyclableObject* compareFn = nullptr;
 
+        // Spec requires us to throw if comparison function is neither undefined nor callable
         if (args.Info.Count > 1 && !JavascriptOperators::IsUndefined(args[1]))
         {
             if (!JavascriptConversion::IsCallable(args[1]))
@@ -2241,6 +2249,7 @@ namespace Js
                 uint32 byteLength = elementSize * length;
                 byte* list = AnewArray(tempAlloc, byte, byteLength);
                 memcpy(list, buffer, byteLength);
+                // Sort the copied data
                 typedArrayBase->SortHelper(list, length, compareFn, scriptContext, tempAlloc);
 
                 // compare function calls may have detached Type Array
@@ -2253,6 +2262,7 @@ namespace Js
             }
             else
             {
+                // perform an in-place sort when no comparison method is provided
                 typedArrayBase->SortHelper(buffer, length, nullptr, scriptContext, tempAlloc);
             }
         }

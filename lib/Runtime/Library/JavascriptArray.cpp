@@ -6676,12 +6676,17 @@ Case0:
         return newObj;
     }
 
+    // String Item struct, used for Array.prototype.sort without a compare Function
+    // Spec requires that comparisons are done using a string-comparison
+    // We convert the array in advance into pairs of values and strings
+    // This reduces the total number of conversions needed
     struct StringItem
     {
         Field(Var) Value;
         Field(JavascriptString*) StringValue;
     };
 
+    // Comparison method used in Array.prototype.sort when no comparison function was provided
     bool stringCompare(JavascriptArray::CompareVarsInfo* cvInfo, const void* aRef, const void* bRef)
     {
         const StringItem* item1 = static_cast<const StringItem*>(aRef);
@@ -6690,6 +6695,8 @@ Case0:
         return JavascriptString::strcmp(item1->StringValue, item2->StringValue) < 0;
     }
 
+    // Comparison method used in Array.prototype.sort with provided comparison function
+    // from a different context to the .sort call
     bool compareVarsCrossContext(JavascriptArray::CompareVarsInfo* cvInfo, const void* aRef, const void* bRef)
     {
         RecyclableObject* compFn=cvInfo->compFn;
@@ -6728,6 +6735,8 @@ Case0:
         return dblResult < 0;
     }
 
+    // Comparison method used in Array.prototype.sort with provided comparison function
+    // from same context as .sort call
     bool compareVars(JavascriptArray::CompareVarsInfo* cvInfo, const void* aRef, const void* bRef)
     {
         RecyclableObject* compFn=cvInfo->compFn;
@@ -6764,6 +6773,7 @@ Case0:
         return dblResult < 0;
     }
 
+    // Sorting Algorithm used for short arrays
     template<typename T>
     void JavascriptArray::InsertionSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo)
     {
@@ -6803,6 +6813,7 @@ Case0:
         }
     }
 
+    // Sorting algorithm for longer arrays
     template<typename T>
     void JavascriptArray::MergeSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo, ArenaAllocator* allocator)
     {
@@ -6876,6 +6887,8 @@ Case0:
         }
     }
 
+    // Set and Get helpers used in JavascriptArray::SortHelper below
+    // These allow the SortHelper to handle either a row of Var OR a row of StringItem
     inline void SortSetHelper(Field(Var)* list, Var item, uint32 index, JsReentLock* jsReentLock, ScriptContext* scriptContext)
     {
         list[index] = item;
@@ -6900,8 +6913,9 @@ Case0:
         return list[index].Value;
     }
 
-    // Helper for Array.prototype.sort
-    // template function has two paths:
+    // Helper for Array.prototype.sort,
+    // this implements the majority of #sec-array.prototype.sort from the ECMA2023
+    // It is a template function with two paths:
     // 1. for user supplied comparison functions (uses a list of Var)
     // 2. for the default comparison (uses a list of StringItem)
     template<typename T>
@@ -6912,17 +6926,21 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, array);
 
+        // Per spec, throw if the 'this' value is not a valid object
         RecyclableObject* obj = nullptr;
         if (FALSE == JavascriptConversion::ToObject(array, scriptContext, &obj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.sort"));
         }
 
+        // Get the Length
         JS_REENTRANT(jsReentLock,
             uint32 len = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext));
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
         {
+            // Spec mandates that we copy the array into a 'list' before sorting
+            // This severely limits the potential for sort side-effects to alter the result
             T* list = AnewArray(tempAlloc, T, len);
 
             uint32 values = 0;
@@ -6943,6 +6961,8 @@ Case0:
                         TypeId type = JavascriptOperators::GetTypeId(item);
                         if (type != TypeIds_Undefined)
                         {
+                            // If T = Var this adds item to the list
+                            // If T = StringItem this creates a StringItem from the Var and adds that to the list
                             SortSetHelper(list, item, values, &jsReentLock, scriptContext);
                             values++;
                         }
@@ -6962,6 +6982,8 @@ Case0:
                 }
             }
 
+            // Call the appropriate Sorting Algorithm
+            // Insertion sort uses less memory and is quicker on short arrays but gets less efficient as arrays get longer
             if (values < 512)
             {
                 JS_REENTRANT(jsReentLock, JavascriptArray::InsertionSort<T>(list, values, cvInfo));
@@ -6971,7 +6993,8 @@ Case0:
                 JS_REENTRANT(jsReentLock, JavascriptArray::MergeSort<T>(list, values, cvInfo, tempAlloc));
             }
 
-
+            // Write the sorted data back to the original array
+            // Undefined values and holes are placed at the end
             for (i = 0; i < values; ++i)
             {
                 JS_REENTRANT(jsReentLock, JavascriptOperators::SetItem(obj, obj, i, SortGetHelper(list, i), scriptContext, static_cast<PropertyOperationFlags>(PropertyOperation_ThrowIfNonWritable | PropertyOperation_ThrowIfNotExtensible)));
@@ -6987,6 +7010,8 @@ Case0:
         }
         END_TEMP_ALLOCATOR(tempAlloc, scriptContext);
 
+        // if the Array is not just an array-like object but an actual array we clear the Segment map
+        // optimised access CC generates for arrays that may have been mangled by sorting
         if (VarIs<JavascriptArray>(obj))
         {
             UnsafeVarTo<JavascriptArray>(obj)->ClearSegmentMap();
@@ -6998,6 +7023,9 @@ Case0:
         return obj;
     }
 
+    // Entry point for Array.prototype.sort
+    // Implements the first step of #sec-array.prototype.sort from the ECMA2023
+    // Calls JavascriptArray::SortHelper for the remainder of the implementation
     Var JavascriptArray::EntrySort(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -7019,7 +7047,7 @@ Case0:
             }
             else
             {
-                // Spec mandates that we throw if arg[1] is both not callable and not undefined
+                // Spec mandates that we throw if arg[1] is neither callable nor undefined
                 if (JavascriptOperators::GetTypeId(args[1]) != TypeIds_Undefined)
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.sort"));
@@ -7027,6 +7055,7 @@ Case0:
             }
         }
 
+        // CompareVarsInfo struct holds data that will be used by sorting algorithm
         JavascriptArray::CompareVarsInfo cvInfo;
         cvInfo.scriptContext = scriptContext;
         if (compFn != NULL)
@@ -7043,6 +7072,8 @@ Case0:
         }
     }
 
+    // Typed Array Sort is a helper method to call the correct Sorting algorithm for TypedArray.prototype.sort
+    // Included in this file in order to instantiate type specific instances of thee algorithms
     template <typename T>
     void JavascriptArray::TypedArraySort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo, ArenaAllocator* allocator)
     {
@@ -13162,6 +13193,7 @@ Case0:
     template void* Js::JavascriptArray::TemplatedIndexOfHelper<false, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
     template void* Js::JavascriptArray::TemplatedIndexOfHelper<true, Js::TypedArrayBase, unsigned int>(Js::TypedArrayBase*, void*, unsigned int, unsigned int, Js::ScriptContext*);
 
+    // Explicit instantiation of Sorting Algorithms for each form of typed array
     template void Js::JavascriptArray::TypedArraySort<char16>(char16*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
     template void Js::JavascriptArray::TypedArraySort<int8>(int8*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
     template void Js::JavascriptArray::TypedArraySort<uint8>(uint8*, uint32, JavascriptArray::CompareVarsInfo*, ArenaAllocator*);
