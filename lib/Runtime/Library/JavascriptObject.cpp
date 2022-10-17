@@ -245,6 +245,9 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
         isInvalidationOfInlineCacheNeeded = false;
     }
 
+    // Invalidate the "instanceof" cache
+    scriptContext->GetThreadContext()->InvalidateAllIsInstInlineCaches();
+
     if (isInvalidationOfInlineCacheNeeded)
     {
         bool allProtoCachesInvalidated = false;
