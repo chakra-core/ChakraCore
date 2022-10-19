@@ -42,36 +42,36 @@ jobs:
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
           libtype_flag: ''
-        Linux.Release:
-          image_name: 'ubuntu-22.04'
-          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
-          build_type: 'Release'
-          libtype_flag: ''
-        Ubuntu20.ReleaseWithDebug:
-          image_name: 'ubuntu-20.04'
-          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
-          build_type: 'RelWithDebInfo'
-          libtype_flag: ''
-        Ubuntu20.Release:
-          image_name: 'ubuntu-20.04'
-          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
-          build_type: 'Release'
-          libtype_flag: ''
-        OSX.DebugNoICU:
-          image_name: 'macOS-latest'
-          deps: 'brew install ninja'
-          build_type: 'Debug'
-          libtype_flag: '-DSTATIC_LIBRARY=ON'
-        OSX.ReleaseWithDebug:
-          image_name: 'macOS-latest'
-          deps: 'brew install ninja icu4c'
-          build_type: 'RelWithDebInfo'
-          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
-        OSX.Release:
-          image_name: 'macOS-latest'
-          deps: 'brew install ninja icu4c'
-          build_type: 'Release'
-          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
+#        Linux.Release:
+#          image_name: 'ubuntu-22.04'
+#          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+#          build_type: 'Release'
+#          libtype_flag: ''
+#        Ubuntu20.ReleaseWithDebug:
+#          image_name: 'ubuntu-20.04'
+#          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+#          build_type: 'RelWithDebInfo'
+#          libtype_flag: ''
+#        Ubuntu20.Release:
+#          image_name: 'ubuntu-20.04'
+#          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+#          build_type: 'Release'
+#          libtype_flag: ''
+#        OSX.DebugNoICU:
+#          image_name: 'macOS-latest'
+#          deps: 'brew install ninja'
+#          build_type: 'Debug'
+#          libtype_flag: '-DSTATIC_LIBRARY=ON'
+#        OSX.ReleaseWithDebug:
+#          image_name: 'macOS-latest'
+#          deps: 'brew install ninja icu4c'
+#          build_type: 'RelWithDebInfo'
+#          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
+#        OSX.Release:
+#          image_name: 'macOS-latest'
+#          deps: 'brew install ninja icu4c'
+#          build_type: 'Release'
+#          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
 
     pool:
       vmImage: $(image_name)
@@ -102,89 +102,89 @@ jobs:
         ninja check
       displayName: 'Test'
 
-  - job: MSVC
-    timeoutInMinutes: 120
-    strategy:
-      maxParallel: 4
-      matrix:
-        x86.Debug:
-          image_name: 'windows-2022'
-          build_type: 'debug'
-          target: 'x86'
-          special_build: ''
-          do_test: true
-          test_tags: ''
-        x86.Test:
-          image_name: 'windows-2022'
-          build_type: 'test'
-          target: 'x86'
-          special_build: ''
-          do_test: true
-          test_tags: '--include-slow'
-        x86.NoJit:
-          image_name: 'windows-2022'
-          build_type: 'debug'
-          target: 'x86'
-          special_build: '"/p:BuildJIT=false"'
-          do_test: true
-          test_tags: '-disablejit'
-        x86.Release:
-          image_name: 'windows-2022'
-          build_type: 'release'
-          target: 'x86'
-          special_build: ''
-          do_test: false
-          test_tags: ''
-        x64.Debug:
-          image_name: 'windows-2022'
-          build_type: 'debug'
-          target: 'x64'
-          special_build: ''
-          do_test: true
-          test_tags: ''
-        x64.Test:
-          image_name: 'windows-2022'
-          build_type: 'test'
-          target: 'x64'
-          special_build: ''
-          do_test: true
-          test_tags: '--include-slow'
-        x64.Release:
-          image_name: 'windows-2022'
-          build_type: 'release'
-          target: 'x64'
-          special_build: ''
-          do_test: false
-          test_tags: ''
-        win19.x86.Release:
-          image_name: 'windows-2019'
-          build_type: 'release'
-          target: 'x86'
-          special_build: ''
-          do_test: false
-          test_tags: ''
-        win19.x64.Release:
-          image_name: 'windows-2019'
-          build_type: 'release'
-          target: 'x64'
-          special_build: ''
-          do_test: false
-          test_tags: ''
-    pool:
-      vmImage: $(image_name)
-      
-    steps:
-    - script: test\ci.buildone.cmd %TARGET% %BUILD% %SPECIAL%
-      displayName: 'Build'
-      env:
-        TARGET: $(target)
-        BUILD: $(build_type)
-        SPECIAL: $(special_build)
-
-    - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
-      displayName: 'Test'
-      condition: eq(variables['do_test'], true)
-      env:
-        TARGET: $(target)
-        BUILD: $(build_type)
-        TEST_TAGS: ${test_tags}
+#  - job: MSVC
+#    timeoutInMinutes: 120
+#    strategy:
+#      maxParallel: 4
+#      matrix:
+#        x86.Debug:
+#          image_name: 'windows-2022'
+#          build_type: 'debug'
+#          target: 'x86'
+#          special_build: ''
+#          do_test: true
+#          test_tags: ''
+#        x86.Test:
+#          image_name: 'windows-2022'
+#          build_type: 'test'
+#          target: 'x86'
+#          special_build: ''
+#          do_test: true
+#          test_tags: '--include-slow'
+#        x86.NoJit:
+#          image_name: 'windows-2022'
+#          build_type: 'debug'
+#          target: 'x86'
+#          special_build: '"/p:BuildJIT=false"'
+#          do_test: true
+#          test_tags: '-disablejit'
+#        x86.Release:
+#          image_name: 'windows-2022'
+#          build_type: 'release'
+#          target: 'x86'
+#          special_build: ''
+#          do_test: false
+#          test_tags: ''
+#        x64.Debug:
+#          image_name: 'windows-2022'
+#          build_type: 'debug'
+#          target: 'x64'
+#          special_build: ''
+#          do_test: true
+#          test_tags: ''
+#        x64.Test:
+#          image_name: 'windows-2022'
+#          build_type: 'test'
+#          target: 'x64'
+#          special_build: ''
+#          do_test: true
+#          test_tags: '--include-slow'
+#        x64.Release:
+#          image_name: 'windows-2022'
+#          build_type: 'release'
+#          target: 'x64'
+#          special_build: ''
+#          do_test: false
+#          test_tags: ''
+#        win19.x86.Release:
+#          image_name: 'windows-2019'
+#          build_type: 'release'
+#          target: 'x86'
+#          special_build: ''
+#          do_test: false
+#          test_tags: ''
+#        win19.x64.Release:
+#          image_name: 'windows-2019'
+#          build_type: 'release'
+#          target: 'x64'
+#          special_build: ''
+#          do_test: false
+#          test_tags: ''
+#    pool:
+#      vmImage: $(image_name)
+#      
+#    steps:
+#    - script: test\ci.buildone.cmd %TARGET% %BUILD% %SPECIAL%
+#      displayName: 'Build'
+#      env:
+#        TARGET: $(target)
+#        BUILD: $(build_type)
+#        SPECIAL: $(special_build)
+#
+#    - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
+#      displayName: 'Test'
+#      condition: eq(variables['do_test'], true)
+#      env:
+#        TARGET: $(target)
+#        BUILD: $(build_type)
+#        TEST_TAGS: ${test_tags}
