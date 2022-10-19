@@ -385,7 +385,7 @@ namespace regex
             ImmutableList<T> * current = this;
             while(!current->IsEmpty())
             {
-                auto next = current->next;
+                ImmutableList<T> * next = current->next;
                 current->next = out;
                 out = current;
                 current = next;
