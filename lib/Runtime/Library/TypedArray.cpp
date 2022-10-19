@@ -2211,19 +2211,7 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_sort);
 
-        // Throw if not a valid typed array
-        // This step is per spec and allows us to optimise significantly below
-        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.sort"));
-        uint32 length = typedArrayBase->GetLength();
-
-        // Early return if length is 0
-        if (length == 0)
-        {
-            return typedArrayBase;
-        }
-
         RecyclableObject* compareFn = nullptr;
-
         // Spec requires us to throw if comparison function is neither undefined nor callable
         if (args.Info.Count > 1 && !JavascriptOperators::IsUndefined(args[1]))
         {
@@ -2233,6 +2221,17 @@ namespace Js
             }
 
             compareFn = UnsafeVarTo<RecyclableObject>(args[1]);
+        }
+
+        // Throw if not a valid typed array
+        // This step is per spec and allows us to optimise significantly below
+        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.sort"));
+        uint32 length = typedArrayBase->GetLength();
+
+        // Early return if length is 0 or 1
+        if (length < 2)
+        {
+            return typedArrayBase;
         }
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))

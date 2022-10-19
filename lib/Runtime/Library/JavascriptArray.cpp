@@ -6933,6 +6933,14 @@ Case0:
         JS_REENTRANT(jsReentLock,
             uint32 len = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext));
 
+        // Early return if length = 0
+        // Note cannot return early for length = 1 without further checks
+        // As per spec we must use HasItem() and GetItem() on each element
+        if (len == 0)
+        {
+            return obj;
+        }
+
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
         {
             // Spec mandates that we copy the array into a 'list' before sorting

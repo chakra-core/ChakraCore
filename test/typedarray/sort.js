@@ -100,6 +100,14 @@ const tests = [
             assert.areEqual(Uint8Array.from([0, 1]), arr.sort((a, b) => {arr[0] = 5; return a - b;}), "Uint8Array.sort protects array from compare function side effects");
             assert.throws(function (){arr.sort(() => {ArrayBuffer.detach(arr.buffer); return -1;})}, TypeError, "Uint8Array.sort throws if compare function detaches buffer");
         }
+    },
+    {
+        name : "TypedArray.prototype.sort with an invalid parameter",
+        body() {
+            assert.throws(()=>{Uint8Array.prototype.sort.call(Uint8Array.from([]),5);}, TypeError);
+            assert.throws(()=>{Uint8Array.prototype.sort.call(5,5);}, TypeError);
+            assert.throws(()=>{Uint8Array.prototype.sort.call([]);}, TypeError);
+        }
     }
 ];
 
