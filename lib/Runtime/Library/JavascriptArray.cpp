@@ -6706,8 +6706,6 @@ Case0:
 
         ScriptContext* scriptContext = compFn->GetScriptContext();
         ThreadContext* threadContext = scriptContext->GetThreadContext();
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var undefined = scriptContext->GetLibrary()->GetUndefined();
         Var retVal;
 
@@ -6715,7 +6713,7 @@ Case0:
         Var rightVar = CrossSite::MarshalVar(scriptContext, *(Var*)bRef);
         BEGIN_SAFE_REENTRANT_CALL(threadContext)
         {
-            retVal = CALL_FUNCTION(threadContext, compFn, CallInfo(flags, 3), undefined, leftVar, rightVar);
+            retVal = CALL_FUNCTION(threadContext, compFn, CallInfo(CallFlags_Value, 3), undefined, leftVar, rightVar);
         }
         END_SAFE_REENTRANT_CALL
 
@@ -6746,14 +6744,12 @@ Case0:
 
         ScriptContext* scriptContext = cvInfo->scriptContext;
         ThreadContext* threadContext = scriptContext->GetThreadContext();
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var undefined = scriptContext->GetLibrary()->GetUndefined();
         Var retVal;
 
         BEGIN_SAFE_REENTRANT_CALL(threadContext)
         {
-            retVal = CALL_FUNCTION(scriptContext->GetThreadContext(), compFn, CallInfo(flags, 3), undefined, *(Var*)aRef, *(Var*)bRef);
+            retVal = CALL_FUNCTION(scriptContext->GetThreadContext(), compFn, CallInfo(CallFlags_Value, 3), undefined, *(Var*)aRef, *(Var*)bRef);
         }
         END_SAFE_REENTRANT_CALL
 
@@ -8211,9 +8207,7 @@ Case0:
                 // Stack object should have a pre-op bail on implicit call. We shouldn't see them here.
                 Assert(!ThreadContext::IsOnStack(obj));
 
-                // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-                CallFlags flags = CallFlags_Value;
-                return CALL_FUNCTION(threadContext, func, CallInfo(flags, 1), obj);
+                return CALL_FUNCTION(threadContext, func, CallInfo(CallFlags_Value, 1), obj);
             }));
 
             if(!result)
@@ -8470,7 +8464,6 @@ Case0:
             typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
@@ -8556,8 +8549,6 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
         uint32 loopStart = reversed ? (uint32)length - 1 : (uint32)start;
@@ -8571,7 +8562,7 @@ Case0:
             JS_REENTRANT(jsReentLock,
                 BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                 {
-                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
+                    testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                             element,
                             index,
                             obj);
@@ -8947,9 +8938,6 @@ Case0:
 
         Var element = nullptr;
         Var testResult = nullptr;
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
-
         if (typedArrayBase)
         {
             AssertAndFailFast(VarIsCorrectType(typedArrayBase));
@@ -8964,7 +8952,7 @@ Case0:
                 JS_REENTRANT(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
+                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                                 element,
                                 JavascriptNumber::ToVar(k, scriptContext),
                                 typedArrayBase);
@@ -8992,8 +8980,6 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
 
@@ -9007,7 +8993,7 @@ Case0:
                     element = JavascriptOperators::GetItem(obj, k, scriptContext);
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
+                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                                 element,
                                 JavascriptNumber::ToVar(k, scriptContext),
                                 obj);
@@ -9097,8 +9083,6 @@ Case0:
             typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
 
@@ -9116,7 +9100,7 @@ Case0:
                 JS_REENTRANT_UNLOCK(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
+                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                                 element,
                                 JavascriptNumber::ToVar(k, scriptContext),
                                 typedArrayBase);
@@ -9144,8 +9128,6 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var testResult = nullptr;
 
@@ -9158,7 +9140,7 @@ Case0:
                     element = JavascriptOperators::GetItem(obj, k, scriptContext);
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
+                        testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                                 element,
                                 JavascriptNumber::ToVar(k, scriptContext),
                                 obj);
@@ -9220,7 +9202,6 @@ Case0:
             thisArg = scriptContext->GetLibrary()->GetUndefined();
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
         CallFlags flags = CallFlags_Value;
         auto fn32 = [dynamicObject, callBackFn, flags, thisArg,
             scriptContext](uint32 k, Var element)
@@ -9729,9 +9710,7 @@ Case0:
 
         Var element = nullptr;
         Var mappedValue = nullptr;
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags callBackFnflags = CallFlags_Value;
-        CallInfo callBackFnInfo = CallInfo(callBackFnflags, 4);
+        CallInfo callBackFnInfo = CallInfo(CallFlags_Value, 4);
 
         // We at least have to have newObj as a valid object
         Assert(newObj);
@@ -9850,9 +9829,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags callBackFnflags = CallFlags_Value;
-        CallInfo callBackFnInfo = CallInfo(callBackFnflags, 4);
+        CallInfo callBackFnInfo = CallInfo(CallFlags_Value, 4);
         Var element = nullptr;
         Var mappedValue = nullptr;
 
@@ -10161,8 +10138,6 @@ Case0:
         Assert(accumulator);
 
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
 
         if (typedArrayBase)
         {
@@ -10178,7 +10153,7 @@ Case0:
                 JS_REENTRANT(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), undefinedValue,
+                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 5), undefinedValue,
                                 accumulator,
                                 element,
                                 JavascriptNumber::ToVar(k, scriptContext),
@@ -10202,8 +10177,6 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
 
         for (T k = start; k < length; k++)
@@ -10215,7 +10188,7 @@ Case0:
                     element = JavascriptOperators::GetItem(obj, k, scriptContext);
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), scriptContext->GetLibrary()->GetUndefined(),
+                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 5), scriptContext->GetLibrary()->GetUndefined(),
                                 accumulator,
                                 element,
                                 JavascriptNumber::ToVar(k, scriptContext),
@@ -10338,8 +10311,6 @@ Case0:
             }
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var undefinedValue = scriptContext->GetLibrary()->GetUndefined();
 
         if (typedArrayBase)
@@ -10357,7 +10328,7 @@ Case0:
                 JS_REENTRANT(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 5), undefinedValue,
+                        accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 5), undefinedValue,
                                 accumulator,
                                 element,
                                 JavascriptNumber::ToVar(index, scriptContext),
@@ -10381,8 +10352,6 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, obj);
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         T index = 0;
 
@@ -10397,7 +10366,7 @@ Case0:
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
                         accumulator = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                                callBackFn, CallInfo(flags, 5), scriptContext->GetLibrary()->GetUndefined(),
+                                callBackFn, CallInfo(CallFlags_Value, 5), scriptContext->GetLibrary()->GetUndefined(),
                                 accumulator,
                                 element,
                                 JavascriptNumber::ToVar(index, scriptContext),

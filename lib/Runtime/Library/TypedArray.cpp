@@ -1714,8 +1714,6 @@ namespace Js
             thisArg = scriptContext->GetLibrary()->GetUndefined();
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var selected = nullptr;
         RecyclableObject* newObj = nullptr;
@@ -1739,7 +1737,7 @@ namespace Js
                 BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                 {
                     selected = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                                    callBackFn, CallInfo(flags, 4), thisArg,
+                                    callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                                     element,
                                     JavascriptNumber::ToVar(k, scriptContext),
                                     typedArrayBase);
