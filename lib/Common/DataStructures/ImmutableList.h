@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -380,8 +381,8 @@ namespace regex
         // Info:        Return this list reversed <Reverses the current list>
         ImmutableList<T> * ReverseCurrentList()
         {
-            auto out = ImmutableList<T>::Empty();
-            auto current = this;
+            ImmutableList<T> * out = ImmutableList<T>::Empty();
+            ImmutableList<T> * current = this;
             while(!current->IsEmpty())
             {
                 auto next = current->next;
