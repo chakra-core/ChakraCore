@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -251,25 +251,6 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         threadContext->MapIsInstInlineCaches([threadContext, object](const Js::Var function, Js::IsInstInlineCache* inlineCacheList) {
             Assert(inlineCacheList != nullptr);
-
-            JavascriptFunction* jsFunction = VarTo<JavascriptFunction>(function);
-
-            // Check if cached function type is same as the old prototype
-            bool clearCurrentCacheList = jsFunction->GetType() == object->GetType();
-            if (!clearCurrentCacheList)
-            {
-                // Check if function prototype contains old prototype
-                JavascriptOperators::MapObjectAndPrototypes<true>(jsFunction->GetPrototype(), [&](RecyclableObject* obj)
-                    {
-                        if (object->GetType() == obj->GetType())
-                            clearCurrentCacheList = true;
-                    });
-            }
-            if (clearCurrentCacheList)
-            {
-                threadContext->InvalidateIsInstInlineCachesForFunction(function);
-                return;
-            }
 
             Js::IsInstInlineCache* curInlineCache;
             Js::IsInstInlineCache* nextInlineCache;
