@@ -1384,6 +1384,14 @@ private:
 #endif
 
 public:
+    template<class Fn>
+    void MapIsInstInlineCaches(Fn fn) const
+    {
+        isInstInlineCacheByFunction.Map([fn](const Js::Var function, Js::IsInstInlineCache* inlineCacheList) {
+            fn(function, inlineCacheList);
+        });
+    }
+
     void InvalidateIsInstInlineCachesForFunction(Js::Var function);
     void InvalidateAllIsInstInlineCaches();
     bool AreAllIsInstInlineCachesInvalidated() const;

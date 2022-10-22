@@ -245,11 +245,40 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
         isInvalidationOfInlineCacheNeeded = false;
     }
 
-    // Invalidate the "instanceof" cache
-    scriptContext->GetThreadContext()->InvalidateAllIsInstInlineCaches();
-
     if (isInvalidationOfInlineCacheNeeded)
     {
+        // Invalidate the "instanceof" cache
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        threadContext->MapIsInstInlineCaches([threadContext, object](const Js::Var function, Js::IsInstInlineCache* inlineCacheList) {
+            Assert(inlineCacheList != nullptr);
+
+            // ToDo: Check for changed "function"
+
+            Js::IsInstInlineCache* curInlineCache;
+            Js::IsInstInlineCache* nextInlineCache;
+            for (curInlineCache = inlineCacheList; curInlineCache != nullptr; curInlineCache = nextInlineCache)
+            {
+                // Stash away the next cache before we potentially zero out current one
+                nextInlineCache = curInlineCache->next;
+
+                bool clearCurrentCache = false;
+                JavascriptOperators::MapObjectAndPrototypes<true>(curInlineCache->type->GetPrototype(), [&](RecyclableObject* obj)
+                {
+                    if (object->GetType() == obj->GetType())
+                        clearCurrentCache = true;
+                });
+
+                if (clearCurrentCache)
+                {
+                    // Fix cache list
+                    // Deletes empty entries
+                    threadContext->UnregisterIsInstInlineCache(curInlineCache, function);
+                    // Actually invalidate current cache
+                    memset(curInlineCache, 0, sizeof(Js::IsInstInlineCache));
+                }
+            }
+        });
+
         bool allProtoCachesInvalidated = false;
 
         JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [&](RecyclableObject* obj)
