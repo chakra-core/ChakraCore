@@ -252,7 +252,24 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
         threadContext->MapIsInstInlineCaches([threadContext, object](const Js::Var function, Js::IsInstInlineCache* inlineCacheList) {
             Assert(inlineCacheList != nullptr);
 
-            // ToDo: Check for changed "function"
+            JavascriptFunction* jsFunction = VarTo<JavascriptFunction>(function);
+
+            // Check if cached function type is same as the old prototype
+            bool clearCurrentCacheList = jsFunction->GetType() == object->GetType();
+            if (!clearCurrentCacheList)
+            {
+                // Check if function prototype contains old prototype
+                JavascriptOperators::MapObjectAndPrototypes<true>(jsFunction->GetPrototype(), [&](RecyclableObject* obj)
+                    {
+                        if (object->GetType() == obj->GetType())
+                            clearCurrentCacheList = true;
+                    });
+            }
+            if (clearCurrentCacheList)
+            {
+                threadContext->InvalidateIsInstInlineCachesForFunction(function);
+                return;
+            }
 
             Js::IsInstInlineCache* curInlineCache;
             Js::IsInstInlineCache* nextInlineCache;
@@ -261,12 +278,15 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
                 // Stash away the next cache before we potentially zero out current one
                 nextInlineCache = curInlineCache->next;
 
-                bool clearCurrentCache = false;
-                JavascriptOperators::MapObjectAndPrototypes<true>(curInlineCache->type->GetPrototype(), [&](RecyclableObject* obj)
-                {
-                    if (object->GetType() == obj->GetType())
-                        clearCurrentCache = true;
-                });
+                bool clearCurrentCache = curInlineCache->type == object->GetType();
+                if (!clearCurrentCache) {
+                    // Check if function prototype contains old prototype
+                    JavascriptOperators::MapObjectAndPrototypes<true>(curInlineCache->type->GetPrototype(), [&](RecyclableObject* obj)
+                        {
+                            if (object->GetType() == obj->GetType())
+                                clearCurrentCache = true;
+                        });
+                }
 
                 if (clearCurrentCache)
                 {
