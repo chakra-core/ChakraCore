@@ -138,9 +138,9 @@
     </default>
   </test>
   <test>
-	<default>
-		<files>isinstanceof.js</files>
-		<compile-flags>-args summary -endargs</compile-flags>
-	</default>
+    <default>
+      <files>isinstanceof.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
   </test>
 </regress-exe>
