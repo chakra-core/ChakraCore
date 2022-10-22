@@ -259,6 +259,10 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
                 // Stash away the next cache before we potentially zero out current one
                 nextInlineCache = curInlineCache->next;
 
+                // `type` might be null (See https://github.com/chakra-core/ChakraCore/blob/0cfe82d202c0298f4bbde06070f8dbf9099946c8/lib/Runtime/Library/JavascriptFunction.cpp#L3365-L3367)
+                if (curInlineCache->type == nullptr)
+                    continue;
+
                 bool clearCurrentCache = curInlineCache->type == object->GetType();
                 if (!clearCurrentCache) {
                     // Check if function prototype contains old prototype
