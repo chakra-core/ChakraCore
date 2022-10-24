@@ -7727,11 +7727,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                     constructor = boundFunc->GetTargetFunction();
                 }
             }
-
+            
             Var instOfHandler = JavascriptOperators::GetPropertyNoCache(constructor,
               PropertyIds::_symbolHasInstance, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(instOfHandler)
-                || instOfHandler == scriptContext->GetBuiltInLibraryFunction(JavascriptFunction::EntryInfo::SymbolHasInstance.GetOriginalEntryPoint()))
+            if (JavascriptOperators::IsUndefinedObject(instOfHandler))
             {
                 return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
             }
