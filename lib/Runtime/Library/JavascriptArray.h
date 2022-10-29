@@ -168,8 +168,6 @@ namespace Js
         static TypeId OP_SetNativeFloatElementC(JavascriptNativeFloatArray *arr, uint32 index, Var value, ScriptContext *scriptContext);
         template<typename T> void SetArrayLiteralItem(uint32 index, T value);
 
-        void Sort(RecyclableObject* compFn);
-
         template<typename NativeArrayType, typename T> NativeArrayType * ConvertToNativeArrayInPlace(JavascriptArray *varArray);
 
         template <typename T> T GetNativeValue(Var iVal, ScriptContext * scriptContext);
@@ -556,6 +554,16 @@ namespace Js
             return fromIndex;
         }
 
+        // Struct to hold info used by Sorting algorithms for Array.prototype.sort and TypedArray.prototype.sort
+        struct CompareVarsInfo
+        {
+            ScriptContext* scriptContext;
+            Field(RecyclableObject*) compFn; // User provided JS comparison method
+            bool (*compareType)(JavascriptArray::CompareVarsInfo*, const void*, const void*); // C++ comparison method to wrap user provided method
+        };
+
+        template <typename T> static void TypedArraySort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* compareInfo, ArenaAllocator* allocator);
+
     protected:
         template<class T> bool IsMissingHeadSegmentItemImpl(const uint32 index) const;
         SegmentBTreeRoot * GetSegmentMap() const;
@@ -637,19 +645,12 @@ namespace Js
         template<typename T> void AllocateHead();
         template<typename T> void EnsureHead();
 
-        uint32 sort(__inout_ecount(*length) Field(Var) *orig, uint32 *length, ScriptContext *scriptContext);
-
         BOOL GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* descriptorFlags);
     private:
-        struct Element
-        {
-            Field(Var) Value;
-            Field(JavascriptString*) StringValue;
-        };
-
-        static int __cdecl CompareElements(void* context, const void* elem1, const void* elem2);
-        void SortElements(Element* elements, uint32 left, uint32 right);
+        template<typename T> static void InsertionSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo);
+        template<typename T> static void MergeSort(T* list, uint32 length, JavascriptArray::CompareVarsInfo* cvInfo, ArenaAllocator* allocator);
+        template<typename T> static Var SortHelper(Var array, JavascriptArray::CompareVarsInfo* cvInfo);
 
         template <typename Fn>
         static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);
