@@ -32,9 +32,7 @@
   </test>
   <test>
     <default>
-      <files>array_qsortr.js</files>
-      <tags>exclude_windows</tags>
-      <compile-flags>-JsBuiltIn-</compile-flags>
+      <files>array_sort_order.js</files>
     </default>
   </test>
   <test>
@@ -812,7 +810,6 @@
       <tags>exclude_nonative</tags>
     </default>
   </test>
-  <!-- TODO improve performance of sort for no-jit builds then re-enable this case for them-->
   <test>
     <default>
       <files>array_sort_random.js</files>
