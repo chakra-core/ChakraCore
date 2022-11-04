@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -2538,7 +2539,7 @@ namespace UnifiedRegex
                     {
                         // Root of trie will live in compile-time allocator, but body will be in run-time allocator
                         runtimeTrie = Anew(compiler.ctAllocator, RuntimeCharTrie);
-                        runtimeTrie->CloneFrom(compiler.rtAllocator, trie);
+                        runtimeTrie->CloneFrom(compiler.scriptContext, compiler.rtAllocator, trie);
                         scheme = Trie;
                     }
                     return;

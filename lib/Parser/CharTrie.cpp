@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -199,8 +200,9 @@ namespace UnifiedRegex
 #endif
     }
 
-    void RuntimeCharTrie::CloneFrom(ArenaAllocator* allocator, const CharTrie& other)
+    void RuntimeCharTrie::CloneFrom(Js::ScriptContext* scriptContext, ArenaAllocator* allocator, const CharTrie& other)
     {
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackRegex);
         count = other.count;
         if (count > 0)
         {
@@ -208,7 +210,7 @@ namespace UnifiedRegex
             for (int i = 0; i < count; i++)
             {
                 children[i].c = other.children[i].c;
-                children[i].node.CloneFrom(allocator,  other.children[i].node);
+                children[i].node.CloneFrom(scriptContext, allocator,  other.children[i].node);
             }
         }
         else
