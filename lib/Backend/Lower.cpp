@@ -1533,6 +1533,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::IsInst:
+#ifdef ENABLE_TEST_HOOKS
+            // Don't use the fast path if we are in this phase
+            if (!PHASE_TRACE1(Js::IsInstInlineCacheInvalidationPhase))                
+#endif
             this->GenerateFastIsInst(instr);
             instrPrev = this->LowerIsInst(instr, IR::HelperScrObj_OP_IsInst);
             break;
