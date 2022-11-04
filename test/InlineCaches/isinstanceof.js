@@ -5,33 +5,92 @@
 //-------------------------------------------------------------------------------------------------------
 
 // @ts-check
-/// <reference path="..\UnitTestFramework\UnitTestFramework.js" />
-WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-const tests = [{
-    name: "Clear IsInstInlineCache of 'Object.setPrototypeOf'",
-    body: function () {
-        // See https://github.com/chakra-core/ChakraCore/issues/5915
+function inherit(child, parent) {
+    child.prototype = Object.create(parent.prototype);
+    child.prototype.constructor = child;
+}
 
-        function Component() { }
-        function Shape() { }
+// #region setup "classes"
+function ComponentBase() { }
+function Component() { }
+inherit(Component, ComponentBase);
 
-        function Box() { }
-        Box.prototype = Object.create(Shape.prototype);
-        Box.prototype.constructor = Box;
+function Health() { }
+inherit(Health, Component);
 
-        function checkInstanceOf(a, b) {
-            return a instanceof b;
-        }
+function ShapeBaseBase() { }
+function ShapeBase() { }
+inherit(ShapeBase, ShapeBaseBase);
+function Shape() { }
+inherit(Shape, ShapeBase);
 
-        assert.isFalse(Box.prototype instanceof Component, "Box.prototype instanceof Component");
-        assert.isFalse(checkInstanceOf(Box.prototype, Component), "checkInstanceOf(Box.prototype, Component)");
+function Box() { }
+inherit(Box, Shape);
 
-        Object.setPrototypeOf(Shape.prototype, Component.prototype);
+function Circle() { }
+inherit(Circle, Shape);
+// #endregion
 
-        assert.isTrue(Box.prototype instanceof Component, "Box.prototype instanceof Component");
-        assert.isTrue(checkInstanceOf(Box.prototype, Component), "checkInstanceOf(Box.prototype, Component)");
-    }
-}];
+// #region check functions
+function checkA(a, b) {
+    return a instanceof b;
+}
 
-testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
+function checkB(a, b) {
+    return a instanceof b;
+}
+
+function checkC(a, b) {
+    return a instanceof b;
+}
+
+function checkD(a, b) {
+    return a instanceof b;
+}
+
+function checkE(a, b) {
+    return a instanceof b;
+}
+// #endregion
+
+console.log(':Box:Component:', checkA(Box.prototype, Component));
+
+console.log(':Component:ComponentBase:', checkB(Component.prototype, ComponentBase));
+
+console.log(':Health:Component:', checkC(Health.prototype, Component));
+
+console.log(':Shape:ShapeBase:', checkD(Shape.prototype, ShapeBase));
+
+console.log(':ShapeBase:ShapeBaseBase:', checkE(ShapeBase.prototype, ShapeBaseBase));
+
+console.log(" -> Change prototype");
+Object.setPrototypeOf(Shape.prototype, Component.prototype);
+
+// Box inherits Shape (changed) -> should invalidate cache (NoCacheHit)
+console.log(':Box:Component:', checkA(Box.prototype, Component), Box.prototype instanceof Component);
+
+// New prototype chain remains valid (CacheHit)
+console.log(':Component:ComponentBase:', checkB(Component.prototype, ComponentBase), Component.prototype instanceof ComponentBase);
+
+// Seperate prototype chain remains valid (CacheHit)
+console.log(':Health:Component:', checkC(Health.prototype, Component), Health.prototype instanceof Component);
+
+// We changed that! (NoCacheHit)
+console.log(':Shape:ShapeBase:', checkD(Shape.prototype, ShapeBase), Shape.prototype instanceof ShapeBase);
+
+// Old prototype chain remains valid (CacheHit)
+console.log(':ShapeBase:ShapeBaseBase:', checkE(ShapeBase.prototype, ShapeBaseBase), ShapeBase.prototype instanceof ShapeBaseBase);
+
+
+console.log("====================");
+
+
+console.log(':Box:Circle', checkA(Box.prototype, Circle));
+
+console.log(" -> Change prototype");
+Object.setPrototypeOf(Circle.prototype, Shape.prototype);
+
+// Modifying the function (constructor) does not invalidate the cache
+console.log(':Box:Circle', checkA(Box.prototype, Circle), Box.prototype instanceof Circle);
+
