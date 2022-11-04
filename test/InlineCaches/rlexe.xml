@@ -141,7 +141,7 @@
     <default>
       <files>isinstanceof.js</files>
       <compile-flags>-trace:IsInstInlineCacheInvalidation</compile-flags>
-	  <baseline>isinstanceof.baseline</baseline>
+      <baseline>isinstanceof.baseline</baseline>
     </default>
   </test>
 </regress-exe>
