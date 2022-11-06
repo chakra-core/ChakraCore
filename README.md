@@ -32,6 +32,12 @@ If you find a security issue in the Master branch of Chakracore but not in 1.11 
 * [Contribution guidelines](CONTRIBUTING.md)
 * [Blogs, talks and other resources](https://github.com/chakra-core/ChakraCore/wiki/Resources)
 
+## Installing via package manager
+
+For [vcpkg](https://github.com/microsoft/vcpkg) users there is a `chakracore` [port](https://github.com/microsoft/vcpkg/tree/master/ports/chakracore) that can be installed via `vcpkg install chakracore` or by adding it to `dependencies` section of your `vcpkg.json` file.
+
+The port supports both windows and linux platforms.
+
 ## Building ChakraCore
 
 You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 or above, with either Visual Studio 2015 or 2017 with C++ support installed.  Once you have Visual Studio installed:
