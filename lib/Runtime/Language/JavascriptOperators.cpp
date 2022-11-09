@@ -7716,44 +7716,37 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
 
         RecyclableObject* constructor = VarTo<RecyclableObject>(aClass);
-        if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
+        if (VarIs<JavascriptFunction>(constructor))
         {
-            if (VarIs<JavascriptFunction>(constructor))
+            JavascriptFunction* func = VarTo<JavascriptFunction>(constructor);
+            if (func->IsBoundFunction())
             {
-                JavascriptFunction* func = VarTo<JavascriptFunction>(constructor);
-                if (func->IsBoundFunction())
-                {
-                    BoundFunction* boundFunc = (BoundFunction*)func;
-                    constructor = boundFunc->GetTargetFunction();
-                }
+                BoundFunction* boundFunc = (BoundFunction*)func;
+                constructor = boundFunc->GetTargetFunction();
             }
+        }
             
-            Var instOfHandler = JavascriptOperators::GetPropertyNoCache(constructor,
-              PropertyIds::_symbolHasInstance, scriptContext);
-            if (JavascriptOperators::IsUndefinedObject(instOfHandler))
-            {
-                return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
-            }
-            else
-            {
-                if (!JavascriptConversion::IsCallable(instOfHandler))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("Symbol[Symbol.hasInstance]"));
-                }
-
-                ThreadContext * threadContext = scriptContext->GetThreadContext();
-                RecyclableObject *instFunc = VarTo<RecyclableObject>(instOfHandler);
-                Var result = threadContext->ExecuteImplicitCall(instFunc, ImplicitCall_Accessor, [=]()->Js::Var
-                {
-                    return CALL_FUNCTION(scriptContext->GetThreadContext(), instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
-                });
-
-                return  JavascriptBoolean::ToVar(JavascriptConversion::ToBoolean(result, scriptContext) ? TRUE : FALSE, scriptContext);
-            }
+        Var instOfHandler = JavascriptOperators::GetPropertyNoCache(constructor,
+            PropertyIds::_symbolHasInstance, scriptContext);
+        if (JavascriptOperators::IsUndefinedObject(instOfHandler))
+        {
+            return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
         }
         else
         {
-            return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, inlineCache), scriptContext);
+            if (!JavascriptConversion::IsCallable(instOfHandler))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("Symbol[Symbol.hasInstance]"));
+            }
+
+            ThreadContext * threadContext = scriptContext->GetThreadContext();
+            RecyclableObject *instFunc = VarTo<RecyclableObject>(instOfHandler);
+            Var result = threadContext->ExecuteImplicitCall(instFunc, ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                return CALL_FUNCTION(scriptContext->GetThreadContext(), instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
+            });
+
+            return  JavascriptBoolean::ToVar(JavascriptConversion::ToBoolean(result, scriptContext) ? TRUE : FALSE, scriptContext);
         }
         JIT_HELPER_END(ScrObj_OP_IsInst);
     }
