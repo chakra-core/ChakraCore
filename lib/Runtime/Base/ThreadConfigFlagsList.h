@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -35,7 +35,6 @@ FLAG_RELEASE(IsES6RegExStickyEnabled, ES6RegExSticky)
 FLAG_RELEASE(IsES2018RegExDotAllEnabled, ES2018RegExDotAll)
 FLAG_RELEASE(IsES6RegExPrototypePropertiesEnabled, ES6RegExPrototypeProperties)
 FLAG_RELEASE(IsES6RegExSymbolsEnabled, ES6RegExSymbols)
-FLAG_RELEASE(IsES6HasInstanceEnabled, ES6HasInstance)
 FLAG_RELEASE(SkipSplitOnNoResult, SkipSplitOnNoResult)
 FLAG_RELEASE(IsES7AsyncAndAwaitEnabled, ES7AsyncAwait)
 FLAG_RELEASE(IsESObjectGetOwnPropertyDescriptorsEnabled, ESObjectGetOwnPropertyDescriptors)

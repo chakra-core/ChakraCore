@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
-// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -2599,10 +2599,7 @@ namespace Js
         library->AddMember(symbolConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
         library->AddMember(symbolConstructor, PropertyIds::prototype, library->symbolPrototype, PropertyNone);
         library->AddMember(symbolConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Symbol), PropertyConfigurable);
-        if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
-        {
-            library->AddMember(symbolConstructor, PropertyIds::hasInstance, library->GetSymbolHasInstance(), PropertyNone);
-        }
+        library->AddMember(symbolConstructor, PropertyIds::hasInstance, library->GetSymbolHasInstance(), PropertyNone);
         if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
         {
             library->AddMember(symbolConstructor, PropertyIds::isConcatSpreadable, library->GetSymbolIsConcatSpreadable(), PropertyNone);
@@ -3197,14 +3194,11 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptFunction_Call] = func;
         library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::toString, &JavascriptFunction::EntryInfo::ToString, 0);
 
-        if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
-        {
-            scriptContext->SetBuiltInLibraryFunction(JavascriptFunction::EntryInfo::SymbolHasInstance.GetOriginalEntryPoint(),
-                                                     library->AddFunctionToLibraryObjectWithName(functionPrototype, PropertyIds::_symbolHasInstance, PropertyIds::_RuntimeFunctionNameId_hasInstance,
-                                                                                                 &JavascriptFunction::EntryInfo::SymbolHasInstance, 1));
-            functionPrototype->SetWritable(PropertyIds::_symbolHasInstance, false);
-            functionPrototype->SetConfigurable(PropertyIds::_symbolHasInstance, false);
-        }
+        scriptContext->SetBuiltInLibraryFunction(JavascriptFunction::EntryInfo::SymbolHasInstance.GetOriginalEntryPoint(),
+                                                    library->AddFunctionToLibraryObjectWithName(functionPrototype, PropertyIds::_symbolHasInstance, PropertyIds::_RuntimeFunctionNameId_hasInstance,
+                                                                                                &JavascriptFunction::EntryInfo::SymbolHasInstance, 1));
+        functionPrototype->SetWritable(PropertyIds::_symbolHasInstance, false);
+        functionPrototype->SetConfigurable(PropertyIds::_symbolHasInstance, false);
 
         functionPrototype->DynamicObject::SetAccessors(PropertyIds::caller, library->throwTypeErrorRestrictedPropertyAccessorFunction, library->throwTypeErrorRestrictedPropertyAccessorFunction);
         functionPrototype->SetEnumerable(PropertyIds::caller, false);
