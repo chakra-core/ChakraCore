@@ -827,7 +827,12 @@ namespace Js
         {
             if (flags & PropertyOperation_StrictMode)
             {
-                JavascriptError::ThrowTypeError(requestContext, JSERR_ProxyHandlerReturnedFalse, _u("deleteProperty"));
+                JavascriptError::ThrowTypeErrorVar(
+                    requestContext, 
+                    JSERR_ProxyHandlerReturnedFalse, 
+                    _u("deleteProperty"),
+                    threadContext->GetPropertyName(propertyId)->GetBuffer()
+                );
             }
             return trapResult;
         }
@@ -1752,10 +1757,19 @@ namespace Js
         });
 
         BOOL defineResult = JavascriptConversion::ToBoolean(definePropertyResult, requestContext);
-        if (!defineResult)
-        {
-            return defineResult;
-        }
+		if (!defineResult)
+		{
+			if (throwOnError /* ToDo: && flags & PropertyOperation_StrictMode*/)
+			{
+				JavascriptError::ThrowTypeErrorVar(
+					requestContext,
+					JSERR_ProxyHandlerReturnedFalse,
+					_u("defineProperty"),
+					requestContext->GetPropertyName(propId)->GetBuffer()
+				);
+			}
+			return defineResult;
+		}
 
         //12. Let extensibleTarget be ? IsExtensible(target).
         //13. If Desc has a[[Configurable]] field and if Desc.[[Configurable]] is false, then
@@ -1882,15 +1896,19 @@ namespace Js
         });
 
         BOOL setResult = JavascriptConversion::ToBoolean(setPropertyResult, requestContext);
-        if (!setResult)
-        {
-            if (propertyOperationFlags & PropertyOperation_StrictMode)
-            {
-                JavascriptError::ThrowTypeError(requestContext, JSERR_ProxyHandlerReturnedFalse, _u("set"));
-            }
-
-            return setResult;
-        }
+		if (!setResult)
+		{
+			if (propertyOperationFlags & PropertyOperation_StrictMode)
+			{
+				JavascriptError::ThrowTypeErrorVar(
+					requestContext,
+					JSERR_ProxyHandlerReturnedFalse,
+					_u("set"),
+					requestContext->GetPropertyName(propertyId)->GetBuffer()
+				);
+			}
+			return setResult;
+		}
 
         //12. Let targetDesc be the result of calling the[[GetOwnProperty]] internal method of target with argument P.
         //13. ReturnIfAbrupt(targetDesc).
