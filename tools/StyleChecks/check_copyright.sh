@@ -42,7 +42,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.json$' |
     grep -v -E '\.man$' |
     grep -v -E '\.testconfig$' |
-	grep -v -E '\.editorconfig$' |
+    grep -v -E '\.editorconfig$' |
     grep -v -E '\.proj$' |
     grep -v -E '\.png$' |
     grep -v -E 'packages.config$' |
