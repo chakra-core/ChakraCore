@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -42,6 +42,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.json$' |
     grep -v -E '\.man$' |
     grep -v -E '\.testconfig$' |
+    grep -v -E '\.editorconfig$' |
     grep -v -E '\.proj$' |
     grep -v -E '\.png$' |
     grep -v -E 'packages.config$' |
