@@ -193,6 +193,24 @@ var tests = [
             assert.throws(() => { "use strict"; let p1 = new Proxy({}, { deleteProperty() { } }); delete p1.foo; }, TypeError, "returning undefined on deleteProperty handler is return false which will throw type error", "Proxy deleteProperty handler returned false");
             assert.throws(() => { "use strict"; let p1 = new Proxy({}, { set() { return false; } }); p1.foo = 1; }, TypeError, "set handler is returning false which will throw type error", "Proxy set handler returned false");
             assert.throws(() => { "use strict"; let p1 = new Proxy({}, { deleteProperty() { return false; } }); delete p1.foo; }, TypeError, "deleteProperty handler is returning false which will throw type error", "Proxy deleteProperty handler returned false");
+
+            const proxy = new Proxy({}, {
+                defineProperty() {
+                    return false;
+                }
+            });
+            assert.doesNotThrow(() => {
+                proxy.a = {};
+            }, "Set property in NON-strict mode does NOT throw if trap returns falsy");
+            assert.throws(() => {
+                "use strict";
+                proxy.b = {};
+            }, TypeError, "Set property in strict mode does DOES throw if trap returns falsy");
+            assert.throws(() => {
+                Object.defineProperty(proxy, "c", {
+                    value: {}
+                });
+            }, TypeError, "Calling 'Object.defineProperty' throws if trap returns falsy");
         }
     },
     {
