@@ -9101,14 +9101,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     // Return value:
     // - TRUE = success.
     // - FALSE (can throw depending on throwOnError parameter) = unsuccessful.
-    BOOL JavascriptOperators::DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext, PropertyOperationFlags flags /*  = Js::PropertyOperation_None */)
     {
         Assert(obj);
         Assert(scriptContext);
 
         if (VarIs<JavascriptProxy>(obj))
         {
-            return JavascriptProxy::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
+            return JavascriptProxy::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext, flags);
         }
 #ifdef _CHAKRACOREBUILD
         else if (VarIs<CustomExternalWrapperObject>(obj))

@@ -2178,7 +2178,7 @@ BOOL JavascriptObject::DefineOwnPropertyHelper(RecyclableObject* obj, PropertyId
         // TODO: implement DefineOwnProperty for other object built-in exotic types.
         else
         {
-            returnValue = JavascriptOperators::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
+            returnValue = JavascriptOperators::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext, Js::PropertyOperation_StrictMode);
             if (propId == PropertyIds::__proto__)
             {
                 scriptContext->GetLibrary()->GetObjectPrototypeObject()->PostDefineOwnProperty__proto__(obj);

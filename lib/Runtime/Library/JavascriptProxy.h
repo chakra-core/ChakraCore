@@ -70,7 +70,7 @@ namespace Js
         static JavascriptProxy* Create(ScriptContext* scriptContext, Arguments args);
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);
-        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext);
+        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext, PropertyOperationFlags flags);
 
         static DWORD GetOffsetOfTarget() { return offsetof(JavascriptProxy, target); }
 
