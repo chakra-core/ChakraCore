@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -612,7 +613,7 @@ namespace Js
         static Var FromPropertyDescriptor(const PropertyDescriptor& descriptor, ScriptContext* scriptContext);
         static void CompletePropertyDescriptor(PropertyDescriptor* resultDescriptor, PropertyDescriptor* likePropertyDescriptor, ScriptContext* requestContext);
         static BOOL SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor);
-        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
+        static BOOL DefineOwnPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext, PropertyOperationFlags flags = Js::PropertyOperation_None);
         static BOOL DefineOwnPropertyForArray(JavascriptArray* arr, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
 
         static BOOL DefineOwnPropertyForTypedArray(TypedArrayBase * typedArray, PropertyId propId, const PropertyDescriptor & descriptor, bool throwOnError, ScriptContext * scriptContext);
