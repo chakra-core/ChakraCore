@@ -1367,7 +1367,11 @@ dbl_align:
 #elif defined(_M_ARM)
     extern "C"
     {
+#ifdef _WIN32
         extern Var arm_CallFunction(JavascriptFunction* function, CallInfo info, uint argCount, Var* values, JavascriptMethod entryPoint);
+#else
+        extern Var arm_CallFunction(JavascriptFunction* function, CallInfo info, Var* values, JavascriptMethod entryPoint);
+#endif
     }
 
     extern "C" Var BreakSpeculation(Var passthrough)
@@ -1391,6 +1395,7 @@ dbl_align:
 #endif
         Js::Var varResult;
 
+#ifdef _WIN32
         //The ARM can pass 4 arguments via registers so handle the cases for 0 or 1 values without resorting to asm code
         //(so that the asm code can assume 0 or more values will go on the stack: putting -1 values on the stack is unhealthy).
         if (argCount == 0)
@@ -1406,6 +1411,12 @@ dbl_align:
             varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
                 arm_CallFunction((JavascriptFunction*)function, args.Info, argCount, args.Values, entryPoint));
         }
+#else
+        // ARM passes 4 arguments via registers (not on the stack), which is exactly
+        // as many as we need. The arm_CallFunction takes care of handling 0 and 1 args.
+        varResult = JS_REENTRANCY_CHECK(function->GetScriptContext()->GetThreadContext(),
+                arm_CallFunction((JavascriptFunction*)function, args.Info, args.Values, entryPoint));
+#endif
 
         return varResult;
     }
