@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -1814,13 +1814,13 @@ skipThunk:
     }
 #endif
 
-#if !defined(_M_ARM64)
+#if defined(_M_ARM64) && defined(_WIN32)
+    // Language\arm64\arm64_Thunks.asm
+#else
     Var InterpreterStackFrame::StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         return InterpreterThunk((JavascriptCallStackLayout*)&function);
     }
-#else
-    // Language\arm64\arm64_Thunks.asm
 #endif
 #pragma optimize("", on)
 
@@ -6352,7 +6352,11 @@ skipThunk:
         // For ARM we need to make sure that pipeline is synchronized with memory/cache for newly jitted code.
         // Note: this does not seem to affect perf, but if it was, we could add a boolean isCalled to EntryPointInfo
         //       and do ISB only for 1st time this entry point is called (potential working set regression though).
+        #if defined(_InstructionSynchronizationBarrier)
         _InstructionSynchronizationBarrier();
+        #else
+        asm("isb");
+        #endif
 #endif
         uint newOffset = ::Math::PointerCastToIntegral<uint>(
             CALL_ENTRYPOINT_NOASSERT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));
@@ -6386,7 +6390,11 @@ skipThunk:
         // For ARM we need to make sure that pipeline is synchronized with memory/cache for newly jitted code.
         // Note: this does not seem to affect perf, but if it was, we could add a boolean isCalled to EntryPointInfo
         //       and do ISB only for 1st time this entry point is called (potential working set regression though).
+        #if defined(_InstructionSynchronizationBarrier)
         _InstructionSynchronizationBarrier();
+        #else
+        asm("isb");
+        #endif
 #endif
         uint newOffset = ::Math::PointerCastToIntegral<uint>(
             CALL_ENTRYPOINT_NOASSERT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));

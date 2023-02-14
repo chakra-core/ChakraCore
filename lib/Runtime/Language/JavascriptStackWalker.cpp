@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
@@ -278,7 +279,7 @@ namespace Js
         }
         else
 #endif
-            if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
+        if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
             JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments().Values;
