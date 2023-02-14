@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -176,7 +177,7 @@ namespace Js
     {
 #if defined(_AMD64_)
         return _mm_cvtsi128_si64(_mm_castpd_si128(_mm_set_sd(value)));
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM32_OR_ARM64) && defined(_CopyInt64FromDouble)
         return _CopyInt64FromDouble(value);
 #else
         return  *(reinterpret_cast<uint64 *>(&value));
@@ -187,7 +188,7 @@ namespace Js
     {
 #if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
         return _mm_cvtsi128_si32(_mm_castps_si128(_mm_set_ss(value)));
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM32_OR_ARM64) && defined(_CopyInt32FromFloat)
         return _CopyInt32FromFloat(value);
 #else
         return  *(reinterpret_cast<uint32 *>(&value));
@@ -198,7 +199,7 @@ namespace Js
     {
 #if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
         return _mm_cvtss_f32(_mm_castsi128_ps(_mm_cvtsi32_si128(value)));
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM32_OR_ARM64) && defined(_CopyFloatFromInt32)
         return _CopyFloatFromInt32(value);
 #else
         return  *(reinterpret_cast<float *>(&value));
@@ -209,7 +210,7 @@ namespace Js
     {
 #if defined(_AMD64_)
         return _mm_cvtsd_f64(_mm_castsi128_pd(_mm_cvtsi64_si128(value)));
-#elif defined(_M_ARM32_OR_ARM64)
+#elif defined(_M_ARM32_OR_ARM64) && defined(_CopyDoubleFromInt64)
         return _CopyDoubleFromInt64(value);
 #else
         return  *(reinterpret_cast<double *>(&value));
