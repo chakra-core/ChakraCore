@@ -19,10 +19,15 @@ copyright_lines = [
     r'.*' # the above should always be followed by at least one other line, so make sure that line is present
 ]
 
-regexes = []
-for line in copyright_lines:
-    pattern = '^.{1,5}%s$' % line
-    regexes.append(re.compile(pattern))
+pal_copyright_lines = [
+    r'-------------------------------------------------------------------------------------------------------',
+    r' ChakraCore/Pal',
+    r' Contains portions \(c\) copyright Microsoft, portions copyright \(c\) the \.NET Foundation and Contributors',
+    r' and edits \(c\) copyright the ChakraCore Contributors\.',
+    r' See THIRD-PARTY-NOTICES\.txt in the project root for \.NET Foundation license',
+    r' Licensed under the MIT license\. See LICENSE\.txt file in the project root for full license information\.',
+    r'.*' # the above should always be followed by at least one other line, so make sure that line is present
+]
 
 if len(sys.argv) < 2:
     print("Requires passing a filename as an argument.")
@@ -32,6 +37,16 @@ file_name = sys.argv[1]
 if not os.path.isfile(file_name):
     print("File does not exist:", file_name, "(not necessarily an error)")
     exit(0)
+
+regexes = []
+if file_name[:4] == "pal/":
+    for line in pal_copyright_lines:
+        pattern = '^.{1,5}%s$' % line
+        regexes.append(re.compile(pattern))
+else:
+    for line in copyright_lines:
+        pattern = '^.{1,5}%s$' % line
+        regexes.append(re.compile(pattern))
 
 def report_incorrect(file_name, pairs):
     # found a problem so report the problem to the caller and exit

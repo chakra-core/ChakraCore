@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -265,22 +268,9 @@ QueryPerformanceFrequency(
     BOOL retval = TRUE;
     PERF_ENTRY(QueryPerformanceFrequency);
     ENTRY("QueryPerformanceFrequency()\n");
-#if HAVE_GETHRTIME || HAVE_READ_REAL_TIME || HAVE_CLOCK_MONOTONIC
-    lpFrequency->QuadPart = (LONGLONG)tccSecondsToNanoSeconds;
-#elif HAVE_MACH_ABSOLUTE_TIME
-    // use denom == 0 to indicate that s_TimebaseInfo is uninitialised.
-    if (s_TimebaseInfo.denom == 0)
-    {
-        ASSERT("s_TimebaseInfo is uninitialized.\n");
-        retval = FALSE;
-    }
-    else
-    {
-        lpFrequency->QuadPart = (LONGLONG)tccSecondsToNanoSeconds * ((LONGLONG)s_TimebaseInfo.denom / (LONGLONG)s_TimebaseInfo.numer);
-    }
-#else
-    lpFrequency->QuadPart = (LONGLONG)tccSecondsToMicroSeconds;
-#endif // HAVE_GETHRTIME || HAVE_READ_REAL_TIME || HAVE_CLOCK_MONOTONIC
+
+    lpFrequency->QuadPart = (LONGLONG)(tccSecondsToNanoSeconds);
+
     LOGEXIT("QueryPerformanceFrequency\n");
     PERF_EXIT(QueryPerformanceFrequency);
     return retval;

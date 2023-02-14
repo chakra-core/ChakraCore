@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -24,6 +27,24 @@ Abstract:
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <pal_assert.h>
+
+// Alignment helpers (copied for PAL use from stdmacros.h)
+
+inline size_t ALIGN_UP(size_t val, size_t alignment)
+{
+    // alignment must be a power of 2 for this implementation to work (need modulo otherwise)
+    _ASSERTE(0 == (alignment & (alignment - 1)));
+    size_t result = (val + (alignment - 1)) & ~(alignment - 1);
+    _ASSERTE(result >= val);      // check for overflow
+    return result;
+}
+
+inline void* ALIGN_UP(void* val, size_t alignment)
+{
+    return (void*)ALIGN_UP((size_t)val, alignment);
+}
 
 #ifdef __cplusplus
 extern "C"

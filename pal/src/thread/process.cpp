@@ -1,11 +1,12 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
-
-
 
 Module Name:
 
@@ -15,9 +16,10 @@ Abstract:
 
     Implementation of process object and functions related to processes.
 
-
-
 --*/
+
+#include "pal/dbgmsg.h"
+SET_DEFAULT_DEBUG_CHANNEL(PROCESS); // some headers have code with asserts, so do this first
 
 #include "pal/procobj.hpp"
 #include "pal/thread.hpp"
@@ -29,7 +31,7 @@ Abstract:
 #include "pal/process.h"
 #include "pal/init.h"
 #include "pal/critsect.h"
-#include "pal/dbgmsg.h"
+#include "pal/debug.h"
 #include "pal/utils.h"
 #include "pal/misc.h"
 #include "pal/virtual.h"
@@ -42,43 +44,90 @@ Abstract:
 #include "pal/fakepoll.h"
 #endif  // HAVE_POLL
 
+#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <signal.h>
+#if HAVE_PRCTL_H
+#include <sys/prctl.h>
+#include <sys/syscall.h>
+#endif
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <debugmacrosext.h>
+#include <semaphore.h>
+#include <stdint.h>
+#include <dlfcn.h>
+#include <limits.h>
+
+#ifdef __linux__
+#include <sys/syscall.h> // __NR_membarrier
+// Ensure __NR_membarrier is defined for portable builds.
+# if !defined(__NR_membarrier)
+#  if defined(__amd64__)
+#   define __NR_membarrier  324
+#  elif defined(__i386__)
+#   define __NR_membarrier  375
+#  elif defined(__arm__)
+#   define __NR_membarrier  389
+#  elif defined(__aarch64__)
+#   define __NR_membarrier  283
+#  elif defined(__loongarch64)
+#   define __NR_membarrier  283
+#  else
+#   error Unknown architecture
+#  endif
+# endif
+#endif
+
+#ifdef __APPLE__
+#include <libproc.h>
+#include <sys/sysctl.h>
+#include <sys/posix_sem.h>
+#include <mach/task.h>
+#include <mach/vm_map.h>
+extern "C"
+{
+#  include <mach/thread_state.h>
+}
+
+#define CHECK_MACH(_msg, machret) do {                                      \
+        if (machret != KERN_SUCCESS)                                        \
+        {                                                                   \
+            char _szError[1024];                                            \
+            mach_error(_szError, machret);                                  \
+            abort();                                                        \
+        }                                                                   \
+    } while (false)
+
+#endif // __APPLE__
+
+#ifdef __NetBSD__
+#include <sys/cdefs.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <kvm.h>
+#endif
+
+#ifdef __FreeBSD__
+#include <sys/sysctl.h>
+#include <sys/user.h>
+#endif
+
+extern char *g_szCoreCLRPath;
+extern bool g_running_in_exe;
 
 using namespace CorUnix;
 
-SET_DEFAULT_DEBUG_CHANNEL(THREAD);
-
-
-void
-ProcessCleanupRoutine(
-    CPalThread *pThread,
-    IPalObject *pObjectToCleanup,
-    bool fShutdown,
-    bool fCleanupSharedState
-    );
-
-PAL_ERROR
-ProcessInitializationRoutine(
-    CPalThread *pThread,
-    CObjectType *pObjectType,
-    void *pImmutableData,
-    void *pSharedData,
-    void *pProcessLocalData
-    );
-
 CObjectType CorUnix::otProcess PAL_GLOBAL (
                 otiProcess,
-                ProcessCleanupRoutine,
-                ProcessInitializationRoutine,
-                0,
+                NULL,   // No cleanup routine
+                NULL,   // No initialization routine
+                0,      // No immutable data
                 sizeof(CProcProcessLocalData),
-                sizeof(CProcSharedData),
+                0,
                 PROCESS_ALL_ACCESS,
                 CObjectType::SecuritySupported,
                 CObjectType::SecurityInfoNotPersisted,
@@ -91,14 +140,25 @@ CObjectType CorUnix::otProcess PAL_GLOBAL (
                 );
 
 //
-// Helper memory page used by the FlushProcessWriteBuffers
+// Helper membarrier function
 //
-static int s_helperPage[VIRTUAL_PAGE_SIZE / sizeof(int)] __attribute__((aligned(VIRTUAL_PAGE_SIZE)));
+#ifdef __NR_membarrier
+# define membarrier(...)  syscall(__NR_membarrier, __VA_ARGS__)
+#else
+# define membarrier(...)  -ENOSYS
+#endif
 
-//
-// Mutex to make the FlushProcessWriteBuffersMutex thread safe
-//
-pthread_mutex_t flushProcessWriteBuffersMutex PAL_GLOBAL;
+enum membarrier_cmd
+{
+    MEMBARRIER_CMD_QUERY                                 = 0,
+    MEMBARRIER_CMD_GLOBAL                                = (1 << 0),
+    MEMBARRIER_CMD_GLOBAL_EXPEDITED                      = (1 << 1),
+    MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED             = (1 << 2),
+    MEMBARRIER_CMD_PRIVATE_EXPEDITED                     = (1 << 3),
+    MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED            = (1 << 4),
+    MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE           = (1 << 5),
+    MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE  = (1 << 6)
+};
 
 CAllowedObjectTypes aotProcess PAL_GLOBAL (otiProcess);
 
@@ -128,8 +188,32 @@ LPWSTR g_lpwstrAppDir = NULL;
 // Thread ID of thread that has started the ExitProcess process
 Volatile<LONG> terminator PAL_GLOBAL = 0;
 
-// Process ID of this process.
+// Process and session ID of this process.
 DWORD gPID = (DWORD) -1;
+DWORD gSID = (DWORD) -1;
+
+// Application group ID for this process
+#ifdef __APPLE__
+LPCSTR gApplicationGroupId = nullptr;
+int gApplicationGroupIdLength = 0;
+#endif // __APPLE__
+PathCharString* gSharedFilesPath = nullptr;
+
+// The lowest common supported semaphore length, including null character
+// NetBSD-7.99.25: 15 characters
+// MacOSX 10.11: 31 -- Core 1.0 RC2 compatibility
+#if defined(__NetBSD__)
+#define CLR_SEM_MAX_NAMELEN 15
+#elif defined(__APPLE__)
+#define CLR_SEM_MAX_NAMELEN PSEMNAMLEN
+#elif defined(NAME_MAX)
+#define CLR_SEM_MAX_NAMELEN (NAME_MAX - 4)
+#else
+// On Solaris, MAXNAMLEN is 512, which is higher than MAX_PATH defined by pal.h
+#define CLR_SEM_MAX_NAMELEN MAX_PATH
+#endif
+
+static_assert(CLR_SEM_MAX_NAMELEN <= MAX_PATH, "CLR_SEM_MAX_NAMELEN > MAX_PATH");
 
 //
 // Key used for associating CPalThread's with the underlying pthread
@@ -137,38 +221,58 @@ DWORD gPID = (DWORD) -1;
 //
 pthread_key_t CorUnix::thObjKey;
 
-#define PROCESS_PELOADER_FILENAME  "clix"
-
-static WCHAR W16_WHITESPACE[] = {0x0020, 0x0009, 0x000D, 0};
-static WCHAR W16_WHITESPACE_DQUOTE[] = {0x0020, 0x0009, 0x000D, '"', 0};
+static WCHAR W16_WHITESPACE[]= {0x0020, 0x0009, 0x000D, 0};
+static WCHAR W16_WHITESPACE_DQUOTE[]= {0x0020, 0x0009, 0x000D, '"', 0};
 
 enum FILETYPE
 {
     FILE_ERROR,/*ERROR*/
-    FILE_PE,   /*PE/COFF file*/
     FILE_UNIX, /*Unix Executable*/
     FILE_DIR   /*Directory*/
 };
+
+#pragma pack(push,1)
+// When creating the semaphore name on Mac running in a sandbox, We reference this structure as a byte array
+// in order to encode its data into a string. Its important to make sure there is no padding between the fields
+// and also at the end of the buffer. Hence, this structure is defined inside a pack(1)
+struct UnambiguousProcessDescriptor
+{
+    UnambiguousProcessDescriptor()
+    {
+    }
+
+    UnambiguousProcessDescriptor(DWORD processId, UINT64 disambiguationKey)
+    {
+        Init(processId, disambiguationKey);
+    }
+
+    void Init(DWORD processId, UINT64 disambiguationKey)
+    {
+        m_processId = processId;
+        m_disambiguationKey = disambiguationKey;
+    }
+    UINT64 m_disambiguationKey;
+    DWORD m_processId;
+};
+#pragma pack(pop)
+
+static
+DWORD
+StartupHelperThread(
+    LPVOID p);
 
 PAL_ERROR
 PROCGetProcessStatus(
     CPalThread *pThread,
     HANDLE hProcess,
     PROCESS_STATE *pps,
-    DWORD *pdwExitCode
-    );
+    DWORD *pdwExitCode);
 
-static BOOL getFileName(LPCWSTR lpApplicationName, LPWSTR lpCommandLine,
-                        char *lpFileName);
-static char ** buildArgv(LPCWSTR lpCommandLine, LPSTR lpAppPath,
-                         UINT *pnArg, BOOL prependLoader);
+static BOOL getFileName(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, char *lpPathFileName);
+static char ** buildArgv(LPCWSTR lpCommandLine, LPSTR lpAppPath, UINT *pnArg);
 static BOOL getPath(LPCSTR lpFileName, UINT iLen, LPSTR  lpPathFileName);
-static int checkFileType(char *lpFileName);
-static BOOL PROCEndProcess(HANDLE hProcess, UINT uExitCode,
-                           BOOL bTerminateUnconditionally);
-
-ProcessModules *CreateProcessModules(IN HANDLE hProcess, OUT LPDWORD lpCount);
-void DestroyProcessModules(IN ProcessModules *listHead);
+static int checkFileType(LPCSTR lpFileName);
+static BOOL PROCEndProcess(HANDLE hProcess, UINT uExitCode, BOOL bTerminateUnconditionally);
 
 /*++
 Function:
@@ -192,6 +296,26 @@ GetCurrentProcessId(
 
 /*++
 Function:
+  GetCurrentSessionId
+
+See MSDN doc.
+--*/
+DWORD
+PALAPI
+GetCurrentSessionId(
+            VOID)
+{
+    PERF_ENTRY(GetCurrentSessionId);
+    ENTRY("GetCurrentSessionId()\n" );
+
+    LOGEXIT("GetCurrentSessionId returns DWORD %#x\n", gSID);
+    PERF_EXIT(GetCurrentSessionId);
+    return gSID;
+}
+
+
+/*++
+Function:
   GetCurrentProcess
 
 See MSDN doc.
@@ -210,161 +334,6 @@ GetCurrentProcess(
     /* return a pseudo handle */
     return hPseudoCurrentProcess;
 }
-
-/*++
-Function:
-  CreateProcessA
-
-Note:
-  Only Standard handles need to be inherited.
-  Security attributes parameters are not used.
-
-See MSDN doc.
---*/
-BOOL
-PALAPI
-CreateProcessA(
-           IN LPCSTR lpApplicationName,
-           IN LPSTR lpCommandLine,
-           IN LPSECURITY_ATTRIBUTES lpProcessAttributes,
-           IN LPSECURITY_ATTRIBUTES lpThreadAttributes,
-           IN BOOL bInheritHandles,
-           IN DWORD dwCreationFlags,
-           IN LPVOID lpEnvironment,
-           IN LPCSTR lpCurrentDirectory,
-           IN LPSTARTUPINFOA lpStartupInfo,
-           OUT LPPROCESS_INFORMATION lpProcessInformation)
-{
-    PAL_ERROR palError = NO_ERROR;
-    CPalThread *pThread;
-    STARTUPINFOW StartupInfoW;
-    LPWSTR CommandLineW = NULL;
-    LPWSTR ApplicationNameW = NULL;
-    LPWSTR CurrentDirectoryW = NULL;
-
-    int n;
-
-    PERF_ENTRY(CreateProcessA);
-    ENTRY("CreateProcessA(lpAppName=%p (%s), lpCmdLine=%p (%s), lpProcessAttr=%p, "
-          "lpThreadAttr=%p, bInherit=%d, dwFlags=%#x, lpEnv=%p, "
-          "lpCurrentDir=%p (%s), lpStartupInfo=%p, lpProcessInfo=%p)\n",
-           lpApplicationName?lpApplicationName:"NULL",
-           lpApplicationName?lpApplicationName:"NULL",
-           lpCommandLine?lpCommandLine:"NULL",
-           lpCommandLine?lpCommandLine:"NULL",
-           lpProcessAttributes, lpThreadAttributes, bInheritHandles,
-           dwCreationFlags, lpEnvironment,
-           lpCurrentDirectory?lpCurrentDirectory:"NULL",
-           lpCurrentDirectory?lpCurrentDirectory:"NULL",
-           lpStartupInfo, lpProcessInformation);
-
-    pThread = InternalGetCurrentThread();
-
-    if(lpStartupInfo == NULL)
-    {
-        ASSERT("lpStartupInfo is NULL!\n");
-        palError = ERROR_INVALID_PARAMETER;
-        goto done;
-    }
-
-    /* convert parameters to Unicode */
-
-    if(lpApplicationName)
-    {
-        n = MultiByteToWideChar(CP_ACP, 0, lpApplicationName, -1, NULL, 0);
-        if(0 == n)
-        {
-            ASSERT("MultiByteToWideChar failed!\n");
-            palError = ERROR_INTERNAL_ERROR;
-            goto done;
-        }
-        ApplicationNameW = (LPWSTR)InternalMalloc(sizeof(WCHAR)*n);
-        if(!ApplicationNameW)
-        {
-            ERROR("malloc() failed!\n");
-            palError = ERROR_NOT_ENOUGH_MEMORY;
-            goto done;
-        }
-        MultiByteToWideChar(CP_ACP, 0, lpApplicationName, -1, ApplicationNameW,
-                            n);
-    }
-
-    if(lpCommandLine)
-    {
-        n = MultiByteToWideChar(CP_ACP, 0, lpCommandLine, -1, NULL, 0);
-        if(0 == n)
-        {
-            ASSERT("MultiByteToWideChar failed!\n");
-            palError = ERROR_INTERNAL_ERROR;
-            goto done;
-        }
-        CommandLineW = (LPWSTR)InternalMalloc(sizeof(WCHAR)*n);
-        if(!CommandLineW)
-        {
-            ERROR("malloc() failed!\n");
-            palError = ERROR_NOT_ENOUGH_MEMORY;
-            goto done;
-        }
-        MultiByteToWideChar(CP_ACP, 0, lpCommandLine, -1, CommandLineW, n);
-    }
-
-    if(lpCurrentDirectory)
-    {
-        n = MultiByteToWideChar(CP_ACP, 0, lpCurrentDirectory, -1, NULL, 0);
-        if(0 == n)
-        {
-            ASSERT("MultiByteToWideChar failed!\n");
-            palError = ERROR_INTERNAL_ERROR;
-            goto done;
-        }
-        CurrentDirectoryW = (LPWSTR)InternalMalloc(sizeof(WCHAR)*n);
-        if(!CurrentDirectoryW)
-        {
-            ERROR("malloc() failed!\n");
-            palError = ERROR_NOT_ENOUGH_MEMORY;
-            goto done;
-        }
-        MultiByteToWideChar(CP_ACP, 0, lpCurrentDirectory, -1,
-                            CurrentDirectoryW, n);
-    }
-
-    // lpEnvironment should remain ansi on the call to CreateProcessW
-
-    StartupInfoW.cb = sizeof StartupInfoW;
-    StartupInfoW.dwFlags = lpStartupInfo->dwFlags;
-    StartupInfoW.hStdError = lpStartupInfo->hStdError;
-    StartupInfoW.hStdInput = lpStartupInfo->hStdInput;
-    StartupInfoW.hStdOutput = lpStartupInfo->hStdOutput;
-    /* all other members are PAL_Undefined, we can ignore them */
-
-    palError  = InternalCreateProcess(
-        pThread,
-        ApplicationNameW,
-        CommandLineW,
-        lpProcessAttributes,
-        lpThreadAttributes,
-        bInheritHandles,
-        dwCreationFlags,
-        lpEnvironment,
-        CurrentDirectoryW,
-        &StartupInfoW,
-        lpProcessInformation
-        );
-done:
-    InternalFree(ApplicationNameW);
-    InternalFree(CommandLineW);
-    InternalFree(CurrentDirectoryW);
-
-    if (NO_ERROR != palError)
-    {
-        pThread->SetLastError(palError);
-    }
-
-    LOGEXIT("CreateProcessA returns BOOL %d\n", NO_ERROR == palError);
-    PERF_EXIT(CreateProcessA);
-    return NO_ERROR == palError;
-}
-
 
 /*++
 Function:
@@ -519,7 +488,6 @@ PrepareStandardHandleExit:
     return palError;
 }
 
-
 PAL_ERROR
 CorUnix::InternalCreateProcess(
     CPalThread *pThread,
@@ -541,7 +509,6 @@ CorUnix::InternalCreateProcess(
     IDataLock *pLocalDataLock = NULL;
     CProcProcessLocalData *pLocalData;
     IDataLock *pSharedDataLock = NULL;
-    CProcSharedData *pSharedData;
     CPalThread *pDummyThread = NULL;
     HANDLE hDummyThread = NULL;
     HANDLE hProcess = NULL;
@@ -711,7 +678,7 @@ CorUnix::InternalCreateProcess(
 
     /* build Argument list, lppArgv is allocated in buildArgv function and
        requires to be freed */
-    lppArgv = buildArgv(lpCommandLine, lpFileName, &nArg, iRet==1);
+    lppArgv = buildArgv(lpCommandLine, lpFileName, &nArg);
 
     /* set the Environment variable */
     if (lpEnvironment != NULL)
@@ -814,23 +781,6 @@ CorUnix::InternalCreateProcess(
         pDummyThread->suspensionInfo.SetBlockingPipe(pipe_descs[1]);
         parent_blocking_pipe = pipe_descs[1];
         child_blocking_pipe = pipe_descs[0];
-    }
-
-    //
-    // Get the data pointers for the new process object
-    //
-
-    palError = pobjProcessRegistered->GetSharedData(
-        pThread,
-        WriteLock,
-        &pSharedDataLock,
-        reinterpret_cast<void **>(&pSharedData)
-        );
-
-    if (NO_ERROR != palError)
-    {
-        ASSERT("Unable to obtain shared data for new process object\n");
-        goto InternalCreateProcessExit;
     }
 
     palError = pobjProcessRegistered->GetProcessLocalData(
@@ -991,10 +941,6 @@ CorUnix::InternalCreateProcess(
     pLocalDataLock->ReleaseLock(pThread, TRUE);
     pLocalDataLock = NULL;
 
-    pSharedData->dwProcessId = processId;
-    pSharedDataLock->ReleaseLock(pThread, TRUE);
-    pSharedDataLock = NULL;
-
     //
     // Release file handle info; we don't need them anymore. Note that
     // this must happen after we've released the data locks, as
@@ -1011,7 +957,7 @@ CorUnix::InternalCreateProcess(
         pobjFileErr = NULL;
     }
 
-    /* fill PROCESS_INFORMATION strucutre */
+    /* fill PROCESS_INFORMATION structure */
     lpProcessInformation->hProcess = hProcess;
     lpProcessInformation->hThread = hDummyThread;
     lpProcessInformation->dwProcessId = processId;
@@ -1057,7 +1003,7 @@ InternalCreateProcessExit:
 
     if (EnvironmentArray)
     {
-        InternalFree(EnvironmentArray);
+        free(EnvironmentArray);
     }
 
     /* if we still have the file structures at this point, it means we
@@ -1097,8 +1043,8 @@ InternalCreateProcessExit:
     /* free allocated memory */
     if (lppArgv)
     {
-        InternalFree(*lppArgv);
-        InternalFree(lppArgv);
+        free(*lppArgv);
+        free(lppArgv);
     }
 
     return palError;
@@ -1241,7 +1187,7 @@ ExitProcess(
 
     /* this should never get executed */
     ASSERT("ExitProcess should not return!\n");
-    for (;;);
+    while (true);
 }
 
 /*++
@@ -1357,7 +1303,9 @@ static BOOL PROCEndProcess(HANDLE hProcess, UINT uExitCode, BOOL bTerminateUncon
             abort();
         }
         else
+        {
             exit(uExitCode);
+        }
 
         ASSERT(FALSE); // we shouldn't get here
     }
@@ -1468,126 +1416,6 @@ GetProcessTimesExit:
     return (retval);
 }
 
-#define FILETIME_TO_ULONGLONG(f) \
-    (((ULONGLONG)(f).dwHighDateTime << 32) | ((ULONGLONG)(f).dwLowDateTime))
-
-/*++
-Function:
-  PAL_GetCPUBusyTime
-
-The main purpose of this function is to compute the overall CPU utilization
-for the CLR thread pool to regulate the number of I/O completion port
-worker threads.
-Since there is no consistent API on Unix to get the CPU utilization
-from a user process, getrusage and gettimeofday are used to
-compute the current process's CPU utilization instead.
-This function emulates the ThreadpoolMgr::GetCPUBusyTime_NT function in
-win32threadpool.cpp of the CLR.
-
-See MSDN doc for GetSystemTimes.
---*/
-INT
-PALAPI
-PAL_GetCPUBusyTime(
-    IN OUT PAL_IOCP_CPU_INFORMATION *lpPrevCPUInfo)
-{
-    ULONGLONG nLastRecordedCurrentTime = 0;
-    ULONGLONG nLastRecordedUserTime = 0;
-    ULONGLONG nLastRecordedKernelTime = 0;
-    ULONGLONG nKernelTime = 0;
-    ULONGLONG nUserTime = 0;
-    ULONGLONG nCurrentTime = 0;
-    ULONGLONG nCpuBusyTime = 0;
-    ULONGLONG nCpuTotalTime = 0;
-    DWORD nReading = 0;
-    struct rusage resUsage;
-    struct timeval tv;
-    static DWORD dwNumberOfProcessors = 0;
-
-    if (dwNumberOfProcessors <= 0)
-    {
-        SYSTEM_INFO SystemInfo;
-        GetSystemInfo(&SystemInfo);
-        dwNumberOfProcessors = SystemInfo.dwNumberOfProcessors;
-        if (dwNumberOfProcessors <= 0)
-        {
-            return 0;
-        }
-    }
-
-    if (getrusage(RUSAGE_SELF, &resUsage) == -1)
-    {
-        ASSERT("getrusage() failed; errno is %d (%s)\n", errno, strerror(errno));
-        return 0;
-    }
-    else
-    {
-        nKernelTime = (ULONGLONG)resUsage.ru_stime.tv_sec*tccSecondsTo100NanoSeconds +
-            resUsage.ru_stime.tv_usec*tccMicroSecondsTo100NanoSeconds;
-        nUserTime = (ULONGLONG)resUsage.ru_utime.tv_sec*tccSecondsTo100NanoSeconds +
-            resUsage.ru_utime.tv_usec*tccMicroSecondsTo100NanoSeconds;
-    }
-
-    if (gettimeofday(&tv, NULL) == -1)
-    {
-        ASSERT("gettimeofday() failed; errno is %d (%s)\n", errno, strerror(errno));
-        return 0;
-    }
-    else
-    {
-        nCurrentTime = (ULONGLONG)tv.tv_sec*tccSecondsTo100NanoSeconds +
-            tv.tv_usec*tccMicroSecondsTo100NanoSeconds;
-    }
-
-    nLastRecordedCurrentTime = FILETIME_TO_ULONGLONG(lpPrevCPUInfo->LastRecordedTime.ftLastRecordedCurrentTime);
-    nLastRecordedUserTime = FILETIME_TO_ULONGLONG(lpPrevCPUInfo->ftLastRecordedUserTime);
-    nLastRecordedKernelTime = FILETIME_TO_ULONGLONG(lpPrevCPUInfo->ftLastRecordedKernelTime);
-
-    if (nCurrentTime > nLastRecordedCurrentTime)
-    {
-        nCpuTotalTime = (nCurrentTime - nLastRecordedCurrentTime);
-#if HAVE_THREAD_SELF || HAVE__LWP_SELF || HAVE_VM_READ
-        // For systems that run multiple threads of a process on multiple processors,
-        // the accumulated userTime and kernelTime of this process may exceed
-        // the elapsed time. In this case, the cpuTotalTime needs to be adjusted
-        // according to number of processors so that the cpu utilization
-        // will not be greater than 100.
-        nCpuTotalTime *= dwNumberOfProcessors;
-#endif // HAVE_THREAD_SELF || HAVE__LWP_SELF || HAVE_VM_READ
-    }
-
-    if (nUserTime >= nLastRecordedUserTime &&
-        nKernelTime >= nLastRecordedKernelTime)
-    {
-        nCpuBusyTime =
-            (nUserTime - nLastRecordedUserTime)+
-            (nKernelTime - nLastRecordedKernelTime);
-    }
-
-    if (nCpuTotalTime > 0 && nCpuBusyTime > 0)
-    {
-        nReading = (DWORD)((nCpuBusyTime*100)/nCpuTotalTime);
-        TRACE("PAL_GetCPUBusyTime: nCurrentTime=%lld, nKernelTime=%lld, nUserTime=%lld, nReading=%d\n",
-            nCurrentTime, nKernelTime, nUserTime, nReading);
-    }
-
-    if (nReading > 100)
-    {
-        ERROR("cpu utilization(%d) > 100\n", nReading);
-    }
-
-    lpPrevCPUInfo->LastRecordedTime.ftLastRecordedCurrentTime.dwLowDateTime = (DWORD)nCurrentTime;
-    lpPrevCPUInfo->LastRecordedTime.ftLastRecordedCurrentTime.dwHighDateTime = (DWORD)(nCurrentTime >> 32);
-
-    lpPrevCPUInfo->ftLastRecordedUserTime.dwLowDateTime = (DWORD)nUserTime;
-    lpPrevCPUInfo->ftLastRecordedUserTime.dwHighDateTime = (DWORD)(nUserTime >> 32);
-
-    lpPrevCPUInfo->ftLastRecordedKernelTime.dwLowDateTime = (DWORD)nKernelTime;
-    lpPrevCPUInfo->ftLastRecordedKernelTime.dwHighDateTime = (DWORD)(nKernelTime >> 32);
-
-    return (DWORD)nReading;
-}
-
 /*++
 Function:
   GetCommandLineW
@@ -1635,7 +1463,6 @@ OpenProcess(
     IPalObject *pobjProcessRegistered = NULL;
     IDataLock *pDataLock;
     CProcProcessLocalData *pLocalData;
-    CProcSharedData *pSharedData;
     CObjectAttributes oa;
     HANDLE hProcess = NULL;
 
@@ -1677,21 +1504,6 @@ OpenProcess(
     }
 
     pLocalData->dwProcessId = dwProcessId;
-    pDataLock->ReleaseLock(pThread, TRUE);
-
-    palError = pobjProcess->GetSharedData(
-        pThread,
-        WriteLock,
-        &pDataLock,
-        reinterpret_cast<void **>(&pSharedData)
-        );
-
-    if (NO_ERROR != palError)
-    {
-        goto OpenProcessExit;
-    }
-
-    pSharedData->dwProcessId = dwProcessId;
     pDataLock->ReleaseLock(pThread, TRUE);
 
     palError = g_pObjectManager->RegisterObject(
@@ -1736,411 +1548,6 @@ OpenProcessExit:
     return hProcess;
 }
 
-/*++
-Function:
-  EnumProcessModules
-
-Abstract
-  Returns a process's module list
-
-Return
-  TRUE if it succeeded, FALSE otherwise
-
-Notes
-  This API is tricky because the module handles are never closed/freed so there can't be any
-  allocations for the module handle or name strings, etc. The "handles" are actually the base
-  addresses of the modules. The module handles should only be used by GetModuleFileNameExW
-  below.
---*/
-BOOL
-PALAPI
-EnumProcessModules(
-    IN HANDLE hProcess,
-    OUT HMODULE *lphModule,
-    IN DWORD cb,
-    OUT LPDWORD lpcbNeeded)
-{
-    PERF_ENTRY(EnumProcessModules);
-    ENTRY("EnumProcessModules(hProcess=0x%08x, cb=%d)\n", hProcess, cb);
-
-    BOOL result = TRUE;
-    DWORD count = 0;
-
-    ProcessModules *listHead = CreateProcessModules(hProcess, &count);
-    if (listHead != NULL)
-    {
-        for (ProcessModules *entry = listHead; entry != NULL; entry = entry->Next)
-        {
-            if (cb <= 0)
-            {
-                break;
-            }
-            cb -= sizeof(HMODULE);
-            *lphModule = (HMODULE)entry->BaseAddress;
-            lphModule++;
-        }
-    }
-    else
-    {
-        result = FALSE;
-    }
-
-    if (lpcbNeeded)
-    {
-        // This return value isn't exactly up to spec because it should return the actual
-        // number of modules in the process even if "cb" isn't big enough but for our use
-        // it works just fine.
-        (*lpcbNeeded) = count * sizeof(HMODULE);
-    }
-
-    LOGEXIT("EnumProcessModules returns %d\n", result);
-    PERF_EXIT(EnumProcessModules);
-    return result;
-}
-
-/*++
-Function:
-  GetModuleFileNameExW
-
-  Used only with module handles returned from EnumProcessModule (for dbgshim).
-
---*/
-DWORD
-PALAPI
-GetModuleFileNameExW(
-    IN HANDLE hProcess,
-    IN HMODULE hModule,
-    OUT LPWSTR lpFilename,
-    IN DWORD nSize
-)
-{
-    DWORD result = 0;
-    DWORD count = 0;
-
-    ProcessModules *listHead = CreateProcessModules(hProcess, &count);
-    if (listHead != NULL)
-    {
-        for (ProcessModules *entry = listHead; entry != NULL; entry = entry->Next)
-        {
-            if ((HMODULE)entry->BaseAddress == hModule)
-            {
-                // Convert CHAR string into WCHAR string
-                result = MultiByteToWideChar(CP_ACP, 0, entry->Name, -1, lpFilename, nSize);
-                break;
-            }
-        }
-    }
-
-    return result;
-}
-
-/*++
-Function:
-  CreateProcessModules
-
-Abstract
-  Returns a process's module list
-
-Return
-  ProcessModules * list
-
---*/
-ProcessModules *
-CreateProcessModules(
-    IN HANDLE hProcess,
-    OUT LPDWORD lpCount)
-{
-    CPalThread* pThread = InternalGetCurrentThread();
-    CProcProcessLocalData *pLocalData = NULL;
-    ProcessModules *listHead = NULL;
-    IPalObject *pobjProcess = NULL;
-    IDataLock *pDataLock = NULL;
-    PAL_ERROR palError = NO_ERROR;
-    DWORD dwProcessId = 0;
-
-    if (hPseudoCurrentProcess == hProcess)
-    {
-        dwProcessId = gPID;
-    }
-    else
-    {
-        CAllowedObjectTypes aotProcess(otiProcess);
-
-        palError = g_pObjectManager->ReferenceObjectByHandle(
-            pThread,
-            hProcess,
-            &aotProcess,
-            0,
-            &pobjProcess
-            );
-
-        if (NO_ERROR != palError)
-        {
-            goto exit;
-        }
-
-        palError = pobjProcess->GetProcessLocalData(
-            pThread,
-            WriteLock,
-            &pDataLock,
-            reinterpret_cast<void **>(&pLocalData)
-            );
-
-        if (NO_ERROR != palError)
-        {
-            goto exit;
-        }
-
-        dwProcessId = pLocalData->dwProcessId;
-        listHead = pLocalData->pProcessModules;
-    }
-
-    // If the module list hasn't been created yet, create it now
-    if (listHead == NULL)
-    {
-#if defined(__APPLE__)
-
-        // For OSx, the "vmmap" command outputs something similar to the /proc/*/maps file so popen the
-        // command and read the relevant lines:
-        //
-        // ...
-        // ==== regions for process 347  (non-writable and writable regions are interleaved)
-        // REGION TYPE                      START - END             [ VSIZE] PRT/MAX SHRMOD  REGION DETAIL
-        // __TEXT                 000000010446d000-0000000104475000 [   32K] r-x/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/corerun
-        // __DATA                 0000000104475000-0000000104476000 [    4K] rw-/rwx SM=PRV  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/corerun
-        // __LINKEDIT             0000000104476000-000000010447a000 [   16K] r--/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/corerun
-        // Kernel Alloc Once      000000010447a000-000000010447b000 [    4K] rw-/rwx SM=PRV
-        // MALLOC (admin)         000000010447b000-000000010447c000 [    4K] r--/rwx SM=ZER
-        // ...
-        // MALLOC (admin)         00000001044ab000-00000001044ac000 [    4K] r--/rwx SM=PRV
-        // __TEXT                 00000001044ac000-0000000104c84000 [ 8032K] r-x/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __TEXT                 0000000104c84000-0000000104c85000 [    4K] rwx/rwx SM=PRV  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __TEXT                 0000000104c85000-000000010513b000 [ 4824K] r-x/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __TEXT                 000000010513b000-000000010513c000 [    4K] rwx/rwx SM=PRV  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __TEXT                 000000010513c000-000000010516f000 [  204K] r-x/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __DATA                 000000010516f000-00000001051ce000 [  380K] rw-/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __DATA                 00000001051ce000-00000001051fa000 [  176K] rw-/rwx SM=PRV  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // __LINKEDIT             00000001051fa000-0000000105bac000 [ 9928K] r--/rwx SM=COW  /Users/mikem/coreclr/bin/Product/OSx.x64.Debug/libcoreclr.dylib
-        // VM_ALLOCATE            0000000105bac000-0000000105bad000 [    4K] r--/rw- SM=SHM
-        // MALLOC (admin)         0000000105bad000-0000000105bae000 [    4K] r--/rwx SM=ZER
-        // MALLOC                 0000000105bae000-0000000105baf000 [    4K] rw-/rwx SM=ZER
-        char *line = NULL;
-        size_t lineLen = 0;
-        int count = 0;
-        ssize_t read;
-
-        char vmmapCommand[100];
-        int chars = snprintf(vmmapCommand, sizeof(vmmapCommand), "/usr/bin/vmmap -interleaved %d", dwProcessId);
-        _ASSERTE(chars > 0 && chars <= sizeof(vmmapCommand));
-
-        FILE *vmmapFile = popen(vmmapCommand, "r");
-        if (vmmapFile == NULL)
-        {
-            SetLastError(ERROR_INVALID_HANDLE);
-            return NULL;
-        }
-
-        // Reading maps file line by line
-        while ((read = getline(&line, &lineLen, vmmapFile)) != -1)
-        {
-            void *startAddress, *endAddress;
-            char moduleName[PATH_MAX];
-            int size;
-
-            if (sscanf(line, "__TEXT %p-%p [ %dK] %*[-/rwxsp] SM=%*[A-Z] %s\n", &startAddress, &endAddress, &size, moduleName) == 4)
-            {
-                bool dup = false;
-                for (ProcessModules *entry = listHead; entry != NULL; entry = entry->Next)
-                {
-                    if (strcmp(moduleName, entry->Name) == 0)
-                    {
-                        dup = true;
-                        break;
-                    }
-                }
-
-                if (!dup)
-                {
-                    int cbModuleName = strlen(moduleName) + 1;
-                    ProcessModules *entry = (ProcessModules *)InternalMalloc(sizeof(ProcessModules) + cbModuleName);
-                    if (entry == NULL)
-                    {
-                        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
-                        DestroyProcessModules(listHead);
-                        listHead = NULL;
-                        count = 0;
-                        break;
-                    }
-                    strcpy_s(entry->Name, cbModuleName, moduleName);
-                    entry->BaseAddress = startAddress;
-                    entry->Next = listHead;
-                    listHead = entry;
-                    count++;
-                }
-            }
-        }
-
-        *lpCount = count;
-
-        free(line); // We didn't allocate line, but as per contract of getline we should free it
-        pclose(vmmapFile);
-
-#elif defined(HAVE_PROCFS_CTL)
-
-        // Here we read /proc/<pid>/maps file in order to parse it and figure out what it says
-        // about a library we are looking for. This file looks something like this:
-        //
-        // [address]      [perms] [offset] [dev] [inode]     [pathname] - HEADER is not preset in an actual file
-        //
-        // 35b1800000-35b1820000 r-xp 00000000 08:02 135522  /usr/lib64/ld-2.15.so
-        // 35b1a1f000-35b1a20000 r--p 0001f000 08:02 135522  /usr/lib64/ld-2.15.so
-        // 35b1a20000-35b1a21000 rw-p 00020000 08:02 135522  /usr/lib64/ld-2.15.so
-        // 35b1a21000-35b1a22000 rw-p 00000000 00:00 0       [heap]
-        // 35b1c00000-35b1dac000 r-xp 00000000 08:02 135870  /usr/lib64/libc-2.15.so
-        // 35b1dac000-35b1fac000 ---p 001ac000 08:02 135870  /usr/lib64/libc-2.15.so
-        // 35b1fac000-35b1fb0000 r--p 001ac000 08:02 135870  /usr/lib64/libc-2.15.so
-        // 35b1fb0000-35b1fb2000 rw-p 001b0000 08:02 135870  /usr/lib64/libc-2.15.so
-
-        // Making something like: /proc/123/maps
-        char mapFileName[100];
-
-        INDEBUG(int chars = )
-        snprintf(mapFileName, sizeof(mapFileName), "/proc/%d/maps", dwProcessId);
-        _ASSERTE(chars > 0 && chars <= sizeof(mapFileName));
-
-        FILE *mapsFile = fopen(mapFileName, "r");
-        if (mapsFile == NULL)
-        {
-            SetLastError(ERROR_INVALID_HANDLE);
-            return NULL;
-        }
-
-        char *line = NULL;
-        size_t lineLen = 0;
-        int count = 0;
-        ssize_t read;
-
-        // Reading maps file line by line
-        while ((read = getline(&line, &lineLen, mapsFile)) != -1)
-        {
-            void *startAddress, *endAddress, *offset;
-            int devHi, devLo, inode;
-            char moduleName[PATH_MAX];
-
-            if (sscanf(line, "%p-%p %*[-rwxsp] %p %x:%x %d %s\n", &startAddress, &endAddress, &offset, &devHi, &devLo, &inode, moduleName) == 7)
-            {
-                if (inode != 0)
-                {
-                    bool dup = false;
-                    for (ProcessModules *entry = listHead; entry != NULL; entry = entry->Next)
-                    {
-                        if (strcmp(moduleName, entry->Name) == 0)
-                        {
-                            dup = true;
-                            break;
-                        }
-                    }
-
-                    if (!dup)
-                    {
-                        int cbModuleName = strlen(moduleName) + 1;
-                        ProcessModules *entry = (ProcessModules *)InternalMalloc(sizeof(ProcessModules) + cbModuleName);
-                        if (entry == NULL)
-                        {
-                            SetLastError(ERROR_NOT_ENOUGH_MEMORY);
-                            DestroyProcessModules(listHead);
-                            listHead = NULL;
-                            count = 0;
-                            break;
-                        }
-                        strcpy_s(entry->Name, cbModuleName, moduleName);
-                        entry->BaseAddress = startAddress;
-                        entry->Next = listHead;
-                        listHead = entry;
-                        count++;
-                    }
-                }
-            }
-        }
-
-        *lpCount = count;
-
-        free(line); // We didn't allocate line, but as per contract of getline we should free it
-        fclose(mapsFile);
-#else
-        _ASSERTE(!"Not implemented on this platform");
-#endif
-        if (pLocalData != NULL)
-        {
-            pLocalData->pProcessModules = listHead;
-        }
-    }
-exit:
-    if (NULL != pDataLock)
-    {
-        pDataLock->ReleaseLock(pThread, TRUE);
-    }
-
-    if (NULL != pobjProcess)
-    {
-        pobjProcess->ReleaseReference(pThread);
-    }
-    return listHead;
-}
-
-/*++
-Function:
-    DestroyProcessModules
-
-Abstract
-  Cleans up the process module table.
-Return
-  TRUE if it succeeded, FALSE otherwise
---*/
-void
-DestroyProcessModules(IN ProcessModules *listHead)
-{
-    for (ProcessModules *entry = listHead; entry != NULL; )
-    {
-        ProcessModules *next = entry->Next;
-        InternalFree(entry);
-        entry = next;
-    }
-}
-
-/*++
-Function:
-  InitializeFlushProcessWriteBuffers
-
-Abstract
-  This function initializes data structures needed for the FlushProcessWriteBuffers
-Return
-  TRUE if it succeeded, FALSE otherwise
---*/
-BOOL InitializeFlushProcessWriteBuffers()
-{
-    // Verify that the s_helperPage is really aligned to the VIRTUAL_PAGE_SIZE
-    _ASSERTE((((SIZE_T)s_helperPage) & (VIRTUAL_PAGE_SIZE - 1)) == 0);
-
-    // Locking the page ensures that it stays in memory during the two mprotect
-    // calls in the FlushProcessWriteBuffers below. If the page was unmapped between
-    // those calls, they would not have the expected effect of generating IPI.
-    int status = mlock(s_helperPage, VIRTUAL_PAGE_SIZE);
-
-    if (status != 0)
-    {
-        return FALSE;
-    }
-
-    status = pthread_mutex_init(&flushProcessWriteBuffersMutex, NULL);
-    if (status != 0)
-    {
-        munlock(s_helperPage, VIRTUAL_PAGE_SIZE);
-    }
-
-    return status == 0;
-}
-
 #define FATAL_ASSERT(e, msg) \
     do \
     { \
@@ -2151,36 +1558,6 @@ BOOL InitializeFlushProcessWriteBuffers()
         } \
     } \
     while(0)
-
-/*++
-Function:
-  FlushProcessWriteBuffers
-
-See MSDN doc.
---*/
-VOID
-PALAPI
-FlushProcessWriteBuffers()
-{
-    int status = pthread_mutex_lock(&flushProcessWriteBuffersMutex);
-    FATAL_ASSERT(status == 0, "Failed to lock the flushProcessWriteBuffersMutex lock");
-
-    // Changing a helper memory page protection from read / write to no access
-    // causes the OS to issue IPI to flush TLBs on all processors. This also
-    // results in flushing the processor buffers.
-    status = mprotect(s_helperPage, VIRTUAL_PAGE_SIZE, PROT_READ | PROT_WRITE);
-    FATAL_ASSERT(status == 0, "Failed to change helper page protection to read / write");
-
-    // Ensure that the page is dirty before we change the protection so that
-    // we prevent the OS from skipping the global TLB flush.
-    InterlockedIncrement(s_helperPage);
-
-    status = mprotect(s_helperPage, VIRTUAL_PAGE_SIZE, PROT_NONE);
-    FATAL_ASSERT(status == 0, "Failed to change helper page protection to no access");
-
-    status = pthread_mutex_unlock(&flushProcessWriteBuffersMutex);
-    FATAL_ASSERT(status == 0, "Failed to unlock the flushProcessWriteBuffersMutex lock");
-}
 
 /*++
 Function:
@@ -2306,9 +1683,9 @@ CorUnix::InitializeProcessCommandLine(
     {
         LPWSTR lpwstr = PAL_wcsrchr(lpwstrFullPath, '/');
         lpwstr[0] = '\0';
-        INT n = lstrlenW(lpwstrFullPath) + 1;
+        size_t n = PAL_wcslen(lpwstrFullPath) + 1;
 
-        int iLen = n;
+        size_t iLen = n;
         initial_dir = reinterpret_cast<LPWSTR>(InternalMalloc(iLen*sizeof(WCHAR)));
         if (NULL == initial_dir)
         {
@@ -2320,18 +1697,18 @@ CorUnix::InitializeProcessCommandLine(
         if (wcscpy_s(initial_dir, iLen, lpwstrFullPath) != SAFECRT_SUCCESS)
         {
             ERROR("wcscpy_s failed!\n");
-            InternalFree(initial_dir);
+            free(initial_dir);
             palError = ERROR_INTERNAL_ERROR;
             goto exit;
         }
 
         lpwstr[0] = '/';
 
-        InternalFree(g_lpwstrAppDir);
+        free(g_lpwstrAppDir);
         g_lpwstrAppDir = initial_dir;
     }
 
-    InternalFree(g_lpwstrCmdLine);
+    free(g_lpwstrCmdLine);
     g_lpwstrCmdLine = lpwstrCmdLine;
 
 exit:
@@ -2364,7 +1741,6 @@ CorUnix::CreateInitialProcessAndThreadObjects(
     IPalObject *pobjProcess = NULL;
     IDataLock *pDataLock;
     CProcProcessLocalData *pLocalData;
-    CProcSharedData *pSharedData;
     CObjectAttributes oa;
     HANDLE hProcess;
 
@@ -2416,22 +1792,6 @@ CorUnix::CreateInitialProcessAndThreadObjects(
 
     pLocalData->dwProcessId = gPID;
     pLocalData->ps = PS_RUNNING;
-    pDataLock->ReleaseLock(pThread, TRUE);
-
-    palError = pobjProcess->GetSharedData(
-        pThread,
-        WriteLock,
-        &pDataLock,
-        reinterpret_cast<void **>(&pSharedData)
-        );
-
-    if (NO_ERROR != palError)
-    {
-        ASSERT("Unable to access shared data");
-        goto CreateInitialProcessAndThreadObjectsExit;
-    }
-
-    pSharedData->dwProcessId = gPID;
     pDataLock->ReleaseLock(pThread, TRUE);
 
     palError = g_pObjectManager->RegisterObject(
@@ -2496,10 +1856,10 @@ PROCCleanupInitialProcess(VOID)
     InternalEnterCriticalSection(pThread, &g_csProcess);
 
     /* Free the application directory */
-    InternalFree(g_lpwstrAppDir);
+    free(g_lpwstrAppDir);
 
     /* Free the stored command line */
-    InternalFree(g_lpwstrCmdLine);
+    free(g_lpwstrCmdLine);
 
     InternalLeaveCriticalSection(pThread, &g_csProcess);
 
@@ -2521,7 +1881,7 @@ Parameter
   pThread:   Thread object
 
 --*/
-void
+VOID
 CorUnix::PROCAddThread(
     CPalThread *pCurrentThread,
     CPalThread *pTargetThread
@@ -2554,7 +1914,7 @@ Parameter
 
 (no return value)
 --*/
-void
+VOID
 CorUnix::PROCRemoveThread(
     CPalThread *pCurrentThread,
     CPalThread *pTargetThread
@@ -2624,7 +1984,7 @@ Return
 --*/
 INT
 CorUnix::PROCGetNumberOfThreads(
-    void)
+    VOID)
 {
     return g_dwThreadCount;
 }
@@ -2727,7 +2087,7 @@ Note:
   This function is used in ExitThread and TerminateProcess
 
 --*/
-void
+VOID
 CorUnix::TerminateCurrentProcessNoExit(BOOL bTerminateUnconditionally)
 {
     BOOL locked;
@@ -2737,34 +2097,34 @@ CorUnix::TerminateCurrentProcessNoExit(BOOL bTerminateUnconditionally)
 
     if (0 != old_terminator && GetCurrentThreadId() != old_terminator)
     {
-         /* another thread has already initiated the termination process. we
-            could just block on the PALInitLock critical section, but then
-            PROCSuspendOtherThreads would hang... so sleep forever here, we're
-            terminating anyway
+        /* another thread has already initiated the termination process. we
+           could just block on the PALInitLock critical section, but then
+           PROCSuspendOtherThreads would hang... so sleep forever here, we're
+           terminating anyway
 
-            Update: [TODO] PROCSuspendOtherThreads has been removed. Can this
-            code be changed? */
+           Update: [TODO] PROCSuspendOtherThreads has been removed. Can this
+           code be changed? */
 
-         /* note that if *this* thread has already started the termination
-            process, we want to proceed. the only way this can happen is if a
-            call to DllMain (from ExitProcess) brought us here (because DllMain
-            called ExitProcess, or TerminateProcess, or ExitThread);
-            TerminateProcess won't call DllMain, so there's no danger to get
-            caught in an infinite loop */
-         WARN("termination already started from another thread; blocking.\n");
-         poll(NULL, 0, INFTIM);
-     }
+        /* note that if *this* thread has already started the termination
+           process, we want to proceed. the only way this can happen is if a
+           call to DllMain (from ExitProcess) brought us here (because DllMain
+           called ExitProcess, or TerminateProcess, or ExitThread);
+           TerminateProcess won't call DllMain, so there's no danger to get
+           caught in an infinite loop */
+        WARN("termination already started from another thread; blocking.\n");
+        poll(NULL, 0, INFTIM);
+    }
 
-     /* Try to lock the initialization count to prevent multiple threads from
-        terminating/initializing the PAL simultaneously */
+    /* Try to lock the initialization count to prevent multiple threads from
+       terminating/initializing the PAL simultaneously */
 
-     /* note : it's also important to take this lock before the process lock,
-        because Init/Shutdown take the init lock, and the functions they call
-        may take the process lock. We must do it in the same order to avoid
-        deadlocks */
-     locked = PALInitLock();
-     if(locked && PALIsInitialized())
-     {
+    /* note : it's also important to take this lock before the process lock,
+       because Init/Shutdown take the init lock, and the functions they call
+       may take the process lock. We must do it in the same order to avoid
+       deadlocks */
+    locked = PALInitLock();
+    if(locked && PALIsInitialized())
+    {
          PROCCleanupProcess(bTerminateUnconditionally);
      }
 }
@@ -2880,7 +2240,7 @@ PROCGetProcessStatus(
             // have to try again. A second legitimate cause is ECHILD, which
             // happens if we're trying to retrieve the status of a currently-
             // running process that isn't a child of this process.
-            if(EINTR == errno)
+            if (EINTR == errno)
             {
                 TRACE("waitpid() failed with EINTR; re-waiting");
                 continue;
@@ -2950,39 +2310,6 @@ PROCGetProcessStatusExit:
     {
         pobjProcess->ReleaseReference(pThread);
     }
-
-    return palError;
-}
-
-void
-ProcessCleanupRoutine(
-    CPalThread *pThread,
-    IPalObject *pObjectToCleanup,
-    bool fShutdown,
-    bool fCleanupSharedState
-    )
-{
-    //
-    // Nothing to do -- no allocated data
-    //
-}
-
-PAL_ERROR
-ProcessInitializationRoutine(
-    CPalThread *pThread,
-    CObjectType *pObjectType,
-    void *pImmutableData,
-    void *pSharedData,
-    void *pProcessLocalData
-    )
-{
-    PAL_ERROR palError = NO_ERROR;
-    CProcProcessLocalData *pProcLocalData =
-        reinterpret_cast<CProcProcessLocalData*>(pProcessLocalData);
-    CProcSharedData *pProcSharedData =
-        reinterpret_cast<CProcSharedData*>(pSharedData);
-
-    pProcLocalData->dwProcessId = pProcSharedData->dwProcessId;
 
     return palError;
 }
@@ -3058,7 +2385,6 @@ getFileName(
                 ERROR("strcpy_s failed!\n");
                 return FALSE;
             }
-
             lpTemp+=2;
             path_size -= 2;
        }
@@ -3157,183 +2483,6 @@ getFileName(
 }
 
 /*++
-Functions: VAL16 & VAL32
-   Byte swapping functions for reading in little endian format files
---*/
-#ifdef BIGENDIAN
-
-static inline USHORT    VAL16(USHORT x)
-{
-    return ( ((x & 0xFF00) >> 8) | ((x & 0x00FF) << 8) );
-}
-static inline ULONG   VAL32(DWORD x)
-{
-    return( ((x & 0xFF000000L) >> 24) |
-            ((x & 0x00FF0000L) >>  8) |
-            ((x & 0x0000FF00L) <<  8) |
-            ((x & 0x000000FFL) << 24) );
-}
-#else   // BIGENDIAN
-// For little-endian machines, do nothing
-static __inline USHORT  VAL16(unsigned short x) { return x; }
-static __inline DWORD   VAL32(DWORD x){ return x; }
-#endif  // BIGENDIAN
-
-static const DWORD IMAGE_DOS_SIGNATURE = 0x5A4D;
-static const DWORD IMAGE_NT_SIGNATURE  = 0x00004550;
-static const DWORD IMAGE_SIZEOF_NT_OPTIONAL32_HEADER     = 224;
-static const DWORD IMAGE_NT_OPTIONAL_HDR32_MAGIC         = 0x10b;
-static const DWORD IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR  = 14;
-
-typedef struct _IMAGE_DATA_DIRECTORY {
-    DWORD   VirtualAddress;
-    DWORD   Size;
-} IMAGE_DATA_DIRECTORY, *PIMAGE_DATA_DIRECTORY;
-
-typedef struct _IMAGE_OPTIONAL_HEADER {
-    //
-    // Standard fields.
-    //
-
-    WORD    Magic;
-    BYTE    MajorLinkerVersion;
-    BYTE    MinorLinkerVersion;
-    DWORD   SizeOfCode;
-    DWORD   SizeOfInitializedData;
-    DWORD   SizeOfUninitializedData;
-    DWORD   AddressOfEntryPoint;
-    DWORD   BaseOfCode;
-    DWORD   BaseOfData;
-
-    //
-    // NT additional fields.
-    //
-
-    DWORD   ImageBase;
-    DWORD   SectionAlignment;
-    DWORD   FileAlignment;
-    WORD    MajorOperatingSystemVersion;
-    WORD    MinorOperatingSystemVersion;
-    WORD    MajorImageVersion;
-    WORD    MinorImageVersion;
-    WORD    MajorSubsystemVersion;
-    WORD    MinorSubsystemVersion;
-    DWORD   Win32VersionValue;
-    DWORD   SizeOfImage;
-    DWORD   SizeOfHeaders;
-    DWORD   CheckSum;
-    WORD    Subsystem;
-    WORD    DllCharacteristics;
-    DWORD   SizeOfStackReserve;
-    DWORD   SizeOfStackCommit;
-    DWORD   SizeOfHeapReserve;
-    DWORD   SizeOfHeapCommit;
-    DWORD   LoaderFlags;
-    DWORD   NumberOfRvaAndSizes;
-    IMAGE_DATA_DIRECTORY DataDirectory[16];
-} IMAGE_OPTIONAL_HEADER32, *PIMAGE_OPTIONAL_HEADER32;
-
-typedef struct _IMAGE_FILE_HEADER {
-    WORD    Machine;
-    WORD    NumberOfSections;
-    DWORD   TimeDateStamp;
-    DWORD   PointerToSymbolTable;
-    DWORD   NumberOfSymbols;
-    WORD    SizeOfOptionalHeader;
-    WORD    Characteristics;
-} IMAGE_FILE_HEADER, *PIMAGE_FILE_HEADER;
-
-typedef struct _IMAGE_NT_HEADERS {
-    DWORD Signature;
-    IMAGE_FILE_HEADER FileHeader;
-    IMAGE_OPTIONAL_HEADER32 OptionalHeader;
-} IMAGE_NT_HEADERS32, *PIMAGE_NT_HEADERS32;
-
-typedef struct _IMAGE_DOS_HEADER {      /* DOS .EXE header*/
-    WORD   e_magic;                     /* Magic number*/
-    WORD   e_cblp;                      /* Bytes on last page of file*/
-    WORD   e_cp;                        /* Pages in file*/
-    WORD   e_crlc;                      /* Relocations*/
-    WORD   e_cparhdr;                   /* Size of header in paragraphs*/
-    WORD   e_minalloc;                  /* Minimum extra paragraphs needed*/
-    WORD   e_maxalloc;                  /* Maximum extra paragraphs needed*/
-    WORD   e_ss;                        /* Initial (relative) SS value*/
-    WORD   e_sp;                        /* Initial SP value*/
-    WORD   e_csum;                      /* Checksum*/
-    WORD   e_ip;                        /* Initial IP value*/
-    WORD   e_cs;                        /* Initial (relative) CS value*/
-    WORD   e_lfarlc;                    /* File address of relocation table*/
-    WORD   e_ovno;                      /* Overlay number*/
-    WORD   e_res[4];                    /* Reserved words*/
-    WORD   e_oemid;                     /* OEM identifier (for e_oeminfo)*/
-    WORD   e_oeminfo;                   /* OEM information; e_oemid specific*/
-    WORD   e_res2[10];                  /* Reserved words*/
-    LONG   e_lfanew;                    /* File address of new exe header*/
-  } IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;
-
-
-/*++
-Function:
-  isManagedExecutable
-
-Determines if the passed in file is a managed executable
-
---*/
-static
-int
-isManagedExecutable(LPSTR lpFileName)
-{
-    HANDLE hFile = INVALID_HANDLE_VALUE;
-    DWORD cbRead;
-    IMAGE_DOS_HEADER        dosheader;
-    IMAGE_NT_HEADERS32      NtHeaders;
-    BOOL ret = 0;
-
-    /* then check if it is a PE/COFF file */
-    if((hFile = CreateFileA(lpFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
-                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-                            NULL)) == INVALID_HANDLE_VALUE)
-    {
-          goto isManagedExecutableExit;
-    }
-
-    /* Open the file and read the IMAGE_DOS_HEADER structure */
-    if(!ReadFile(hFile, &dosheader, sizeof(IMAGE_DOS_HEADER), &cbRead, NULL) || cbRead != sizeof(IMAGE_DOS_HEADER) )
-      goto isManagedExecutableExit;
-
-    /* check the DOS headers */
-    if ( (dosheader.e_magic != VAL16(IMAGE_DOS_SIGNATURE)) || (VAL32(dosheader.e_lfanew) <= 0) )
-      goto isManagedExecutableExit;
-
-    /* Advance the file pointer to File address of new exe header */
-    if( SetFilePointer(hFile, VAL32(dosheader.e_lfanew), NULL, FILE_BEGIN) == 0xffffffff)
-      goto isManagedExecutableExit;
-
-    if( !ReadFile(hFile, &NtHeaders , sizeof(IMAGE_NT_HEADERS32), &cbRead, NULL) || cbRead != sizeof(IMAGE_NT_HEADERS32) )
-      goto isManagedExecutableExit;
-
-    /* check the NT headers */
-    if ((NtHeaders.Signature != VAL32(IMAGE_NT_SIGNATURE)) ||
-        (NtHeaders.FileHeader.SizeOfOptionalHeader != VAL16(IMAGE_SIZEOF_NT_OPTIONAL32_HEADER)) ||
-        (NtHeaders.OptionalHeader.Magic != VAL16(IMAGE_NT_OPTIONAL_HDR32_MAGIC)))
-        goto isManagedExecutableExit;
-
-    /* Check that the virtual address of IMAGE_DIRECTORY_ENTRY_COMHEADER is non-null */
-    if ( NtHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress == 0 )
-        goto isManagedExecutableExit;
-
-    /* The file is a managed executable */
-    ret =  1;
-
- isManagedExecutableExit:
-    /* Close the file handle if we opened it */
-    if ( hFile != INVALID_HANDLE_VALUE )
-      CloseHandle(hFile);
-
-    return ret;
-}
-
-/*++
 Function:
     checkFileType
 
@@ -3346,12 +2495,11 @@ Parameters:
 Return:
     FILE_DIR: Directory
     FILE_UNIX: Unix executable file
-    FILE_PE: managed PE/COFF file
     FILE_ERROR: Error
 --*/
 static
 int
-checkFileType( char *lpFileName)
+checkFileType( LPCSTR lpFileName)
 {
     struct stat stat_data;
 
@@ -3361,15 +2509,9 @@ checkFileType( char *lpFileName)
         return FILE_ERROR;
     }
 
-    if( isManagedExecutable(lpFileName) )
-    {
-        return FILE_PE;
-    }
-
     /* if it's not a PE/COFF file, check if it is executable */
     if ( -1 != stat( lpFileName, &stat_data ) )
     {
-
         if((stat_data.st_mode & S_IFMT) == S_IFDIR )
         {
             /*The given file is a directory*/
@@ -3400,9 +2542,8 @@ Abstract:
 
 Parameters:
     IN  lpCommandLine: second parameter from CreateProcessW (an unicode string)
-    IN  lpAppPath: cannonical name of the application to launched
+    IN  lpAppPath: canonical name of the application to launched
     OUT lppArgv: array of arguments to be passed to the new process
-    IN  prependLoader:  If True first argument should be the PE loader
 
 Return:
     the number of arguments
@@ -3426,8 +2567,7 @@ char **
 buildArgv(
       LPCWSTR lpCommandLine,
       LPSTR lpAppPath,
-      UINT *pnArg,
-      BOOL prependLoader)
+      UINT *pnArg)
 {
     CPalThread *pThread = NULL;
     UINT iWlen;
@@ -3449,7 +2589,7 @@ buildArgv(
 
     pThread = InternalGetCurrentThread();
     /* make sure to allocate enough space, up for the worst case scenario */
-    int iLength = (iWlen + strlen(PROCESS_PELOADER_FILENAME) + strlen(lpAppPath) + 2);
+    int iLength = (iWlen + strlen(lpAppPath) + 2);
     lpAsciiCmdLine = (char *) InternalMalloc(iLength);
 
     if (lpAsciiCmdLine == NULL)
@@ -3460,98 +2600,82 @@ buildArgv(
 
     pChar = lpAsciiCmdLine;
 
-    /* Prepend the PE loader, if it's required */
-    if (prependLoader)
+    /* put the canonical name of the application as the first parameter */
+    if ((strcpy_s(lpAsciiCmdLine, iLength, "\"") != SAFECRT_SUCCESS) ||
+        (strcat_s(lpAsciiCmdLine, iLength, lpAppPath) != SAFECRT_SUCCESS) ||
+        (strcat_s(lpAsciiCmdLine, iLength,  "\"") != SAFECRT_SUCCESS) ||
+        (strcat_s(lpAsciiCmdLine, iLength, " ") != SAFECRT_SUCCESS))
     {
-        if ((strcpy_s(lpAsciiCmdLine, iLength,  PROCESS_PELOADER_FILENAME) != SAFECRT_SUCCESS) ||
-            (strcat_s(lpAsciiCmdLine, iLength, " ") != SAFECRT_SUCCESS))
-        {
-            ERROR("strcpy_s/strcat_s failed!\n");
-            return NULL;
-        }
-
-        pChar = lpAsciiCmdLine + strlen (lpAsciiCmdLine);
-
+        ERROR("strcpy_s/strcat_s failed!\n");
+        return NULL;
     }
-    else
+
+    pChar = lpAsciiCmdLine + strlen (lpAsciiCmdLine);
+
+    /* let's skip the first argument in the command line */
+
+    /* strip leading whitespace; function returns NULL if there's only
+        whitespace, so the if statement below will work correctly */
+    lpCommandLine = UTIL_inverse_wcspbrk((LPWSTR)lpCommandLine, W16_WHITESPACE);
+
+    if (lpCommandLine)
     {
-        /* put the cannonical name of the application as the first parameter */
-        if ((strcpy_s(lpAsciiCmdLine, iLength, "\"") != SAFECRT_SUCCESS) ||
-            (strcat_s(lpAsciiCmdLine, iLength, lpAppPath) != SAFECRT_SUCCESS) ||
-            (strcat_s(lpAsciiCmdLine, iLength,  "\"") != SAFECRT_SUCCESS) ||
-            (strcat_s(lpAsciiCmdLine, iLength, " ") != SAFECRT_SUCCESS))
+        LPCWSTR stringstart = lpCommandLine;
+
+        do
         {
-            ERROR("strcpy_s/strcat_s failed!\n");
-            return NULL;
-        }
-
-        pChar = lpAsciiCmdLine + strlen (lpAsciiCmdLine);
-
-        /* let's skip the first argument in the command line */
-
-        /* strip leading whitespace; function returns NULL if there's only
-           whitespace, so the if statement below will work correctly */
-        lpCommandLine = UTIL_inverse_wcspbrk((LPWSTR)lpCommandLine, W16_WHITESPACE);
-
-        if (lpCommandLine)
-        {
-            LPCWSTR stringstart = lpCommandLine;
-
-            do
+            /* find first whitespace or dquote character */
+            lpCommandLine = PAL_wcspbrk(lpCommandLine,W16_WHITESPACE_DQUOTE);
+            if(NULL == lpCommandLine)
             {
-                /* find first whitespace or dquote character */
-                lpCommandLine = PAL_wcspbrk(lpCommandLine,W16_WHITESPACE_DQUOTE);
-                if(NULL == lpCommandLine)
+                /* no whitespace or dquote found : first arg is only arg */
+                break;
+            }
+            else if('"' == *lpCommandLine)
+            {
+                /* got a dquote; skip over it if it's escaped; make sure we
+                    don't try to look before the first character in the
+                    string */
+                if(lpCommandLine > stringstart && '\\' == lpCommandLine[-1])
                 {
-                    /* no whitespace or dquote found : first arg is only arg */
-                    break;
-                }
-                else if('"' == *lpCommandLine)
-                {
-                    /* got a dquote; skip over it if it's escaped; make sure we
-                       don't try to look before the first character in the
-                       string */
-                    if(lpCommandLine > stringstart && '\\' == lpCommandLine[-1])
-                    {
-                        lpCommandLine++;
-                        continue;
-                    }
-
-                    /* found beginning of dquoted sequence, run to the end */
-                    /* don't stop if we hit an escaped dquote */
                     lpCommandLine++;
-                    while( *lpCommandLine )
+                    continue;
+                }
+
+                /* found beginning of dquoted sequence, run to the end */
+                /* don't stop if we hit an escaped dquote */
+                lpCommandLine++;
+                while( *lpCommandLine )
+                {
+                    lpCommandLine = PAL_wcschr(lpCommandLine, '"');
+                    if(NULL == lpCommandLine)
                     {
-                        lpCommandLine = PAL_wcschr(lpCommandLine, '"');
-                        if(NULL == lpCommandLine)
-                        {
-                            /* no ending dquote, arg runs to end of string */
-                            break;
-                        }
-                        if('\\' != lpCommandLine[-1])
-                        {
-                            /* dquote is not escaped, dquoted sequence is over*/
-                            break;
-                        }
-                        lpCommandLine++;
-                    }
-                    if(NULL == lpCommandLine || '\0' == *lpCommandLine)
-                    {
-                        /* no terminating dquote */
+                        /* no ending dquote, arg runs to end of string */
                         break;
                     }
-
-                    /* step over dquote, keep looking for end of arg */
+                    if('\\' != lpCommandLine[-1])
+                    {
+                        /* dquote is not escaped, dquoted sequence is over*/
+                        break;
+                    }
                     lpCommandLine++;
                 }
-                else
+                if(NULL == lpCommandLine || '\0' == *lpCommandLine)
                 {
-                    /* found whitespace : end of arg. */
-                    lpCommandLine++;
+                    /* no terminating dquote */
                     break;
                 }
-            }while(lpCommandLine);
-        }
+
+                /* step over dquote, keep looking for end of arg */
+                lpCommandLine++;
+            }
+            else
+            {
+                /* found whitespace : end of arg. */
+                lpCommandLine++;
+                break;
+            }
+        }while(lpCommandLine);
     }
 
     /* Convert to ASCII */
@@ -3561,7 +2685,7 @@ buildArgv(
                                  pChar, iWlen+1, NULL, NULL))
         {
             ASSERT("Unable to convert to a multibyte string\n");
-            InternalFree(lpAsciiCmdLine);
+            free(lpAsciiCmdLine);
             return NULL;
         }
     }
@@ -3649,7 +2773,7 @@ buildArgv(
 
     if (lppArgv == NULL)
     {
-        InternalFree(lpAsciiCmdLine);
+        free(lpAsciiCmdLine);
         return NULL;
     }
 
@@ -3707,7 +2831,6 @@ Abstract:
 
 Parameters:
     IN  lpFileName: file name to search in the path
-    IN  iLen: length of lpPathFileName buffer
     OUT lpPathFileName: returned string containing the path and the filename
 
 Return:
@@ -3870,50 +2993,4 @@ getPath(
     InternalFree(lpPath);
     TRACE("File %s not found in $PATH\n", lpFileName);
     return FALSE;
-}
-
-#if HAVE_MACH_EXCEPTIONS
-/*++
-Function:
-  PROCThreadFromMachPort
-
-  Given a Mach thread port, return the CPalThread associated with it.
-
-Return
-    CPalThread*
---*/
-CorUnix::CPalThread *PROCThreadFromMachPort(mach_port_t hTargetThread)
-{
-    CorUnix::CPalThread *pThread;
-
-    PROCProcessLock();
-
-    pThread = pGThreadList;
-    while (pThread)
-    {
-        mach_port_t hThread = pThread->GetMachPortSelf();
-        if (hThread == hTargetThread)
-            break;
-
-        pThread = pThread->GetNext();
-    }
-
-    PROCProcessUnlock();
-
-    return pThread;
-}
-#endif // HAVE_MACH_EXCEPTIONS
-
-/*++
-Function:
-    ~CProcProcessLocalData
-
-Process data destructor
---*/
-CorUnix::CProcProcessLocalData::~CProcProcessLocalData()
-{
-    if (pProcessModules != NULL)
-    {
-        DestroyProcessModules(pProcessModules);
-    }
 }

@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -26,8 +29,6 @@ extern "C"
 {
 #endif // __cplusplus
 
-#define HIJACK_ON_SIGNAL 1
-
 // List of exception types we will be watching for
 // NOTE: if you change any of these, you need to adapt s_nMachExceptionPortsMax in thread.hpp
 #define PAL_EXC_ILLEGAL_MASK   (EXC_MASK_BAD_INSTRUCTION | EXC_MASK_EMULATION)
@@ -37,7 +38,6 @@ extern "C"
 
 // Process and thread initialization/cleanup/context routines
 BOOL SEHInitializeMachExceptions();
-void SEHCleanupExceptionPort (void);
 void MachExceptionInitializeDebug(void);
 PAL_NORETURN void MachSetThreadContext(CONTEXT *lpContext);
 
