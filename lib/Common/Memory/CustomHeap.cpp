@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
@@ -294,7 +295,11 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadWrite(Allo
     }
     else
     {
+        #if defined(__APPLE__) && defined(_M_ARM64)
+        protectFlags = PAGE_READWRITE; // PAGE_EXECUTE_READWRITE banned on Apple Silicon
+        #else
         protectFlags = PAGE_EXECUTE_READWRITE;
+        #endif
     }
     return this->ProtectAllocation(allocation, protectFlags, PAGE_EXECUTE_READ, addressInPage);
 }
@@ -311,7 +316,11 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(__in 
     {
         protectFlags = PAGE_EXECUTE_READ;
     }
+    #if defined(__APPLE__) && defined(_M_ARM64)
+    return this->ProtectAllocation(allocation, protectFlags, PAGE_READWRITE, addressInPage); // PAGE_EXECUTE_READWRITE banned on Apple Silicon
+    #else
     return this->ProtectAllocation(allocation, protectFlags, PAGE_EXECUTE_READWRITE, addressInPage);
+    #endif
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>

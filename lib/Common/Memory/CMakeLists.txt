@@ -45,6 +45,11 @@ if(CC_TARGETS_AMD64)
         amd64/XDataAllocator.cpp
         amd64/amd64_SAVE_REGISTERS.S
     )
+elseif(CC_TARGETS_ARM64)
+    set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
+        arm64/XDataAllocator.cpp
+        arm64/arm64_SAVE_REGISTERS.S
+    )
 elseif(CC_TARGETS_ARM)
   set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
       arm/XDataAllocator.cpp
