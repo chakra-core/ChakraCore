@@ -1,19 +1,21 @@
 ChakraCore uses third party material from the projects listed below.
 The original copyright notice and the license under which Microsoft
-received such third party material are set forth below. Microsoft
-reserves all other rights not expressly granted, whether by
+or the ChakraCore Project Contributors received such third party material
+are set forth below. Microsoft, and where relevant the  ChakraCore Project
+Contributors reserve all other rights not expressly granted, whether by
 implication, estoppel or otherwise.
 
 In the event that we accidentally failed to list a required notice, please
-bring it to our attention. Post an issue or email us: chakracore@microsoft.com
+bring it to our attention. Post an issue or message us on discord.
 
 THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
 Do Not Translate or Localize
 
 ChakraCore incorporates third party material from the projects listed below.
-The original copyright notice and the license under which Microsoft received
-such third party material are set forth below. Microsoft reserves all other
-rights not expressly granted, whether by implication, estoppel or otherwise.
+The original copyright notice and the license under which Microsoft or the
+ChakraCore Project Contributors received such third party material are set
+forth below. Microsoft, and where relevant the  ChakraCore Project Contributors
+reserve all other rights not expressly granted, whether by implication, estoppel or otherwise.
 
 1.   backbone.suggestions (https://github.com/qloo/backbone.suggestions)
 2.   BeatDetektor.js
@@ -48,6 +50,7 @@ rights not expressly granted, whether by implication, estoppel or otherwise.
 31.  yargs-parser.js (https://github.com/yargs/yargs-parser)
 32.  camelcase.js (https://github.com/sindresorhus/camelcase)
 33.  ARES-6 (https://github.com/WebKit/webkit/tree/master/PerformanceTests/ARES-6)
+34.  PAL (from dotNet)
 
 %% backbone.suggestions NOTICES, INFORMATION, AND LICENSE BEGIN HERE
 =========================================
@@ -2041,3 +2044,30 @@ END OF ARES-6 NOTICES, INFORMATION, AND LICENSE
 
 ---------------------------------------------
 
+%% PAL NOTICES, INFORMATION AND LICENSE BEGIN HERE
+=========================================
+The MIT License (MIT)
+
+Copyright (c) .NET Foundation and Contributors
+
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+=========================================
+END OF PAL NOTICES, INFORMATION, AND LICENSE

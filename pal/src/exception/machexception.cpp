@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -40,13 +43,14 @@ SET_DEFAULT_DEBUG_CHANNEL(EXCEPT); // some headers have code with asserts, so do
 #include <pthread.h>
 #include <dlfcn.h>
 #include <mach-o/loader.h>
+#include <sys/mman.h>
 
 using namespace CorUnix;
 
 // The port we use to handle exceptions and to set the thread context
 mach_port_t s_ExceptionPort;
 
-static BOOL s_DebugInitialized = FALSE;
+static DWORD s_PalInitializeFlags = 0;
 
 static const char * PAL_MACH_EXCEPTION_MODE = "PAL_MachExceptionMode";
 
@@ -174,6 +178,7 @@ GetExceptionMask()
         if (exceptionSettings)
         {
             exMode = (MachExceptionMode)atoi(exceptionSettings);
+            free((void*)exceptionSettings);
         }
         else
         {
@@ -197,8 +202,6 @@ GetExceptionMask()
     return machExceptionMask;
 }
 
-#ifdef FEATURE_PAL_SXS
-
 /*++
 Function :
     CPalThread::EnableMachExceptions
@@ -212,11 +215,8 @@ Return value :
     ERROR_SUCCESS, if enabling succeeded
     an error code, otherwise
 --*/
-
-
 PAL_ERROR CorUnix::CPalThread::EnableMachExceptions()
 {
-#if !DISABLE_EXCEPTIONS
     TRACE("%08X: Enter()\n", (unsigned int)(size_t)this);
 
     exception_mask_t machExceptionMask = GetExceptionMask();
@@ -231,146 +231,59 @@ PAL_ERROR CorUnix::CPalThread::EnableMachExceptions()
         countBits = ((countBits & 0xF0F0F0F0) >>  4) + (countBits & 0x0F0F0F0F);
         countBits = ((countBits & 0xFF00FF00) >>  8) + (countBits & 0x00FF00FF);
         countBits = ((countBits & 0xFFFF0000) >> 16) + (countBits & 0x0000FFFF);
-        if (countBits != static_cast<exception_mask_t>(
-            CThreadMachExceptionHandlerNode::s_nPortsMax))
+        if (countBits != static_cast<exception_mask_t>(CThreadMachExceptionHandlers::s_nPortsMax))
         {
             ASSERT("s_nPortsMax is %u, but needs to be %u\n",
-                   CThreadMachExceptionHandlerNode::s_nPortsMax, countBits);
+                   CThreadMachExceptionHandlers::s_nPortsMax, countBits);
         }
 #endif // _DEBUG
 
-        // We could be called in two situations:
-        //   1) The CoreCLR has seen this thread for the first time.
-        //   2) The host has called ICLRRuntimeHost2::RegisterMacEHPort().
-        // We store a set of previous handlers and register an exception port that is unique to both (to help
-        // us get the correct chain-back semantics in as many scenarios as possible). The following call tells
-        // us which we should do.
-        mach_port_t hExceptionPort;
-        CThreadMachExceptionHandlerNode *pSavedHandlers =
-            m_sMachExceptionHandlers.GetNodeForInitialization(&hExceptionPort);
+        NONPAL_TRACE("Enabling handlers for thread %08x exception mask %08x exception port %08x\n",
+            GetMachPortSelf(), machExceptionMask, s_ExceptionPort);
+
+        CThreadMachExceptionHandlers *pSavedHandlers = GetSavedMachHandlers();
 
         // Swap current handlers into temporary storage first. That's because it's possible (even likely) that
         // some or all of the handlers might still be ours. In those cases we don't want to overwrite the
         // chain-back entries with these useless self-references.
-        kern_return_t MachRet;
-        mach_msg_type_number_t oldCount = CThreadMachExceptionHandlerNode::s_nPortsMax;
-        exception_mask_t rgMasks[CThreadMachExceptionHandlerNode::s_nPortsMax];
-        exception_handler_t rgHandlers[CThreadMachExceptionHandlerNode::s_nPortsMax];
-        exception_behavior_t rgBehaviors[CThreadMachExceptionHandlerNode::s_nPortsMax];
-        thread_state_flavor_t rgFlavors[CThreadMachExceptionHandlerNode::s_nPortsMax];
+        kern_return_t machret;
+        kern_return_t machretDeallocate;
         thread_port_t thread = mach_thread_self();
-        exception_behavior_t excepBehavior = EXCEPTION_STATE_IDENTITY;
 
-        MachRet = thread_swap_exception_ports(thread,
-                                              machExceptionMask,
-                                              hExceptionPort,
-                                              excepBehavior,
-                                              MACHINE_THREAD_STATE,
-                                              rgMasks,
-                                              &oldCount,
-                                              rgHandlers,
-                                              rgBehaviors,
-                                              rgFlavors);
-        kern_return_t MachRetDeallocate = mach_port_deallocate(mach_task_self(), thread);
-        CHECK_MACH("mach_port_deallocate", MachRetDeallocate);
-        if (MachRet != KERN_SUCCESS)
+        machret = thread_swap_exception_ports(
+            thread,
+            machExceptionMask,
+            s_ExceptionPort,
+            EXCEPTION_DEFAULT | MACH_EXCEPTION_CODES,
+            THREAD_STATE_NONE,
+            pSavedHandlers->m_masks,
+            &pSavedHandlers->m_nPorts,
+            pSavedHandlers->m_handlers,
+            pSavedHandlers->m_behaviors,
+            pSavedHandlers->m_flavors);
+
+        machretDeallocate = mach_port_deallocate(mach_task_self(), thread);
+        CHECK_MACH("mach_port_deallocate", machretDeallocate);
+
+        if (machret != KERN_SUCCESS)
         {
-            ASSERT("thread_swap_exception_ports failed: %d\n", MachRet);
-            return UTIL_MachErrorToPalError(MachRet);
+            ASSERT("thread_swap_exception_ports failed: %d %s\n", machret, mach_error_string(machret));
+            return UTIL_MachErrorToPalError(machret);
         }
 
-        // Scan through the returned handlers looking for those that are ours.
-        for (mach_msg_type_number_t i = 0; i < oldCount; i++)
+#ifdef _DEBUG
+        NONPAL_TRACE("EnableMachExceptions: THREAD PORT count %d\n", pSavedHandlers->m_nPorts);
+        for (mach_msg_type_number_t i = 0; i < pSavedHandlers->m_nPorts; i++)
         {
-            if (rgHandlers[i] == s_ExceptionPort)
-            {
-                // We were already registered for the exceptions indicated by rgMasks[i]. Look through each
-                // exception (set bit in the mask) separately, checking whether we previously had a (non-CLR)
-                // registration for that handle.
-                for (size_t j = 0; j < (sizeof(exception_mask_t) * 8); j++)
-                {
-                    // Skip unset bits (exceptions not covered by this entry).
-                    exception_mask_t bmException = rgMasks[i] & (1 << j);
-                    if (bmException == 0)
-                        continue;
-
-                    // Find record in the previous data that covers this exception.
-                    bool fFoundPreviousHandler = false;
-                    for (int k = 0; k < pSavedHandlers->m_nPorts; k++)
-                    {
-                        // Skip records for different exceptions.
-                        if (!(pSavedHandlers->m_masks[k] & bmException))
-                            continue;
-
-                        // Found one. By definition it shouldn't be one of our handlers.
-                        if (pSavedHandlers->m_handlers[k] == s_ExceptionPort)
-                            ASSERT("Stored our own handlers in Mach exception chain-back info.\n");
-
-                        // We need to replicate the handling details back into our temporary data in place of
-                        // the CLR record. There are several things that can happen:
-                        // 1) One of the other entries has the same handler, behavior and flavor (for a
-                        //    different set of exceptions). We could merge the data for this exception into
-                        //    that record (set another bit in the masks array entry).
-                        // 2) This was the only exception in the current entry (only one bit was set in the
-                        //    mask) and we can simply re-use this entry (overwrite the handler, behavior and
-                        //    flavor entries).
-                        // 3) Multiple exceptions were covered by this entry. In this case we should add a new
-                        //    entry covering just the current exception. We're guaranteed to have space to do
-                        //    this since we allocated enough entries to cover one exception per-entry and we
-                        //    have at least one entry with two or more exceptions (this one).
-                        // It turns out we can ignore case 1 (which involves complicating our logic still
-                        // further) since we have no requirement to tightly pack all the entries for the same
-                        // handler/behavior/flavor (like thread_swap_exception_ports does). We're perfectly
-                        // happy having six entries for six exceptions handled by identical handlers rather
-                        // than a single entry with six bits set in the exception mask.
-                        if (rgMasks[i] == bmException)
-                        {
-                            // Entry was only for this exception. Simply overwrite handler/behavior and flavor
-                            // with the stored values.
-                            rgHandlers[i] = pSavedHandlers->m_handlers[k];
-                            rgBehaviors[i] = pSavedHandlers->m_behaviors[k];
-                            rgFlavors[i] = pSavedHandlers->m_flavors[k];
-                        }
-                        else
-                        {
-                            // More than one exception handled by this record. Store the old data in a new
-                            // cell of the temporary data and remove the exception from the old cell.
-                            if ((int)oldCount == CThreadMachExceptionHandlerNode::s_nPortsMax)
-                                ASSERT("Ran out of space to expand exception handlers. This shouldn't happen.\n");
-
-                            rgMasks[oldCount] = bmException;
-                            rgHandlers[oldCount] = pSavedHandlers->m_handlers[k];
-                            rgBehaviors[oldCount] = pSavedHandlers->m_behaviors[k];
-                            rgFlavors[oldCount] = pSavedHandlers->m_flavors[k];
-
-                            // The old cell no longer describes this exception.
-                            rgMasks[i] &= ~bmException;
-
-                            oldCount++;
-                        }
-
-                        // We found a match.
-                        fFoundPreviousHandler = true;
-                        break;
-                    }
-
-                    // If we didn't find a match then we still don't want to record our own handler. Just
-                    // reset the bit in the masks value (implicitly recording that we have no-chain back entry
-                    // for this exception).
-                    if (!fFoundPreviousHandler)
-                        rgMasks[i] &= ~bmException;
-                }
-            }
+            _ASSERTE(pSavedHandlers->m_handlers[i] != s_ExceptionPort);
+            NONPAL_TRACE("EnableMachExceptions: THREAD PORT mask %08x handler: %08x behavior %08x flavor %u\n",
+                pSavedHandlers->m_masks[i],
+                pSavedHandlers->m_handlers[i],
+                pSavedHandlers->m_behaviors[i],
+                pSavedHandlers->m_flavors[i]);
         }
-
-        // We've cleaned any mention of our own handlers from the data. It's safe to persist it.
-        pSavedHandlers->m_nPorts = oldCount;
-        memcpy(pSavedHandlers->m_masks, rgMasks, sizeof(rgMasks));
-        memcpy(pSavedHandlers->m_handlers, rgHandlers, sizeof(rgHandlers));
-        memcpy(pSavedHandlers->m_behaviors, rgBehaviors, sizeof(rgBehaviors));
-        memcpy(pSavedHandlers->m_flavors, rgFlavors, sizeof(rgFlavors));
+#endif // _DEBUG
     }
-#endif // !DISABLE_EXCEPTIONS
     return ERROR_SUCCESS;
 }
 
@@ -389,7 +302,6 @@ Return value :
 --*/
 PAL_ERROR CorUnix::CPalThread::DisableMachExceptions()
 {
-#if !DISABLE_EXCEPTIONS
     TRACE("%08X: Leave()\n", (unsigned int)(size_t)this);
 
     PAL_ERROR palError = NO_ERROR;
@@ -398,14 +310,8 @@ PAL_ERROR CorUnix::CPalThread::DisableMachExceptions()
     if (0 == GetExceptionMask())
         return palError;
 
-    // Get the handlers to restore. It isn't really as simple as this. We keep two sets of handlers (which
-    // improves our ability to chain correctly in more scenarios) but this means we can encounter dilemmas
-    // where we've recorded two different handlers for the same port and can only re-register one of them
-    // (with a very high chance that it does not chain to the other). I don't believe it matters much today:
-    // in the absence of CoreCLR shutdown we don't throw away our thread context until a thread dies (in fact
-    // usually a bit later than this). Hopefully by the time this changes we'll have a better design for
-    // hardware exception handling overall.
-    CThreadMachExceptionHandlerNode *savedPorts = m_sMachExceptionHandlers.GetNodeForCleanup();
+    // Get the handlers to restore.
+    CThreadMachExceptionHandlers *savedPorts = GetSavedMachHandlers();
 
     kern_return_t MachRet = KERN_SUCCESS;
     for (int i = 0; i < savedPorts->m_nPorts; i++)
@@ -414,16 +320,15 @@ PAL_ERROR CorUnix::CPalThread::DisableMachExceptions()
         // MACH_PORT_NULL for the handler and zero values for behavior
         // and flavor.  Unfortunately, the latter are invalid even for
         // MACH_PORT_NULL when you use thread_set_exception_ports.
-        exception_behavior_t behavior =
-            savedPorts->m_behaviors[i] ? savedPorts->m_behaviors[i] : EXCEPTION_DEFAULT;
-        thread_state_flavor_t flavor =
-            savedPorts->m_flavors[i] ? savedPorts->m_flavors[i] : MACHINE_THREAD_STATE;
+        exception_behavior_t behavior = savedPorts->m_behaviors[i] ? savedPorts->m_behaviors[i] : EXCEPTION_DEFAULT;
+        thread_state_flavor_t flavor = savedPorts->m_flavors[i] ? savedPorts->m_flavors[i] : MACHINE_THREAD_STATE;
         thread_port_t thread = mach_thread_self();
         MachRet = thread_set_exception_ports(thread,
                                              savedPorts->m_masks[i],
                                              savedPorts->m_handlers[i],
                                              behavior,
                                              flavor);
+
         kern_return_t MachRetDeallocate = mach_port_deallocate(mach_task_self(), thread);
         CHECK_MACH("mach_port_deallocate", MachRetDeallocate);
 
@@ -438,92 +343,18 @@ PAL_ERROR CorUnix::CPalThread::DisableMachExceptions()
     }
 
     return palError;
-#endif // !DISABLE_EXCEPTIONS
 }
 
-#else // FEATURE_PAL_SXS
-
-/*++
-Function :
-    SEHEnableMachExceptions
-
-    Enable SEH-related stuff related to mach exceptions
-
-    (no parameters)
-
-Return value :
-    TRUE  if enabling succeeded
-    FALSE otherwise
---*/
-BOOL SEHEnableMachExceptions()
-{
-    exception_mask_t machExceptionMask = GetExceptionMask();
-    if (machExceptionMask != 0)
-    {
-        kern_return_t MachRet;
-        MachRet = task_set_exception_ports(mach_task_self(),
-                                           machExceptionMask,
-                                           s_ExceptionPort,
-                                           EXCEPTION_DEFAULT,
-                                           MACHINE_THREAD_STATE);
-
-        if (MachRet != KERN_SUCCESS)
-        {
-            ASSERT("task_set_exception_ports failed: %d\n", MachRet);
-            UTIL_SetLastErrorFromMach(MachRet);
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-/*++
-Function :
-    SEHDisableMachExceptions
-
-    Disable SEH-related stuff related to mach exceptions
-
-    (no parameters)
-
-Return value :
-    TRUE  if enabling succeeded
-    FALSE otherwise
---*/
-BOOL SEHDisableMachExceptions()
-{
-    exception_mask_t machExceptionMask = GetExceptionMask();
-    if (machExceptionMask != 0)
-    {
-        kern_return_t MachRet;
-        MachRet = task_set_exception_ports(mach_task_self(),
-                                           machExceptionMask,
-                                           MACH_PORT_NULL,
-                                           EXCEPTION_DEFAULT,
-                                           MACHINE_THREAD_STATE);
-
-        if (MachRet != KERN_SUCCESS)
-        {
-            ASSERT("task_set_exception_ports failed: %d\n", MachRet);
-            UTIL_SetLastErrorFromMach(MachRet);
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-#endif // FEATURE_PAL_SXS
-
-#if !defined(_AMD64_)
-extern "C"
-void PAL_DispatchException(PCONTEXT pContext, PEXCEPTION_RECORD pExRecord, MachExceptionInfo *pMachExceptionInfo)
-#else // defined(_AMD64_)
-
+#if defined(__amd64__)
 // Since HijackFaultingThread pushed the context, exception record and info on the stack, we need to adjust the
 // signature of PAL_DispatchException such that the corresponding arguments are considered to be on the stack
 // per GCC64 calling convention rules. Hence, the first 6 dummy arguments (corresponding to RDI, RSI, RDX,RCX, R8, R9).
 extern "C"
 void PAL_DispatchException(DWORD64 dwRDI, DWORD64 dwRSI, DWORD64 dwRDX, DWORD64 dwRCX, DWORD64 dwR8, DWORD64 dwR9, PCONTEXT pContext, PEXCEPTION_RECORD pExRecord, MachExceptionInfo *pMachExceptionInfo)
-#endif // !defined(_AMD64_)
+#elif defined(_ARM64_)
+extern "C"
+void PAL_DispatchException(PCONTEXT pContext, PEXCEPTION_RECORD pExRecord, MachExceptionInfo *pMachExceptionInfo)
+#endif
 {
     CPalThread *pThread = InternalGetCurrentThread();
 
@@ -541,10 +372,8 @@ void PAL_DispatchException(DWORD64 dwRDI, DWORD64 dwRSI, DWORD64 dwRDX, DWORD64 
     abort();
 }
 
-#if defined(_X86_) || defined(_AMD64_)
 extern "C" void PAL_DispatchExceptionWrapper();
 extern "C" int PAL_DispatchExceptionReturnOffset;
-#endif // _X86_ || _AMD64_
 
 /*++
 Function :
@@ -577,12 +406,36 @@ BuildExceptionRecord(
         }
         else
         {
+#if defined(__amd64__)
             exceptionCode = EXCEPTION_ACCESS_VIOLATION;
+#elif defined(_ARM64_)
+            switch (exceptionInfo.Subcodes[0])
+            {
+                case EXC_ARM_DA_ALIGN:
+                    exceptionCode = EXCEPTION_DATATYPE_MISALIGNMENT;
+                    break;
+                case EXC_ARM_DA_DEBUG:
+                    exceptionCode = EXCEPTION_BREAKPOINT;
+                    break;
+                case EXC_ARM_SP_ALIGN:
+                    exceptionCode = EXCEPTION_DATATYPE_MISALIGNMENT;
+                    break;
+                case EXC_ARM_SWP:
+                    exceptionCode = EXCEPTION_ILLEGAL_INSTRUCTION;
+                    break;
+                case EXC_ARM_PAC_FAIL:
+                    // PAC Authentication failure fall through
+                default:
+                    exceptionCode = EXCEPTION_ACCESS_VIOLATION;
+            }
+#else
+#error Unexpected architecture
+#endif
 
             pExceptionRecord->NumberParameters = 2;
             pExceptionRecord->ExceptionInformation[0] = 0;
             pExceptionRecord->ExceptionInformation[1] = exceptionInfo.Subcodes[1];
-            NONPAL_TRACE("subcodes[1] = %llx\n", exceptionInfo.Subcodes[1]);
+            NONPAL_TRACE("subcodes[1] = %llx\n", (uint64_t) exceptionInfo.Subcodes[1]);
         }
         break;
 
@@ -604,7 +457,7 @@ BuildExceptionRecord(
         {
             switch (exceptionInfo.Subcodes[0])
             {
-#if defined(_X86_) || defined(_AMD64_)
+#if defined(__amd64__)
                 case EXC_I386_DIV:
                     exceptionCode = EXCEPTION_INT_DIVIDE_BY_ZERO;
                     break;
@@ -617,8 +470,27 @@ BuildExceptionRecord(
                 case EXC_I386_BOUND:
                     exceptionCode = EXCEPTION_ARRAY_BOUNDS_EXCEEDED;
                     break;
+#elif defined(_ARM64_)
+                case EXC_ARM_FP_IO:
+                    exceptionCode = EXCEPTION_FLT_INVALID_OPERATION;
+                    break;
+                case EXC_ARM_FP_DZ:
+                    exceptionCode = EXCEPTION_FLT_DIVIDE_BY_ZERO;
+                    break;
+                case EXC_ARM_FP_OF:
+                    exceptionCode = EXCEPTION_FLT_OVERFLOW;
+                    break;
+                case EXC_ARM_FP_UF:
+                    exceptionCode = EXCEPTION_FLT_UNDERFLOW;
+                    break;
+                case EXC_ARM_FP_IX:
+                    exceptionCode = EXCEPTION_FLT_INEXACT_RESULT;
+                    break;
+                case EXC_ARM_FP_ID:
+                    exceptionCode = EXCEPTION_FLT_DENORMAL_OPERAND;
+                    break;
 #else
-#error Trap code to exception mapping not defined for this architecture
+#error Unexpected architecture
 #endif
                 default:
                     exceptionCode = EXCEPTION_ILLEGAL_INSTRUCTION;
@@ -628,16 +500,12 @@ BuildExceptionRecord(
         break;
 
     case EXC_SOFTWARE:
-#if defined(_X86_) || defined(_AMD64_)
         exceptionCode = EXCEPTION_ILLEGAL_INSTRUCTION;
         break;
-#else
-#error Trap code to exception mapping not defined for this architecture
-#endif
 
     // Trace, breakpoint, etc. Details in subcode field.
     case EXC_BREAKPOINT:
-#if defined(_X86_) || defined(_AMD64_)
+#if defined(__amd64__)
         if (exceptionInfo.Subcodes[0] == EXC_I386_SGL)
         {
             exceptionCode = EXCEPTION_SINGLE_STEP;
@@ -646,8 +514,13 @@ BuildExceptionRecord(
         {
             exceptionCode = EXCEPTION_BREAKPOINT;
         }
+#elif defined(_ARM64_)
+        if (exceptionInfo.Subcodes[0] == EXC_ARM_BREAKPOINT)
+        {
+            exceptionCode = EXCEPTION_BREAKPOINT;
+        }
 #else
-#error Trap code to exception mapping not defined for this architecture
+#error Unexpected architecture
 #endif
         else
         {
@@ -742,17 +615,26 @@ HijackFaultingThread(
     // Fill in the exception record from the exception info
     BuildExceptionRecord(exceptionInfo, &exceptionRecord);
 
-#ifdef _X86_
-    threadContext.ContextFlags = CONTEXT_FLOATING_POINT | CONTEXT_EXTENDED_REGISTERS;
-#else
+#if defined(__amd64__)
     threadContext.ContextFlags = CONTEXT_FLOATING_POINT;
-#endif
     CONTEXT_GetThreadContextFromThreadState(x86_FLOAT_STATE, (thread_state_t)&exceptionInfo.FloatState, &threadContext);
 
     threadContext.ContextFlags |= CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS;
     CONTEXT_GetThreadContextFromThreadState(x86_THREAD_STATE, (thread_state_t)&exceptionInfo.ThreadState, &threadContext);
 
-#if defined(CORECLR) && (defined(_X86_) || defined(_AMD64_))
+    void **targetSP = (void **)threadContext.Rsp;
+#elif defined(_ARM64_)
+    threadContext.ContextFlags = CONTEXT_FLOATING_POINT;
+    CONTEXT_GetThreadContextFromThreadState(ARM_NEON_STATE64, (thread_state_t)&exceptionInfo.FloatState, &threadContext);
+
+    threadContext.ContextFlags |= CONTEXT_CONTROL | CONTEXT_INTEGER;
+    CONTEXT_GetThreadContextFromThreadState(ARM_THREAD_STATE64, (thread_state_t)&exceptionInfo.ThreadState, &threadContext);
+
+    void **targetSP = (void **)threadContext.Sp;
+#else
+#error Unexpected architecture
+#endif
+
     // For CoreCLR we look more deeply at access violations to determine whether they're the result of a stack
     // overflow. If so we'll terminate the process immediately (the current default policy of the CoreCLR EE).
     // Otherwise we'll either A/V ourselves trying to set up the SEH exception record and context on the
@@ -798,20 +680,15 @@ HijackFaultingThread(
     //          corrupted). Our managed jits always generate code which does this as does MSVC. GCC, however,
     //          does not do this by default. We have to explicitly provide the -fstack-check compiler option
     //          to enable the behavior.
-#if (defined(_X86_) || defined(_AMD64_)) && defined(__APPLE__)
+    // Assume that AV isn't an SO to begin with.
+    bool fIsStackOverflow = false;
+
     if (exceptionRecord.ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
     {
-        // Assume this AV isn't an SO to begin with.
-        bool fIsStackOverflow = false;
-
         // Calculate the page base addresses for the fault and the faulting thread's SP.
         int cbPage = getpagesize();
         char *pFaultPage = (char*)(exceptionRecord.ExceptionInformation[1] & ~(cbPage - 1));
-#ifdef _X86_
-        char *pStackTopPage = (char*)(threadContext.Esp & ~(cbPage - 1));
-#elif defined(_AMD64_)
-        char *pStackTopPage = (char*)(threadContext.Rsp & ~(cbPage - 1));
-#endif
+        char *pStackTopPage = (char*)((size_t)targetSP & ~(cbPage - 1));
 
         if (pFaultPage == pStackTopPage || pFaultPage == (pStackTopPage - cbPage))
         {
@@ -826,24 +703,14 @@ HijackFaultingThread(
             vm_size_t vm_size;
             vm_region_flavor_t vm_flavor;
             mach_msg_type_number_t infoCnt;
-#ifdef BIT64
             vm_region_basic_info_data_64_t info;
             infoCnt = VM_REGION_BASIC_INFO_COUNT_64;
             vm_flavor = VM_REGION_BASIC_INFO_64;
-#else
-            vm_region_basic_info_data_t info;
-            infoCnt = VM_REGION_BASIC_INFO_COUNT;
-            vm_flavor = VM_REGION_BASIC_INFO;
-#endif
             mach_port_t object_name;
 
             vm_address = (vm_address_t)(pFaultPage + cbPage);
 
-#ifdef BIT64
             machret = vm_region_64(
-#else
-            machret = vm_region(
-#endif
                 mach_task_self(),
                 &vm_address,
                 &vm_size,
@@ -851,11 +718,7 @@ HijackFaultingThread(
                 (vm_region_info_t)&info,
                 &infoCnt,
                 &object_name);
-#ifdef _X86_
-            CHECK_MACH("vm_region", machret);
-#elif defined(_AMD64_)
             CHECK_MACH("vm_region_64", machret);
-#endif
 
             // If vm_region updated the address we gave it then that address was not part of a region at all
             // (and so this cannot be an SO). Otherwise check that the ESP lies in the region returned.
@@ -865,12 +728,10 @@ HijackFaultingThread(
                 fIsStackOverflow = true;
         }
 
-#if defined(_AMD64_)
         if (!fIsStackOverflow)
         {
             // Check if we can read pointer sizeD bytes below the target thread's stack pointer.
             // If we are unable to, then it implies we have run into SO.
-            void **targetSP = (void **)threadContext.Rsp;
             vm_address_t targetAddr = (mach_vm_address_t)(targetSP);
             targetAddr -= sizeof(void *);
             vm_size_t vm_size = sizeof(void *);
@@ -882,97 +743,17 @@ HijackFaultingThread(
                 fIsStackOverflow = true;
             }
         }
-#endif // _AMD64_
-
-        if (fIsStackOverflow)
-        {
-            // We have a stack overflow. Abort the process immediately. It would be nice to let the VM do this
-            // but the Windows mechanism (where a stack overflow SEH exception is delivered on the faulting
-            // thread) will not work most of the time since non-Windows OSs don't keep a reserve stack
-            // extension allocated for this purpose.
-
-            // TODO: Once our event reporting story is further along we probably want to report something
-            // here. If our runtime policy for SO ever changes (the most likely candidate being "unload
-            // appdomain on SO) then we'll have to do something more complex here, probably involving a
-            // handshake with the runtime in order to report the SO without attempting to extend the faulting
-            // thread's stack any further. Note that we cannot call most PAL functions from the context of
-            // this thread since we're not a PAL thread.
-
-            write(STDERR_FILENO, StackOverflowMessage, sizeof(StackOverflowMessage) - 1);
-            abort();
-        }
     }
-#else // (_X86_ || _AMD64_) && __APPLE__
-#error Platform not supported for correct stack overflow handling
-#endif // (_X86_ || _AMD64_) && __APPLE__
-#endif // CORECLR && _X86_
 
-#if defined(_X86_)
-    NONPAL_ASSERTE(exceptionInfo.ThreadState.tsh.flavor == x86_THREAD_STATE32);
-
-    // Make a copy of the thread state because the one in exceptionInfo needs to be preserved to restore
-    // the state if the exception is forwarded.
-    x86_thread_state32_t ts32 = exceptionInfo.ThreadState.uts.ts32;
-
-    // If we're in single step mode, disable it since we're going to call PAL_DispatchException
-    if (exceptionRecord.ExceptionCode == EXCEPTION_SINGLE_STEP)
+    if (fIsStackOverflow)
     {
-        ts32.eflags &= ~EFL_TF;
+        exceptionRecord.ExceptionCode = EXCEPTION_STACK_OVERFLOW;
     }
 
     exceptionRecord.ExceptionFlags = EXCEPTION_IS_SIGNAL;
     exceptionRecord.ExceptionRecord = NULL;
-    exceptionRecord.ExceptionAddress = (void *)ts32.eip;
 
-    void **FramePointer = (void **)ts32.esp;
-
-    *--FramePointer = (void *)ts32.eip;
-
-    // Construct a stack frame for a pretend activation of the function
-    // PAL_DispatchExceptionWrapper that serves only to make the stack
-    // correctly unwindable by the system exception unwinder.
-    // PAL_DispatchExceptionWrapper has an ebp frame, its local variables
-    // are the context and exception record, and it has just "called"
-    // PAL_DispatchException.
-    *--FramePointer = (void *)ts32.ebp;
-    ts32.ebp = (unsigned)FramePointer;
-
-    // Put the context on the stack
-    FramePointer = (void **)((ULONG_PTR)FramePointer - sizeof(CONTEXT));
-    // Make sure it's aligned - CONTEXT has 8-byte alignment
-    FramePointer = (void **)((ULONG_PTR)FramePointer - ((ULONG_PTR)FramePointer % 8));
-    CONTEXT *pContext = (CONTEXT *)FramePointer;
-    *pContext = threadContext;
-
-    // Put the exception record on the stack
-    FramePointer = (void **)((ULONG_PTR)FramePointer - sizeof(EXCEPTION_RECORD));
-    EXCEPTION_RECORD *pExceptionRecord = (EXCEPTION_RECORD *)FramePointer;
-    *pExceptionRecord = exceptionRecord;
-
-    FramePointer = (void **)((ULONG_PTR)FramePointer - sizeof(MachExceptionInfo));
-    MachExceptionInfo *pMachExceptionInfo = (MachExceptionInfo *)FramePointer;
-    *pMachExceptionInfo = exceptionInfo;
-
-    // Push arguments to PAL_DispatchException
-    FramePointer = (void **)((ULONG_PTR)FramePointer - 3 * sizeof(void *));
-
-    // Make sure it's aligned - ABI requires 16-byte alignment
-    FramePointer = (void **)((ULONG_PTR)FramePointer - ((ULONG_PTR)FramePointer % 16));
-    FramePointer[0] = pContext;
-    FramePointer[1] = pExceptionRecord;
-    FramePointer[2] = pMachExceptionInfo;
-
-    // Place the return address to right after the fake call in PAL_DispatchExceptionWrapper
-    FramePointer[-1] = (void *)((ULONG_PTR)PAL_DispatchExceptionWrapper + PAL_DispatchExceptionReturnOffset);
-
-    // Make the instruction register point to DispatchException
-    ts32.eip = (unsigned)PAL_DispatchException;
-    ts32.esp = (unsigned)&FramePointer[-1]; // skip return address
-
-    // Now set the thread state for the faulting thread so that PAL_DispatchException executes next
-    machret = thread_set_state(thread, x86_THREAD_STATE32, (thread_state_t)&ts32, x86_THREAD_STATE32_COUNT);
-    CHECK_MACH("thread_set_state(thread)", machret);
-#elif defined(_AMD64_)
+#if defined(__amd64__)
     NONPAL_ASSERTE(exceptionInfo.ThreadState.tsh.flavor == x86_THREAD_STATE64);
 
     // Make a copy of the thread state because the one in exceptionInfo needs to be preserved to restore
@@ -985,13 +766,38 @@ HijackFaultingThread(
         ts64.__rflags &= ~EFL_TF;
     }
 
-    exceptionRecord.ExceptionFlags = EXCEPTION_IS_SIGNAL;
-    exceptionRecord.ExceptionRecord = NULL;
     exceptionRecord.ExceptionAddress = (void *)ts64.__rip;
 
     void **FramePointer = (void **)ts64.__rsp;
+#elif defined(_ARM64_)
+    // Make a copy of the thread state because the one in exceptionInfo needs to be preserved to restore
+    // the state if the exception is forwarded.
+    arm_thread_state64_t ts64 = exceptionInfo.ThreadState;
 
-    *--FramePointer = (void *)ts64.__rip;
+    exceptionRecord.ExceptionAddress = (void *)arm_thread_state64_get_pc_fptr(ts64);
+
+    void **FramePointer = (void **)arm_thread_state64_get_sp(ts64);
+#else
+#error Unexpected architecture
+#endif
+
+    if (fIsStackOverflow)
+    {
+        // Allocate the minimal stack necessary for handling stack overflow
+        int stackOverflowStackSize = 7 * 4096;
+        // Align the size to virtual page size and add one virtual page as a stack guard
+        stackOverflowStackSize = ALIGN_UP(stackOverflowStackSize, VIRTUAL_PAGE_SIZE) + VIRTUAL_PAGE_SIZE;
+        void* stackOverflowHandlerStack = mmap(NULL, stackOverflowStackSize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+
+        if ((stackOverflowHandlerStack == MAP_FAILED) || mprotect((void*)stackOverflowHandlerStack, VIRTUAL_PAGE_SIZE, PROT_NONE) != 0)
+        {
+            // We are out of memory or we've failed to protect the guard page, so resort to just printing a stack overflow message and abort
+            write(STDERR_FILENO, StackOverflowMessage, sizeof(StackOverflowMessage) - 1);
+            abort();
+        }
+
+        FramePointer = (void**)((size_t)stackOverflowHandlerStack + stackOverflowStackSize);
+    }
 
     // Construct a stack frame for a pretend activation of the function
     // PAL_DispatchExceptionWrapper that serves only to make the stack
@@ -999,8 +805,19 @@ HijackFaultingThread(
     // PAL_DispatchExceptionWrapper has an ebp frame, its local variables
     // are the context and exception record, and it has just "called"
     // PAL_DispatchException.
+#if defined(__amd64__)
+    *--FramePointer = (void *)ts64.__rip;
     *--FramePointer = (void *)ts64.__rbp;
+
     ts64.__rbp = (SIZE_T)FramePointer;
+#elif defined(_ARM64_)
+    *--FramePointer = (void *)arm_thread_state64_get_pc_fptr(ts64);
+    *--FramePointer = (void *)arm_thread_state64_get_fp(ts64);
+
+    arm_thread_state64_set_fp(ts64, FramePointer);
+#else
+#error Unexpected architecture
+#endif
 
     // Put the context on the stack
     FramePointer = (void **)((ULONG_PTR)FramePointer - sizeof(CONTEXT));
@@ -1018,6 +835,7 @@ HijackFaultingThread(
     MachExceptionInfo *pMachExceptionInfo = (MachExceptionInfo *)FramePointer;
     *pMachExceptionInfo = exceptionInfo;
 
+#if defined(__amd64__)
     // Push arguments to PAL_DispatchException
     FramePointer = (void **)((ULONG_PTR)FramePointer - 3 * sizeof(void *));
 
@@ -1037,8 +855,25 @@ HijackFaultingThread(
     // Now set the thread state for the faulting thread so that PAL_DispatchException executes next
     machret = thread_set_state(thread, x86_THREAD_STATE64, (thread_state_t)&ts64, x86_THREAD_STATE64_COUNT);
     CHECK_MACH("thread_set_state(thread)", machret);
+#elif defined(_ARM64_)
+    // Setup arguments to PAL_DispatchException
+    ts64.__x[0] = (uint64_t)pContext;
+    ts64.__x[1] = (uint64_t)pExceptionRecord;
+    ts64.__x[2] = (uint64_t)pMachExceptionInfo;
+
+    // Make sure it's aligned - SP has 16-byte alignment
+    FramePointer = (void **)((ULONG_PTR)FramePointer - ((ULONG_PTR)FramePointer % 16));
+    arm_thread_state64_set_sp(ts64, FramePointer);
+
+    // Make the call to DispatchException
+    arm_thread_state64_set_lr_fptr(ts64, (uint64_t)PAL_DispatchExceptionWrapper + PAL_DispatchExceptionReturnOffset);
+    arm_thread_state64_set_pc_fptr(ts64, PAL_DispatchException);
+
+    // Now set the thread state for the faulting thread so that PAL_DispatchException executes next
+    machret = thread_set_state(thread, ARM_THREAD_STATE64, (thread_state_t)&ts64, ARM_THREAD_STATE64_COUNT);
+    CHECK_MACH("thread_set_state(thread)", machret);
 #else
-#error HijackFaultingThread not defined for this architecture
+#error Unexpected architecture
 #endif
 }
 
@@ -1052,10 +887,10 @@ Parameters:
     thread - mach thread port
 
 Return value :
-    None
+    KERN_SUCCESS if the suspend succeeded, other code in case of failure
 --*/
 static
-void
+kern_return_t
 SuspendMachThread(thread_act_t thread)
 {
     kern_return_t machret;
@@ -1063,7 +898,10 @@ SuspendMachThread(thread_act_t thread)
     while (true)
     {
         machret = thread_suspend(thread);
-        CHECK_MACH("thread_suspend", machret);
+        if (machret != KERN_SUCCESS)
+        {
+            break;
+        }
 
         // Ensure that if the thread was running in the kernel, the kernel operation
         // is safely aborted so that it can be restarted later.
@@ -1076,8 +914,13 @@ SuspendMachThread(thread_act_t thread)
         // The thread was running in the kernel executing a non-atomic operation
         // that cannot be restarted, so we need to resume the thread and retry
         machret = thread_resume(thread);
-        CHECK_MACH("thread_resume", machret);
+        if (machret != KERN_SUCCESS)
+        {
+            break;
+        }
     }
+
+    return machret;
 }
 
 /*++
@@ -1086,7 +929,6 @@ Function :
 
     Entry point for the thread that will listen for exception in any other thread.
 
-#ifdef FEATURE_PAL_SXS
     NOTE: This thread is not a PAL thread, and it must not be one.  If it was,
     exceptions on this thread would be delivered to the port this thread itself
     is listening on.
@@ -1102,7 +944,6 @@ Function :
     This means: no printf, no TRACE, no PAL allocation, no ExitProcess,
     no LastError in this function and its helpers.  To report fatal failure,
     use NONPAL_RETAIL_ASSERT.
-#endif // FEATURE_PAL_SXS
 
 Parameters :
     void *args - not used
@@ -1138,7 +979,8 @@ SEHExceptionThread(void *args)
             thread = sMessage.GetThreadContext(&sContext);
 
             // Suspend the target thread
-            SuspendMachThread(thread);
+            machret = SuspendMachThread(thread);
+            CHECK_MACH("SuspendMachThread", machret);
 
             machret = CONTEXT_SetThreadContextOnPort(thread, &sContext);
             CHECK_MACH("CONTEXT_SetThreadContextOnPort", machret);
@@ -1151,6 +993,71 @@ SEHExceptionThread(void *args)
             // This is a notification of an exception occurring on another thread.
             exception_type_t exceptionType = sMessage.GetException();
             thread = sMessage.GetThread();
+
+#ifdef _DEBUG
+            if (NONPAL_TRACE_ENABLED)
+            {
+                NONPAL_TRACE("ExceptionNotification %s (%u) thread %08x flavor %u\n",
+                    GetExceptionString(exceptionType),
+                    exceptionType,
+                    thread,
+                    sMessage.GetThreadStateFlavor());
+
+                int subcode_count = sMessage.GetExceptionCodeCount();
+                for (int i = 0; i < subcode_count; i++)
+                    NONPAL_TRACE("ExceptionNotification subcode[%d] = %llx\n", i, (uint64_t) sMessage.GetExceptionCode(i));
+
+#if defined(__amd64__)
+                x86_thread_state64_t threadStateActual;
+                unsigned int count = sizeof(threadStateActual) / sizeof(unsigned);
+                machret = thread_get_state(thread, x86_THREAD_STATE64, (thread_state_t)&threadStateActual, &count);
+                CHECK_MACH("thread_get_state", machret);
+
+                NONPAL_TRACE("ExceptionNotification actual  rip %016llx rsp %016llx rbp %016llx rax %016llx r15 %016llx eflags %08llx\n",
+                    threadStateActual.__rip,
+                    threadStateActual.__rsp,
+                    threadStateActual.__rbp,
+                    threadStateActual.__rax,
+                    threadStateActual.__r15,
+                    threadStateActual.__rflags);
+
+                x86_exception_state64_t threadExceptionState;
+                unsigned int ehStateCount = sizeof(threadExceptionState) / sizeof(unsigned);
+                machret = thread_get_state(thread, x86_EXCEPTION_STATE64, (thread_state_t)&threadExceptionState, &ehStateCount);
+                CHECK_MACH("thread_get_state", machret);
+
+                NONPAL_TRACE("ExceptionNotification trapno %04x cpu %04x err %08x faultAddr %016llx\n",
+                    threadExceptionState.__trapno,
+                    threadExceptionState.__cpu,
+                    threadExceptionState.__err,
+                    threadExceptionState.__faultvaddr);
+#elif defined(_ARM64_)
+                arm_thread_state64_t threadStateActual;
+                unsigned int count = sizeof(threadStateActual) / sizeof(unsigned);
+                machret = thread_get_state(thread, ARM_THREAD_STATE64, (thread_state_t)&threadStateActual, &count);
+                CHECK_MACH("thread_get_state", machret);
+
+                NONPAL_TRACE("ExceptionNotification actual  lr %p sp %016llx fp %016llx pc %p cpsr %08x\n",
+                    arm_thread_state64_get_lr_fptr(threadStateActual),
+                    arm_thread_state64_get_sp(threadStateActual),
+                    arm_thread_state64_get_fp(threadStateActual),
+                    arm_thread_state64_get_pc_fptr(threadStateActual),
+                    threadStateActual.__cpsr);
+
+                arm_exception_state64_t threadExceptionState;
+                unsigned int ehStateCount = sizeof(threadExceptionState) / sizeof(unsigned);
+                machret = thread_get_state(thread, ARM_EXCEPTION_STATE64, (thread_state_t)&threadExceptionState, &ehStateCount);
+                CHECK_MACH("thread_get_state", machret);
+
+                NONPAL_TRACE("ExceptionNotification far %016llx esr %08x exception %08x\n",
+                    threadExceptionState.__far,
+                    threadExceptionState.__esr,
+                    threadExceptionState.__exception);
+#else
+#error Unexpected architecture
+#endif
+            }
+#endif // _DEBUG
 
             bool feFound = false;
             feList.MoveFirst();
@@ -1181,7 +1088,7 @@ SEHExceptionThread(void *args)
                         // Check if the current exception type matches the forwarded one and whether
                         // there's a handler for the particular exception we've been handed.
                         MachExceptionHandler sHandler;
-                        if (isSameException && pHandlers->GetHandler(exceptionType, false, &sHandler))
+                        if (isSameException && pHandlers->GetHandler(exceptionType, &sHandler))
                         {
                             NONPAL_TRACE("ForwardNotification thread %08x to handler %08x\n", thread, sHandler.m_handler);
                             sReplyOrForward.ForwardNotification(&sHandler, sMessage);
@@ -1216,7 +1123,8 @@ SEHExceptionThread(void *args)
             NONPAL_TRACE("ForwardExceptionRequest for thread %08x\n", thread);
 
             // Suspend the faulting thread.
-            SuspendMachThread(thread);
+            machret = SuspendMachThread(thread);
+            CHECK_MACH("SuspendMachThread", machret);
 
             // Set the context back to the original faulting state.
             MachExceptionInfo *pExceptionInfo = sMessage.GetExceptionInfo();
@@ -1272,6 +1180,7 @@ MachExceptionInfo::MachExceptionInfo(mach_port_t thread, MachMessage& message)
     for (int i = 0; i < SubcodeCount; i++)
         Subcodes[i] = message.GetExceptionCode(i);
 
+#if defined(__amd64__)
     mach_msg_type_number_t count = x86_THREAD_STATE_COUNT;
     machret = thread_get_state(thread, x86_THREAD_STATE, (thread_state_t)&ThreadState, &count);
     CHECK_MACH("thread_get_state", machret);
@@ -1283,6 +1192,21 @@ MachExceptionInfo::MachExceptionInfo(mach_port_t thread, MachMessage& message)
     count = x86_DEBUG_STATE_COUNT;
     machret = thread_get_state(thread, x86_DEBUG_STATE, (thread_state_t)&DebugState, &count);
     CHECK_MACH("thread_get_state(debug)", machret);
+#elif defined(_ARM64_)
+    mach_msg_type_number_t count = ARM_THREAD_STATE64_COUNT;
+    machret = thread_get_state(thread, ARM_THREAD_STATE64, (thread_state_t)&ThreadState, &count);
+    CHECK_MACH("thread_get_state", machret);
+
+    count = ARM_NEON_STATE64_COUNT;
+    machret = thread_get_state(thread, ARM_NEON_STATE64, (thread_state_t)&FloatState, &count);
+    CHECK_MACH("thread_get_state(float)", machret);
+
+    count = ARM_DEBUG_STATE64_COUNT;
+    machret = thread_get_state(thread, ARM_DEBUG_STATE64, (thread_state_t)&DebugState, &count);
+    CHECK_MACH("thread_get_state(debug)", machret);
+#else
+#error Unexpected architecture
+#endif
 }
 
 /*++
@@ -1299,19 +1223,14 @@ Return value :
 --*/
 void MachExceptionInfo::RestoreState(mach_port_t thread)
 {
+#if defined(__amd64__)
     // If we are restarting a breakpoint, we need to bump the IP back one to
     // point at the actual int 3 instructions.
     if (ExceptionType == EXC_BREAKPOINT)
     {
         if (Subcodes[0] == EXC_I386_BPT)
         {
-#ifdef _X86_
-            ThreadState.uts.ts32.eip--;
-#elif defined(_AMD64_)
             ThreadState.uts.ts64.__rip--;
-#else
-#error Platform not supported
-#endif
         }
     }
     kern_return_t machret = thread_set_state(thread, x86_THREAD_STATE, (thread_state_t)&ThreadState, x86_THREAD_STATE_COUNT);
@@ -1322,6 +1241,18 @@ void MachExceptionInfo::RestoreState(mach_port_t thread)
 
     machret = thread_set_state(thread, x86_DEBUG_STATE, (thread_state_t)&DebugState, x86_DEBUG_STATE_COUNT);
     CHECK_MACH("thread_set_state(debug)", machret);
+#elif defined(_ARM64_)
+    kern_return_t machret = thread_set_state(thread, ARM_THREAD_STATE64, (thread_state_t)&ThreadState, ARM_THREAD_STATE64_COUNT);
+    CHECK_MACH("thread_set_state(thread)", machret);
+
+    machret = thread_set_state(thread, ARM_NEON_STATE64, (thread_state_t)&FloatState, ARM_NEON_STATE64_COUNT);
+    CHECK_MACH("thread_set_state(float)", machret);
+
+    machret = thread_set_state(thread, ARM_DEBUG_STATE64, (thread_state_t)&DebugState, ARM_DEBUG_STATE64_COUNT);
+    CHECK_MACH("thread_set_state(debug)", machret);
+#else
+#error Unexpected architecture
+#endif
 }
 
 /*++
@@ -1396,182 +1327,39 @@ SEHInitializeMachExceptions()
         return FALSE;
     }
 
-#ifndef FEATURE_PAL_SXS
-    if (!SEHEnableMachExceptions())
+#ifdef _DEBUG
+    if (NONPAL_TRACE_ENABLED)
     {
-        return FALSE;
-    }
-#endif // !FEATURE_PAL_SXS
+        CThreadMachExceptionHandlers taskHandlers;
+        machret = task_get_exception_ports(mach_task_self(),
+            PAL_EXC_ALL_MASK,
+            taskHandlers.m_masks,
+            &taskHandlers.m_nPorts,
+            taskHandlers.m_handlers,
+            taskHandlers.m_behaviors,
+            taskHandlers.m_flavors);
 
-    // Tell the system to ignore SIGPIPE signals rather than use the default
-    // behavior of terminating the process. Ignoring SIGPIPE will cause
-    // calls that would otherwise raise that signal to return EPIPE instead.
-    // The PAL expects EPIPE from those functions and won't handle a
-    // SIGPIPE signal.
-    signal(SIGPIPE, SIG_IGN);
+        if (machret == KERN_SUCCESS)
+        {
+            NONPAL_TRACE("SEHInitializeMachExceptions: TASK PORT count %d\n", taskHandlers.m_nPorts);
+            for (mach_msg_type_number_t i = 0; i < taskHandlers.m_nPorts; i++)
+            {
+                NONPAL_TRACE("SEHInitializeMachExceptions: TASK PORT mask %08x handler: %08x behavior %08x flavor %u\n",
+                    taskHandlers.m_masks[i],
+                    taskHandlers.m_handlers[i],
+                    taskHandlers.m_behaviors[i],
+                    taskHandlers.m_flavors[i]);
+            }
+        }
+        else
+        {
+            NONPAL_TRACE("SEHInitializeMachExceptions: task_get_exception_ports FAILED %d %s\n", machret, mach_error_string(machret));
+        }
+    }
+#endif // _DEBUG
 
     // We're done
     return TRUE;
-}
-
-/*++
-Function :
-    MachExceptionInitializeDebug
-
-    Initialize the mach exception handlers necessary for a managed debugger
-    to work
-
-Return value :
-    None
---*/
-void MachExceptionInitializeDebug(void)
-{
-    if (s_DebugInitialized == FALSE)
-    {
-#ifndef FEATURE_PAL_SXS
-        kern_return_t MachRet;
-        MachRet = task_set_exception_ports(mach_task_self(),
-                                           PAL_EXC_DEBUGGING_MASK,
-                                           s_ExceptionPort,
-                                           EXCEPTION_DEFAULT,
-                                           MACHINE_THREAD_STATE);
-        if (MachRet != KERN_SUCCESS)
-        {
-            ASSERT("task_set_exception_ports failed: %d\n", MachRet);
-            TerminateProcess(GetCurrentProcess(), (UINT)(-1));
-        }
-#endif // !FEATURE_PAL_SXS
-        s_DebugInitialized = TRUE;
-    }
-}
-
-/*++
-Function :
-    SEHCleanupExceptionPort
-
-    Restore default exception port handler
-
-    (no parameters, no return value)
-
-Note :
-During PAL_Terminate, we reach a point where SEH isn't possible any more
-(handle manager is off, etc). Past that point, we can't avoid crashing on
-an exception.
---*/
-void
-SEHCleanupExceptionPort(void)
-{
-    TRACE("Restoring default exception ports\n");
-#ifndef FEATURE_PAL_SXS
-    SEHDisableMachExceptions();
-#endif // !FEATURE_PAL_SXS
-    s_DebugInitialized = FALSE;
-}
-
-extern "C"
-void
-ActivationHandler(CONTEXT* context)
-{
-    if (g_activationFunction != NULL)
-    {
-        g_activationFunction(context);
-    }
-
-    RtlRestoreContext(context, NULL);
-    DebugBreak();
-}
-
-extern "C" void ActivationHandlerWrapper();
-extern "C" int ActivationHandlerReturnOffset;
-
-/*++
-Function :
-    InjectActivationInternal
-
-    Sets up the specified thread to call the ActivationHandler.
-
-Parameters:
-    pThread - PAL thread instance
-
-Return value :
-    PAL_ERROR
---*/
-PAL_ERROR
-InjectActivationInternal(CPalThread* pThread)
-{
-    PAL_ERROR palError;
-
-    mach_port_t threadPort = pThread->GetMachPortSelf();
-    kern_return_t MachRet = thread_suspend(threadPort);
-    palError = (MachRet == KERN_SUCCESS) ? NO_ERROR : ERROR_GEN_FAILURE;
-
-    if (palError == NO_ERROR)
-    {
-        mach_msg_type_number_t count;
-
-        x86_exception_state64_t ExceptionState;
-        count = x86_EXCEPTION_STATE64_COUNT;
-        MachRet = thread_get_state(threadPort,
-                                   x86_EXCEPTION_STATE64,
-                                   (thread_state_t)&ExceptionState,
-                                   &count);
-        _ASSERT_MSG(MachRet == KERN_SUCCESS, "thread_get_state for x86_EXCEPTION_STATE64\n");
-
-        // Inject the activation only if the thread doesn't have a pending hardware exception
-        static const int MaxHardwareExceptionVector = 31;
-        if (ExceptionState.__trapno > MaxHardwareExceptionVector)
-        {
-            x86_thread_state64_t ThreadState;
-            count = x86_THREAD_STATE64_COUNT;
-            MachRet = thread_get_state(threadPort,
-                                       x86_THREAD_STATE64,
-                                       (thread_state_t)&ThreadState,
-                                       &count);
-            _ASSERT_MSG(MachRet == KERN_SUCCESS, "thread_get_state for x86_THREAD_STATE64\n");
-
-            if ((g_safeActivationCheckFunction != NULL) && g_safeActivationCheckFunction(ThreadState.__rip, /* checkingCurrentThread */ FALSE))
-            {
-                // TODO: it would be nice to preserve the red zone in case a jitter would want to use it
-                // Do we really care about unwinding through the wrapper?
-                size_t* sp = (size_t*)ThreadState.__rsp;
-                *(--sp) = ThreadState.__rip;
-                *(--sp) = ThreadState.__rbp;
-                size_t rbpAddress = (size_t)sp;
-                size_t contextAddress = (((size_t)sp) - sizeof(CONTEXT)) & ~15;
-                size_t returnAddressAddress = contextAddress - sizeof(size_t);
-                *(size_t*)(returnAddressAddress) =  ActivationHandlerReturnOffset + (size_t)ActivationHandlerWrapper;
-
-                // Fill in the context in the helper frame with the full context of the suspended thread.
-                // The ActivationHandler will use the context to resume the execution of the thread
-                // after the activation function returns.
-                CONTEXT *pContext = (CONTEXT *)contextAddress;
-                pContext->ContextFlags = CONTEXT_FULL | CONTEXT_SEGMENTS;
-                MachRet = CONTEXT_GetThreadContextFromPort(threadPort, pContext);
-                _ASSERT_MSG(MachRet == KERN_SUCCESS, "CONTEXT_GetThreadContextFromPort\n");
-
-                // Make the instruction register point to ActivationHandler
-                ThreadState.__rip = (size_t)ActivationHandler;
-                ThreadState.__rsp = returnAddressAddress;
-                ThreadState.__rbp = rbpAddress;
-                ThreadState.__rdi = contextAddress;
-
-                MachRet = thread_set_state(threadPort,
-                                           x86_THREAD_STATE64,
-                                           (thread_state_t)&ThreadState,
-                                           count);
-                _ASSERT_MSG(MachRet == KERN_SUCCESS, "thread_set_state\n");
-            }
-        }
-
-        MachRet = thread_resume(threadPort);
-        palError = (MachRet == ERROR_SUCCESS) ? NO_ERROR : ERROR_GEN_FAILURE;
-    }
-    else
-    {
-        printf("Suspension failed with error 0x%x\n", palError);
-    }
-
-    return palError;
 }
 
 #endif // HAVE_MACH_EXCEPTIONS

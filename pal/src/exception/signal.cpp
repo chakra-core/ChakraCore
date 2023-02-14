@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -26,7 +29,7 @@ Abstract:
 #include "pal/threadsusp.hpp"
 
 #include "pal/palinternal.h"
-#if !HAVE_MACH_EXCEPTIONS
+
 #include "pal/dbgmsg.h"
 #include "pal/init.h"
 #include "pal/process.h"
@@ -45,7 +48,11 @@ using namespace CorUnix;
 
 SET_DEFAULT_DEBUG_CHANNEL(EXCEPT);
 
+#ifdef SIGRTMIN
 #define INJECT_ACTIVATION_SIGNAL SIGRTMIN
+#else
+#define INJECT_ACTIVATION_SIGNAL SIGUSR1
+#endif
 
 /* local type definitions *****************************************************/
 
@@ -56,6 +63,8 @@ SET_DEFAULT_DEBUG_CHANNEL(EXCEPT);
 typedef void *siginfo_t;
 #endif  /* !HAVE_SIGINFO_T */
 typedef void (*SIGFUNC)(int, siginfo_t *, void *);
+
+#if !HAVE_MACH_EXCEPTIONS
 
 /* internal function declarations *********************************************/
 
@@ -443,32 +452,6 @@ static void inject_activation_handler(int code, siginfo_t *siginfo, void *contex
             CONTEXTToNativeContext(&winContext, ucontext);
         }
     }
-}
-
-/*++
-Function :
-    InjectActivationInternal
-
-    Interrupt the specified thread and have it call the activationFunction passed in
-
-Parameters :
-    pThread            - target PAL thread
-    activationFunction - function to call
-
-(no return value)
---*/
-PAL_ERROR InjectActivationInternal(CorUnix::CPalThread* pThread)
-{
-    int status = pthread_kill(pThread->GetPThreadSelf(), INJECT_ACTIVATION_SIGNAL);
-    if (status != 0)
-    {
-        // Failure to send the signal is fatal. There are only two cases when sending
-        // the signal can fail. First, if the signal ID is invalid and second,
-        // if the thread doesn't exist anymore.
-        abort();
-    }
-
-    return NO_ERROR;
 }
 
 /*++
