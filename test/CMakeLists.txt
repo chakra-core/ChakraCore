@@ -1,3 +1,5 @@
+find_package (Python COMPONENTS Interpreter)
+
 if (CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
     set(TEST_BUILD_TYPE --test)
 elseif (CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -31,13 +33,13 @@ if (CMAKE_BUILD_TYPE STREQUAL Release)
     add_dependencies(check smoke-check)
 else()
     add_custom_target(bytecode-check
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/regenByteCode.py ${VARIANT} --verify --binary=${CMAKE_BINARY_DIR}/ch
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/regenByteCode.py ${VARIANT} --verify --binary=${CMAKE_BINARY_DIR}/ch
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         USES_TERMINAL
         DEPENDS ch
         )
     add_custom_target(regression-check
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/runtests.py ${TEST_BUILD_TYPE} ${TEST_ICU} ${TEST_VARIANT} --binary=${CMAKE_BINARY_DIR}/ch
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/runtests.py ${TEST_BUILD_TYPE} ${TEST_ICU} ${TEST_VARIANT} --binary=${CMAKE_BINARY_DIR}/ch
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         USES_TERMINAL
         DEPENDS ch
