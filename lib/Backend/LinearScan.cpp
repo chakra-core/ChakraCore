@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -4948,6 +4948,8 @@ LinearScan::GeneratorBailIn::GeneratorBailIn(Func* func, LinearScan* linearScan)
     RegRAX, RegRCX
 #elif defined(_M_IX86)
     RegEAX, RegECX
+#elif defined(_M_ARM64)
+    RegR0, RegR1
 #endif
     },
     interpreterFrameRegOpnd { IR::RegOpnd::New(nullptr, regs[0], TyMachPtr, func) },
