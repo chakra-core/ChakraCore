@@ -1,5 +1,59 @@
+if(CC_TARGETS_AMD64)
+    set (CC_BACKEND_ARCH_FOLDER amd64)
+    set (CC_BACKEND_ARCH_FILES
+        amd64/EncoderMD.cpp
+        amd64/LinearScanMD.cpp
+        amd64/LowererMDArch.cpp
+        amd64/PeepsMD.cpp
+        amd64/PrologEncoderMD.cpp
+        amd64/LinearScanMdA.S
+        amd64/Thunks.S
+        AgenPeeps.cpp
+        EhFrame.cpp
+        LowerMDShared.cpp
+        LowerMDSharedSimd128.cpp
+        PrologEncoder.cpp
+    )
+elseif(CC_TARGETS_X86)
+    set (CC_BACKEND_ARCH_FOLDER i386)
+    set (CC_BACKEND_ARCH_FILES
+        i386/EncoderMD.cpp
+        i386/LinearScanMD.cpp
+        i386/LowererMDArch.cpp
+        i386/PeepsMD.cpp
+        AgenPeeps.cpp
+        LowerMDShared.cpp
+        LowerMDSharedSimd128.cpp
+    )
+elseif(CC_TARGETS_ARM64)
+    set (CC_BACKEND_ARCH_FOLDER arm64)
+    set (CC_BACKEND_ARCH_FILES
+        arm64/ARM64LogicalImmediates.cpp
+        arm64/ARM64UnwindEncoder.cpp
+        arm64/EncoderMD.cpp
+        arm64/LegalizeMD.cpp
+        arm64/LinearScanMD.cpp
+        arm64/LinearScanMdA.S
+        arm64/LowerMD.cpp
+        arm64/PeepsMD.cpp
+        arm64/Thunks.S
+        arm64/UnwindInfoManager.cpp
+    )
+elseif(CC_TARGETS_ARM)
+    set (CC_BACKEND_ARCH_FOLDER arm)
+    set (CC_BACKEND_ARCH_FILES
+        arm/EncoderMD.cpp
+        arm/LegalizeMD.cpp
+        arm/LinearScanMD.cpp
+        arm/LinearScanMdA.asm
+        arm/LowerMD.cpp
+        arm/PeepsMD.cpp
+        arm/Thunks.asm
+        arm/UnwindInfoManager.cpp
+    )
+endif()
+
 add_library (Chakra.Backend OBJECT
-    AgenPeeps.cpp
     AsmJsJITInfo.cpp
     Backend.cpp
     BackendApi.cpp
@@ -12,7 +66,6 @@ add_library (Chakra.Backend OBJECT
     CodeGenWorkItem.cpp
     DbCheckPostLower.cpp
     Debug.cpp
-    EhFrame.cpp
     EmitBuffer.cpp
     Encoder.cpp
     EquivalentTypeSet.cpp
@@ -57,8 +110,6 @@ add_library (Chakra.Backend OBJECT
     JnHelperMethod.cpp
     LinearScan.cpp
     Lower.cpp
-    LowerMDShared.cpp
-    LowerMDSharedSimd128.cpp
     NativeCodeData.cpp
     NativeCodeGenerator.cpp
     NativeEntryPointData.cpp
@@ -68,7 +119,6 @@ add_library (Chakra.Backend OBJECT
     PageAllocatorPool.cpp
     Peeps.cpp
     PreLowerPeeps.cpp
-    PrologEncoder.cpp
     QueuedFullJitWorkItem.cpp
     Region.cpp
     SccLiveness.cpp
@@ -83,30 +133,12 @@ add_library (Chakra.Backend OBJECT
     TempTracker.cpp
     ValueInfo.cpp
     ValueRelativeOffset.cpp
-    amd64/EncoderMD.cpp
-    amd64/LinearScanMD.cpp
-    amd64/LowererMDArch.cpp
-    amd64/PeepsMD.cpp
-    amd64/PrologEncoderMD.cpp
-    amd64/LinearScanMdA.S
-    amd64/Thunks.S
-#    arm64/EncoderMD.cpp
-#    arm64/LowerMD.cpp
-#    arm/EncoderMD.cpp
-#    arm/LegalizeMD.cpp
-#    arm/LinearScanMD.cpp
-#    arm/LowerMD.cpp
-#    arm/PeepsMD.cpp
-#    arm/UnwindInfoManager.cpp
-#    i386/EncoderMD.cpp
-#    i386/LinearScanMD.cpp
-#    i386/LowererMDArch.cpp
-#    i386/PeepsMD.cpp
+    ${CC_BACKEND_ARCH_FILES}
     )
 
 target_include_directories (
     Chakra.Backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-    amd64
+    ${CC_BACKEND_ARCH_FOLDER}
     ../Common
     ../JITIDL
     ../Runtime
