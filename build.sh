@@ -1,7 +1,7 @@
 #!/bin/bash
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -122,7 +122,7 @@ WB_CHECK=
 WB_ANALYZE=
 WB_ARGS=
 TARGET_PATH=0
-VALGRIND=0
+VALGRIND=""
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON useful for clang-query tool
 CMAKE_EXPORT_COMPILE_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 LIBS_ONLY_BUILD=
@@ -620,6 +620,9 @@ if [[ $ARCH =~ "x86" ]]; then
 elif [[ $ARCH =~ "arm" ]]; then
     ARCH="-DCC_TARGETS_ARM_SH=1"
     echo "Compile Target : arm"
+elif [[ $ARCH =~ "arm64" ]]; then
+    ARCH="-DCC_TARGETS_ARM64_SH=1"
+    echo "Compile Target : arm64"
 elif [[ $ARCH =~ "amd64" ]]; then
     ARCH="-DCC_TARGETS_AMD64_SH=1"
     echo "Compile Target : amd64"

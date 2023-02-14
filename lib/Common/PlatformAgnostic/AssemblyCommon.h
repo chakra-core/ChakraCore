@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -24,6 +25,9 @@ void mac_fde_wrapper(const char *dataStart, mac_fde_reg_op reg_op);
 #define __REGISTER_FRAME(addr) __register_frame(addr)
 #define __DEREGISTER_FRAME(addr) __deregister_frame(addr)
 #endif // __APPLE__
+#elif defined(_M_ARM64) // _AMD64_ && !DISABLE_JIT
+#define __REGISTER_FRAME(addr) __register_frame(addr)
+#define __DEREGISTER_FRAME(addr) __deregister_frame(addr)
 #else
 #define __REGISTER_FRAME(addr)
 #define __DEREGISTER_FRAME(addr)
