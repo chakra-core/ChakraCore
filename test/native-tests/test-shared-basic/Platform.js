@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -14,6 +14,7 @@ if (isStaticBuild) {
     print("# IGNORE_THIS_TEST");
 } else {
     var platform = WScript.Platform.OS;
+    var arch = WScript.Platform.ARCH;
     var binaryPath = WScript.Platform.BINARY_PATH;
     // discard `ch` from path
     binaryPath = binaryPath.substr(0, binaryPath.lastIndexOf(path_sep));
@@ -22,10 +23,15 @@ if (isStaticBuild) {
 \n\
 LIBRARY_PATH=" + binaryPath + "/\n\
 PLATFORM=" + platform + "\n\
+ARCH=" + arch + "\n\
 LDIR=$(LIBRARY_PATH)/libChakraCore" + sharedExtension + " \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\
-\tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\
+\tifeq (ARM64, ${ARCH})\n\
+\t\tICU4C_LIBRARY_PATH ?= /opt/homebrew/opt/icu4c\n\
+\t\else\n\
+\t\tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\
+\tendif\n\
 \tCFLAGS=-lstdc++ -std=c++11 -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,-force_load,\n\
 \tFORCE_ENDS=\n\
