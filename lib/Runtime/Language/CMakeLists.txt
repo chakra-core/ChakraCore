@@ -78,6 +78,12 @@ elseif(CC_TARGETS_X86)
         i386/AsmJsJitTemplate.cpp
         i386/StackFrame.cpp
     )
+elseif(CC_TARGETS_ARM64)
+    set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
+        arm64/StackFrame.cpp
+        arm64/arm64_Thunks.S
+        arm64/arm64_CallEhFrame.S
+    )
 elseif(CC_TARGETS_ARM)
     set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
         arm/StackFrame.cpp

@@ -133,6 +133,12 @@ elseif(CC_TARGETS_ARM)
     set (CRLIB_SOURCE_CODES ${CRLIB_SOURCE_CODES}
         arm/arm_JavascriptFunctionA.S
     )
+elseif(CC_TARGETS_ARM64)
+    set (CRLIB_SOURCE_CODES ${CRLIB_SOURCE_CODES}
+        arm64/arm64_CallFunction.S
+        arm64/arm64_DeferredDeserializeThunk.S
+        arm64/arm64_DeferredParsingThunk.S
+    )
 endif()
 
 add_library (Chakra.Runtime.Library OBJECT ${CRLIB_SOURCE_CODES})
