@@ -18,6 +18,8 @@
     <default>
       <files>toString.js</files>
       <baseline>toString_3.baseline</baseline>
+      <!--TODO Investigate and re-enable this test on ARM64 macOS-->
+      <tags>exclude_mac</tags> 
     </default>
   </test>
   <test>
