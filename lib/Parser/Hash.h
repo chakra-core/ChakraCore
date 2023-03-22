@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -474,7 +475,7 @@ private:
     static const KWD * KwdOfTok(tokens tk)
     { return (unsigned int)tk < tkLimKwd ? g_mptkkwd + tk : nullptr; }
 
-    static __declspec(noreturn) void OutOfMemory();
+    static DECLSPEC_NORETURN void OutOfMemory();
 #if PROFILE_DICTIONARY
     DictionaryStats *stats;
 #endif

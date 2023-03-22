@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -15,20 +16,20 @@ namespace Js {
     class Throw
     {
     public:
-        static void __declspec(noreturn) OutOfMemory();
-        static void __declspec(noreturn) StackOverflow(ScriptContext *scriptContext, PVOID returnAddress);
-        static void __declspec(noreturn) NotImplemented();
-        static void __declspec(noreturn) InternalError();
-        static void __declspec(noreturn) FatalInternalError(HRESULT hr = E_FAIL);
-        static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
-        static void __declspec(noreturn) FatalInternalGlobalizationError();
+        static void DECLSPEC_NORETURN OutOfMemory();
+        static void DECLSPEC_NORETURN StackOverflow(ScriptContext *scriptContext, PVOID returnAddress);
+        static void DECLSPEC_NORETURN NotImplemented();
+        static void DECLSPEC_NORETURN InternalError();
+        static void DECLSPEC_NORETURN FatalInternalError(HRESULT hr = E_FAIL);
+        static void DECLSPEC_NORETURN FatalInternalErrorEx(int scenario);
+        static void DECLSPEC_NORETURN FatalInternalGlobalizationError();
 
-        static void __declspec(noreturn) FatalProjectionError();
+        static void DECLSPEC_NORETURN FatalProjectionError();
 #if ENABLE_JS_REENTRANCY_CHECK
-        static void __declspec(noreturn) FatalJsReentrancyError();
+        static void DECLSPEC_NORETURN FatalJsReentrancyError();
 #endif
 #ifdef ENABLE_JS_BUILTINS
-        static void __declspec(noreturn) FatalJsBuiltInError();
+        static void DECLSPEC_NORETURN FatalJsBuiltInError();
 #endif
 
 #if !defined(_M_IX86) && defined(_WIN32)

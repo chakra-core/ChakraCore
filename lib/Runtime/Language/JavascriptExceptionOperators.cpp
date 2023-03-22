@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
@@ -996,7 +997,7 @@ namespace Js
     }
 #endif
 
-    void __declspec(noreturn) JavascriptExceptionOperators::OP_Throw(Var object, ScriptContext* scriptContext)
+    void DECLSPEC_NORETURN JavascriptExceptionOperators::OP_Throw(Var object, ScriptContext* scriptContext)
     {
         Throw(object, scriptContext);
     }

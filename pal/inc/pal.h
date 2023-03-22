@@ -49,10 +49,6 @@ Abstract:
 #include <ctype.h>
 #endif
 
-#if !defined(static_assert)
-#define static_assert _Static_assert
-#endif
-
 #if defined(__APPLE__)
 #ifndef __IOS__
 #include "TargetConditionals.h"
@@ -216,7 +212,12 @@ extern "C" {
 /******************* Compiler-specific glue *******************************/
 
 #define FEATURE_PAL_SXS 1
+#if defined(_MSC_VER)
 #define DECLSPEC_ALIGN(x)   __declspec(align(x))
+#else
+#define DECLSPEC_ALIGN(x)   __attribute__ ((aligned(x)))
+#endif
+
 #define DECLSPEC_NORETURN   PAL_NORETURN
 #define __assume(x) (void)0
 #define __annotation(x)
@@ -2492,13 +2493,10 @@ typedef struct _CONTEXT {
 #define CONTEXT_EXCEPTION_REQUEST 0x40000000
 #define CONTEXT_EXCEPTION_REPORTING 0x80000000
 
-typedef struct _M128U {
+typedef struct DECLSPEC_ALIGN(16) _M128A {
     ULONGLONG Low;
     LONGLONG High;
-} M128U, *PM128U;
-
-// Same as _M128U but aligned to a 16-byte boundary
-typedef DECLSPEC_ALIGN(16) M128U M128A, *PM128A;
+} M128A, *PM128A;
 
 typedef struct _XMM_SAVE_AREA32 {
     WORD   ControlWord;
@@ -5043,10 +5041,10 @@ typedef EXCEPTION_DISPOSITION (PALAPI *PVECTORED_EXCEPTION_HANDLER)(
 
 // Define BitScanForward64 and BitScanForward
 // Per MSDN, BitScanForward64 will search the mask data from LSB to MSB for a set bit.
-// If one is found, its bit position is returned in the out PDWORD argument and 1 is returned.
-// Otherwise, 0 is returned.
+// If one is found, its bit position is stored in the out PDWORD argument and 1 is returned;
+// otherwise, an undefined value is stored in the out PDWORD argument and 0 is returned.
 //
-// On GCC, the equivalent function is __builtin_ffsl. It returns 1+index of the least
+// On GCC, the equivalent function is __builtin_ffsll. It returns 1+index of the least
 // significant set bit, or 0 if if mask is zero.
 //
 // The same is true for BitScanForward, except that the GCC function is __builtin_ffs.
@@ -5059,18 +5057,12 @@ BitScanForward(
     IN OUT PDWORD Index,
     IN UINT qwMask)
 {
-    unsigned char bRet = FALSE;
-    static_assert(sizeof(qwMask) <= sizeof(int),
-                  "use correct __builtin_ffs??? variant");
     int iIndex = __builtin_ffs(qwMask);
-    if (iIndex != 0)
-    {
-        // Set the Index after deducting unity
-        *Index = (DWORD)(iIndex - 1);
-        bRet = TRUE;
-    }
-
-    return bRet;
+    // Set the Index after deducting unity
+    *Index = (DWORD)(iIndex - 1);
+    // Both GCC and Clang generate better, smaller code if we check whether the
+    // mask was/is zero rather than the equivalent check that iIndex is zero.
+    return qwMask != 0 ? TRUE : FALSE;
 }
 
 EXTERN_C
@@ -5082,21 +5074,25 @@ BitScanForward64(
     IN OUT PDWORD Index,
     IN UINT64 qwMask)
 {
-    unsigned char bRet = FALSE;
-    static_assert(sizeof(qwMask) <= sizeof(long long),
-                  "use correct __builtin_ffs??? variant");
     int iIndex = __builtin_ffsll(qwMask);
-    if (iIndex != 0)
-    {
-        // Set the Index after deducting unity
-        *Index = (DWORD)(iIndex - 1);
-        bRet = TRUE;
-    }
-
-    return bRet;
+    // Set the Index after deducting unity
+    *Index = (DWORD)(iIndex - 1);
+    // Both GCC and Clang generate better, smaller code if we check whether the
+    // mask was/is zero rather than the equivalent check that iIndex is zero.
+    return qwMask != 0 ? TRUE : FALSE;
 }
 
-// xplat-todo: review this implementation
+// Define BitScanReverse64 and BitScanReverse
+// Per MSDN, BitScanReverse64 will search the mask data from MSB to LSB for a set bit.
+// If one is found, its bit position is stored in the out PDWORD argument and 1 is returned.
+// Otherwise, an undefined value is stored in the out PDWORD argument and 0 is returned.
+//
+// GCC/clang don't have a directly equivalent intrinsic; they do provide the __builtin_clzll
+// intrinsic, which returns the number of leading 0-bits in x starting at the most significant
+// bit position (the result is undefined when x = 0).
+//
+// The same is true for BitScanReverse, except that the GCC function is __builtin_clzl.
+
 EXTERN_C
 PALIMPORT
 inline
@@ -5106,20 +5102,19 @@ BitScanReverse(
     IN OUT PDWORD Index,
     IN UINT qwMask)
 {
-    unsigned char bRet = FALSE;
-    if (qwMask != 0)
-    {
-        static_assert(sizeof(qwMask) <= sizeof(unsigned int),
-                      "use correct __builtin_clz??? variant");
-        int countLeadingZero = __builtin_clz(qwMask);
-        *Index = (DWORD)(sizeof(qwMask) * 8 - 1 - countLeadingZero);
-        bRet = TRUE;
-    }
+    // The result of __builtin_clzl is undefined when qwMask is zero,
+    // but it's still OK to call the intrinsic in that case (just don't use the output).
+    // Unconditionally calling the intrinsic in this way allows the compiler to
+    // emit branchless code for this function when possible (depending on how the
+    // intrinsic is implemented for the target platform).
 
-    return bRet;
+    // NOTE: this is different from the dotnet CLR version, where they use __builtin_clzl
+    // instead of __builtin_clz but gets the wrong result for Math::Clz32
+    int lzcount = __builtin_clz(qwMask);
+    *Index = (DWORD)(31 - lzcount);
+    return qwMask != 0;
 }
 
-// xplat-todo: review this implementation
 EXTERN_C
 PALIMPORT
 inline
@@ -5129,17 +5124,32 @@ BitScanReverse64(
     IN OUT PDWORD Index,
     IN UINT64 qwMask)
 {
-    unsigned char bRet = FALSE;
-    if (qwMask != 0)
-    {
-        static_assert(sizeof(qwMask) <= sizeof(unsigned long long),
-                      "use correct __builtin_clz??? variant");
-        int countLeadingZero = __builtin_clzll(qwMask);
-        *Index = (DWORD)(sizeof(qwMask) * 8 - 1 - countLeadingZero);
-        bRet = TRUE;
-    }
+    // The result of __builtin_clzll is undefined when qwMask is zero,
+    // but it's still OK to call the intrinsic in that case (just don't use the output).
+    // Unconditionally calling the intrinsic in this way allows the compiler to
+    // emit branchless code for this function when possible (depending on how the
+    // intrinsic is implemented for the target platform).
+    int lzcount = __builtin_clzll(qwMask);
+    *Index = (DWORD)(63 - lzcount);
+    return qwMask != 0;
+}
 
-    return bRet;
+FORCEINLINE void PAL_ArmInterlockedOperationBarrier()
+{
+#ifdef HOST_ARM64
+    // On arm64, most of the __sync* functions generate a code sequence like:
+    //   loop:
+    //     ldaxr (load acquire exclusive)
+    //     ...
+    //     stlxr (store release exclusive)
+    //     cbnz loop
+    //
+    // It is possible for a load following the code sequence above to be reordered to occur prior to the store above due to the
+    // release barrier, this is substantiated by https://github.com/dotnet/coreclr/pull/17508. Interlocked operations in the PAL
+    // require the load to occur after the store. This memory barrier should be used following a call to a __sync* function to
+    // prevent that reordering. Code generated for arm32 includes a 'dmb' after 'cbnz', so no issue there at the moment.
+    __sync_synchronize();
+#endif // HOST_ARM64
 }
 
 /*++
@@ -5167,9 +5177,11 @@ inline
 LONG
 PALAPI
 InterlockedIncrement(
-    IN OUT LONG volatile *lpAddend)
+    IN OUT LONG volatile* lpAddend)
 {
-    return __sync_add_and_fetch(lpAddend, (LONG)1);
+    LONG result = __sync_add_and_fetch(lpAddend, (LONG)1);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5180,7 +5192,9 @@ PALAPI
 InterlockedIncrement16(
     IN OUT SHORT volatile *lpAddend)
 {
-    return __sync_add_and_fetch(lpAddend, (SHORT)1);
+    SHORT result = __sync_add_and_fetch(lpAddend, (SHORT)1);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5189,9 +5203,11 @@ inline
 LONGLONG
 PALAPI
 InterlockedIncrement64(
-    IN OUT LONGLONG volatile *lpAddend)
+    IN OUT LONGLONG volatile* lpAddend)
 {
-    return __sync_add_and_fetch(lpAddend, (LONGLONG)1);
+    LONGLONG result = __sync_add_and_fetch(lpAddend, (LONGLONG)1);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 /*++
@@ -5219,9 +5235,11 @@ inline
 LONG
 PALAPI
 InterlockedDecrement(
-    IN OUT LONG volatile *lpAddend)
+    IN OUT LONG volatile* lpAddend)
 {
-    return __sync_sub_and_fetch(lpAddend, (LONG)1);
+    LONG result = __sync_sub_and_fetch(lpAddend, (LONG)1);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5230,9 +5248,11 @@ inline
 LONGLONG
 PALAPI
 InterlockedDecrement64(
-    IN OUT LONGLONG volatile *lpAddend)
+    IN OUT LONGLONG volatile* lpAddend)
 {
-    return __sync_sub_and_fetch(lpAddend, (LONGLONG)1);
+    LONGLONG result = __sync_sub_and_fetch(lpAddend, (LONGLONG)1);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 /*++
@@ -5265,7 +5285,9 @@ InterlockedExchange8(
     IN OUT char volatile *Target,
     IN char Value)
 {
-    return __sync_swap(Target, Value);
+    char result = __atomic_exchange_n(Target, Value, __ATOMIC_ACQ_REL);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5277,7 +5299,9 @@ InterlockedExchange16(
     IN OUT short volatile *Target,
     IN short Value)
 {
-    return __sync_swap(Target, Value);
+    short result = __atomic_exchange_n(Target, Value, __ATOMIC_ACQ_REL);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5286,10 +5310,12 @@ inline
 LONG
 PALAPI
 InterlockedExchange(
-    IN OUT LONG volatile *Target,
+    IN OUT LONG volatile* Target,
     IN LONG Value)
 {
-    return __sync_swap(Target, Value);
+    LONG result = __atomic_exchange_n(Target, Value, __ATOMIC_ACQ_REL);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5298,10 +5324,12 @@ inline
 LONGLONG
 PALAPI
 InterlockedExchange64(
-    IN OUT LONGLONG volatile *Target,
+    IN OUT LONGLONG volatile* Target,
     IN LONGLONG Value)
 {
-    return __sync_swap(Target, Value);
+    LONGLONG result = __atomic_exchange_n(Target, Value, __ATOMIC_ACQ_REL);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 /*++
@@ -5337,10 +5365,13 @@ InterlockedCompareExchange8(
     IN char Exchange,
     IN char Comperand)
 {
-    return __sync_val_compare_and_swap(
-        Destination, /* The pointer to a variable whose value is to be compared with. */
-        Comperand, /* The value to be compared */
-        Exchange /* The value to be stored */);
+    char result =
+        __sync_val_compare_and_swap(
+            Destination, /* The pointer to a variable whose value is to be compared with. */
+            Comperand, /* The value to be compared */
+            Exchange /* The value to be stored */);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5353,10 +5384,13 @@ InterlockedCompareExchange16(
     IN short Exchange,
     IN short Comperand)
 {
-    return __sync_val_compare_and_swap(
-        Destination, /* The pointer to a variable whose value is to be compared with. */
-        Comperand, /* The value to be compared */
-        Exchange /* The value to be stored */);
+    short result =
+        __sync_val_compare_and_swap(
+            Destination, /* The pointer to a variable whose value is to be compared with. */
+            Comperand, /* The value to be compared */
+            Exchange /* The value to be stored */);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5365,49 +5399,21 @@ inline
 LONG
 PALAPI
 InterlockedCompareExchange(
-    IN OUT LONG volatile *Destination,
+    IN OUT LONG volatile* Destination,
     IN LONG Exchange,
     IN LONG Comperand)
 {
-    return __sync_val_compare_and_swap(
-        Destination, /* The pointer to a variable whose value is to be compared with. */
-        Comperand, /* The value to be compared */
-        Exchange /* The value to be stored */);
+    LONG result =
+        __sync_val_compare_and_swap(
+            Destination, /* The pointer to a variable whose value is to be compared with. */
+            Comperand, /* The value to be compared */
+            Exchange /* The value to be stored */);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
-EXTERN_C
-PALIMPORT
-inline
-LONG
-PALAPI
-InterlockedCompareExchangeAcquire(
-    IN OUT LONG volatile *Destination,
-    IN LONG Exchange,
-    IN LONG Comperand)
-{
-    // TODO: implement the version with only the acquire semantics
-    return __sync_val_compare_and_swap(
-        Destination, /* The pointer to a variable whose value is to be compared with. */
-        Comperand, /* The value to be compared */
-        Exchange /* The value to be stored */);
-}
-
-EXTERN_C
-PALIMPORT
-inline
-LONG
-PALAPI
-InterlockedCompareExchangeRelease(
-    IN OUT LONG volatile *Destination,
-    IN LONG Exchange,
-    IN LONG Comperand)
-{
-    // TODO: implement the version with only the release semantics
-    return __sync_val_compare_and_swap(
-        Destination, /* The pointer to a variable whose value is to be compared with. */
-        Comperand, /* The value to be compared */
-        Exchange /* The value to be stored */);
-}
+#define InterlockedCompareExchangeAcquire InterlockedCompareExchange
+#define InterlockedCompareExchangeRelease InterlockedCompareExchange
 
 // See the 32-bit variant in interlock2.s
 EXTERN_C
@@ -5416,14 +5422,17 @@ inline
 LONGLONG
 PALAPI
 InterlockedCompareExchange64(
-    IN OUT LONGLONG volatile *Destination,
+    IN OUT LONGLONG volatile* Destination,
     IN LONGLONG Exchange,
     IN LONGLONG Comperand)
 {
-    return __sync_val_compare_and_swap(
-        Destination, /* The pointer to a variable whose value is to be compared with. */
-        Comperand, /* The value to be compared */
-        Exchange /* The value to be stored */);
+    LONGLONG result =
+        __sync_val_compare_and_swap(
+            Destination, /* The pointer to a variable whose value is to be compared with. */
+            Comperand, /* The value to be compared */
+            Exchange /* The value to be stored */);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 /*++
@@ -5452,7 +5461,9 @@ InterlockedExchangeAdd8(
     IN OUT char volatile *Addend,
     IN char Value)
 {
-    return __sync_fetch_and_add(Addend, Value);
+    char result = __sync_fetch_and_add(Addend, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5464,7 +5475,9 @@ InterlockedExchangeAdd16(
     IN OUT short volatile *Addend,
     IN short Value)
 {
-    return __sync_fetch_and_add(Addend, Value);
+    short result = __sync_fetch_and_add(Addend, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5473,10 +5486,12 @@ inline
 LONG
 PALAPI
 InterlockedExchangeAdd(
-    IN OUT LONG volatile *Addend,
+    IN OUT LONG volatile* Addend,
     IN LONG Value)
 {
-    return __sync_fetch_and_add(Addend, Value);
+    LONG result = __sync_fetch_and_add(Addend, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5497,10 +5512,12 @@ inline
 LONGLONG
 PALAPI
 InterlockedExchangeAdd64(
-    IN OUT LONGLONG volatile *Addend,
+    IN OUT LONGLONG volatile* Addend,
     IN LONGLONG Value)
 {
-    return __sync_fetch_and_add(Addend, Value);
+    LONGLONG result = __sync_fetch_and_add(Addend, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5512,7 +5529,9 @@ InterlockedAnd8(
     IN OUT char volatile *Destination,
     IN char Value)
 {
-    return __sync_fetch_and_and(Destination, Value);
+    char result = __sync_fetch_and_and(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5524,7 +5543,9 @@ InterlockedAnd16(
     IN OUT short volatile *Destination,
     IN short Value)
 {
-    return __sync_fetch_and_and(Destination, Value);
+    short result = __sync_fetch_and_and(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5533,10 +5554,12 @@ inline
 LONG
 PALAPI
 InterlockedAnd(
-    IN OUT LONG volatile *Destination,
+    IN OUT LONG volatile* Destination,
     IN LONG Value)
 {
-    return __sync_fetch_and_and(Destination, Value);
+    LONG result = __sync_fetch_and_and(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5548,7 +5571,9 @@ InterlockedAnd64(
     IN OUT LONGLONG volatile *Destination,
     IN LONGLONG Value)
 {
-    return __sync_fetch_and_and(Destination, Value);
+    LONGLONG result = __sync_fetch_and_and(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5560,7 +5585,9 @@ InterlockedOr8(
     IN OUT char volatile *Destination,
     IN char Value)
 {
-    return __sync_fetch_and_or(Destination, Value);
+    char result = __sync_fetch_and_or(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5572,7 +5599,9 @@ InterlockedOr16(
     IN OUT short volatile *Destination,
     IN short Value)
 {
-    return __sync_fetch_and_or(Destination, Value);
+    short result = __sync_fetch_and_or(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5581,10 +5610,12 @@ inline
 LONG
 PALAPI
 InterlockedOr(
-    IN OUT LONG volatile *Destination,
+    IN OUT LONG volatile* Destination,
     IN LONG Value)
 {
-    return __sync_fetch_and_or(Destination, Value);
+    LONG result = __sync_fetch_and_or(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5596,7 +5627,9 @@ InterlockedOr64(
     IN OUT LONGLONG volatile *Destination,
     IN LONGLONG Value)
 {
-    return __sync_fetch_and_or(Destination, Value);
+    LONGLONG result = __sync_fetch_and_or(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5608,7 +5641,9 @@ InterlockedXor8(
     IN OUT char volatile *Destination,
     IN char Value)
 {
-    return __sync_fetch_and_xor(Destination, Value);
+    char result = __sync_fetch_and_xor(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5620,7 +5655,9 @@ InterlockedXor16(
     IN OUT short volatile *Destination,
     IN short Value)
 {
-    return __sync_fetch_and_xor(Destination, Value);
+    short result = __sync_fetch_and_xor(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5632,7 +5669,9 @@ InterlockedXor(
     IN OUT LONG volatile *Destination,
     IN LONG Value)
 {
-    return __sync_fetch_and_xor(Destination, Value);
+    LONG result = __sync_fetch_and_xor(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 EXTERN_C
@@ -5644,7 +5683,9 @@ InterlockedXor64(
     IN OUT LONGLONG volatile *Destination,
     IN LONGLONG Value)
 {
-    return __sync_fetch_and_xor(Destination, Value);
+    LONGLONG result = __sync_fetch_and_xor(Destination, Value);
+    PAL_ArmInterlockedOperationBarrier();
+    return result;
 }
 
 #define BITS_IN_BYTE 8
@@ -6132,7 +6173,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define ungetc        PAL_ungetc
 #define setvbuf       PAL_setvbuf
 #define atol          PAL_atol
-#define memmove       memmove_xplat
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
 #define unlink        PAL_unlink

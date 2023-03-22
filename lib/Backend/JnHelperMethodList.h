@@ -12,10 +12,10 @@
 #endif
 
 #define HELPERCALL_MATH(Name, Address, Attributes) \
-    HELPERCALLCHK(Name##, Address##, Attributes)
+    HELPERCALLCHK(Name, Address, Attributes)
 
 #define HELPERCALL_FULL_OR_INPLACE_MATH(Name, Address, Attributes) \
-    HELPERCALLCHK(Name##, Address##, Attributes) \
+    HELPERCALLCHK(Name, Address, Attributes) \
     HELPERCALLCHK(Name##_Full, Address##_Full, Attributes) \
     HELPERCALLCHK(Name##InPlace, Address##_InPlace, Attributes)
 

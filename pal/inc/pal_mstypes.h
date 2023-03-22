@@ -83,10 +83,19 @@ extern "C" {
 #define __inline        inline
 #endif
 
+#ifndef __forceinline
+#define __forceinline   inline
+#endif
+
 #endif // !_MSC_VER
 
 #define PALIMPORT
-#define PAL_NORETURN    __attribute__((noreturn))
+
+#ifdef _MSC_VER
+#define PAL_NORETURN __declspec(noreturn)
+#else
+#define PAL_NORETURN __attribute__((noreturn))
+#endif
 #define PALAPI      __stdcall
 #define PALAPIV     __cdecl
 

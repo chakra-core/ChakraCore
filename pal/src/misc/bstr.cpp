@@ -25,7 +25,10 @@ Abstract:
 #define SUCCEEDED(Status) ((HRESULT)(Status) >= 0)
 #define FAILED(Status) ((HRESULT)(Status)<0)
 #define STDAPICALLTYPE       __stdcall
-#define NULL    0
+#ifdef NULL
+#undef NULL
+#endif
+#define NULL 0
 #define STDAPI_(type)        EXTERN_C type STDAPICALLTYPE
 
 #include "pal_assert.h"

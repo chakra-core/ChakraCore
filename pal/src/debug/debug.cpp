@@ -93,6 +93,8 @@ static const char PAL_OUTPUTDEBUGSTRING[]    = "PAL_OUTPUTDEBUGSTRING";
 static const char PAL_RUN_ON_DEBUG_BREAK[]   = "PAL_RUN_ON_DEBUG_BREAK";
 #endif // ENABLE_RUN_ON_DEBUG_BREAK
 
+extern "C" {
+
 /* ------------------- Static function prototypes ----------------------------*/
 
 #if !HAVE_VM_READ && !HAVE_PROCFS_CTL && !HAVE_TTRACE
@@ -115,8 +117,6 @@ static int
 DBGSetProcessAttached(CPalThread *pThread, HANDLE hProcess, BOOL bAttach);
 
 #endif // !HAVE_VM_READ && !HAVE_PROCFS_CTL
-
-extern "C" {
 
 /*++
 Function:

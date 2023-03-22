@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -75,13 +76,13 @@ namespace Js
             ~PendingFinallyExceptionStack();
         };
 
-        static void __declspec(noreturn) OP_Throw(Var object, ScriptContext* scriptContext);
-        static void __declspec(noreturn) Throw(Var object, ScriptContext* scriptContext);
-        static void __declspec(noreturn) ThrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false, PVOID returnAddress = NULL, bool resetStack = false);
-        static void __declspec(noreturn) RethrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false);
+        static void DECLSPEC_NORETURN OP_Throw(Var object, ScriptContext* scriptContext);
+        static void DECLSPEC_NORETURN Throw(Var object, ScriptContext* scriptContext);
+        static void DECLSPEC_NORETURN ThrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false, PVOID returnAddress = NULL, bool resetStack = false);
+        static void DECLSPEC_NORETURN RethrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false);
 
-        static void __declspec(noreturn) DoThrow(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
-        static void __declspec(noreturn) DoThrowCheckClone(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+        static void DECLSPEC_NORETURN DoThrow(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+        static void DECLSPEC_NORETURN DoThrowCheckClone(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
 
 #ifdef _M_X64
         static void *OP_TryCatch(void *try_, void *catch_, void *frame, size_t spillSize, size_t argsSize, int hasBailedOutOffset, ScriptContext *scriptContext);
@@ -105,8 +106,8 @@ namespace Js
         static Var OP_RuntimeRangeError(MessageId messageId, ScriptContext* scriptContext);
         static Var OP_RuntimeReferenceError(MessageId messageId, ScriptContext* scriptContext);
         static Var OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext* scriptContext);
-        static void __declspec(noreturn) ThrowOutOfMemory(ScriptContext* scriptContext);
-        static void __declspec(noreturn) ThrowStackOverflow(ScriptContext* scriptContext, PVOID returnAddress);
+        static void DECLSPEC_NORETURN ThrowOutOfMemory(ScriptContext* scriptContext);
+        static void DECLSPEC_NORETURN ThrowStackOverflow(ScriptContext* scriptContext, PVOID returnAddress);
 
         static uint64 GetStackTraceLimit(Var thrownObject, ScriptContext* scriptContext);
         static Var ThrowTypeErrorRestrictedPropertyAccessor(RecyclableObject* function, CallInfo callInfo, ...);

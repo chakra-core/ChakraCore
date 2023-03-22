@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -49,7 +50,7 @@ class Throw
 public:
     static bool ReportAssert(const char* fileName, unsigned int lineNumber, const char* error, const char* message);
     static void LogAssert();
-    static void __declspec(noreturn) FatalInternalError();
+    static void DECLSPEC_NORETURN FatalInternalError();
 };
 }
 

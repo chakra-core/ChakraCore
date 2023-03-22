@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -90,7 +91,7 @@ namespace Wasm
 #endif
 
         template<WasmType... T>
-        __declspec(noreturn) void CompileAssertCases()
+        DECLSPEC_NORETURN void CompileAssertCases()
         {
             CompileAssertMsg(SwitchCaseChecks::bv<T...>::value == AllLocalTypes, "WasmTypes missing in switch-case");
             AssertOrFailFastMsg(UNREACHED, "The WasmType case should have been handled");
