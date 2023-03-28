@@ -328,12 +328,13 @@
     /// <param name="stringValue">The string pointer to convert to a string value.</param>
     /// <param name="stringLength">The length of the string to convert.</param>
     /// <param name="value">The new string value.</param>
+    //<para> if stringlength = 0, a JS Empty string will be returned
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     CHAKRA_API
         JsPointerToString(
-            _In_reads_(stringLength) const wchar_t *stringValue,
+            _In_reads_opt_(stringLength) const wchar_t *stringValue,
             _In_ size_t stringLength,
             _Out_ JsValueRef *value);
 
