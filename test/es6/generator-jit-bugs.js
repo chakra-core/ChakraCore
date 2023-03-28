@@ -152,5 +152,21 @@ check(gf8().next().value.v8, 1.1);
 check(gf8().next().value.v8, 1.1);
 check(gf8().next().value.v8, 1.1);
 
+// Test 9 - Invalid OpHelperBlockReg spill
+title("Inner function access after for...in loop containing yield that is not hit")
+{ // Note this bug only occurred when generator was declared inside an outer scope block
+    let i = 0;
+    function* gf9() {
+        function test() {}
+        for (var unused in []) {
+            yield undefined;
+        }
+        if(++i < 4)
+            gf9().next()
+        test + 1;
+    }
+}
+check(gf9().next().done, true);
+
 
 print("pass");

@@ -366,8 +366,6 @@ private:
         Func* const m_func;
         IRBuilder* const m_irBuilder;
 
-        IR::RegOpnd* m_generatorFrameOpnd = nullptr;
-
     public:
         GeneratorJumpTable(Func* func, IRBuilder* irBuilder);
         IR::Instr* BuildJumpTable();
