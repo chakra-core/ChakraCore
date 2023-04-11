@@ -640,7 +640,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
             Assert(instr->m_opcode == Js::OpCode::CheckFixedFld);
             IR::PropertySymOpnd *propOpnd = src1->AsSymOpnd()->AsPropertySymOpnd();
 
-            if (!propOpnd->IsTypeChecked() && !propOpnd->IsRootObjectNonConfigurableFieldLoad())
+            if ((!propOpnd->IsTypeChecked() && !propOpnd->IsRootObjectNonConfigurableFieldLoad()))
             {
                 // Require m_CachedTypeChecked for 2 reasons:
                 // - We may be relying on this instruction to do a type check for a downstream reference.
@@ -696,9 +696,9 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
         }
     }
 
+    IR::Opnd* src1 = instr->GetSrc1();
     if (needsBailOnImplicitCall)
     {
-        IR::Opnd *src1 = instr->GetSrc1();
         if (src1)
         {
             if (src1->IsRegOpnd())
@@ -789,6 +789,16 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
         cseOpnd->Free(func);
         cseOpnd = IR::AddrOpnd::New(Js::TaggedInt::ToVarUnchecked(intConstantValue), IR::AddrOpndKindConstantVar, instr->m_func);
         cseOpnd->SetValueType(valueInfo->Type());
+    }
+
+    if (src1 && src1->IsSymOpnd() && src1->AsSymOpnd()->IsPropertySymOpnd())
+    {
+        Assert(instr->m_opcode == Js::OpCode::CheckFixedFld);
+        IR::PropertySymOpnd* propOpnd = src1->AsSymOpnd()->AsPropertySymOpnd();
+        if (propOpnd->UsesAuxSlot() && !propOpnd->IsAuxSlotPtrSymAvailable())
+        {
+            block->globOptData.liveFields->Clear(propOpnd->GetAuxSlotPtrSym()->m_id);
+        }
     }
 
     *pSrc1Val = val;
