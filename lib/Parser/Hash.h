@@ -224,6 +224,21 @@ public:
         return prevRef;
     }
 
+    // Since the pidrefstack is not sorted in the function id order. We need to scan it and find out if
+    // any of the reference exist in the nested func.
+    bool HasReferencedInNestedFunction(Js::LocalFunctionId functionId)
+    {
+        PidRefStack *ref;
+        for (ref = m_pidRefStack; ref; ref = ref->prev)
+        {
+            if (ref->GetFuncScopeId() > functionId)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, Js::LocalFunctionId funcId)
     {
         // If the stack is empty, or we are pushing to the innermost scope already,
