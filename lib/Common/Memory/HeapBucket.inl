@@ -12,11 +12,11 @@ HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat, size_t s
 {
     Assert(sizeCat == this->sizeCat);
 
-    char * memBlock = allocatorHead.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
+    char * memBlock = allocatorHead.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, this->sizeCat);
 
     if (memBlock == nullptr)
     {
-        memBlock = SnailAlloc(recycler, &allocatorHead, sizeCat, size, attributes, nothrow);
+        memBlock = SnailAlloc(recycler, &allocatorHead, this->sizeCat, size, attributes, nothrow);
         Assert(memBlock != nullptr || nothrow);
     }
 
@@ -48,7 +48,7 @@ HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat, size_t s
         {
             // Skip the first and the last pointer objects- the first may have next pointer for the free list
             // the last might have the old size of the object if this was allocated from an explicit free list
-            recycler->VerifyZeroFill(memBlock + sizeof(FreeObject), sizeCat - (2 * sizeof(FreeObject)));
+            recycler->VerifyZeroFill(memBlock + sizeof(FreeObject), this->sizeCat - (2 * sizeof(FreeObject)));
         }
     }
 #endif

@@ -46,7 +46,11 @@ template <ObjectInfoBits attributes, bool nothrow>
 inline char *
 LargeHeapBucket::Alloc(Recycler * recycler, size_t sizeCat)
 {
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(!HeapInfo::IsSmallObject(sizeCat) || HeapInfo::GetAlignedSizeNoCheck(sizeCat) == this->sizeCat);
+#else
     Assert(!HeapInfo::IsMediumObject(sizeCat) || HeapInfo::GetMediumObjectAlignedSizeNoCheck(sizeCat) == this->sizeCat);
+#endif
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
     char * memBlock = TryAlloc(recycler, sizeCat, attributes);

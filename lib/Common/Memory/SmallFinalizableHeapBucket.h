@@ -74,14 +74,20 @@ class SmallFinalizableWithBarrierHeapBucketT : public SmallFinalizableHeapBucket
 };
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallFinalizableHeapBucketT<MediumAllocationBlockAttributes> MediumFinalizableHeapBucket;
+#endif
 typedef SmallFinalizableHeapBucketT<SmallAllocationBlockAttributes> SmallFinalizableHeapBucket;
 #ifdef RECYCLER_VISITED_HOST
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallRecyclerVisitedHostHeapBucketT<MediumAllocationBlockAttributes> MediumRecyclerVisitedHostHeapBucket;
+#endif
 typedef SmallRecyclerVisitedHostHeapBucketT<SmallAllocationBlockAttributes> SmallRecyclerVisitedHostHeapBucket;
 #endif
 #ifdef RECYCLER_WRITE_BARRIER
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallFinalizableWithBarrierHeapBucketT<MediumAllocationBlockAttributes> MediumFinalizableWithBarrierHeapBucket;
+#endif
 typedef SmallFinalizableWithBarrierHeapBucketT<SmallAllocationBlockAttributes> SmallFinalizableWithBarrierHeapBucket;
 #endif
 
@@ -375,7 +381,11 @@ public:
         return BucketGetter<objectAttributes>::GetBucket(this);
     }
 
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    void Initialize(HeapInfo * heapInfo, uint sizeCat, ushort objectAlignment);
+#else
     void Initialize(HeapInfo * heapInfo, uint sizeCat);
+#endif
     void ResetMarks(ResetMarkFlags flags);
     void ScanInitialImplicitRoots(Recycler * recycler);
     void ScanNewImplicitRoots(Recycler * recycler);
@@ -438,5 +448,7 @@ private:
 };
 
 extern template class HeapBucketGroup<SmallAllocationBlockAttributes>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 extern template class HeapBucketGroup<MediumAllocationBlockAttributes>;
+#endif
 }

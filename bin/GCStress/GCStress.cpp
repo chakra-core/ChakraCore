@@ -218,21 +218,21 @@ void BuildObjectCreationTable()
     objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<1, 50>::New, 2000);
 #endif
 
-    objectCreationTable.AddWeightedEntry(&LeafObject<51, 1000>::New, 10);
-    objectCreationTable.AddWeightedEntry(&ScannedObject<51, 1000>::New, 100);
-    objectCreationTable.AddWeightedEntry(&BarrierObject<51, 1000>::New, 20);
-    objectCreationTable.AddWeightedEntry(&TrackedObject<51, 1000>::New, 20);
+    objectCreationTable.AddWeightedEntry(&LeafObject<51, 350>::New, 10);
+    objectCreationTable.AddWeightedEntry(&ScannedObject<51, 350>::New, 100);
+    objectCreationTable.AddWeightedEntry(&BarrierObject<51, 350>::New, 20);
+    objectCreationTable.AddWeightedEntry(&TrackedObject<51, 350>::New, 20);
 #ifdef RECYCLER_VISITED_HOST
-    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<51, 1000>::New, 40);
+    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<51, 350>::New, 40);
 #endif
     
-    objectCreationTable.AddWeightedEntry(&LeafObject<1001, 50000>::New, 1);
-    objectCreationTable.AddWeightedEntry(&ScannedObject<1001, 50000>::New, 10);
-    objectCreationTable.AddWeightedEntry(&BarrierObject<1001, 50000>::New, 2);
-    objectCreationTable.AddWeightedEntry(&FinalizedObject<1001, 50000>::New, 2);
-    //objectCreationTable.AddWeightedEntry(&TrackedObject<1001, 50000>::New, 2);    // Large tracked objects are not supported
+    objectCreationTable.AddWeightedEntry(&LeafObject<401, 50000>::New, 1);
+    objectCreationTable.AddWeightedEntry(&ScannedObject<401, 50000>::New, 10);
+    objectCreationTable.AddWeightedEntry(&BarrierObject<401, 50000>::New, 2);
+    objectCreationTable.AddWeightedEntry(&FinalizedObject<401, 50000>::New, 2);
+//    objectCreationTable.AddWeightedEntry(&TrackedObject<401, 50000>::New, 2);    // Large tracked objects are not supported
 #ifdef RECYCLER_VISITED_HOST
-    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<1001, 50000>::New, 2);
+    objectCreationTable.AddWeightedEntry(&RecyclerVisitedObject<401, 50000>::New, 2);
 #endif
 }
 
