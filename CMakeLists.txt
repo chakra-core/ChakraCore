@@ -39,6 +39,12 @@ else(NOT CHAKRACORE_BUILD_SH)
         unset(LIBS_ONLY_BUILD_SH CACHE)
         set(CC_LIBS_ONLY_BUILD 1)
     endif()
+
+    if (CLANG_SANITIZE_SH)
+        set(CLANG_SANITIZE ${CLANG_SANITIZE_SH})
+        unset(CLANG_SANITIZE_SH CACHE)
+    endif()
+
 endif(NOT CHAKRACORE_BUILD_SH)
 
 if(CC_USES_SYSTEM_ARCH_SH OR NOT CHAKRACORE_BUILD_SH)
@@ -573,12 +579,11 @@ endif()
 include_directories(SYSTEM /usr/local/include)
 include(pal/src/configure.cmake)
 
-# this should be after `detect feature` to not to affect feature detection
-# Clang -fsanitize.
-if (CLANG_SANITIZE_SH)
+# Clang sanitizer support, this should be after `detect feature` to not to
+# affect feature detection
+if (CLANG_SANITIZE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
     set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
-    unset(CLANG_SANITIZE_SH CACHE)      # don't cache
 endif()
 
 add_subdirectory (pal)
