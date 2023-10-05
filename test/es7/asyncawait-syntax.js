@@ -1,9 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 // ES6 Async Await tests -- verifies syntax of async/await
+
+// @ts-check
+/// <reference path="..\\UnitTestFramework\\UnitTestFramework.js" />
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
@@ -216,6 +220,17 @@ var tests = [
             assert.throws(function () { eval("async function af() { (b = (c = await => {}) => {}) => {}; }"); }, SyntaxError, "await cannot appear as the formal name of an unparathensized arrow function in a nested case too", "Unexpected token '=>' after 'await'");
         }
     },
+    {
+        name: "Specific error message when using 'await' as a keyword outside 'async' context",
+        body: function () {
+            assert.throws(function () {
+                eval(`await new Promise(() => {});`);
+            }, `'await' expression not allowed in this context`);
+
+            // Don't throw here!
+            await; new Promise(() => { });
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
