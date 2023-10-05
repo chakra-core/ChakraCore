@@ -62,26 +62,26 @@ var tests = [
     {
         name: "Await in eval global scope",
         body: function () {
-            assert.throws(function () { eval("var result = await call();"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
-            assert.throws(function () { eval("await call();"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
+            assert.throws(function () { eval("var result = await call();"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
+            assert.throws(function () { eval("await call();"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
 
-            assert.throws(function () { eval("await a;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
-            assert.throws(function () { eval("await a[0];"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
-            assert.throws(function () { eval("await o.p;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
+            assert.throws(function () { eval("await a;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
+            assert.throws(function () { eval("await a[0];"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
+            assert.throws(function () { eval("await o.p;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
             assert.throws(function () { eval("a[await p];"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ']'");
-            assert.throws(function () { eval("a + await p;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
-            assert.throws(function () { eval("await p + await q;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ';'");
+            assert.throws(function () { eval("a + await p;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
+            assert.throws(function () { eval("await p + await q;"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", `'await' expression not allowed in this context`);
             assert.throws(function () { eval("foo(await p, await q);"); }, SyntaxError, "'await' keyword is not allowed in eval global scope", "Expected ')'");
 
             assert.throws(function () { eval("var lambdaParenNoArg = await () => x < y;"); }, SyntaxError, "'await' keyword is not allowed with a non-async lambda expression", "Syntax error");
-            assert.throws(function () { eval("var lambdaArgs = await async (a, b ,c) => a + b + c;"); }, SyntaxError, "There miss parenthises", "Expected ';'");
+            assert.throws(function () { eval("var lambdaArgs = await async (a, b ,c) => a + b + c;"); }, SyntaxError, "There miss parenthises", `'await' expression not allowed in this context`);
             assert.throws(function () { eval("var lambdaArgs = await (async (a, b ,c) => a + b + c);"); }, ReferenceError, "The 'await' function doesn't exists in this scope", "'await' is not defined");
         }
     },
     {
         name: "Await in a non-async function",
         body: function () {
-            assert.throws(function () { eval("function method() { var x = await call(); }"); }, SyntaxError, "'await' cannot be used in a non-async function.", "Expected ';'");
+            assert.throws(function () { eval("function method() { var x = await call(); }"); }, SyntaxError, "'await' cannot be used in a non-async function.", `'await' expression not allowed in this context`);
         }
     },
     {
@@ -225,10 +225,7 @@ var tests = [
         body: function () {
             assert.throws(function () {
                 eval(`await new Promise(() => {});`);
-            }, `'await' expression not allowed in this context`);
-
-            // Don't throw here!
-            await; new Promise(() => { });
+            }, SyntaxError, "await is not a keyword here", `'await' expression not allowed in this context`);
         }
     }
 ];
