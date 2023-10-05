@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -705,7 +706,8 @@ public:
         }
     };
 
-    tokens GetPrevious() { return m_tkPrevious; }
+    tokens GetPrevious() { return m_tokenPrevious.tk; }
+    Token GetPreviousToken() { return m_tokenPrevious; }
     void Capture(_Out_ RestorePoint* restorePoint);
     void SeekTo(const RestorePoint& restorePoint);
     void SeekToForcingPid(const RestorePoint& restorePoint);
@@ -756,7 +758,7 @@ private:
     Js::ScriptContext* m_scriptContext;
     const Js::CharClassifier *charClassifier;
 
-    tokens m_tkPrevious;
+    Token m_tokenPrevious;
     size_t m_iecpLimTokPrevious;
     charcount_t m_ichLimTokPrevious;
 
