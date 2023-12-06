@@ -1641,4 +1641,9 @@
       <tags>exclude_nonative</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>StackArgumentsOptNegativeIndex.js</files>
+    </default>
+  </test>
 </regress-exe>

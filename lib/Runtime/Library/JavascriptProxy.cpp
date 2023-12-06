@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -677,7 +677,7 @@ namespace Js
             resultDescriptor.SetWritable(true);
             resultDescriptor.SetEnumerable(true);
             resultDescriptor.SetValue(value);
-            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, resultDescriptor, true, requestContext);
+            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, resultDescriptor, true, requestContext, flags);
         }
         else
         {
@@ -698,7 +698,7 @@ namespace Js
 
             proxyPropertyDescriptor.SetValue(value);
             proxyPropertyDescriptor.SetOriginal(nullptr);
-            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, proxyPropertyDescriptor, true, requestContext);
+            return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, proxyPropertyDescriptor, true, requestContext, flags);
         }
     }
 
@@ -827,7 +827,12 @@ namespace Js
         {
             if (flags & PropertyOperation_StrictMode)
             {
-                JavascriptError::ThrowTypeError(requestContext, JSERR_ProxyHandlerReturnedFalse, _u("deleteProperty"));
+                JavascriptError::ThrowTypeErrorVar(
+                    requestContext, 
+                    JSERR_ProxyHandlerReturnedFalse, 
+                    _u("deleteProperty"),
+                    threadContext->GetPropertyName(propertyId)->GetBuffer()
+                );
             }
             return trapResult;
         }
@@ -1695,7 +1700,7 @@ namespace Js
     }
 
 
-    BOOL JavascriptProxy::DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext)
+    BOOL JavascriptProxy::DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext, PropertyOperationFlags flags)
     {
         // #sec-proxy-object-internal-methods-and-internal-slots-defineownproperty-p-desc
         PROBE_STACK(requestContext, Js::Constants::MinStackDefault);
@@ -1735,7 +1740,7 @@ namespace Js
         Assert(!requestContext->IsHeapEnumInProgress());
         if (nullptr == defineOwnPropertyMethod)
         {
-            return JavascriptOperators::DefineOwnPropertyDescriptor(targetObj, propId, descriptor, throwOnError, requestContext);
+            return JavascriptOperators::DefineOwnPropertyDescriptor(targetObj, propId, descriptor, throwOnError, requestContext, flags);
         }
 
         //8. Let descObj be FromPropertyDescriptor(Desc).
@@ -1754,6 +1759,15 @@ namespace Js
         BOOL defineResult = JavascriptConversion::ToBoolean(definePropertyResult, requestContext);
         if (!defineResult)
         {
+            if (throwOnError && flags & PropertyOperation_StrictMode)
+            {
+                JavascriptError::ThrowTypeErrorVar(
+                    requestContext,
+                    JSERR_ProxyHandlerReturnedFalse,
+                    _u("defineProperty"),
+                    requestContext->GetPropertyName(propId)->GetBuffer()
+                );
+            }
             return defineResult;
         }
 
@@ -1847,23 +1861,23 @@ namespace Js
                 uint32 indexVal;
                 BOOL isNumericPropertyId = requestContext->IsNumericPropertyId(propertyId, &indexVal);
                 Assert(isNumericPropertyId);
-                return JavascriptOperators::SetItemOnTaggedNumber(receiver, targetObj, indexVal, newValue, requestContext, PropertyOperationFlags::PropertyOperation_None);
+                return JavascriptOperators::SetItemOnTaggedNumber(receiver, targetObj, indexVal, newValue, requestContext, propertyOperationFlags);
             }
             case SetPropertyTrapKind::SetPropertyOnTaggedNumberKind:
-                return JavascriptOperators::SetPropertyOnTaggedNumber(receiver, targetObj, propertyId, newValue, requestContext, PropertyOperation_None);
+                return JavascriptOperators::SetPropertyOnTaggedNumber(receiver, targetObj, propertyId, newValue, requestContext, propertyOperationFlags);
             case SetPropertyTrapKind::SetPropertyKind:
-                return JavascriptOperators::SetProperty(receiver, targetObj, propertyId, newValue, requestContext);
+                return JavascriptOperators::SetProperty(receiver, targetObj, propertyId, newValue, requestContext, propertyOperationFlags);
             case SetPropertyTrapKind::SetItemKind:
             {
                 uint32 indexVal;
                 BOOL isNumericPropertyId = requestContext->IsNumericPropertyId(propertyId, &indexVal);
                 Assert(isNumericPropertyId);
-                return  JavascriptOperators::SetItem(receiver, targetObj, indexVal, newValue, requestContext, PropertyOperationFlags::PropertyOperation_None, skipPrototypeCheck);
+                return  JavascriptOperators::SetItem(receiver, targetObj, indexVal, newValue, requestContext, propertyOperationFlags, skipPrototypeCheck);
             }
             case SetPropertyTrapKind::SetPropertyWPCacheKind:
             {
                 PropertyValueInfo propertyValueInfo;
-                return JavascriptOperators::SetPropertyWPCache(receiver, targetObj, propertyId, newValue, requestContext, PropertyOperationFlags::PropertyOperation_None, &propertyValueInfo);
+                return JavascriptOperators::SetPropertyWPCache(receiver, targetObj, propertyId, newValue, requestContext, propertyOperationFlags, &propertyValueInfo);
             }
             default:
                 AnalysisAssert(FALSE);
@@ -1886,9 +1900,13 @@ namespace Js
         {
             if (propertyOperationFlags & PropertyOperation_StrictMode)
             {
-                JavascriptError::ThrowTypeError(requestContext, JSERR_ProxyHandlerReturnedFalse, _u("set"));
+                JavascriptError::ThrowTypeErrorVar(
+                    requestContext,
+                    JSERR_ProxyHandlerReturnedFalse,
+                    _u("set"),
+                    requestContext->GetPropertyName(propertyId)->GetBuffer()
+                );
             }
-
             return setResult;
         }
 

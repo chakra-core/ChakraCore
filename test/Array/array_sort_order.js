@@ -1,12 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-// Test our custom qsort_r implementation on xplat.
+// Test our sort implementation.
 function testArray(SORT_FNC, limit, test_id) {
     var THROW = function (pos) {
-        throw new Error("Broken qsort_r!!! (" + pos + ") for test:" + test_id);
+        throw new Error("Broken sort!!! (" + pos + ") for test:" + test_id);
     };
 
     function getArray(is_typed) {

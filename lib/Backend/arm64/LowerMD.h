@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -105,7 +106,7 @@ public:
             template <bool Saturate>
             void            GenerateTruncWithCheck(IR::Instr * instr) { Assert(UNREACHED); }
             void            GenerateFastDivByPow2(IR::Instr *instr);
-            bool            GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel = false);
+            bool            GenerateFastDivAndRem(IR::Instr* instrDiv, IR::LabelInstr* bailOutLabel = nullptr);
             bool            GenerateFastAdd(IR::Instr * instrAdd);
             bool            GenerateFastSub(IR::Instr * instrSub);
             bool            GenerateFastMul(IR::Instr * instrMul);

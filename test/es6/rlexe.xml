@@ -2,6 +2,12 @@
 <regress-exe>
   <test>
     <default>
+      <files>instanceOfProto.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug_issue_2747.js</files>
     </default>
   </test>
@@ -98,12 +104,6 @@
     <default>
       <files>unscopablesWithScopeTest.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>unscopablesWithEsArrayFindFromLastTest.js</files>
-      <compile-flags>-ESArrayFindFromLast -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

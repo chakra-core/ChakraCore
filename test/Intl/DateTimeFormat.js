@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -63,18 +64,22 @@ const tests = [
             test({ day: "2-digit" }, "01");
             test({ day: "numeric" }, "1");
 
-            test({ hour: "2-digit" }, "01 AM");
-            test({ hour: "numeric" }, "1 AM");
+            if(!isICU || WScript.Platform.ICU_VERSION < 72)
+            {
+                test({ hour: "2-digit" }, "01 AM");
+                test({ hour: "numeric" }, "1 AM");
 
-            test({ hour: "numeric", minute: "2-digit" }, "1:01 AM");
-            test({ hour: "numeric", minute: "numeric" }, "1:01 AM");
+                test({ hour: "numeric", minute: "2-digit" }, "1:01 AM");
+                test({ hour: "numeric", minute: "numeric" }, "1:01 AM");
 
-            test({ hour: "numeric", minute: "2-digit", second: "2-digit" }, "1:01:01 AM");
+                test({ hour: "numeric", minute: "2-digit", second: "2-digit" }, "1:01:01 AM");
 
-            // WinGlob doesn't have non-2-digit seconds
-            testPlatformSpecific({ hour: "numeric", minute: "2-digit", second: "numeric" }, "1:01:01 AM", "1:01:1 AM");
+                // WinGlob doesn't have non-2-digit seconds
+                testPlatformSpecific({ hour: "numeric", minute: "2-digit", second: "numeric" }, "1:01:01 AM", "1:01:1 AM");
 
-            test({ hour: "numeric", hour12: true }, "1 AM");
+                test({ hour: "numeric", hour12: true }, "1 AM");
+            }
+
             testPlatformSpecific({ hour: "numeric", hour12: false }, "1:00", "01");
 
             const epochYear = parseInt(ascii(new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: "UTC" }).format(0)), 10);

@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -753,6 +753,34 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(scriptContext, isNonConfigThrow ? JSERR_CantDeleteNonConfigProp : JSERR_CantDeleteExpr, varName);
             }
+            return true;
+        }
+        return false;
+    }
+
+    bool JavascriptError::ThrowIfUndefinedSetter(
+        PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext, PropertyId propertyId)
+    {
+        if (!JavascriptOperators::IsUndefinedAccessor(setterValue, scriptContext))
+            return false;
+
+        bool shouldThrow = scriptContext->GetThreadContext()->RecordImplicitException();
+        if (flags & PropertyOperation_StrictMode)
+        {
+            if (shouldThrow)
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_CantAssignToReadOnly);
+            return true;
+        }
+        else if (flags & PropertyOperation_ThrowIfNotExtensible)
+        {
+            if (shouldThrow)
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotExtensible);
+            return true;
+        }
+        else if (flags & PropertyOperation_ThrowIfNonWritable)
+        {
+            if (shouldThrow)
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotWritable, scriptContext->GetPropertyName(propertyId)->GetBuffer());
             return true;
         }
         return false;

@@ -1,7 +1,23 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
+/*++
+
+Module Name:
+
+    context.c
+
+Abstract:
+
+    Implementation of GetThreadContext/SetThreadContext/DebugBreak.
+    There are a lot of architecture specifics here.
+
+--*/
 
 #include "pal/dbgmsg.h"
 SET_DEFAULT_DEBUG_CHANNEL(THREAD); // some headers have code with asserts, so do this first
@@ -10,27 +26,21 @@ SET_DEFAULT_DEBUG_CHANNEL(THREAD); // some headers have code with asserts, so do
 #include "pal/context.h"
 #include "pal/debug.h"
 #include "pal/thread.hpp"
+#include "pal/utils.h"
+#include "pal/virtual.h"
 
-#include <sys/ptrace.h>
 #include <errno.h>
 #include <unistd.h>
 
-// in context2.S
-extern void CONTEXT_CaptureContext(LPCONTEXT lpContext);
-
+#define CONTEXT_AREA_MASK 0xffff
 #ifdef _X86_
 #define CONTEXT_ALL_FLOATING (CONTEXT_FLOATING_POINT | CONTEXT_EXTENDED_REGISTERS)
-#elif defined(_AMD64_)
-#define CONTEXT_ALL_FLOATING CONTEXT_FLOATING_POINT
-#elif defined(_ARM_)
-#define CONTEXT_ALL_FLOATING CONTEXT_FLOATING_POINT
-#elif defined(_ARM64_)
-#define CONTEXT_ALL_FLOATING CONTEXT_FLOATING_POINT
 #else
-#error Unexpected architecture.
+#define CONTEXT_ALL_FLOATING CONTEXT_FLOATING_POINT
 #endif
 
 #if !HAVE_MACH_EXCEPTIONS
+#include <sys/ptrace.h>
 
 #ifndef __GLIBC__
 typedef int __ptrace_request;
@@ -47,112 +57,267 @@ typedef int __ptrace_request;
 #include <asm/ptrace.h>
 #endif  // HAVE_PT_REGS
 
+#endif // !HAVE_MACH_EXCEPTIONS
+
 #ifdef _AMD64_
 #define ASSIGN_CONTROL_REGS \
-        ASSIGN_REG(Rbp)     \
-        ASSIGN_REG(Rip)     \
-        ASSIGN_REG(SegCs)   \
-        ASSIGN_REG(EFlags)  \
-        ASSIGN_REG(Rsp)     \
+    ASSIGN_REG(Rbp)     \
+    ASSIGN_REG(Rip)     \
+    ASSIGN_REG(SegCs)   \
+    ASSIGN_REG(EFlags)  \
+    ASSIGN_REG(Rsp)     \
 
 #define ASSIGN_INTEGER_REGS \
-        ASSIGN_REG(Rdi)     \
-        ASSIGN_REG(Rsi)     \
-        ASSIGN_REG(Rbx)     \
-        ASSIGN_REG(Rdx)     \
-        ASSIGN_REG(Rcx)     \
-        ASSIGN_REG(Rax)     \
-        ASSIGN_REG(R8)     \
-        ASSIGN_REG(R9)     \
-        ASSIGN_REG(R10)     \
-        ASSIGN_REG(R11)     \
-        ASSIGN_REG(R12)     \
-        ASSIGN_REG(R13)     \
-        ASSIGN_REG(R14)     \
-        ASSIGN_REG(R15)     \
+    ASSIGN_REG(Rdi)     \
+    ASSIGN_REG(Rsi)     \
+    ASSIGN_REG(Rbx)     \
+    ASSIGN_REG(Rdx)     \
+    ASSIGN_REG(Rcx)     \
+    ASSIGN_REG(Rax)     \
+    ASSIGN_REG(R8)     \
+    ASSIGN_REG(R9)     \
+    ASSIGN_REG(R10)     \
+    ASSIGN_REG(R11)     \
+    ASSIGN_REG(R12)     \
+    ASSIGN_REG(R13)     \
+    ASSIGN_REG(R14)     \
+    ASSIGN_REG(R15)     \
 
 #elif defined(_X86_)
 #define ASSIGN_CONTROL_REGS \
-        ASSIGN_REG(Ebp)     \
-        ASSIGN_REG(Eip)     \
-        ASSIGN_REG(SegCs)   \
-        ASSIGN_REG(EFlags)  \
-        ASSIGN_REG(Esp)     \
-        ASSIGN_REG(SegSs)   \
+    ASSIGN_REG(Ebp)     \
+    ASSIGN_REG(Eip)     \
+    ASSIGN_REG(SegCs)   \
+    ASSIGN_REG(EFlags)  \
+    ASSIGN_REG(Esp)     \
+    ASSIGN_REG(SegSs)   \
 
 #define ASSIGN_INTEGER_REGS \
-        ASSIGN_REG(Edi)     \
-        ASSIGN_REG(Esi)     \
-        ASSIGN_REG(Ebx)     \
-        ASSIGN_REG(Edx)     \
-        ASSIGN_REG(Ecx)     \
-        ASSIGN_REG(Eax)     \
+    ASSIGN_REG(Edi)     \
+    ASSIGN_REG(Esi)     \
+    ASSIGN_REG(Ebx)     \
+    ASSIGN_REG(Edx)     \
+    ASSIGN_REG(Ecx)     \
+    ASSIGN_REG(Eax)     \
 
 #elif defined(_ARM_)
 #define ASSIGN_CONTROL_REGS \
-        ASSIGN_REG(Sp)     \
-        ASSIGN_REG(Lr)     \
-        ASSIGN_REG(Pc)     \
-        ASSIGN_REG(Cpsr)   \
+    ASSIGN_REG(Sp)     \
+    ASSIGN_REG(Lr)     \
+    ASSIGN_REG(Pc)   \
+    ASSIGN_REG(Cpsr)  \
 
 #define ASSIGN_INTEGER_REGS \
-        ASSIGN_REG(R0)     \
-        ASSIGN_REG(R1)     \
-        ASSIGN_REG(R2)     \
-        ASSIGN_REG(R3)     \
-        ASSIGN_REG(R4)     \
-        ASSIGN_REG(R5)     \
-        ASSIGN_REG(R6)     \
-        ASSIGN_REG(R7)     \
-        ASSIGN_REG(R8)     \
-        ASSIGN_REG(R9)     \
-        ASSIGN_REG(R10)    \
-        ASSIGN_REG(R11)    \
-        ASSIGN_REG(R12)
+    ASSIGN_REG(R0)     \
+    ASSIGN_REG(R1)     \
+    ASSIGN_REG(R2)     \
+    ASSIGN_REG(R3)     \
+    ASSIGN_REG(R4)     \
+    ASSIGN_REG(R5)     \
+    ASSIGN_REG(R6)     \
+    ASSIGN_REG(R7)     \
+    ASSIGN_REG(R8)     \
+    ASSIGN_REG(R9)     \
+    ASSIGN_REG(R10)     \
+    ASSIGN_REG(R11)     \
+    ASSIGN_REG(R12)
 #elif defined(_ARM64_)
 #define ASSIGN_CONTROL_REGS \
-        ASSIGN_REG(Sp)      \
-        ASSIGN_REG(Lr)      \
-        ASSIGN_REG(Pc)
+    ASSIGN_REG(Cpsr)    \
+    ASSIGN_REG(Fp)      \
+    ASSIGN_REG(Sp)      \
+    ASSIGN_REG(Lr)      \
+    ASSIGN_REG(Pc)
 
 #define ASSIGN_INTEGER_REGS \
-	ASSIGN_REG(X0)      \
-	ASSIGN_REG(X1)      \
-	ASSIGN_REG(X2)      \
-	ASSIGN_REG(X3)      \
-	ASSIGN_REG(X4)      \
-	ASSIGN_REG(X5)      \
-	ASSIGN_REG(X6)      \
-	ASSIGN_REG(X7)      \
-	ASSIGN_REG(X8)      \
-	ASSIGN_REG(X9)      \
-	ASSIGN_REG(X10)     \
-	ASSIGN_REG(X11)     \
-	ASSIGN_REG(X12)     \
-	ASSIGN_REG(X13)     \
-	ASSIGN_REG(X14)     \
-	ASSIGN_REG(X15)     \
-	ASSIGN_REG(X16)     \
-	ASSIGN_REG(X17)     \
-	ASSIGN_REG(X18)     \
-	ASSIGN_REG(X19)     \
-	ASSIGN_REG(X20)     \
-	ASSIGN_REG(X21)     \
-	ASSIGN_REG(X22)     \
-	ASSIGN_REG(X23)     \
-	ASSIGN_REG(X24)     \
-	ASSIGN_REG(X25)     \
-	ASSIGN_REG(X26)     \
-	ASSIGN_REG(X27)     \
-	ASSIGN_REG(X28)
+    ASSIGN_REG(X0)      \
+    ASSIGN_REG(X1)      \
+    ASSIGN_REG(X2)      \
+    ASSIGN_REG(X3)      \
+    ASSIGN_REG(X4)      \
+    ASSIGN_REG(X5)      \
+    ASSIGN_REG(X6)      \
+    ASSIGN_REG(X7)      \
+    ASSIGN_REG(X8)      \
+    ASSIGN_REG(X9)      \
+    ASSIGN_REG(X10)     \
+    ASSIGN_REG(X11)     \
+    ASSIGN_REG(X12)     \
+    ASSIGN_REG(X13)     \
+    ASSIGN_REG(X14)     \
+    ASSIGN_REG(X15)     \
+    ASSIGN_REG(X16)     \
+    ASSIGN_REG(X17)     \
+    ASSIGN_REG(X18)     \
+    ASSIGN_REG(X19)     \
+    ASSIGN_REG(X20)     \
+    ASSIGN_REG(X21)     \
+    ASSIGN_REG(X22)     \
+    ASSIGN_REG(X23)     \
+    ASSIGN_REG(X24)     \
+    ASSIGN_REG(X25)     \
+    ASSIGN_REG(X26)     \
+    ASSIGN_REG(X27)     \
+    ASSIGN_REG(X28)
+
+#elif defined(HOST_LOONGARCH64)
+#define ASSIGN_CONTROL_REGS  \
+    ASSIGN_REG(Fp)      \
+    ASSIGN_REG(Sp)      \
+    ASSIGN_REG(Ra)      \
+    ASSIGN_REG(Pc)
+
+#define ASSIGN_INTEGER_REGS \
+    ASSIGN_REG(R0)     \
+    ASSIGN_REG(Tp)     \
+    ASSIGN_REG(A0)     \
+    ASSIGN_REG(A1)     \
+    ASSIGN_REG(A2)     \
+    ASSIGN_REG(A3)     \
+    ASSIGN_REG(A4)     \
+    ASSIGN_REG(A5)     \
+    ASSIGN_REG(A6)     \
+    ASSIGN_REG(A7)     \
+    ASSIGN_REG(T0)     \
+    ASSIGN_REG(T1)     \
+    ASSIGN_REG(T2)     \
+    ASSIGN_REG(T3)     \
+    ASSIGN_REG(T4)     \
+    ASSIGN_REG(T5)     \
+    ASSIGN_REG(T6)     \
+    ASSIGN_REG(T7)     \
+    ASSIGN_REG(T8)     \
+    ASSIGN_REG(S0)     \
+    ASSIGN_REG(S1)     \
+    ASSIGN_REG(S2)     \
+    ASSIGN_REG(S3)     \
+    ASSIGN_REG(S4)     \
+    ASSIGN_REG(S5)     \
+    ASSIGN_REG(S6)     \
+    ASSIGN_REG(S7)     \
+    ASSIGN_REG(S8)     \
+    ASSIGN_REG(X0)
+
+#elif defined(HOST_RISCV64)
+
+#error "TODO-RISCV64: review this"
+
+// https://github.com/riscv-non-isa/riscv-elf-psabi-doc/blob/2d865a2964fe06bfc569ab00c74e152b582ed764/riscv-cc.adoc
+
+#define ASSIGN_CONTROL_REGS  \
+    ASSIGN_REG(Ra)      \
+    ASSIGN_REG(Sp)      \
+    ASSIGN_REG(Sp)      \
+    ASSIGN_REG(Gp)      \
+    ASSIGN_REG(Tp)      \
+    ASSIGN_REG(Pc)
+
+#define ASSIGN_INTEGER_REGS \
+    ASSIGN_REG(T0)     \
+    ASSIGN_REG(T1)     \
+    ASSIGN_REG(T2)     \
+    ASSIGN_REG(S0)     \
+    ASSIGN_REG(S1)     \
+    ASSIGN_REG(A0)     \
+    ASSIGN_REG(A1)     \
+    ASSIGN_REG(A2)     \
+    ASSIGN_REG(A3)     \
+    ASSIGN_REG(A4)     \
+    ASSIGN_REG(A5)     \
+    ASSIGN_REG(A6)     \
+    ASSIGN_REG(A7)     \
+    ASSIGN_REG(S2)     \
+    ASSIGN_REG(S3)     \
+    ASSIGN_REG(S4)     \
+    ASSIGN_REG(S5)     \
+    ASSIGN_REG(S6)     \
+    ASSIGN_REG(S7)     \
+    ASSIGN_REG(S8)     \
+    ASSIGN_REG(S9)     \
+    ASSIGN_REG(S10)    \
+    ASSIGN_REG(S11)    \
+    ASSIGN_REG(T3)     \
+    ASSIGN_REG(T4)     \
+    ASSIGN_REG(T5)     \
+    ASSIGN_REG(T6)
+
+#elif defined(HOST_S390X)
+#define ASSIGN_CONTROL_REGS \
+    ASSIGN_REG(PSWMask) \
+    ASSIGN_REG(PSWAddr) \
+    ASSIGN_REG(R15)     \
+
+#define ASSIGN_INTEGER_REGS \
+    ASSIGN_REG(R0)      \
+    ASSIGN_REG(R1)      \
+    ASSIGN_REG(R2)      \
+    ASSIGN_REG(R3)      \
+    ASSIGN_REG(R4)      \
+    ASSIGN_REG(R5)      \
+    ASSIGN_REG(R5)      \
+    ASSIGN_REG(R6)      \
+    ASSIGN_REG(R7)      \
+    ASSIGN_REG(R8)      \
+    ASSIGN_REG(R9)      \
+    ASSIGN_REG(R10)     \
+    ASSIGN_REG(R11)     \
+    ASSIGN_REG(R12)     \
+    ASSIGN_REG(R13)     \
+    ASSIGN_REG(R14)
+
+#elif defined(HOST_POWERPC64)
+#define ASSIGN_CONTROL_REGS \
+    ASSIGN_REG(Nip) \
+    ASSIGN_REG(Msr) \
+    ASSIGN_REG(Ctr) \
+    ASSIGN_REG(Link) \
+    ASSIGN_REG(Xer) \
+    ASSIGN_REG(Ccr) \
+    ASSIGN_REG(R31) \
+
+#define ASSIGN_INTEGER_REGS \
+    ASSIGN_REG(R0)      \
+    ASSIGN_REG(R1)      \
+    ASSIGN_REG(R2)      \
+    ASSIGN_REG(R3)      \
+    ASSIGN_REG(R4)      \
+    ASSIGN_REG(R5)      \
+    ASSIGN_REG(R5)      \
+    ASSIGN_REG(R6)      \
+    ASSIGN_REG(R7)      \
+    ASSIGN_REG(R8)      \
+    ASSIGN_REG(R9)      \
+    ASSIGN_REG(R10)     \
+    ASSIGN_REG(R11)     \
+    ASSIGN_REG(R12)     \
+    ASSIGN_REG(R13)     \
+    ASSIGN_REG(R14)     \
+    ASSIGN_REG(R15)     \
+    ASSIGN_REG(R16)     \
+    ASSIGN_REG(R17)     \
+    ASSIGN_REG(R18)     \
+    ASSIGN_REG(R19)     \
+    ASSIGN_REG(R20)     \
+    ASSIGN_REG(R21)     \
+    ASSIGN_REG(R22)     \
+    ASSIGN_REG(R23)     \
+    ASSIGN_REG(R24)     \
+    ASSIGN_REG(R25)     \
+    ASSIGN_REG(R26)     \
+    ASSIGN_REG(R27)     \
+    ASSIGN_REG(R28)     \
+    ASSIGN_REG(R29)     \
+    ASSIGN_REG(R30)
 
 #else
-#error Don't know how to assign registers on this architecture
+#error "Don't know how to assign registers on this architecture"
 #endif
 
 #define ASSIGN_ALL_REGS     \
         ASSIGN_CONTROL_REGS \
         ASSIGN_INTEGER_REGS \
+
+#if !HAVE_MACH_EXCEPTIONS
 
 /*++
 Function:
@@ -183,7 +348,7 @@ BOOL CONTEXT_GetRegisters(DWORD processId, LPCONTEXT lpContext)
         ucontext_t registers;
 #if HAVE_PT_REGS
         struct pt_regs ptrace_registers;
-        if (ptrace((__ptrace_request)PT_GETREGS, processId, (caddr_t) &ptrace_registers, 0) == -1)
+        if (ptrace((__ptrace_request)PTRACE_GETREGS, processId, (caddr_t) &ptrace_registers, 0) == -1)
 #elif HAVE_BSD_REGS_T
         struct reg ptrace_registers;
         if (PAL_PTRACE(PT_GETREGS, processId, &ptrace_registers, 0) == -1)
@@ -240,7 +405,7 @@ CONTEXT_GetThreadContext(
     }
 
     /* How to consider the case when self is different from the current
-       thread of its owner process. Machine registers values could be retreived
+       thread of its owner process. Machine registers values could be retrieved
        by a ptrace(pid, ...) call or from the "/proc/%pid/reg" file content.
        Unfortunately, these two methods only depend on process ID, not on
        thread ID. */
@@ -270,7 +435,7 @@ CONTEXT_GetThreadContext(
     }
 
     if (lpContext->ContextFlags &
-        (CONTEXT_CONTROL | CONTEXT_INTEGER))
+        (CONTEXT_CONTROL | CONTEXT_INTEGER) & CONTEXT_AREA_MASK)
     {
         if (CONTEXT_GetRegisters(dwProcessId, lpContext) == FALSE)
         {
@@ -313,27 +478,26 @@ CONTEXT_SetThreadContext(
     }
 
     /* How to consider the case when self is different from the current
-       thread of its owner process. Machine registers values could be retreived
+       thread of its owner process. Machine registers values could be retrieved
        by a ptrace(pid, ...) call or from the "/proc/%pid/reg" file content.
        Unfortunately, these two methods only depend on process ID, not on
        thread ID. */
 
     if (dwProcessId == GetCurrentProcessId())
     {
-#ifdef FEATURE_PAL_SXS
         // Need to implement SetThreadContext(current thread) for the IX architecture; look at common_signal_handler.
         _ASSERT(FALSE);
-#endif // FEATURE_PAL_SXS
+
         ASSERT("SetThreadContext should be called for cross-process only.\n");
         SetLastError(ERROR_INVALID_PARAMETER);
         goto EXIT;
     }
 
     if (lpContext->ContextFlags  &
-        (CONTEXT_CONTROL | CONTEXT_INTEGER))
+        (CONTEXT_CONTROL | CONTEXT_INTEGER) & CONTEXT_AREA_MASK)
     {
 #if HAVE_PT_REGS
-        if (ptrace((__ptrace_request)PT_GETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
+        if (ptrace((__ptrace_request)PTRACE_GETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
 #elif HAVE_BSD_REGS_T
         if (PAL_PTRACE(PT_GETREGS, dwProcessId, &ptrace_registers, 0) == -1)
 #endif
@@ -353,18 +517,18 @@ CONTEXT_SetThreadContext(
 	ASSERT("Don't know how to set the context of another process on this platform!");
 	return FALSE;
 #endif
-        if (lpContext->ContextFlags & CONTEXT_CONTROL)
+        if (lpContext->ContextFlags & CONTEXT_CONTROL & CONTEXT_AREA_MASK)
         {
             ASSIGN_CONTROL_REGS
         }
-        if (lpContext->ContextFlags & CONTEXT_INTEGER)
+        if (lpContext->ContextFlags & CONTEXT_INTEGER & CONTEXT_AREA_MASK)
         {
             ASSIGN_INTEGER_REGS
         }
 #undef ASSIGN_REG
 
 #if HAVE_PT_REGS
-        if (ptrace((__ptrace_request)PT_SETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
+        if (ptrace((__ptrace_request)PTRACE_SETREGS, dwProcessId, (caddr_t)&ptrace_registers, 0) == -1)
 #elif HAVE_BSD_REGS_T
         if (PAL_PTRACE(PT_SETREGS, dwProcessId, &ptrace_registers, 0) == -1)
 #endif
@@ -409,26 +573,33 @@ void CONTEXTToNativeContext(CONST CONTEXT *lpContext, native_context_t *native)
     }
 #undef ASSIGN_REG
 
-#if HAVE_GREGSET_T || HAVE_GREGSET_T
+#if !HAVE_FPREGS_WITH_CW
+#if (HAVE_GREGSET_T || HAVE___GREGSET_T) && !defined(HOST_S390X) && !defined(HOST_LOONGARCH64) && !defined(HOST_RISCV64) && !defined(HOST_POWERPC64)
 #if HAVE_GREGSET_T
     if (native->uc_mcontext.fpregs == nullptr)
 #elif HAVE___GREGSET_T
     if (native->uc_mcontext.__fpregs == nullptr)
-#endif
+#endif // HAVE_GREGSET_T
     {
         // If the pointer to the floating point state in the native context
         // is not valid, we can't copy floating point registers regardless of
         // whether CONTEXT_FLOATING_POINT is set in the CONTEXT's flags.
         return;
     }
-#endif
+#endif // (HAVE_GREGSET_T || HAVE___GREGSET_T) && !HOST_S390X && !HOST_LOONGARCH64 && !HOST_RISCV64 && !HOST_POWERPC64
+#endif // !HAVE_FPREGS_WITH_CW
 
     if ((lpContext->ContextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT)
     {
 #ifdef _AMD64_
         FPREG_ControlWord(native) = lpContext->FltSave.ControlWord;
         FPREG_StatusWord(native) = lpContext->FltSave.StatusWord;
+#if HAVE_FPREGS_WITH_CW
+        FPREG_TagWord1(native) = lpContext->FltSave.TagWord >> 8;
+        FPREG_TagWord2(native) = lpContext->FltSave.TagWord & 0xff;
+#else
         FPREG_TagWord(native) = lpContext->FltSave.TagWord;
+#endif
         FPREG_ErrorOffset(native) = lpContext->FltSave.ErrorOffset;
         FPREG_ErrorSelector(native) = lpContext->FltSave.ErrorSelector;
         FPREG_DataOffset(native) = lpContext->FltSave.DataOffset;
@@ -445,8 +616,64 @@ void CONTEXTToNativeContext(CONST CONTEXT *lpContext, native_context_t *native)
         {
             FPREG_Xmm(native, i) = lpContext->FltSave.XmmRegisters[i];
         }
+#elif defined(_ARM64_)
+#ifdef __APPLE__
+        _STRUCT_ARM_NEON_STATE64* fp = GetNativeSigSimdContext(native);
+        fp->__fpsr = lpContext->Fpsr;
+        fp->__fpcr = lpContext->Fpcr;
+        for (int i = 0; i < 32; i++)
+        {
+            *(NEON128*) &fp->__v[i] = lpContext->V[i];
+        }
+#else // __APPLE__
+        fpsimd_context* fp = GetNativeSigSimdContext(native);
+        if (fp)
+        {
+            fp->fpsr = lpContext->Fpsr;
+            fp->fpcr = lpContext->Fpcr;
+            for (int i = 0; i < 32; i++)
+            {
+                *(NEON128*) &fp->vregs[i] = lpContext->V[i];
+            }
+        }
+#endif // __APPLE__
+#elif defined(_ARM_)
+        VfpSigFrame* fp = GetNativeSigSimdContext(native);
+        if (fp)
+        {
+            fp->Fpscr = lpContext->Fpscr;
+            for (int i = 0; i < 32; i++)
+            {
+                fp->D[i] = lpContext->D[i];
+            }
+        }
+#elif defined(HOST_S390X)
+        fpregset_t *fp = &native->uc_mcontext.fpregs;
+        static_assert_no_msg(sizeof(fp->fprs) == sizeof(lpContext->Fpr));
+        memcpy(fp->fprs, lpContext->Fpr, sizeof(lpContext->Fpr));
+#elif defined(HOST_LOONGARCH64)
+        native->uc_mcontext.__fcsr = lpContext->Fcsr;
+        for (int i = 0; i < 32; i++)
+        {
+            native->uc_mcontext.__fpregs[i].__val64[0] = lpContext->F[i];
+        }
+#elif defined(HOST_RISCV64)
+        native->uc_mcontext.__fpregs.__d.__fcsr = lpContext->Fcsr;
+        for (int i = 0; i < 64; i++)
+        {
+            native->uc_mcontext.__fpregs.__d.__f[i] = lpContext->F[i];
+        }
 #endif
     }
+
+    // TODO: Enable for all Unix systems
+#if defined(_AMD64_) && defined(XSTATE_SUPPORTED)
+    if ((lpContext->ContextFlags & CONTEXT_XSTATE) == CONTEXT_XSTATE)
+    {
+        _ASSERTE(FPREG_HasYmmRegisters(native));
+        memcpy_s(FPREG_Xstate_Ymmh(native), sizeof(M128A) * 16, lpContext->VectorRegister, sizeof(M128A) * 16);
+    }
+#endif //_AMD64_ && XSTATE_SUPPORTED
 }
 
 /*++
@@ -476,7 +703,7 @@ void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContex
         ASSIGN_CONTROL_REGS
 #ifdef _ARM_
         // WinContext assumes that the least bit of Pc is always 1 (denoting thumb)
-        // although the pc value retrived from native context might not have set the least bit.
+        // although the pc value retrieved from native context might not have set the least bit.
         // This becomes especially problematic if the context is on the JIT_WRITEBARRIER.
         lpContext->Pc |= 0x1;
 #endif
@@ -488,12 +715,42 @@ void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContex
     }
 #undef ASSIGN_REG
 
+#if !HAVE_FPREGS_WITH_CW
+#if (HAVE_GREGSET_T || HAVE___GREGSET_T) && !defined(HOST_S390X) && !defined(HOST_LOONGARCH64) && !defined(HOST_RISCV64) && !defined(HOST_POWERPC64)
+#if HAVE_GREGSET_T
+    if (native->uc_mcontext.fpregs == nullptr)
+#elif HAVE___GREGSET_T
+    if (native->uc_mcontext.__fpregs == nullptr)
+#endif // HAVE_GREGSET_T
+    {
+        // Reset the CONTEXT_FLOATING_POINT bit(s) and the CONTEXT_XSTATE bit(s) so it's
+        // clear that the floating point and extended state data in the CONTEXT is not
+        // valid. Since these flags are defined as the architecture bit(s) OR'd with one
+        // or more other bits, we first get the bits that are unique to each by resetting
+        // the architecture bits. We determine what those are by inverting the union of
+        // CONTEXT_CONTROL and CONTEXT_INTEGER, both of which should also have the
+        // architecture bit(s) set.
+        const ULONG floatingPointFlags = CONTEXT_FLOATING_POINT & ~(CONTEXT_CONTROL & CONTEXT_INTEGER);
+        const ULONG xstateFlags = CONTEXT_XSTATE & ~(CONTEXT_CONTROL & CONTEXT_INTEGER);
+
+        lpContext->ContextFlags &= ~(floatingPointFlags | xstateFlags);
+
+        // Bail out regardless of whether the caller wanted CONTEXT_FLOATING_POINT or CONTEXT_XSTATE
+        return;
+    }
+#endif // (HAVE_GREGSET_T || HAVE___GREGSET_T) && !HOST_S390X && !HOST_LOONGARCH64 && !HOST_RISCV64 && !HOST_POWERPC64 && !HOST_POWERPC64
+#endif // !HAVE_FPREGS_WITH_CW
+
     if ((contextFlags & CONTEXT_FLOATING_POINT) == CONTEXT_FLOATING_POINT)
     {
 #ifdef _AMD64_
         lpContext->FltSave.ControlWord = FPREG_ControlWord(native);
         lpContext->FltSave.StatusWord = FPREG_StatusWord(native);
+#if HAVE_FPREGS_WITH_CW
+        lpContext->FltSave.TagWord = ((DWORD)FPREG_TagWord1(native) << 8) | FPREG_TagWord2(native);
+#else
         lpContext->FltSave.TagWord = FPREG_TagWord(native);
+#endif
         lpContext->FltSave.ErrorOffset = FPREG_ErrorOffset(native);
         lpContext->FltSave.ErrorSelector = FPREG_ErrorSelector(native);
         lpContext->FltSave.DataOffset = FPREG_DataOffset(native);
@@ -510,9 +767,83 @@ void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContex
         {
             lpContext->FltSave.XmmRegisters[i] = FPREG_Xmm(native, i);
         }
+#elif defined(_ARM64_)
+#ifdef __APPLE__
+        const _STRUCT_ARM_NEON_STATE64* fp = GetConstNativeSigSimdContext(native);
+        lpContext->Fpsr = fp->__fpsr;
+        lpContext->Fpcr = fp->__fpcr;
+        for (int i = 0; i < 32; i++)
+        {
+            lpContext->V[i] = *(NEON128*) &fp->__v[i];
+        }
+#else // __APPLE__
+        const fpsimd_context* fp = GetConstNativeSigSimdContext(native);
+        if (fp)
+        {
+            lpContext->Fpsr = fp->fpsr;
+            lpContext->Fpcr = fp->fpcr;
+            for (int i = 0; i < 32; i++)
+            {
+                lpContext->V[i] = *(NEON128*) &fp->vregs[i];
+            }
+        }
+#endif // __APPLE__
+#elif defined(_ARM_)
+        const VfpSigFrame* fp = GetConstNativeSigSimdContext(native);
+        if (fp)
+        {
+            lpContext->Fpscr = fp->Fpscr;
+            for (int i = 0; i < 32; i++)
+            {
+                lpContext->D[i] = fp->D[i];
+            }
+        }
+        else
+        {
+            // Floating point state is not valid
+            // Mark the context correctly
+            lpContext->ContextFlags &= ~(ULONG)CONTEXT_FLOATING_POINT;
+        }
+#elif defined(HOST_S390X)
+        const fpregset_t *fp = &native->uc_mcontext.fpregs;
+        static_assert_no_msg(sizeof(fp->fprs) == sizeof(lpContext->Fpr));
+        memcpy(lpContext->Fpr, fp->fprs, sizeof(lpContext->Fpr));
+#elif defined(HOST_LOONGARCH64)
+        lpContext->Fcsr = native->uc_mcontext.__fcsr;
+        for (int i = 0; i < 32; i++)
+        {
+            lpContext->F[i] = native->uc_mcontext.__fpregs[i].__val64[0];
+        }
+#elif defined(HOST_RISCV64)
+        lpContext->Fcsr = native->uc_mcontext.__fpregs.__d.__fcsr;
+        for (int i = 0; i < 64; i++)
+        {
+            lpContext->F[i] = native->uc_mcontext.__fpregs.__d.__f[i];
+        }
 #endif
     }
+
+#ifdef _AMD64_
+    if ((contextFlags & CONTEXT_XSTATE) == CONTEXT_XSTATE)
+    {
+    // TODO: Enable for all Unix systems
+#if XSTATE_SUPPORTED
+        if (FPREG_HasYmmRegisters(native))
+        {
+            memcpy_s(lpContext->VectorRegister, sizeof(M128A) * 16, FPREG_Xstate_Ymmh(native), sizeof(M128A) * 16);
+        }
+        else
+#endif // XSTATE_SUPPORTED
+        {
+            // Reset the CONTEXT_XSTATE bit(s) so it's clear that the extended state data in
+            // the CONTEXT is not valid.
+            const ULONG xstateFlags = CONTEXT_XSTATE & ~(CONTEXT_CONTROL & CONTEXT_INTEGER);
+            lpContext->ContextFlags &= ~xstateFlags;
+        }
+    }
+#endif // _AMD64_
 }
+
 
 /*++
 Function :
@@ -533,14 +864,43 @@ LPVOID GetNativeContextPC(const native_context_t *context)
     return (LPVOID)MCREG_Rip(context->uc_mcontext);
 #elif defined(_X86_)
     return (LPVOID) MCREG_Eip(context->uc_mcontext);
-#elif defined(_ARM_)
-    return (LPVOID) MCREG_Pc(context->uc_mcontext);
-#elif defined(_ARM64_)
-    return (LPVOID) MCREG_Pc(context->uc_mcontext);
+#elif defined(HOST_S390X)
+    return (LPVOID) MCREG_PSWAddr(context->uc_mcontext);
+#elif defined(HOST_POWERPC64)
+    return (LPVOID) MCREG_Nip(context->uc_mcontext);
 #else
-#   error implement me for this architecture
+    return (LPVOID) MCREG_Pc(context->uc_mcontext);
 #endif
 }
+
+/*++
+Function :
+    GetNativeContextSP
+
+    Returns the stack pointer from the native context.
+
+Parameters :
+    const native_context_t *native : native context
+
+Return value :
+    The stack pointer from the native context.
+
+--*/
+LPVOID GetNativeContextSP(const native_context_t *context)
+{
+#ifdef _AMD64_
+    return (LPVOID)MCREG_Rsp(context->uc_mcontext);
+#elif defined(_X86_)
+    return (LPVOID) MCREG_Esp(context->uc_mcontext);
+#elif defined(HOST_S390X)
+    return (LPVOID) MCREG_R15(context->uc_mcontext);
+#elif defined(HOST_POWERPC64)
+    return (LPVOID) MCREG_R31(context->uc_mcontext);
+#else
+    return (LPVOID) MCREG_Sp(context->uc_mcontext);
+#endif
+}
+
 
 /*++
 Function :
@@ -617,12 +977,6 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
                 case SEGV_MAPERR:   // Address not mapped to object
                 case SEGV_ACCERR:   // Invalid permissions for mapped object
                     return EXCEPTION_ACCESS_VIOLATION;
-#ifdef SI_KERNEL
-                case SI_KERNEL:
-                {
-                    return EXCEPTION_ACCESS_VIOLATION;
-                }
-#endif
                 default:
                     break;
             }
@@ -638,12 +992,10 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
                 default:
                     break;
             }
+            break;
         case SIGTRAP:
             switch (siginfo->si_code)
             {
-#ifdef SI_KERNEL
-                case SI_KERNEL:
-#endif
                 case SI_USER:
                 case TRAP_BRKPT:    // Process breakpoint
                     return EXCEPTION_BREAKPOINT;
@@ -776,14 +1128,16 @@ CONTEXT_GetThreadContextFromPort(
     mach_msg_type_number_t StateCount;
     thread_state_flavor_t StateFlavor;
 
-    if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS))
+#if defined(_AMD64_)
+    if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS) & CONTEXT_AREA_MASK)
     {
-#ifdef _X86_
-        x86_thread_state32_t State;
-        StateFlavor = x86_THREAD_STATE32;
-#elif defined(_AMD64_)
         x86_thread_state64_t State;
         StateFlavor = x86_THREAD_STATE64;
+#elif defined(_ARM64_)
+    if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER) & CONTEXT_AREA_MASK)
+    {
+        arm_thread_state64_t State;
+        StateFlavor = ARM_THREAD_STATE64;
 #else
 #error Unexpected architecture.
 #endif
@@ -798,23 +1152,64 @@ CONTEXT_GetThreadContextFromPort(
         CONTEXT_GetThreadContextFromThreadState(StateFlavor, (thread_state_t)&State, lpContext);
     }
 
-    if (lpContext->ContextFlags & CONTEXT_ALL_FLOATING) {
-#ifdef _X86_
-        x86_float_state32_t State;
-        StateFlavor = x86_FLOAT_STATE32;
-#elif defined(_AMD64_)
-        x86_float_state64_t State;
-        StateFlavor = x86_FLOAT_STATE64;
-#else
-#error Unexpected architecture.
-#endif
-        StateCount = sizeof(State) / sizeof(natural_t);
+    if (lpContext->ContextFlags & CONTEXT_ALL_FLOATING & CONTEXT_AREA_MASK)
+    {
+#if defined(_AMD64_)
+        // The thread_get_state for floating point state can fail for some flavors when the processor is not
+        // in the right mode at the time we are taking the state. So we will try to get the AVX state first and
+        // if it fails, get the FLOAT state and if that fails, take AVX512 state. Both AVX and AVX512 states
+        // are supersets of the FLOAT state.
+        // Check a few fields to make sure the assumption is correct.
+        #ifndef static_assert_no_msg
+        #define static_assert_no_msg(x) static_assert(x, "")
+        #endif
+        static_assert_no_msg(sizeof(x86_avx_state64_t) > sizeof(x86_float_state64_t));
+        static_assert_no_msg(sizeof(x86_avx512_state64_t) > sizeof(x86_avx_state64_t));
+        static_assert_no_msg(offsetof(x86_avx_state64_t, __fpu_fcw) == offsetof(x86_float_state64_t, __fpu_fcw));
+        static_assert_no_msg(offsetof(x86_avx_state64_t, __fpu_xmm0) == offsetof(x86_float_state64_t, __fpu_xmm0));
+        static_assert_no_msg(offsetof(x86_avx512_state64_t, __fpu_fcw) == offsetof(x86_float_state64_t, __fpu_fcw));
+        static_assert_no_msg(offsetof(x86_avx512_state64_t, __fpu_xmm0) == offsetof(x86_float_state64_t, __fpu_xmm0));
+
+        x86_avx512_state64_t State;
+
+        StateFlavor = x86_AVX_STATE64;
+        StateCount = sizeof(x86_avx_state64_t) / sizeof(natural_t);
         MachRet = thread_get_state(Port, StateFlavor, (thread_state_t)&State, &StateCount);
         if (MachRet != KERN_SUCCESS)
         {
-            ASSERT("thread_get_state(FLOAT_STATE) failed: %d\n", MachRet);
-            goto exit;
+            // The AVX state is not available, try to get the AVX512 state.
+            StateFlavor = x86_AVX512_STATE64;
+            StateCount = sizeof(x86_avx512_state64_t) / sizeof(natural_t);
+            MachRet = thread_get_state(Port, StateFlavor, (thread_state_t)&State, &StateCount);
+            if (MachRet != KERN_SUCCESS)
+            {
+                // Neither the AVX nor the AVX512 state is not available, try to get at least the FLOAT state.
+                lpContext->ContextFlags &= ~(CONTEXT_XSTATE & CONTEXT_AREA_MASK);
+
+                StateFlavor = x86_FLOAT_STATE64;
+                StateCount = sizeof(x86_float_state64_t) / sizeof(natural_t);
+                MachRet = thread_get_state(Port, StateFlavor, (thread_state_t)&State, &StateCount);
+                if (MachRet != KERN_SUCCESS)
+                {
+                    // We were unable to get any floating point state. This case was observed on OSX with AVX512 capable processors.
+                    lpContext->ContextFlags &= ~((CONTEXT_XSTATE | CONTEXT_ALL_FLOATING) & CONTEXT_AREA_MASK);
+                }
+            }
         }
+#elif defined(_ARM64_)
+        arm_neon_state64_t State;
+
+        StateFlavor = ARM_NEON_STATE64;
+        StateCount = sizeof(arm_neon_state64_t) / sizeof(natural_t);
+        MachRet = thread_get_state(Port, StateFlavor, (thread_state_t)&State, &StateCount);
+        if (MachRet != KERN_SUCCESS)
+        {
+            // We were unable to get any floating point state.
+            lpContext->ContextFlags &= ~((CONTEXT_ALL_FLOATING) & CONTEXT_AREA_MASK);
+        }
+#else
+#error Unexpected architecture.
+#endif
 
         CONTEXT_GetThreadContextFromThreadState(StateFlavor, (thread_state_t)&State, lpContext);
     }
@@ -822,13 +1217,6 @@ CONTEXT_GetThreadContextFromPort(
 exit:
     return MachRet;
 }
-
-
-#ifdef __DARWIN_UNIX03
-#define PSTATE_WRAP(a,b) a->__##b
-#else
-#define PSTATE_WRAP(a,b) a->b
-#endif
 
 /*++
 Function:
@@ -843,67 +1231,9 @@ CONTEXT_GetThreadContextFromThreadState(
 {
     switch (threadStateFlavor)
     {
-#ifdef _X86_
-        case x86_THREAD_STATE32:
-            if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS))
-            {
-                x86_thread_state32_t *pState = (x86_thread_state32_t *)threadState;
-
-                lpContext->Eax = PSTATE_WRAP(pState, eax);
-                lpContext->Ebx = PSTATE_WRAP(pState, ebx);
-                lpContext->Ecx = PSTATE_WRAP(pState, ecx);
-                lpContext->Edx = PSTATE_WRAP(pState, edx);
-                lpContext->Edi = PSTATE_WRAP(pState, edi);
-                lpContext->Esi = PSTATE_WRAP(pState, esi);
-                lpContext->Ebp = PSTATE_WRAP(pState, ebp);
-                lpContext->Esp = PSTATE_WRAP(pState, esp);
-                lpContext->SegSs = PSTATE_WRAP(pState, ss);
-                lpContext->EFlags = PSTATE_WRAP(pState, eflags);
-                lpContext->Eip = PSTATE_WRAP(pState, eip);
-                lpContext->SegCs = PSTATE_WRAP(pState, cs);
-                lpContext->SegDs_PAL_Undefined = PSTATE_WRAP(pState, ds);
-                lpContext->SegEs_PAL_Undefined = PSTATE_WRAP(pState, es);
-                lpContext->SegFs_PAL_Undefined = PSTATE_WRAP(pState, fs);
-                lpContext->SegGs_PAL_Undefined = PSTATE_WRAP(pState, gs);
-            }
-            break;
-
-        case x86_FLOAT_STATE32:
-        {
-            x86_float_state32_t *pState = (x86_float_state32_t *)threadState;
-
-            if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT)
-            {
-                lpContext->FloatSave.ControlWord = *(DWORD*)&PSTATE_WRAP(pState, fpu_fcw);
-                lpContext->FloatSave.StatusWord = *(DWORD*)&PSTATE_WRAP(pState, fpu_fsw);
-                lpContext->FloatSave.TagWord = PSTATE_WRAP(pState, fpu_ftw);
-                lpContext->FloatSave.ErrorOffset = PSTATE_WRAP(pState, fpu_ip);
-                lpContext->FloatSave.ErrorSelector = PSTATE_WRAP(pState, fpu_cs);
-                lpContext->FloatSave.DataOffset = PSTATE_WRAP(pState, fpu_dp);
-                lpContext->FloatSave.DataSelector = PSTATE_WRAP(pState, fpu_ds);
-                lpContext->FloatSave.Cr0NpxState = PSTATE_WRAP(pState, fpu_mxcsr);
-
-                // Windows stores the floating point registers in a packed layout (each 10-byte register end to end
-                // for a total of 80 bytes). But Mach returns each register in an 16-bit structure (presumably for
-                // alignment purposes). So we can't just memcpy the registers over in a single block, we need to copy
-                // them individually.
-                for (int i = 0; i < 8; i++)
-                    memcpy(&lpContext->FloatSave.RegisterArea[i * 10], (&PSTATE_WRAP(pState, fpu_stmm0))[i].__mmst_reg, 10);
-            }
-
-            if (lpContext->ContextFlags & CONTEXT_EXTENDED_REGISTERS)
-            {
-                // The only extended register information that Mach will tell us about are the xmm register values.
-                // Both Windows and Mach store the registers in a packed layout (each of the 8 registers is 16 bytes)
-                // so we can simply memcpy them across.
-                memcpy(lpContext->ExtendedRegisters + CONTEXT_EXREG_XMM_OFFSET, &PSTATE_WRAP(pState, fpu_xmm0), 8 * 16);
-            }
-        }
-        break;
-
-#elif defined(_AMD64_)
+#if defined (_AMD64_)
         case x86_THREAD_STATE64:
-            if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS))
+            if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS) & CONTEXT_AREA_MASK)
             {
                 x86_thread_state64_t *pState = (x86_thread_state64_t *)threadState;
 
@@ -936,8 +1266,19 @@ CONTEXT_GetThreadContextFromThreadState(
             }
             break;
 
+        case x86_AVX_STATE64:
+        case x86_AVX512_STATE64:
+            if (lpContext->ContextFlags & CONTEXT_XSTATE & CONTEXT_AREA_MASK)
+            {
+                x86_avx_state64_t *pState = (x86_avx_state64_t *)threadState;
+                memcpy(&lpContext->VectorRegister, &pState->__fpu_ymmh0, 16 * 16);
+            }
+
+            // Intentional fall-through, the AVX states are supersets of the FLOAT state
+            // FALLTHROUGH;
+
         case x86_FLOAT_STATE64:
-            if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT)
+            if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT & CONTEXT_AREA_MASK)
             {
                 x86_float_state64_t *pState = (x86_float_state64_t *)threadState;
 
@@ -959,12 +1300,9 @@ CONTEXT_GetThreadContextFromThreadState(
                     memcpy(&lpContext->FltSave.FloatRegisters[i], (&pState->__fpu_stmm0)[i].__mmst_reg, 10);
 
                 // AMD64's FLOATING_POINT includes the xmm registers.
-                memcpy(&lpContext->Xmm0, &pState->__fpu_xmm0, 8 * 16);
+                memcpy(&lpContext->Xmm0, &pState->__fpu_xmm0, 16 * 16);
             }
             break;
-#else
-#error Unexpected architecture.
-#endif
         case x86_THREAD_STATE:
         {
             x86_thread_state_t *pState = (x86_thread_state_t *)threadState;
@@ -978,6 +1316,31 @@ CONTEXT_GetThreadContextFromThreadState(
             CONTEXT_GetThreadContextFromThreadState((thread_state_flavor_t)pState->fsh.flavor, (thread_state_t)&pState->ufs, lpContext);
         }
         break;
+#elif defined(_ARM64_)
+        case ARM_THREAD_STATE64:
+            if (lpContext->ContextFlags & (CONTEXT_CONTROL | CONTEXT_INTEGER) & CONTEXT_AREA_MASK)
+            {
+                arm_thread_state64_t *pState = (arm_thread_state64_t*)threadState;
+                memcpy(&lpContext->X0, &pState->__x[0], 29 * 8);
+                lpContext->Cpsr = pState->__cpsr;
+                lpContext->Fp = arm_thread_state64_get_fp(*pState);
+                lpContext->Sp = arm_thread_state64_get_sp(*pState);
+                lpContext->Lr = (uint64_t)arm_thread_state64_get_lr_fptr(*pState);
+                lpContext->Pc = (uint64_t)arm_thread_state64_get_pc_fptr(*pState);
+            }
+            break;
+        case ARM_NEON_STATE64:
+            if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT & CONTEXT_AREA_MASK)
+            {
+                arm_neon_state64_t *pState = (arm_neon_state64_t*)threadState;
+                memcpy(&lpContext->V[0], &pState->__v, 32 * 16);
+                lpContext->Fpsr = pState->__fpsr;
+                lpContext->Fpcr = pState->__fpcr;
+            }
+            break;
+#else
+#error Unexpected architecture.
+#endif
 
         default:
             ASSERT("Invalid thread state flavor %d\n", threadStateFlavor);
@@ -1048,29 +1411,98 @@ CONTEXT_SetThreadContextOnPort(
     mach_msg_type_number_t StateCount;
     thread_state_flavor_t StateFlavor;
 
-    if (lpContext->ContextFlags & (CONTEXT_CONTROL|CONTEXT_INTEGER))
+    if (lpContext->ContextFlags & CONTEXT_ALL_FLOATING & CONTEXT_AREA_MASK)
     {
-#ifdef _X86_
-        x86_thread_state32_t State;
-        StateFlavor = x86_THREAD_STATE32;
 
-        PSTATE_WRAP((&State), eax) = lpContext->Eax;
-        PSTATE_WRAP((&State), ebx) = lpContext->Ebx;
-        PSTATE_WRAP((&State), ecx) = lpContext->Ecx;
-        PSTATE_WRAP((&State), edx) = lpContext->Edx;
-        PSTATE_WRAP((&State), edi) = lpContext->Edi;
-        PSTATE_WRAP((&State), esi) = lpContext->Esi;
-        PSTATE_WRAP((&State), ebp) = lpContext->Ebp;
-        PSTATE_WRAP((&State), esp) = lpContext->Esp;
-        PSTATE_WRAP((&State), ss) = lpContext->SegSs;
-        PSTATE_WRAP((&State), eflags) = lpContext->EFlags;
-        PSTATE_WRAP((&State), eip) = lpContext->Eip;
-        PSTATE_WRAP((&State), cs) = lpContext->SegCs;
-        PSTATE_WRAP((&State), ds) = lpContext->SegDs_PAL_Undefined;
-        PSTATE_WRAP((&State), es) = lpContext->SegEs_PAL_Undefined;
-        PSTATE_WRAP((&State), fs) = lpContext->SegFs_PAL_Undefined;
-        PSTATE_WRAP((&State), gs) = lpContext->SegGs_PAL_Undefined;
-#elif defined(_AMD64_)
+#ifdef _AMD64_
+#ifdef XSTATE_SUPPORTED
+        // We're relying on the fact that the initial portion of
+        // x86_avx_state64_t is identical to x86_float_state64_t.
+        // Check a few fields to make sure the assumption is correct.
+        static_assert_no_msg(sizeof(x86_avx_state64_t) > sizeof(x86_float_state64_t));
+        static_assert_no_msg(offsetof(x86_avx_state64_t, __fpu_fcw) == offsetof(x86_float_state64_t, __fpu_fcw));
+        static_assert_no_msg(offsetof(x86_avx_state64_t, __fpu_xmm0) == offsetof(x86_float_state64_t, __fpu_xmm0));
+
+        x86_avx_state64_t State;
+        if (lpContext->ContextFlags & CONTEXT_XSTATE & CONTEXT_AREA_MASK)
+        {
+            StateFlavor = x86_AVX_STATE64;
+            StateCount = sizeof(State) / sizeof(natural_t);
+        }
+        else
+        {
+            StateFlavor = x86_FLOAT_STATE64;
+            StateCount = sizeof(x86_float_state64_t) / sizeof(natural_t);
+        }
+#else
+        x86_float_state64_t State;
+        StateFlavor = x86_FLOAT_STATE64;
+        StateCount = sizeof(State) / sizeof(natural_t);
+#endif
+#elif defined(_ARM64_)
+        arm_neon_state64_t State;
+        StateFlavor = ARM_NEON_STATE64;
+        StateCount = sizeof(State) / sizeof(natural_t);
+#else
+#error Unexpected architecture.
+#endif
+
+        if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT & CONTEXT_AREA_MASK)
+        {
+#ifdef _AMD64_
+            *(DWORD*)&State.__fpu_fcw = lpContext->FltSave.ControlWord;
+            *(DWORD*)&State.__fpu_fsw = lpContext->FltSave.StatusWord;
+            State.__fpu_ftw = lpContext->FltSave.TagWord;
+            State.__fpu_ip = lpContext->FltSave.ErrorOffset;
+            State.__fpu_cs = lpContext->FltSave.ErrorSelector;
+            State.__fpu_dp = lpContext->FltSave.DataOffset;
+            State.__fpu_ds = lpContext->FltSave.DataSelector;
+            State.__fpu_mxcsr = lpContext->FltSave.MxCsr;
+            State.__fpu_mxcsrmask = lpContext->FltSave.MxCsr_Mask; // note: we don't save the mask for x86
+
+            // Windows stores the floating point registers in a packed layout (each 10-byte register end to
+            // end for a total of 80 bytes). But Mach returns each register in an 16-bit structure (presumably
+            // for alignment purposes). So we can't just memcpy the registers over in a single block, we need
+            // to copy them individually.
+            for (int i = 0; i < 8; i++)
+                memcpy((&State.__fpu_stmm0)[i].__mmst_reg, &lpContext->FltSave.FloatRegisters[i], 10);
+
+            memcpy(&State.__fpu_xmm0, &lpContext->Xmm0, 16 * 16);
+#elif defined(_ARM64_)
+            memcpy(&State.__v, &lpContext->V[0], 32 * 16);
+            State.__fpsr = lpContext->Fpsr;
+            State.__fpcr = lpContext->Fpcr;
+#else
+#error Unexpected architecture.
+#endif
+        }
+
+#if defined(_AMD64_) && defined(XSTATE_SUPPORTED)
+        if (lpContext->ContextFlags & CONTEXT_XSTATE & CONTEXT_AREA_MASK)
+        {
+            memcpy(&State.__fpu_ymmh0, lpContext->VectorRegister, 16 * 16);
+        }
+#endif
+
+        do
+        {
+            MachRet = thread_set_state(Port,
+                                       StateFlavor,
+                                       (thread_state_t)&State,
+                                       StateCount);
+        }
+        while (MachRet == KERN_ABORTED);
+
+        if (MachRet != KERN_SUCCESS)
+        {
+            ASSERT("thread_set_state(FLOAT_STATE) failed: %d\n", MachRet);
+            goto EXIT;
+        }
+    }
+
+    if (lpContext->ContextFlags & (CONTEXT_CONTROL|CONTEXT_INTEGER) & CONTEXT_AREA_MASK)
+    {
+#ifdef _AMD64_
         x86_thread_state64_t State;
         StateFlavor = x86_THREAD_STATE64;
 
@@ -1095,117 +1527,34 @@ CONTEXT_SetThreadContextOnPort(
         State.__cs = lpContext->SegCs;
         State.__fs = lpContext->SegFs;
         State.__gs = lpContext->SegGs;
+#elif defined(_ARM64_)
+        arm_thread_state64_t State;
+        StateFlavor = ARM_THREAD_STATE64;
+
+        memcpy(&State.__x[0], &lpContext->X0, 29 * 8);
+        State.__cpsr = lpContext->Cpsr;
+        arm_thread_state64_set_fp(State, lpContext->Fp);
+        arm_thread_state64_set_sp(State, lpContext->Sp);
+        arm_thread_state64_set_lr_fptr(State, lpContext->Lr);
+        arm_thread_state64_set_pc_fptr(State, lpContext->Pc);
 #else
 #error Unexpected architecture.
 #endif
 
         StateCount = sizeof(State) / sizeof(natural_t);
 
-        MachRet = thread_set_state(Port,
-                                   StateFlavor,
-                                   (thread_state_t)&State,
-                                   StateCount);
+        do
+        {
+            MachRet = thread_set_state(Port,
+                                       StateFlavor,
+                                       (thread_state_t)&State,
+                                       StateCount);
+        }
+        while (MachRet == KERN_ABORTED);
+
         if (MachRet != KERN_SUCCESS)
         {
             ASSERT("thread_set_state(THREAD_STATE) failed: %d\n", MachRet);
-            goto EXIT;
-        }
-    }
-
-    if (lpContext->ContextFlags & CONTEXT_ALL_FLOATING)
-    {
-
-#ifdef _X86_
-        x86_float_state32_t State;
-        StateFlavor = x86_FLOAT_STATE32;
-#elif defined(_AMD64_)
-        x86_float_state64_t State;
-        StateFlavor = x86_FLOAT_STATE64;
-#else
-#error Unexpected architecture.
-#endif
-
-        StateCount = sizeof(State) / sizeof(natural_t);
-
-        // If we're setting only one of the floating point or extended registers (of which Mach supports only
-        // the xmm values) then we don't have values for the other set. This is a problem since Mach only
-        // supports setting both groups as a single unit. So in this case we'll need to fetch the current
-        // values first.
-        if ((lpContext->ContextFlags & CONTEXT_ALL_FLOATING) !=
-            CONTEXT_ALL_FLOATING)
-        {
-            mach_msg_type_number_t StateCountGet = StateCount;
-            MachRet = thread_get_state(Port,
-                                       StateFlavor,
-                                       (thread_state_t)&State,
-                                       &StateCountGet);
-            if (MachRet != KERN_SUCCESS)
-            {
-                ASSERT("thread_get_state(FLOAT_STATE) failed: %d\n", MachRet);
-                goto EXIT;
-            }
-            _ASSERTE(StateCountGet == StateCount);
-        }
-
-        if (lpContext->ContextFlags & CONTEXT_FLOATING_POINT)
-        {
-#ifdef _X86_
-            *(DWORD*)&PSTATE_WRAP((&State), fpu_fcw) = lpContext->FloatSave.ControlWord;
-            *(DWORD*)&PSTATE_WRAP((&State), fpu_fsw) = lpContext->FloatSave.StatusWord;
-            PSTATE_WRAP((&State), fpu_ftw) = lpContext->FloatSave.TagWord;
-            PSTATE_WRAP((&State), fpu_ip) = lpContext->FloatSave.ErrorOffset;
-            PSTATE_WRAP((&State), fpu_cs) = lpContext->FloatSave.ErrorSelector;
-            PSTATE_WRAP((&State), fpu_dp) = lpContext->FloatSave.DataOffset;
-            PSTATE_WRAP((&State), fpu_ds) = lpContext->FloatSave.DataSelector;
-            PSTATE_WRAP((&State), fpu_mxcsr) = lpContext->FloatSave.Cr0NpxState;
-
-            // Windows stores the floating point registers in a packed layout (each 10-byte register end to
-            // end for a total of 80 bytes). But Mach returns each register in an 16-bit structure (presumably
-            // for alignment purposes). So we can't just memcpy the registers over in a single block, we need
-            // to copy them individually.
-            for (int i = 0; i < 8; i++)
-                memcpy((&PSTATE_WRAP((&State), fpu_stmm0))[i].__mmst_reg, &lpContext->FloatSave.RegisterArea[i * 10], 10);
-#elif defined(_AMD64_)
-            *(DWORD*)&State.__fpu_fcw = lpContext->FltSave.ControlWord;
-            *(DWORD*)&State.__fpu_fsw = lpContext->FltSave.StatusWord;
-            State.__fpu_ftw = lpContext->FltSave.TagWord;
-            State.__fpu_ip = lpContext->FltSave.ErrorOffset;
-            State.__fpu_cs = lpContext->FltSave.ErrorSelector;
-            State.__fpu_dp = lpContext->FltSave.DataOffset;
-            State.__fpu_ds = lpContext->FltSave.DataSelector;
-            State.__fpu_mxcsr = lpContext->FltSave.MxCsr;
-            State.__fpu_mxcsrmask = lpContext->FltSave.MxCsr_Mask; // note: we don't save the mask for x86
-
-            // Windows stores the floating point registers in a packed layout (each 10-byte register end to
-            // end for a total of 80 bytes). But Mach returns each register in an 16-bit structure (presumably
-            // for alignment purposes). So we can't just memcpy the registers over in a single block, we need
-            // to copy them individually.
-            for (int i = 0; i < 8; i++)
-                memcpy((&State.__fpu_stmm0)[i].__mmst_reg, &lpContext->FltSave.FloatRegisters[i], 10);
-
-            memcpy(&State.__fpu_xmm0, &lpContext->Xmm0, 8 * 16);
-#else
-#error Unexpected architecture.
-#endif
-        }
-
-#ifdef _X86_
-        if (lpContext->ContextFlags & CONTEXT_EXTENDED_REGISTERS)
-        {
-            // The only extended register information that Mach will tell us about are the xmm register
-            // values. Both Windows and Mach store the registers in a packed layout (each of the 8 registers
-            // is 16 bytes) so we can simply memcpy them across.
-            memcpy(&PSTATE_WRAP((&State), fpu_xmm0), lpContext->ExtendedRegisters + CONTEXT_EXREG_XMM_OFFSET, 8 * 16);
-        }
-#endif // _X86_
-
-        MachRet = thread_set_state(Port,
-                                   StateFlavor,
-                                   (thread_state_t)&State,
-                                   StateCount);
-        if (MachRet != KERN_SUCCESS)
-        {
-            ASSERT("thread_set_state(FLOAT_STATE) failed: %d\n", MachRet);
             goto EXIT;
         }
     }
@@ -1278,8 +1627,28 @@ DBG_FlushInstructionCache(
                           IN LPCVOID lpBaseAddress,
                           IN SIZE_T dwSize)
 {
-    // Intrinsic should do the right thing across all platforms
-    __builtin___clear_cache((char *)lpBaseAddress, (char *)((INT_PTR)lpBaseAddress + dwSize));
+#if defined(__linux__) && defined(_ARM_)
+    // On Linux/arm (at least on 3.10) we found that there is a problem with __do_cache_op (arch/arm/kernel/traps.c)
+    // implementing cacheflush syscall. cacheflush flushes only the first page in range [lpBaseAddress, lpBaseAddress + dwSize)
+    // and leaves other pages in undefined state which causes random tests failures (often due to SIGSEGV) with no particular pattern.
+    //
+    // As a workaround, we call __builtin___clear_cache on each page separately.
 
+    const SIZE_T pageSize = VIRTUAL_PAGE_SIZE;
+    INT_PTR begin = (INT_PTR)lpBaseAddress;
+    const INT_PTR end = begin + dwSize;
+
+    while (begin < end)
+    {
+        INT_PTR endOrNextPageBegin = ALIGN_UP(begin + 1, pageSize);
+        if (endOrNextPageBegin > end)
+            endOrNextPageBegin = end;
+
+        __builtin___clear_cache((char *)begin, (char *)endOrNextPageBegin);
+        begin = endOrNextPageBegin;
+    }
+#else
+    __builtin___clear_cache((char *)lpBaseAddress, (char *)((INT_PTR)lpBaseAddress + dwSize));
+#endif
     return TRUE;
 }

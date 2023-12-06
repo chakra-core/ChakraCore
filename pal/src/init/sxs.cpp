@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -48,7 +51,7 @@ PAL_Enter(PAL_Boundary boundary)
     ENTRY_EXTERNAL("PAL_Enter(boundary=%u)\n", boundary);
 
     PAL_ERROR palError = ERROR_SUCCESS;
-    CPalThread *pThread = GetCurrentPalThread();
+    CPalThread *pThread = InternalGetCurrentThread();
     if (pThread != NULL)
     {
         palError = pThread->Enter(boundary);
@@ -160,7 +163,7 @@ PAL_Reenter(PAL_Boundary boundary)
 {
     ENTRY_EXTERNAL("PAL_Reenter(boundary=%u)\n", boundary);
 
-    CPalThread *pThread = GetCurrentPalThread();
+    CPalThread *pThread = InternalGetCurrentThread();
     if (pThread == NULL)
     {
         ASSERT("PAL_Reenter called on a thread unknown to this PAL\n");
@@ -187,7 +190,7 @@ PAL_HasEntered()
 {
     ENTRY_EXTERNAL("PAL_HasEntered()\n");
 
-    CPalThread *pThread = GetCurrentPalThread();
+    CPalThread *pThread = InternalGetCurrentThread();
     if (pThread == NULL)
     {
         ASSERT("PAL_Reenter called on a thread unknown to this PAL\n");
@@ -229,7 +232,7 @@ PAL_Leave(PAL_Boundary boundary)
 {
     ENTRY("PAL_Leave(boundary=%u)\n", boundary);
 
-    CPalThread *pThread = GetCurrentPalThread();
+    CPalThread *pThread = InternalGetCurrentThread();
     // We ignore the return code.  This call should only fail on internal
     // error, and we assert at the actual failure.
     pThread->Leave(boundary);

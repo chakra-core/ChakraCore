@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup Condition=" '$(TargetFramework)' == '' Or '$(TargetFramework.TrimEnd(`0123456789`))' == 'net' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == '' Or $([System.Text.RegularExpressions.Regex]::Replace('$(TargetFramework)', '\d+(?:\-client)?$', '', System.Text.RegularExpressions.RegexOptions.IgnoreCase)) == 'net' ">
     <Content Include="$(MSBuildThisFileDirectory)..\runtimes\{{runtimeIdentifier}}\native\*.*" Condition=" '$(Platform)' == 'AnyCPU' ">
       <Link>{{platformArchitecture}}\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

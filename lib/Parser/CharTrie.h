@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -65,7 +66,7 @@ namespace UnifiedRegex
     public:
         inline RuntimeCharTrie() : count(0), children(0) {}
         void FreeBody(ArenaAllocator* allocator);
-        void CloneFrom(ArenaAllocator* allocator, const CharTrie& other);
+        void CloneFrom(Js::ScriptContext* scriptContext, ArenaAllocator* allocator, const CharTrie& other);
 
         bool Match
             ( const Char* const input

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -42,7 +42,9 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.json$' |
     grep -v -E '\.man$' |
     grep -v -E '\.testconfig$' |
+    grep -v -E '\.editorconfig$' |
     grep -v -E '\.proj$' |
+    grep -v -E '\.png$' |
     grep -v -E 'packages.config$' |
     grep -v -E 'lib/wabt/.*' |
     grep -v -E 'test/WasmSpec.*$' |
@@ -51,7 +53,6 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E 'test/benchmarks/.*\.js_c$' |
     grep -v -E 'bin/External/.*$' |
     grep -v -E 'bin/NativeTests/Scripts/splay.js$' |
-    grep -v -E 'pal/.*' |
     grep -v -E 'libChakraCoreLib.version|ch.version' |
     grep -v -E 'lib/Backend/CRC.h' |
     xargs -I % sh -c "echo 'Check Copyright > Checking %'; python tools/StyleChecks/check_copyright.py % > $ERRFILETEMP || cat $ERRFILETEMP >> $ERRFILE"

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -127,6 +128,7 @@ namespace Js
         static Var EntryUTC(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryValueOf(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);
+        static double JavascriptDate::TimeClip(Var x);
 
         static JavascriptString* ToLocaleString(JavascriptDate* date, ScriptContext* requestContext);
         static JavascriptString* ToString(JavascriptDate* date, ScriptContext* requestContext);

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -587,8 +588,10 @@ SmallHeapBlockT<TBlockAttributes>::GetAddressBitIndex(void * objectAddress)
 {
     Assert(HeapInfo::IsAlignedAddress(objectAddress));
 
-    ushort offset = (ushort)(::Math::PointerCastToIntegralTruncate<uint>(objectAddress) % (TBlockAttributes::PageCount * AutoSystemInfo::PageSize));
-    offset = offset >> HeapConstants::ObjectAllocationShift;
+    ushort offset = (ushort)(
+        (::Math::PointerCastToIntegralTruncate<uint>(objectAddress)
+        % (TBlockAttributes::PageCount * AutoSystemInfo::PageSize))
+        >> HeapConstants::ObjectAllocationShift);
 
     Assert(offset <= USHRT_MAX);
     Assert(offset <= TBlockAttributes::MaxAddressBit);

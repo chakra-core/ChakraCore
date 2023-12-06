@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -55,12 +58,6 @@ void MachMessage::Receive(mach_port_t hPort)
     {
     case SET_THREAD_MESSAGE_ID:
     case FORWARD_EXCEPTION_MESSAGE_ID:
-    case EXCEPTION_RAISE_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
     case EXCEPTION_RAISE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -99,9 +96,6 @@ bool MachMessage::IsExceptionNotification()
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
     case EXCEPTION_RAISE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -116,9 +110,6 @@ bool MachMessage::IsExceptionReply()
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:
@@ -143,18 +134,6 @@ const char *MachMessage::GetMessageTypeName()
         return "SET_THREAD";
     case FORWARD_EXCEPTION_MESSAGE_ID:
         return "FORWARD_EXCEPTION";
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        return "EXCEPTION_RAISE";
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-        return "EXCEPTION_RAISE_REPLY";
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        return "EXCEPTION_RAISE_STATE";
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        return "EXCEPTION_RAISE_STATE_REPLY";
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        return "EXCEPTION_RAISE_STATE_IDENTITY";
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        return "EXCEPTION_RAISE_STATE_IDENTITY_REPLY";
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         return "EXCEPTION_RAISE_64";
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
@@ -202,23 +181,9 @@ void MachMessage::GetPorts(bool fCalculate, bool fValidThread)
         m_hThread = m_pMessage->data.forward_exception.thread;
         break;
 
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_hThread = m_pMessage->data.raise.thread_port.name;
-        m_hTask = m_pMessage->data.raise.task_port.name;
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_hThread = m_pMessage->data.raise_64.thread_port.name;
         m_hTask = m_pMessage->data.raise_64.task_port.name;
-        break;
-
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        if (fCalculate && m_hThread == MACH_PORT_NULL)
-        {
-            // This is a tricky case since the message itself doesn't contain the target thread.
-            m_hThread = GetThreadFromState(m_pMessage->data.raise_state.flavor,
-                                           m_pMessage->data.raise_state.old_state);
-        }
         break;
 
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
@@ -228,11 +193,6 @@ void MachMessage::GetPorts(bool fCalculate, bool fValidThread)
             m_hThread = GetThreadFromState(m_pMessage->data.raise_state_64.flavor,
                                            m_pMessage->data.raise_state_64.old_state);
         }
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_hThread = m_pMessage->data.raise_state_identity.thread_port.name;
-        m_hTask = m_pMessage->data.raise_state_identity.task_port.name;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -273,20 +233,11 @@ exception_type_t MachMessage::GetException()
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        return m_pMessage->data.raise.exception;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         return m_pMessage->data.raise_64.exception;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        return m_pMessage->data.raise_state.exception;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_64.exception;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_identity.exception;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_identity_64.exception;
@@ -301,20 +252,11 @@ int MachMessage::GetExceptionCodeCount()
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        return m_pMessage->data.raise.code_count;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         return m_pMessage->data.raise_64.code_count;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        return m_pMessage->data.raise_state.code_count;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_64.code_count;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_identity.code_count;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_identity_64.code_count;
@@ -325,7 +267,7 @@ int MachMessage::GetExceptionCodeCount()
 }
 
 // Get the exception sub-code at the specified zero-based index for an exception notification message.
-MACH_EH_TYPE(exception_data_type_t) MachMessage::GetExceptionCode(int iIndex)
+mach_exception_data_type_t MachMessage::GetExceptionCode(int iIndex)
 {
     if (iIndex < 0 || iIndex >= GetExceptionCodeCount())
     {
@@ -334,20 +276,11 @@ MACH_EH_TYPE(exception_data_type_t) MachMessage::GetExceptionCode(int iIndex)
 
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        return (MACH_EH_TYPE(exception_data_type_t))m_pMessage->data.raise.code[iIndex];
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         return m_pMessage->data.raise_64.code[iIndex];
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        return (MACH_EH_TYPE(exception_data_type_t))m_pMessage->data.raise_state.code[iIndex];
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_64.code[iIndex];
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        return (MACH_EH_TYPE(exception_data_type_t))m_pMessage->data.raise_state_identity.code[iIndex];
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_identity_64.code[iIndex];
@@ -363,32 +296,18 @@ thread_state_flavor_t MachMessage::GetThreadStateFlavor()
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
     case EXCEPTION_RAISE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         return THREAD_STATE_NONE;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        return m_pMessage->data.raise_state.flavor;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_64.flavor;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_identity.flavor;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_identity_64.flavor;
 
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_reply.flavor;
-
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_reply_64.flavor;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_identity_reply.flavor;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_identity_reply_64.flavor;
@@ -409,25 +328,10 @@ mach_msg_type_number_t MachMessage::GetThreadState(thread_state_flavor_t eFlavor
 
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
     case EXCEPTION_RAISE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         // No state in the message, fall through to get it directly from the thread.
         break;
-
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-    {
-        // There's a state in the message, but we need to check that the flavor matches what the caller's
-        // after (if not we'll fall through and get the correct flavor below).
-        if (m_pMessage->data.raise_state.flavor == eFlavor)
-        {
-            count = m_pMessage->data.raise_state.old_state_count;
-            memcpy(pState, m_pMessage->data.raise_state.old_state, count * sizeof(natural_t));
-            return count;
-        }
-        break;
-    }
 
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
     {
@@ -437,19 +341,6 @@ mach_msg_type_number_t MachMessage::GetThreadState(thread_state_flavor_t eFlavor
         {
             count = m_pMessage->data.raise_state_64.old_state_count;
             memcpy(pState, m_pMessage->data.raise_state_64.old_state, count * sizeof(natural_t));
-            return count;
-        }
-        break;
-    }
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-    {
-        // There's a state in the message, but we need to check that the flavor matches what the caller's
-        // after (if not we'll fall through and get the correct flavor below).
-        if (m_pMessage->data.raise_state_identity.flavor == eFlavor)
-        {
-            count = m_pMessage->data.raise_state_identity.old_state_count;
-            memcpy(pState, m_pMessage->data.raise_state_identity.old_state, count * sizeof(natural_t));
             return count;
         }
         break;
@@ -468,19 +359,6 @@ mach_msg_type_number_t MachMessage::GetThreadState(thread_state_flavor_t eFlavor
         break;
     }
 
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-    {
-        // There's a state in the message, but we need to check that the flavor matches what the caller's
-        // after (if not we'll fall through and get the correct flavor below).
-        if (m_pMessage->data.raise_state_reply.flavor == eFlavor)
-        {
-            count = m_pMessage->data.raise_state_reply.new_state_count;
-            memcpy(pState, m_pMessage->data.raise_state_reply.new_state, count * sizeof(natural_t));
-            return count;
-        }
-        break;
-    }
-
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
     {
         // There's a state in the message, but we need to check that the flavor matches what the caller's
@@ -489,19 +367,6 @@ mach_msg_type_number_t MachMessage::GetThreadState(thread_state_flavor_t eFlavor
         {
             count = m_pMessage->data.raise_state_reply_64.new_state_count;
             memcpy(pState, m_pMessage->data.raise_state_reply_64.new_state, count * sizeof(natural_t));
-            return count;
-        }
-        break;
-    }
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-    {
-        // There's a state in the message, but we need to check that the flavor matches what the caller's
-        // after (if not we'll fall through and get the correct flavor below).
-        if (m_pMessage->data.raise_state_identity_reply.flavor == eFlavor)
-        {
-            count = m_pMessage->data.raise_state_identity_reply.new_state_count;
-            memcpy(pState, m_pMessage->data.raise_state_identity_reply.new_state, count * sizeof(natural_t));
             return count;
         }
         break;
@@ -538,20 +403,11 @@ kern_return_t MachMessage::GetReturnCode()
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-        return m_pMessage->data.raise_reply.ret;
-
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         return m_pMessage->data.raise_reply_64.ret;
 
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_reply.ret;
-
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_reply_64.ret;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        return m_pMessage->data.raise_state_identity_reply.ret;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:
         return m_pMessage->data.raise_state_identity_reply_64.ret;
@@ -807,17 +663,6 @@ void MachMessage::InitFixedFields()
     case FORWARD_EXCEPTION_MESSAGE_ID:
         break;
 
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_pMessage->data.raise.msgh_body.msgh_descriptor_count = 0;
-        m_pMessage->data.raise.ndr = NDR_record;
-        m_pMessage->data.raise.task_port.name = mach_task_self();
-        m_pMessage->data.raise.task_port.pad1 = 0;
-        m_pMessage->data.raise.task_port.pad2 = 0;
-        m_pMessage->data.raise.task_port.disposition = MACH_MSG_TYPE_COPY_SEND;
-        m_pMessage->data.raise.task_port.type = MACH_MSG_PORT_DESCRIPTOR;
-        m_hTask = mach_task_self();
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_pMessage->data.raise_64.msgh_body.msgh_descriptor_count = 0;
         m_pMessage->data.raise_64.ndr = NDR_record;
@@ -829,23 +674,8 @@ void MachMessage::InitFixedFields()
         m_hTask = mach_task_self();
         break;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        m_pMessage->data.raise_state.ndr = NDR_record;
-        break;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         m_pMessage->data.raise_state_64.ndr = NDR_record;
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity.msgh_body.msgh_descriptor_count = 0;
-        m_pMessage->data.raise_state_identity.ndr = NDR_record;
-        m_pMessage->data.raise_state_identity.task_port.name = mach_task_self();
-        m_pMessage->data.raise_state_identity.task_port.pad1 = 0;
-        m_pMessage->data.raise_state_identity.task_port.pad2 = 0;
-        m_pMessage->data.raise_state_identity.task_port.disposition = MACH_MSG_TYPE_COPY_SEND;
-        m_pMessage->data.raise_state_identity.task_port.type = MACH_MSG_PORT_DESCRIPTOR;
-        m_hTask = mach_task_self();
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -859,24 +689,12 @@ void MachMessage::InitFixedFields()
         m_hTask = mach_task_self();
         break;
 
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_reply.ndr = NDR_record;
-        break;
-
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         m_pMessage->data.raise_reply_64.ndr = NDR_record;
         break;
 
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_state_reply.ndr = NDR_record;
-        break;
-
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
         m_pMessage->data.raise_state_reply_64.ndr = NDR_record;
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity_reply.ndr = NDR_record;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:
@@ -916,18 +734,8 @@ void MachMessage::InitMessageSize()
         m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) + sizeof(forward_exception_request_t);
         break;
 
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) + sizeof(exception_raise_notification_t);
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) + sizeof(exception_raise_notification_64_t);
-        break;
-
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) +
-            offsetof(exception_raise_state_notification_t, old_state) +
-            (m_pMessage->data.raise_state.old_state_count * sizeof(natural_t));
         break;
 
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
@@ -936,42 +744,20 @@ void MachMessage::InitMessageSize()
             (m_pMessage->data.raise_state_64.old_state_count * sizeof(natural_t));
         break;
 
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) +
-            offsetof(exception_raise_state_identity_notification_t, old_state) +
-            (m_pMessage->data.raise_state_identity.old_state_count * sizeof(natural_t));
-        break;
-
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
         m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) +
             offsetof(exception_raise_state_identity_notification_64_t, old_state) +
             (m_pMessage->data.raise_state_identity_64.old_state_count * sizeof(natural_t));
         break;
 
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-        m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) + sizeof(exception_raise_reply_t);
-        break;
-
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) + sizeof(exception_raise_reply_64_t);
-        break;
-
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) +
-            offsetof(exception_raise_state_reply_t, new_state) +
-            (m_pMessage->data.raise_state_reply.new_state_count * sizeof(natural_t));
         break;
 
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
         m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) +
             offsetof(exception_raise_state_reply_64_t, new_state) +
             (m_pMessage->data.raise_state_reply_64.new_state_count * sizeof(natural_t));
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        m_pMessage->header.msgh_size = sizeof(mach_msg_header_t) +
-            offsetof(exception_raise_state_identity_reply_t, new_state) +
-            (m_pMessage->data.raise_state_identity_reply.new_state_count * sizeof(natural_t));
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:
@@ -1014,6 +800,10 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
     case x86_THREAD_STATE64:
         targetSP = ((x86_thread_state64_t*)pState)->__rsp;
         break;
+#elif defined(_ARM64_)
+    case ARM_THREAD_STATE64:
+        targetSP = arm_thread_state64_get_sp(*(arm_thread_state64_t*)pState);
+        break;
 #else
 #error Unexpected architecture.
 #endif
@@ -1032,9 +822,17 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
     for (mach_msg_type_number_t i = 0; i < cThreads; i++)
     {
         // Get the general register state of each thread.
+#if defined(_AMD64_)
         x86_thread_state_t threadState;
         mach_msg_type_number_t count = x86_THREAD_STATE_COUNT;
         machret = thread_get_state(pThreads[i], x86_THREAD_STATE, (thread_state_t)&threadState, &count);
+#elif defined(_ARM64_)
+        arm_thread_state64_t threadState;
+        mach_msg_type_number_t count = ARM_THREAD_STATE64_COUNT;
+        machret = thread_get_state(pThreads[i], ARM_THREAD_STATE64, (thread_state_t)&threadState, &count);
+#else
+#error Unexpected architecture
+#endif
         if (machret == KERN_SUCCESS)
         {
             // If a thread has the same SP as our target it should be the same thread (otherwise we have two
@@ -1045,6 +843,8 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
             if (threadState.uts.ts32.esp == targetSP)
 #elif defined(_AMD64_)
             if (threadState.uts.ts64.__rsp == targetSP)
+#elif defined(_ARM64_)
+            if (arm_thread_state64_get_sp(threadState) == targetSP)
 #else
 #error Unexpected architecture.
 #endif
@@ -1056,6 +856,11 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
                 CHECK_MACH("mach_port_mod_refs()", machret);
 
                 // Deallocate the thread list now we're done with it.
+                for (mach_msg_type_number_t j = 0; j < cThreads; j++)
+                {
+                    machret = mach_port_deallocate(mach_task_self(), pThreads[j]);
+                    CHECK_MACH("mach_port_deallocate()", machret);
+                }
                 machret = vm_deallocate(mach_task_self(), (vm_address_t)pThreads, cThreads * sizeof(thread_act_t));
                 CHECK_MACH("vm_deallocate()", machret);
 
@@ -1069,17 +874,11 @@ thread_act_t MachMessage::GetThreadFromState(thread_state_flavor_t eFlavor, thre
     NONPAL_RETAIL_ASSERT("Failed to locate thread from state.");
 }
 
-// Transform a exception handler behavior type into the corresponding Mach message ID for the notification.
+// Transform an exception handler behavior type into the corresponding Mach message ID for the notification.
 mach_msg_id_t MachMessage::MapBehaviorToNotificationType(exception_behavior_t eBehavior)
 {
     switch ((uint)eBehavior)
     {
-    case EXCEPTION_DEFAULT:
-        return EXCEPTION_RAISE_MESSAGE_ID;
-    case EXCEPTION_STATE:
-        return EXCEPTION_RAISE_STATE_MESSAGE_ID;
-    case EXCEPTION_STATE_IDENTITY:
-        return EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID;
     case MACH_EXCEPTION_CODES|EXCEPTION_DEFAULT:
         return EXCEPTION_RAISE_64_MESSAGE_ID;
     case MACH_EXCEPTION_CODES|EXCEPTION_STATE:
@@ -1096,12 +895,6 @@ mach_msg_id_t MachMessage::MapNotificationToReplyType(mach_msg_id_t eNotificatio
 {
     switch (eNotificationType)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        return EXCEPTION_RAISE_REPLY_MESSAGE_ID;
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        return EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID;
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        return EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID;
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         return EXCEPTION_RAISE_REPLY_64_MESSAGE_ID;
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
@@ -1120,15 +913,6 @@ void MachMessage::SetThread(thread_act_t thread)
 
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_pMessage->data.raise.thread_port.name = thread;
-        m_pMessage->data.raise.thread_port.pad1 = 0;
-        m_pMessage->data.raise.thread_port.pad2 = 0;
-        m_pMessage->data.raise.thread_port.disposition = MACH_MSG_TYPE_COPY_SEND;
-        m_pMessage->data.raise.thread_port.type = MACH_MSG_PORT_DESCRIPTOR;
-        fSet = true;
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_pMessage->data.raise_64.thread_port.name = thread;
         m_pMessage->data.raise_64.thread_port.pad1 = 0;
@@ -1138,18 +922,8 @@ void MachMessage::SetThread(thread_act_t thread)
         fSet = true;
         break;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         // No thread field in RAISE_STATE messages.
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity.thread_port.name = thread;
-        m_pMessage->data.raise_state_identity.thread_port.pad1 = 0;
-        m_pMessage->data.raise_state_identity.thread_port.pad2 = 0;
-        m_pMessage->data.raise_state_identity.thread_port.disposition = MACH_MSG_TYPE_COPY_SEND;
-        m_pMessage->data.raise_state_identity.thread_port.type = MACH_MSG_PORT_DESCRIPTOR;
-        fSet = true;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -1178,24 +952,12 @@ void MachMessage::SetException(exception_type_t eException)
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_pMessage->data.raise.exception = eException;
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_pMessage->data.raise_64.exception = eException;
         break;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        m_pMessage->data.raise_state.exception = eException;
-        break;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         m_pMessage->data.raise_state_64.exception = eException;
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity.exception = eException;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -1212,24 +974,12 @@ void MachMessage::SetExceptionCodeCount(int cCodes)
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_pMessage->data.raise.code_count = cCodes;
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_pMessage->data.raise_64.code_count = cCodes;
         break;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        m_pMessage->data.raise_state.code_count = cCodes;
-        break;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         m_pMessage->data.raise_state_64.code_count = cCodes;
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity.code_count = cCodes;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -1242,7 +992,7 @@ void MachMessage::SetExceptionCodeCount(int cCodes)
 }
 
 // Set exception sub-code in an exception notification message.
-void MachMessage::SetExceptionCode(int iIndex, MACH_EH_TYPE(exception_data_type_t) iCode)
+void MachMessage::SetExceptionCode(int iIndex, mach_exception_data_type_t iCode)
 {
     if (iIndex < 0 || iIndex > 1)
         NONPAL_RETAIL_ASSERT("Exception code index out of range");
@@ -1252,24 +1002,12 @@ void MachMessage::SetExceptionCode(int iIndex, MACH_EH_TYPE(exception_data_type_
 
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-        m_pMessage->data.raise.code[iIndex] = (int)iCode;
-        break;
-
     case EXCEPTION_RAISE_64_MESSAGE_ID:
         m_pMessage->data.raise_64.code[iIndex] = iCode;
         break;
 
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        m_pMessage->data.raise_state.code[iIndex] = (int)iCode;
-        break;
-
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
         m_pMessage->data.raise_state_64.code[iIndex] = iCode;
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity.code[iIndex] = (int)iCode;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
@@ -1286,24 +1024,12 @@ void MachMessage::SetReturnCode(kern_return_t eReturnCode)
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_reply.ret = eReturnCode;
-        break;
-
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         m_pMessage->data.raise_reply_64.ret = eReturnCode;
         break;
 
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_state_reply.ret = eReturnCode;
-        break;
-
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
         m_pMessage->data.raise_state_reply_64.ret = eReturnCode;
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity_reply.ret = eReturnCode;
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:
@@ -1320,17 +1046,9 @@ void MachMessage::SetThreadState(thread_state_flavor_t eFlavor, thread_state_t p
 {
     switch (m_pMessage->header.msgh_id)
     {
-    case EXCEPTION_RAISE_MESSAGE_ID:
-    case EXCEPTION_RAISE_REPLY_MESSAGE_ID:
     case EXCEPTION_RAISE_64_MESSAGE_ID:
     case EXCEPTION_RAISE_REPLY_64_MESSAGE_ID:
         // No thread state in RAISE or RAISE_REPLY messages.
-        break;
-
-    case EXCEPTION_RAISE_STATE_MESSAGE_ID:
-        m_pMessage->data.raise_state.flavor = eFlavor;
-        m_pMessage->data.raise_state.old_state_count = count;
-        memcpy(m_pMessage->data.raise_state.old_state, pState, count * sizeof(natural_t));
         break;
 
     case EXCEPTION_RAISE_STATE_64_MESSAGE_ID:
@@ -1339,34 +1057,16 @@ void MachMessage::SetThreadState(thread_state_flavor_t eFlavor, thread_state_t p
         memcpy(m_pMessage->data.raise_state_64.old_state, pState, count * sizeof(natural_t));
         break;
 
-    case EXCEPTION_RAISE_STATE_IDENTITY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity.flavor = eFlavor;
-        m_pMessage->data.raise_state_identity.old_state_count = count;
-        memcpy(m_pMessage->data.raise_state_identity.old_state, pState, count * sizeof(natural_t));
-        break;
-
     case EXCEPTION_RAISE_STATE_IDENTITY_64_MESSAGE_ID:
         m_pMessage->data.raise_state_identity_64.flavor = eFlavor;
         m_pMessage->data.raise_state_identity_64.old_state_count = count;
         memcpy(m_pMessage->data.raise_state_identity_64.old_state, pState, count * sizeof(natural_t));
         break;
 
-    case EXCEPTION_RAISE_STATE_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_state_reply.flavor = eFlavor;
-        m_pMessage->data.raise_state_reply.new_state_count = count;
-        memcpy(m_pMessage->data.raise_state_reply.new_state, pState, count * sizeof(natural_t));
-        break;
-
     case EXCEPTION_RAISE_STATE_REPLY_64_MESSAGE_ID:
         m_pMessage->data.raise_state_reply_64.flavor = eFlavor;
         m_pMessage->data.raise_state_reply_64.new_state_count = count;
         memcpy(m_pMessage->data.raise_state_reply_64.new_state, pState, count * sizeof(natural_t));
-        break;
-
-    case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_MESSAGE_ID:
-        m_pMessage->data.raise_state_identity_reply.flavor = eFlavor;
-        m_pMessage->data.raise_state_identity_reply.new_state_count = count;
-        memcpy(m_pMessage->data.raise_state_identity_reply.new_state, pState, count * sizeof(natural_t));
         break;
 
     case EXCEPTION_RAISE_STATE_IDENTITY_REPLY_64_MESSAGE_ID:

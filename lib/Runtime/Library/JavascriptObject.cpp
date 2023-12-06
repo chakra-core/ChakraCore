@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -1349,7 +1349,11 @@ Var JavascriptObject::EntryDefineProperty(RecyclableObject* function, CallInfo c
         ModifyGetterSetterFuncName(propertyRecord, propertyDescriptor, scriptContext);
     }
 
-    DefineOwnPropertyHelper(obj, propertyRecord->GetPropertyId(), propertyDescriptor, scriptContext);
+    BOOL success = DefineOwnPropertyHelper(obj, propertyRecord->GetPropertyId(), propertyDescriptor, scriptContext);
+    if (!success)
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_Default, scriptContext->GetPropertyName(propertyRecord->GetPropertyId())->GetBuffer());
+    }
 
     return obj;
 }
@@ -2174,7 +2178,7 @@ BOOL JavascriptObject::DefineOwnPropertyHelper(RecyclableObject* obj, PropertyId
         // TODO: implement DefineOwnProperty for other object built-in exotic types.
         else
         {
-            returnValue = JavascriptOperators::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
+            returnValue = JavascriptOperators::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext, Js::PropertyOperation_StrictMode);
             if (propId == PropertyIds::__proto__)
             {
                 scriptContext->GetLibrary()->GetObjectPrototypeObject()->PostDefineOwnProperty__proto__(obj);

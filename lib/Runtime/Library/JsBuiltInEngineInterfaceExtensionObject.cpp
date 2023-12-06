@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -135,21 +135,17 @@ namespace Js
             // Clear ReentrancyLock bit as initialization code doesn't have any side effect
             scriptContext->GetThreadContext()->SetNoJsReentrancy(false);
 #endif
+            // specify which set of BuiltIns are currently being loaded
+            current = file;
+
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             {
                 ThreadContext::AutoRestoreImplicitFlags autoRestoreImplicitFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
                 scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
                 JavascriptFunction::CallRootFunctionInScript(functionGlobal, Js::Arguments(callInfo, args));
-            }
 
-            Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
-            functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
-
-            current = file;
-            // Clear disable implicit call bit as initialization code doesn't have any side effect
-            {
-                ThreadContext::AutoRestoreImplicitFlags autoRestoreImplicitFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
-                scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
+                Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
+                functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
                 JavascriptFunction::CallRootFunctionInScript(functionBuiltins, Js::Arguments(callInfo, args));
             }
 

@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -2513,39 +2513,6 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     }
 
 #ifdef INTL_ICU
-    // Implementation of ECMA 262 #sec-timeclip
-    // REVIEW(jahorto): Where is a better place for this function? JavascriptDate? DateUtilities? JavascriptConversion?
-    static double TimeClip(Var x)
-    {
-        double time = 0.0;
-        if (TaggedInt::Is(x))
-        {
-            time = TaggedInt::ToDouble(x);
-        }
-        else
-        {
-            AssertOrFailFast(JavascriptNumber::Is(x));
-            time = JavascriptNumber::GetValue(x);
-
-            // Only perform steps 1, 3, and 4 if the input was not a TaggedInt, since TaggedInts cant be infinite or -0
-            if (!NumberUtilities::IsFinite(time))
-            {
-                return NumberConstants::NaN;
-            }
-
-            // This performs both steps 3 and 4
-            time = JavascriptConversion::ToInteger(time);
-        }
-
-        // Step 2: If abs(time) > 8.64e15, return NaN.
-        if (Math::Abs(time) > 8.64e15)
-        {
-            return NumberConstants::NaN;
-        }
-
-        return time;
-    }
-
     static void AddPartToPartsArray(ScriptContext *scriptContext, JavascriptArray *arr, int arrIndex, const char16 *src, int start, int end, JavascriptString *partType)
     {
         JavascriptString *partValue = JavascriptString::NewCopyBuffer(
@@ -2640,7 +2607,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
         // 1. Let x be TimeClip(x)
         // 2. If x is NaN, throw a RangeError exception
-        double date = TimeClip(args[2]);
+        double date = JavascriptDate::TimeClip(args[2]);
         if (JavascriptNumber::IsNan(date))
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidDate);

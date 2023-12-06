@@ -435,4 +435,10 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <files>definitetypedarray.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>sort.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

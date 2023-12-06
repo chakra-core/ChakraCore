@@ -1,7 +1,11 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+// @ts-check
+/// <reference path="..\UnitTestFramework\UnitTestFramework.js" />
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
@@ -149,6 +153,15 @@ var tests = [
             assert.areEqual(newObj.a, orig.a);
             assert.areEqual(newObj[0], orig[0]);
             assert.areEqual(newObj[1], undefined);
+        }
+    },
+    {
+        name: "Throw on assign to read-only",
+        body() {
+            const obj = {
+                get prop() { return 1; }
+            };
+            assert.throws(() => Object.assign(obj, obj), TypeError, "Object.assign should throw (readonly property)");
         }
     }
 ];

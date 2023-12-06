@@ -1,8 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
-
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 /*++
 
 Module Name:
@@ -2907,6 +2909,7 @@ typedef struct _IMAGE_ARM_RUNTIME_FUNCTION_ENTRY {
 
 #define CONTEXT_CONTROL (CONTEXT_ARM64 | 0x1L)
 #define CONTEXT_INTEGER (CONTEXT_ARM64 | 0x2L)
+#define CONTEXT_SEGMENTS (CONTEXT_ARM64 | 0x4L)
 #define CONTEXT_FLOATING_POINT  (CONTEXT_ARM64 | 0x4L)
 #define CONTEXT_DEBUG_REGISTERS (CONTEXT_ARM64 | 0x8L)
 
@@ -3189,6 +3192,8 @@ PALIMPORT BOOL PALAPI PAL_VirtualUnwindOutOfProc(CONTEXT *context,
 #elif defined(__APPLE__) && defined(__i386__)
 #define PAL_CS_NATIVE_DATA_SIZE 76
 #elif defined(__APPLE__) && defined(__x86_64__)
+#define PAL_CS_NATIVE_DATA_SIZE 120
+#elif defined(__APPLE__) && defined(_ARM64_)
 #define PAL_CS_NATIVE_DATA_SIZE 120
 #elif defined(__LINUX__) && defined(__i386__)
 #define PAL_CS_NATIVE_DATA_SIZE 56
@@ -4713,11 +4718,29 @@ enum {
 //
 // A function table entry is generated for each frame function.
 //
+#ifdef _M_ARM64
+typedef struct _RUNTIME_FUNCTION {
+    DWORD BeginAddress;
+    union {
+        DWORD UnwindData;
+        struct {
+            DWORD Flag           : 2;
+            DWORD FunctionLength : 11;
+            DWORD RegF           : 3;
+            DWORD RegI           : 4;
+            DWORD H              : 1;
+            DWORD CR             : 2;
+            DWORD FrameSize      : 9;
+        };
+    };
+} RUNTIME_FUNCTION, *PRUNTIME_FUNCTION;
+#else
 typedef struct _RUNTIME_FUNCTION {
     DWORD BeginAddress;
     DWORD EndAddress;
     DWORD UnwindData;
 } RUNTIME_FUNCTION, *PRUNTIME_FUNCTION;
+#endif
 
 PALIMPORT
 BOOL
@@ -5810,11 +5833,6 @@ RtlCaptureContext(
   OUT PCONTEXT ContextRecord
 );
 
-PALIMPORT
-VOID
-PALAPI
-FlushProcessWriteBuffers();
-
 typedef void (*PAL_ActivationFunction)(CONTEXT *context);
 typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip, BOOL checkingCurrentThread);
 
@@ -5824,13 +5842,6 @@ PALAPI
 PAL_SetActivationFunction(
     IN PAL_ActivationFunction pActivationFunction,
     IN PAL_SafeActivationCheckFunction pSafeActivationCheckFunction);
-
-PALIMPORT
-BOOL
-PALAPI
-PAL_InjectActivation(
-    IN HANDLE hThread
-);
 
 #define VER_PLATFORM_WIN32_WINDOWS        1
 #define VER_PLATFORM_WIN32_NT        2

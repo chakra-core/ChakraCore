@@ -398,10 +398,20 @@
               "length": "number 1",
               "name": "string find"
             },
+            "findLast": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string findLast"
+            },
             "findIndex": {
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string findIndex"
+            },
+            "findLastIndex": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string findLastIndex"
             },
             "keys": {
               "#__proto__": "function <large string>",
@@ -454,7 +464,9 @@
               "entries": "boolean true",
               "fill": "boolean true",
               "find": "boolean true",
+              "findLast": "boolean true",
               "findIndex": "boolean true",
+              "findLastIndex": "boolean true",
               "flat": "boolean true",
               "flatMap": "boolean true",
               "includes": "boolean true",
@@ -633,10 +645,20 @@
               "length": "number 1",
               "name": "string find"
             },
+            "findLast": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string findLast"
+            },
             "findIndex": {
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string findIndex"
+            },
+            "findLastIndex": {
+              "#__proto__": "function <large string>",
+              "length": "number 1",
+              "name": "string findLastIndex"
             },
             "keys": {
               "#__proto__": "function <large string>",
@@ -689,7 +711,9 @@
               "entries": "boolean true",
               "fill": "boolean true",
               "find": "boolean true",
+              "findLast": "boolean true",
               "findIndex": "boolean true",
+              "findLastIndex": "boolean true",
               "flat": "boolean true",
               "flatMap": "boolean true",
               "includes": "boolean true",

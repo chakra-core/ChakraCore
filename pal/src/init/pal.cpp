@@ -1,8 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
-
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 /*++
 
 
@@ -132,7 +134,7 @@ Initialize()
 
     // prevent un-reasonable stack limits. (otherwise affects mmap calls later)
 #if !defined(__IOS__) && !defined(__ANDROID__)
-#ifdef _AMD64_
+#if defined (_AMD64_) || defined (_M_ARM64)
     const rlim_t maxStackSize = 8 * 1024 * 1024;   // CC Max stack size
 #else
     const rlim_t maxStackSize = 2 * 1024 * 1024;   // CC Max stack size
@@ -242,16 +244,6 @@ Initialize()
 #endif // HAVE_MACH_EXCEPTIONS
 
         //
-        // Initialize global thread data
-        //
-        palError = InitializeGlobalThreadData();
-        if (NO_ERROR != palError)
-        {
-            ERROR("Unable to initialize thread data\n");
-            goto CLEANUP1;
-        }
-
-        //
         // Allocate the initial thread data
         //
 
@@ -262,17 +254,6 @@ Initialize()
             goto CLEANUP1a;
         }
         PROCAddThread(pThread, pThread);
-
-        //
-        // Initialize mutex and condition variable used to synchronize the ending threads count
-        //
-
-        palError = InitializeEndingThreadsData();
-        if (NO_ERROR != palError)
-        {
-            ERROR("Unable to create ending threads data\n");
-            goto CLEANUP1b;
-        }
 
         //
         // It's now safe to access our thread data
@@ -499,11 +480,6 @@ PAL_InitializeChakraCore()
     {
         PAL_Enter(PAL_BoundaryTop);
         return ERROR_SUCCESS;
-    }
-
-    if (!InitializeFlushProcessWriteBuffers())
-    {
-        return ERROR_GEN_FAILURE;
     }
 
     return ERROR_SUCCESS;

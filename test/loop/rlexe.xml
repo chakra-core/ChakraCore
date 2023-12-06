@@ -60,4 +60,9 @@
       <baseline>MemOp.baseline</baseline>
     </default>
   </test>
+    <test>
+    <default>
+      <files>MemOpIncr0.js</files>
+    </default>
+  </test>
 </regress-exe>

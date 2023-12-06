@@ -1,0 +1,18 @@
+root = true
+
+# See https://github.com/chakra-core/ChakraCore/wiki/Coding-Convention
+
+[*]
+indent_style = space
+indent_size = 4
+
+# See https://learn.microsoft.com/en-us/visualstudio/ide/cpp-editorconfig-properties?view=vs-2019
+[*.{cpp,h,inl}]
+cpp_space_pointer_reference_alignment = right
+cpp_new_line_before_open_brace_block = new_line
+cpp_new_line_before_catch = true
+cpp_new_line_before_else = true
+
+# Xml files
+[*.xml]
+indent_size = 2

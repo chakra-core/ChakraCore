@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -1585,7 +1586,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
 
     SymID id = 0;
-    
+
     switch(instr->m_opcode)
     {
     case Js::OpCode::LdElemI_A:
@@ -2364,7 +2365,10 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instrBegin, IR::Instr *instr, Value *src1Va
             // Line #2: s3(s1) = Ld_A   s4(s2)
             // do not consider line #2 as a violating instr
             (instr->m_opcode == Js::OpCode::Ld_I4 &&
-                prevInstr && (prevInstr->m_opcode == Js::OpCode::Add_I4 || prevInstr->m_opcode == Js::OpCode::Sub_I4) &&
+                // note Ld_A is for the case where the add was 0
+                prevInstr && (prevInstr->m_opcode == Js::OpCode::Add_I4 ||
+                              prevInstr->m_opcode == Js::OpCode::Sub_I4 ||
+                              prevInstr->m_opcode == Js::OpCode::Ld_A   ) &&
                 instr->GetSrc1()->IsRegOpnd() &&
                 instr->GetDst()->IsRegOpnd() &&
                 prevInstr->GetDst()->IsRegOpnd() &&
@@ -13525,16 +13529,19 @@ GlobOpt::OptStackArgLenAndConst(IR::Instr* instr, Value** src1Val)
                 {
                     int argIndex = indirOpndSrc1->GetOffset() + 1;
                     IR::Instr* defInstr = nullptr;
-                    IR::Instr* inlineeStart = instr->m_func->GetInlineeStart();
-                    inlineeStart->IterateArgInstrs([&](IR::Instr* argInstr) {
-                        StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
-                        if (argSym->GetArgSlotNum() - 1 == argIndex)
-                        {
-                            defInstr = argInstr;
-                            return true;
-                        }
-                        return false;
-                    });
+                    if (argIndex > 0)
+                    {
+                        IR::Instr* inlineeStart = instr->m_func->GetInlineeStart();
+                        inlineeStart->IterateArgInstrs([&](IR::Instr* argInstr) {
+                            StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
+                            if (argSym->GetArgSlotNum() - 1 == argIndex)
+                            {
+                                defInstr = argInstr;
+                                return true;
+                            }
+                            return false;
+                        });
+                    }
 
                     Js::OpCode replacementOpcode;
                     if (instr->m_opcode == Js::OpCode::TypeofElem)

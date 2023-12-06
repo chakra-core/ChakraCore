@@ -42,4 +42,15 @@
       <baseline>clz32.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>max2.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>max2.js</files>
+      <compile-flags>-JsBuiltin-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

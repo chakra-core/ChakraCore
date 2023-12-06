@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #define IDS_COMPILATION_ERROR_SOURCE    4096
@@ -371,7 +371,7 @@ RT_ERROR_MSG(JSERR_InvalidIteratorObject, 5672, "%s : Invalid iterator object", 
 RT_ERROR_MSG(JSERR_NoAccessors, 5673, "Invalid property descriptor: accessors not supported on this object", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_RegExpInvalidEscape, 5674, "", "Invalid regular expression: invalid escape in unicode pattern", kjstSyntaxError, 0)
 RT_ERROR_MSG(JSERR_RegExpTooManyCapturingGroups, 5675, "", "Regular expression cannot have more than 32,767 capturing groups", kjstRangeError, 0)
-RT_ERROR_MSG(JSERR_ProxyHandlerReturnedFalse, 5676, "Proxy %s handler returned false", "Proxy handler returned false", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_ProxyHandlerReturnedFalse, 5676, "Proxy '%s' handler returned falsish for property '%s'", "Proxy handler returned false", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_UnicodeRegExpRangeContainsCharClass, 5677, "%s", "Character classes not allowed in a RegExp class range.", kjstSyntaxError, 0)
 RT_ERROR_MSG(JSERR_DuplicateKeysFromOwnPropertyKeys, 5678, "%s", "Proxy's ownKeys trap returned duplicate keys", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidGloFuncDecl, 5679, "The global property %s is not configurable, writable, nor enumerable, therefore cannot be declared as a function", "", kjstTypeError, 0)

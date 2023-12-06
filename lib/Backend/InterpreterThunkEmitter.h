@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -68,7 +69,11 @@ public:
 #elif defined(_M_ARM)
     static constexpr size_t InterpreterThunkSize = 72;
 #elif defined(_M_ARM64)
+#ifdef _WIN32
     static constexpr size_t InterpreterThunkSize = 64;
+#else
+    static constexpr size_t InterpreterThunkSize = 48;
+#endif
 #else
     static constexpr size_t InterpreterThunkSize = 56;
 #endif

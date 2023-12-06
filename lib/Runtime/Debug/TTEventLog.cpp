@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeDebugPch.h"
@@ -2816,7 +2817,9 @@ namespace TTD
         TTDAssert(wcscmp(_u("x86"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #elif defined(_M_X64)
         TTDAssert(wcscmp(_u("x64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
-#elif defined(_M_ARM)
+#elif defined(_M_ARM) // #TODO investigate why this is checking for "arm64" instead of "arm"
+        TTDAssert(wcscmp(_u("arm64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+#elif defined(_M_ARM64)
         TTDAssert(wcscmp(_u("arm64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #else
         TTDAssert(false, "Unknown arch!!!");

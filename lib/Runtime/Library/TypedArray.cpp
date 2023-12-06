@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) 2022 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // Implementation for typed arrays based on ArrayBuffer.
@@ -1714,8 +1714,6 @@ namespace Js
             thisArg = scriptContext->GetLibrary()->GetUndefined();
         }
 
-        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
-        CallFlags flags = CallFlags_Value;
         Var element = nullptr;
         Var selected = nullptr;
         RecyclableObject* newObj = nullptr;
@@ -1739,7 +1737,7 @@ namespace Js
                 BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                 {
                     selected = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                                    callBackFn, CallInfo(flags, 4), thisArg,
+                                    callBackFn, CallInfo(CallFlags_Value, 4), thisArg,
                                     element,
                                     JavascriptNumber::ToVar(k, scriptContext),
                                     typedArrayBase);
@@ -2142,105 +2140,66 @@ namespace Js
         return JavascriptArray::SomeHelper(nullptr, typedArrayBase, typedArrayBase, typedArrayBase->GetLength(), args, scriptContext);
     }
 
-    template<typename T> int __cdecl TypedArrayCompareElementsHelper(void* context, const void* elem1, const void* elem2)
+    // Comparison method used in TypedArray.prototype.sort
+    template<typename T> bool TypedArrayCompareElementsHelper(JavascriptArray::CompareVarsInfo* cvInfo, const void* elem1, const void* elem2)
     {
         const T* element1 = static_cast<const T*>(elem1);
         const T* element2 = static_cast<const T*>(elem2);
 
         Assert(element1 != nullptr);
         Assert(element2 != nullptr);
-        Assert(context != nullptr);
+        Assert(cvInfo != nullptr);
 
         const T x = *element1;
         const T y = *element2;
 
+        // ECMA2023 spec requires that NaN values are sorted to the end
         if (NumberUtilities::IsNan((double)x))
         {
-            if (NumberUtilities::IsNan((double)y))
-            {
-                return 0;
-            }
-
-            return 1;
+            return false;
         }
-        else
+        else if (NumberUtilities::IsNan((double)y))
         {
-            if (NumberUtilities::IsNan((double)y))
-            {
-                return -1;
-            }
+            return true;
         }
 
-        void **contextArray = (void **)context;
-        if (contextArray[1] != nullptr)
+        if (cvInfo->compFn != nullptr)
         {
-            RecyclableObject* compFn = VarTo<RecyclableObject>(contextArray[1]);
+            RecyclableObject* compFn = cvInfo->compFn;
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
-            double dblResult;
             Var retVal = nullptr;
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {
                 retVal = CALL_FUNCTION(scriptContext->GetThreadContext(),
                             compFn, CallInfo(CallFlags_Value, 3),
                             undefined,
-                            JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
-                            JavascriptNumber::ToVarWithCheck((double)y, scriptContext));
+                            JavascriptNumber::ToVarNoCheck((double)x, scriptContext),
+                            JavascriptNumber::ToVarNoCheck((double)y, scriptContext));
             }
             END_SAFE_REENTRANT_CALL
 
-            Assert(VarIs<TypedArrayBase>(contextArray[0]));
-            if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
-            }
-
             if (TaggedInt::Is(retVal))
             {
-                return TaggedInt::ToInt32(retVal);
+                return TaggedInt::ToInt32(retVal) < 0;
             }
 
             if (JavascriptNumber::Is_NoTaggedIntCheck(retVal))
             {
-                dblResult = JavascriptNumber::GetValue(retVal);
-            }
-            else
-            {
-                dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
-
-                // ToNumber may execute user-code which can cause the array to become detached
-                if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
-                }
+                return JavascriptNumber::GetValue(retVal) < 0;
             }
 
-            if (dblResult < 0)
-            {
-                return -1;
-            }
-            else if (dblResult > 0)
-            {
-                return 1;
-            }
-
-            return 0;
+            return JavascriptConversion::ToNumber_Full(retVal, scriptContext) < 0;
         }
-        else
+        else // simple comparison when no user method provided
         {
-            if (x < y)
-            {
-                return -1;
-            }
-            else if (x > y)
-            {
-                return 1;
-            }
-
-            return 0;
+            return x < y;
         }
     }
 
+    // TypedArray.prototype.sort entry point
+    // Implements #sec-%typedarray%.prototype.sort from ECMA 2023 spec
+    // 
     Var TypedArrayBase::EntrySort(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -2252,40 +2211,58 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_sort);
 
-        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.sort"));
-        uint32 length = typedArrayBase->GetLength();
-
-        // If TypedArray has no length, we don't have any work to do.
-        if (length == 0)
-        {
-            return typedArrayBase;
-        }
-
         RecyclableObject* compareFn = nullptr;
-
-        if (args.Info.Count > 1)
+        // Spec requires us to throw if comparison function is neither undefined nor callable
+        if (args.Info.Count > 1 && !JavascriptOperators::IsUndefined(args[1]))
         {
             if (!JavascriptConversion::IsCallable(args[1]))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.sort"));
             }
 
-            compareFn = VarTo<RecyclableObject>(args[1]);
+            compareFn = UnsafeVarTo<RecyclableObject>(args[1]);
         }
 
-        // Get the elements comparison function for the type of this TypedArray
-        void* elementCompare = reinterpret_cast<void*>(typedArrayBase->GetCompareElementsFunction());
+        // Throw if not a valid typed array
+        // This step is per spec and allows us to optimise significantly below
+        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.sort"));
+        uint32 length = typedArrayBase->GetLength();
 
-        Assert(elementCompare);
+        // Early return if length is 0 or 1
+        if (length < 2)
+        {
+            return typedArrayBase;
+        }
 
-        // Cast compare to the correct function type
-        int(__cdecl*elementCompareFunc)(void*, const void*, const void*) = (int(__cdecl*)(void*, const void*, const void*))elementCompare;
+        BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("Runtime"))
+        {
+            byte* buffer = typedArrayBase->GetByteBuffer();
+            
+            // Spec mandates copy before sort
+            // But it is only detectable if a compare function was provided
+            if (compareFn != nullptr)
+            {
+                uint32 elementSize = typedArrayBase->GetBytesPerElement();
+                uint32 byteLength = elementSize * length;
+                byte* list = AnewArray(tempAlloc, byte, byteLength);
+                memcpy(list, buffer, byteLength);
+                // Sort the copied data
+                typedArrayBase->SortHelper(list, length, compareFn, scriptContext, tempAlloc);
 
-        void * contextToPass[] = { typedArrayBase, compareFn };
+                // compare function calls may have detached Type Array
+                if (TypedArrayBase::IsDetachedTypedArray(typedArrayBase))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+                }
 
-        // We can always call qsort_s with the same arguments. If user compareFn is non-null, the callback will use it to do the comparison.
-        qsort_s(typedArrayBase->GetByteBuffer(), length, typedArrayBase->GetBytesPerElement(), elementCompareFunc, contextToPass);
-
+                memcpy(buffer, list, byteLength);
+            }
+            else
+            {
+                // perform an in-place sort when no comparison method is provided
+                typedArrayBase->SortHelper(buffer, length, nullptr, scriptContext, tempAlloc);
+            }
+        }
 
         return typedArrayBase;
     }

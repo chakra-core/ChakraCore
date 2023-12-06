@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -63,7 +66,9 @@ enum VIRTUAL_CONSTANTS
     VIRTUAL_EXECUTE_READ,
 
     /* Page manipulation constants. */
-#ifdef __sparc__
+#if defined(__APPLE__) && defined(_ARM64_)
+    VIRTUAL_PAGE_SIZE       = 0x4000,
+#elif __sparc__
     VIRTUAL_PAGE_SIZE       = 0x2000,
 #else   // __sparc__
     VIRTUAL_PAGE_SIZE       = 0x1000,

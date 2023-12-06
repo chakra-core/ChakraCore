@@ -60,6 +60,9 @@
     <ClInclude Include="StreamReader.h" />
     <ClInclude Include="StreamWriter.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../../manifests/CoreManifests.vcxproj" />
+  </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

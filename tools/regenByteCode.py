@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -116,7 +116,7 @@ changes_detected = False
 # this header text will be placed at the top of the generated files
 header_text = '''//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -263,7 +263,7 @@ if changes_detected == True:
 
         output_str = '''//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.

@@ -1,12 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 #include "Common.h"
 #include "PlatformAgnostic/AssemblyCommon.h"
 
-#ifndef DISABLE_JIT
+#if !defined(DISABLE_JIT) && defined(_AMD64_)
 extern void mac_fde_wrapper(const char *dataStart, mac_fde_reg_op reg_op)
 {
     const char *head = dataStart;

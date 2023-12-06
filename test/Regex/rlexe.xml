@@ -247,4 +247,9 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>regexCharTrieStack.js</files>
+    </default>
+  </test>
 </regress-exe>

@@ -19,6 +19,9 @@ elseif(CC_TARGETS_ARM)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64)
     set(PAL_CMAKE_PLATFORM_ARCH_ARM64 1)
     add_definitions(-D_ARM64_)
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL arm64)
+    set(PAL_CMAKE_PLATFORM_ARCH_ARM64 1)
+    add_definitions(-D_ARM64_)
 else()
     clr_unknown_arch()
 endif()
@@ -58,7 +61,6 @@ endif()
 if(CC_TARGETS_AMD64 OR CC_TARGETS_X86)
   if(CC_TARGET_OS_OSX)
     set(PLATFORM_SOURCES ${PLATFORM_SOURCES}
-      arch/i386/activationhandlerwrapper.S
       arch/i386/dispatchexceptionwrapper.S
     )
   endif()
@@ -68,6 +70,13 @@ if(CC_TARGETS_AMD64 OR CC_TARGETS_X86)
     arch/i386/processor.cpp
     arch/i386/asmhelpers.S
     )
+elseif(PAL_CMAKE_PLATFORM_ARCH_ARM64)
+  set(ARCH_SOURCES
+    arch/arm64/dispatchexceptionwrapper.S
+    arch/arm64/context2.S
+    arch/arm64/debugbreak.S
+  )
+
 elseif(CC_TARGETS_ARM)
   set(ARCH_SOURCES
     arch/arm/context2.S
