@@ -25,11 +25,16 @@
 
 #define DebugOnly(x)          x
 
+#if !defined(CHAKRACORE_STRINGIZE)
+#define CHAKRACORE_STRINGIZE_IMPL(x) #x
+#define CHAKRACORE_STRINGIZE(x) CHAKRACORE_STRINGIZE_IMPL(x)
+#endif
+
 #define AssertMsg(exp, comment)   \
 do { \
 if (!(exp)) \
 { \
-    fprintf(stderr, "ASSERTION (%s, line %d) %s %s\n", __FILE__, __LINE__, _STRINGIZE(exp), comment); \
+    fprintf(stderr, "ASSERTION (%s, line %d) %s %s\n", __FILE__, __LINE__, CHAKRACORE_STRINGIZE(exp), comment); \
     fflush(stderr); \
     DebugBreak(); \
 } \
