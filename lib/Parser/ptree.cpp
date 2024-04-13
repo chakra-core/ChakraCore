@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -496,6 +497,7 @@ ParseNodeCall::ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim,
     this->isEvalCall = false;
     this->isSuperCall = false;
     this->hasDestructuring = false;
+    this->isNullPropagating = false;
 }
 
 ParseNodeStmt::ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim)

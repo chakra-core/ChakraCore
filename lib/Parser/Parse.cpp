@@ -3919,8 +3919,14 @@ ParseNodePtr Parser::ParsePostfixOperators(
         {
             AutoMarkInParsingArgs autoMarkInParsingArgs(this);
 
+            bool isNullPropagating = tkOptChain == this->GetScanner()->m_tkPrevious;
             if (fInNew)
             {
+                if (isNullPropagating)
+                {
+                    Error(ERRInvalidOptChainInNew);
+                }
+
                 ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
                 if (buildAST)
                 {
@@ -3973,6 +3979,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     // Detect super()
                     if (this->NodeIsSuperName(pnode))
                     {
+                        if (isNullPropagating)
+                        {
+                            Error(ERRInvalidOptChainInSuper);
+                        }
+
                         pnode = CreateSuperCallNode(pnode->AsParseNodeSpecialName(), pnodeArgs);
                         Assert(pnode);
 
@@ -4007,6 +4018,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     pnode->AsParseNodeCall()->isApplyCall = false;
                     pnode->AsParseNodeCall()->isEvalCall = fCallIsEval;
                     pnode->AsParseNodeCall()->hasDestructuring = m_hasDestructuringPattern;
+                    pnode->AsParseNodeCall()->isNullPropagating = isNullPropagating;
                     Assert(!m_hasDestructuringPattern || count > 0);
                     pnode->AsParseNodeCall()->argCount = count;
                     pnode->ichLim = this->GetScanner()->IchLimTok();
@@ -4042,7 +4054,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
             if (pfCanAssign)
             {
-                *pfCanAssign = fCanAssignToCallResult && 
+                *pfCanAssign = !isNullPropagating && fCanAssignToCallResult &&
                                (m_sourceContextInfo ?
                                 !PHASE_ON_RAW(Js::EarlyErrorOnAssignToCallPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId) :
                                 !PHASE_ON1(Js::EarlyErrorOnAssignToCallPhase));
@@ -4055,6 +4067,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
         }
         case tkLBrack:
         {
+            bool isNullPropagating = tkOptChain == this->GetScanner()->m_tkPrevious;
+
             this->GetScanner()->Scan();
             IdentToken tok;
             ParseNodePtr pnodeExpr = ParseExpr<buildAST>(0, FALSE, TRUE, FALSE, nullptr, nullptr, nullptr, &tok);
@@ -4063,12 +4077,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 AnalysisAssert(pnodeExpr);
                 if (pnode && pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper)
                 {
+                    if (isNullPropagating)
+                    {
+                        Error(ERRInvalidOptChainInSuper);
+                    }
+
                     pnode = CreateSuperReferenceNode(knopIndex, pnode->AsParseNodeSpecialName(), pnodeExpr);
                     pnode->AsParseNodeSuperReference()->pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, pnode->ichLim, true);
                 }
                 else
                 {
-                    pnode = CreateBinNode(knopIndex, pnode, pnodeExpr);
+                    pnode = CreateBinNode(knopIndex, pnode, pnodeExpr, isNullPropagating);
                 }
 
                 AnalysisAssert(pnode);
@@ -4082,7 +4101,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
             ChkCurTok(tkRBrack, ERRnoRbrack);
             if (pfCanAssign)
             {
-                *pfCanAssign = TRUE;
+                // optional assignment not permitted
+                *pfCanAssign = !isNullPropagating;
             }
             if (pfIsDotOrIndex)
             {
@@ -4178,8 +4198,13 @@ ParseNodePtr Parser::ParsePostfixOperators(
             this->GetScanner()->Scan();
             if (!m_token.IsIdentifier())
             {
-                //allow reserved words in ES5 mode
-                if (!(m_token.IsReservedWord()))
+                if (isNullPropagating && (tkLParen == m_token.tk || tkLBrack == m_token.tk))
+                {
+                    // Continue to parse function or index (loop)
+                    // Check previous token to check for null-propagation
+                    continue;
+                }
+                else if (!(m_token.IsReservedWord())) //allow reserved words in ES5 mode
                 {
                     IdentifierExpectedError(m_token);
                 }
@@ -4206,6 +4231,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 }
                 if (pnode && pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper)
                 {
+                    if (isNullPropagating)
+                    {
+                        Error(ERRInvalidOptChainInSuper);
+                    }
+
                     pnode = CreateSuperReferenceNode(opCode, pnode->AsParseNodeSpecialName(), name);
                     pnode->AsParseNodeSuperReference()->pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, pnode->ichLim, true);
                 }
@@ -4222,7 +4252,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
 
             if (pfCanAssign)
             {
-                *pfCanAssign = TRUE;
+                // optional assignment not permitted
+                *pfCanAssign = !isNullPropagating;
             }
             if (pfIsDotOrIndex)
             {
