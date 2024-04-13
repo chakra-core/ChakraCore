@@ -1781,7 +1781,7 @@ LEof:
                 token = tkCoalesce;
                 break;
             }
-            else if (this->PeekFirst(p, last) == '.') // ToDo: Config flag for optional chaining?!
+            else if (m_scriptContext->GetConfig()->IsESOptionalChainingEnabled() && this->PeekFirst(p, last) == '.')
             {
                 p++;
                 token = tkOptChain;
