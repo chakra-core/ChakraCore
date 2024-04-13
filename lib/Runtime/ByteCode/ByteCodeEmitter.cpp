@@ -20,6 +20,25 @@ void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator,
 void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location);
 void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator, FuncInfo * funcInfo);
 
+/**
+ * This function generates the common code for null-propagation / optional-chaining.
+ * This works similar to how the c# compiler emits byte-code for optional-chaining.
+ */
+static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator *byteCodeGenerator, FuncInfo* funcInfo, bool isNullPropagating) {
+    if (!isNullPropagating)
+        return;
+
+    Assert(funcInfo->currentOptionalChain != 0);
+
+    Js::ByteCodeLabel continueLabel = byteCodeGenerator->Writer()->DefineLabel();
+    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, continueLabel, targetObjectSlot); // if (targetObject)
+    {
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, funcInfo->currentOptionalChain->resultSlot); // result = undefined
+        byteCodeGenerator->Writer()->Br(funcInfo->currentOptionalChain->skipLabel);
+    }
+    byteCodeGenerator->Writer()->MarkLabel(continueLabel);
+}
+
 bool CallTargetIsArray(ParseNode *pnode)
 {
     return pnode->nop == knopName && pnode->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::Array;
@@ -11596,10 +11615,33 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
         funcInfo->AcquireLoc(pnode);
 
+        EmitNullPropagation(callObjLocation, byteCodeGenerator, funcInfo, pnode->AsParseNodeBin()->isNullPropagating);
+
         byteCodeGenerator->Writer()->Element(
             Js::OpCode::LdElemI_A, pnode->location, protoLocation, pnode->AsParseNodeBin()->pnode2->location);
 
+
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
+        break;
+    }
+
+    case knopOptChain: {
+        Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
+        Js::RegSlot targetRegSlot = funcInfo->AcquireLoc(pnode);
+
+        FuncInfo::OptionalChainInfo* previousChain = funcInfo->currentOptionalChain;
+        FuncInfo::OptionalChainInfo currentOptionalChain = FuncInfo::OptionalChainInfo(skipLabel, targetRegSlot);
+        funcInfo->currentOptionalChain = &currentOptionalChain;
+
+        ParseNodePtr innerNode = pnode->AsParseNodeUni()->pnode1;
+        Emit(innerNode, byteCodeGenerator, funcInfo, false);
+
+        // Copy result
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, targetRegSlot, innerNode->location);
+        funcInfo->ReleaseLoc(innerNode);
+
+        byteCodeGenerator->Writer()->MarkLabel(skipLabel);
+        funcInfo->currentOptionalChain = previousChain;
         break;
     }
     // this is MemberExpression as rvalue
@@ -11621,6 +11663,8 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         funcInfo->AcquireLoc(pnode);
         Js::PropertyId propertyId = pnode->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
         uint cacheId = funcInfo->FindOrAddInlineCacheId(protoLocation, propertyId, false, false);
+
+        EmitNullPropagation(callObjLocation, byteCodeGenerator, funcInfo, pnode->AsParseNodeBin()->isNullPropagating);
 
         if (propertyId == Js::PropertyIds::length)
         {

@@ -33,6 +33,7 @@ FuncInfo::FuncInfo(
     outArgsCurrentExpr(0),
     innerScopeCount(0),
     currentInnerScopeIndex((uint)-1),
+    currentOptionalChain(nullptr),
 #if DBG
     outArgsDepth(0),
 #endif

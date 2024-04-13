@@ -3910,6 +3910,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
         *pfIsDotOrIndex = false;
     }
 
+    bool isOptionalChain = false;
     for (;;)
     {
         uint16 spreadArgCount = 0;
@@ -4054,7 +4055,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
             if (pfCanAssign)
             {
-                *pfCanAssign = !isNullPropagating && fCanAssignToCallResult &&
+                *pfCanAssign = !isOptionalChain && fCanAssignToCallResult &&
                                (m_sourceContextInfo ?
                                 !PHASE_ON_RAW(Js::EarlyErrorOnAssignToCallPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId) :
                                 !PHASE_ON1(Js::EarlyErrorOnAssignToCallPhase));
@@ -4102,7 +4103,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             if (pfCanAssign)
             {
                 // optional assignment not permitted
-                *pfCanAssign = !isNullPropagating;
+                *pfCanAssign = !isOptionalChain;
             }
             if (pfIsDotOrIndex)
             {
@@ -4192,6 +4193,10 @@ ParseNodePtr Parser::ParsePostfixOperators(
             OpCode opCode = knopDot;
 
             bool isNullPropagating = tkOptChain == m_token.tk;
+            if (isNullPropagating)
+            {
+                isOptionalChain = true;
+            }
             // We don't use a custom token but rather tell that knopDot is null-propagating
             // opCode = knopOptChain;
 
@@ -4220,7 +4225,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
 
             if (buildAST)
             {
-                if (opCode == knopDot || opCode == knopOptChain)
+                if (opCode == knopDot)
                 {
                     name = CreateNameNode(m_token.GetIdentifier(this->GetHashTbl()));
                 }
@@ -4253,7 +4258,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             if (pfCanAssign)
             {
                 // optional assignment not permitted
-                *pfCanAssign = !isNullPropagating;
+                *pfCanAssign = !isOptionalChain;
             }
             if (pfIsDotOrIndex)
             {
@@ -4295,6 +4300,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
             break;
         }
         default:
+            if (isOptionalChain)
+            {
+                // Wrap as optional chain
+                return CreateUniNode(knopOptChain, pnode);
+            }
             return pnode;
         }
     }
