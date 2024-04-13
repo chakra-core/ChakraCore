@@ -277,10 +277,11 @@ public:
 class ParseNodeBin : public ParseNode
 {
 public:
-    ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
+    ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2, bool isNullPropagating = false);
 
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
+    bool isNullPropagating;
 
     DISABLE_SELF_CAST(ParseNodeBin);
 };

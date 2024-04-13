@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -1778,6 +1779,12 @@ LEof:
             {
                 p++;
                 token = tkCoalesce;
+                break;
+            }
+            else if (this->PeekFirst(p, last) == '.') // ToDo: Config flag for optional chaining?!
+            {
+                p++;
+                token = tkOptChain;
                 break;
             }
             break;

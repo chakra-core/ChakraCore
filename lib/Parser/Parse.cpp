@@ -309,6 +309,7 @@ LPCWSTR Parser::GetTokenString(tokens token)
     case tkLParen: return _u("(");
     case tkLBrack: return _u("[");
     case tkDot: return _u(".");
+    case tkOptChain: return _u("?.");
 
     default:
         return _u("unknown token");
@@ -894,13 +895,13 @@ ParseNodeUni * Parser::CreateUniNode(OpCode nop, ParseNodePtr pnode1, charcount_
 }
 
 // Create ParseNodeBin
-ParseNodeBin * Parser::StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, charcount_t ichMin, charcount_t ichLim)
+ParseNodeBin * Parser::StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, charcount_t ichMin, charcount_t ichLim, bool isNullPropagating)
 {
     DebugOnly(VerifyNodeSize(nop, sizeof(ParseNodeBin)));
-    return Anew(alloc, ParseNodeBin, nop, ichMin, ichLim, pnode1, pnode2);
+    return Anew(alloc, ParseNodeBin, nop, ichMin, ichLim, pnode1, pnode2, isNullPropagating);
 }
 
-ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2)
+ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, bool isNullPropagating)
 {
     Assert(!this->m_deferringAST);
     charcount_t ichMin;
@@ -937,15 +938,15 @@ ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodeP
         }
     }
 
-    return CreateBinNode(nop, pnode1, pnode2, ichMin, ichLim);
+    return CreateBinNode(nop, pnode1, pnode2, ichMin, ichLim, isNullPropagating);
 }
 
 
 ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1,
-    ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim)
+    ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim, bool isNullPropagating)
 {
     Assert(!this->m_deferringAST);
-    ParseNodeBin * pnode = StaticCreateBinNode(nop, pnode1, pnode2, &m_nodeAllocator, ichMin, ichLim);
+    ParseNodeBin * pnode = StaticCreateBinNode(nop, pnode1, pnode2, &m_nodeAllocator, ichMin, ichLim, isNullPropagating);
     AddAstSize(sizeof(ParseNodeBin));
     return pnode;
 }
@@ -4163,11 +4164,16 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
         }
         break;
-
+        
+        case tkOptChain:
         case tkDot:
         {
             ParseNodePtr name = nullptr;
             OpCode opCode = knopDot;
+
+            bool isNullPropagating = tkOptChain == m_token.tk;
+            // We don't use a custom token but rather tell that knopDot is null-propagating
+            // opCode = knopOptChain;
 
             this->GetScanner()->Scan();
             if (!m_token.IsIdentifier())
@@ -4189,7 +4195,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
 
             if (buildAST)
             {
-                if (opCode == knopDot)
+                if (opCode == knopDot || opCode == knopOptChain)
                 {
                     name = CreateNameNode(m_token.GetIdentifier(this->GetHashTbl()));
                 }
@@ -4205,7 +4211,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 }
                 else
                 {
-                    pnode = CreateBinNode(opCode, pnode, name);
+                    pnode = CreateBinNode(opCode, pnode, name, isNullPropagating);
                 }
             }
             else
