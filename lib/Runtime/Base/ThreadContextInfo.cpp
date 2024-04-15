@@ -21,6 +21,10 @@
 # else
    extern "C" void __fastcall _guard_check_icall(_In_ uintptr_t _Target);
 # endif
+
+# ifndef _GUARD_CHECK_ICALL
+#  define _GUARD_CHECK_ICALL _guard_check_icall
+# endif
 #endif
 
 ThreadContextInfo::ThreadContextInfo() :

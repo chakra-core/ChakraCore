@@ -178,7 +178,3 @@ uintptr_t ShiftAddr(const ThreadContextInfo*const context, T* address)
 }
 
 uintptr_t ShiftAddr(const ThreadContextInfo*const context, uintptr_t address);
-
-#ifndef _GUARD_CHECK_ICALL
-#define _GUARD_CHECK_ICALL _guard_check_icall
-#endif
