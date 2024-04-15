@@ -268,7 +268,7 @@ bool IsArguments(ParseNode *pnode)
 
 bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator);
 void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, bool isConstructorCall = false, bool isTopLevel = false);
-void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation = Js::Constants::NoRegister);
+void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation = Js::Constants::NoRegister, bool isNullPropagating = false);
 bool IsExpressionStatement(ParseNode* stmt, const Js::ScriptContext *const scriptContext);
 void EmitInvoke(Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo);
 void EmitInvoke(Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot arg1Location);
@@ -10097,7 +10097,7 @@ void ByteCodeGenerator::EmitJumpCleanup(ParseNode* target, FuncInfo* funcInfo)
     }
 }
 
-void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation)
+void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation, bool isNullPropagating)
 {
     // If opnd2 can overwrite opnd1, make sure the value of opnd1 is stashed away.
     if (MayHaveSideEffectOnNode(pnode1, pnode2, byteCodeGenerator))
@@ -10112,6 +10112,7 @@ void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* by
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Prop, computedPropertyLocation, pnode1->location);
     }
 
+    EmitNullPropagation(pnode1->location, byteCodeGenerator, funcInfo, isNullPropagating);
     Emit(pnode2, byteCodeGenerator, funcInfo, false, false, computedPropertyLocation);
 }
 
@@ -11596,7 +11597,10 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
     case knopIndex:
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
-        EmitBinaryOpnds(pnode->AsParseNodeBin()->pnode1, pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo);
+        EmitBinaryOpnds(pnode->AsParseNodeBin()->pnode1, pnode->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo,
+            Js::Constants::NoRegister,
+            // EmitNullPropagation is called in EmitBinaryOpnds to short-circuit indexer content
+            pnode->AsParseNodeBin()->isNullPropagating);
 
         Js::RegSlot callObjLocation = pnode->AsParseNodeBin()->pnode1->location;
         Js::RegSlot protoLocation = callObjLocation;
@@ -11611,8 +11615,6 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode2);
         funcInfo->ReleaseLoc(pnode->AsParseNodeBin()->pnode1);
         funcInfo->AcquireLoc(pnode);
-
-        EmitNullPropagation(callObjLocation, byteCodeGenerator, funcInfo, pnode->AsParseNodeBin()->isNullPropagating);
 
         byteCodeGenerator->Writer()->Element(
             Js::OpCode::LdElemI_A, pnode->location, protoLocation, pnode->AsParseNodeBin()->pnode2->location);
