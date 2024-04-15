@@ -24,14 +24,15 @@ void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator,
  * This function generates the common code for null-propagation / optional-chaining.
  * This works similar to how the c# compiler emits byte-code for optional-chaining.
  */
-static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator *byteCodeGenerator, FuncInfo* funcInfo, bool isNullPropagating) {
+static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool isNullPropagating) {
     if (!isNullPropagating)
         return;
 
     Assert(funcInfo->currentOptionalChain != 0);
 
     Js::ByteCodeLabel continueLabel = byteCodeGenerator->Writer()->DefineLabel();
-    byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, continueLabel, targetObjectSlot); // if (targetObject)
+    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, continueLabel, targetObjectSlot, funcInfo->nullConstantRegister);
+    // if (targetObject == null)
     {
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, funcInfo->currentOptionalChain->resultSlot); // result = undefined
         byteCodeGenerator->Writer()->Br(funcInfo->currentOptionalChain->skipLabel);
