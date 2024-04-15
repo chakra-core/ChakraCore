@@ -1783,6 +1783,11 @@ LEof:
             }
             else if (m_scriptContext->GetConfig()->IsESOptionalChainingEnabled() && this->PeekFirst(p, last) == '.')
             {
+                // `a?.3:0` is actually a ternary operator containing the number `0.3`
+                bool isTernary = CharTypes::_C_DIG == this->charClassifier->GetCharType(this->PeekFirst(p + 1, last));
+                if (isTernary)
+                    break;
+
                 p++;
                 token = tkOptChain;
                 break;
