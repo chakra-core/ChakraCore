@@ -4300,7 +4300,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             break;
         }
         default:
-            if (isOptionalChain)
+            if (buildAST && isOptionalChain)
             {
                 // Wrap as optional chain
                 return CreateUniNode(knopOptChain, pnode);
