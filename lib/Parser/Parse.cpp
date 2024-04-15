@@ -4203,11 +4203,20 @@ ParseNodePtr Parser::ParsePostfixOperators(
             this->GetScanner()->Scan();
             if (!m_token.IsIdentifier())
             {
-                if (isNullPropagating && (tkLParen == m_token.tk || tkLBrack == m_token.tk))
+                if (isNullPropagating)
                 {
-                    // Continue to parse function or index (loop)
-                    // Check previous token to check for null-propagation
-                    continue;
+                    switch (m_token.tk)
+                    {
+                    case tkLParen:
+                    case tkLBrack:
+                        // Continue to parse function or index (loop)
+                        // Check previous token to check for null-propagation
+                        continue;
+
+                    case tkStrTmplBasic:
+                    case tkStrTmplBegin:
+                        Error(ERRInvalidOptChainWithTaggedTemplate);
+                    }
                 }
                 else if (!(m_token.IsReservedWord())) //allow reserved words in ES5 mode
                 {
@@ -4272,6 +4281,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkStrTmplBasic:
         case tkStrTmplBegin:
         {
+            if (isOptionalChain)
+            {
+                Error(ERRInvalidOptChainWithTaggedTemplate);
+            }
+
             ParseNode* templateNode = nullptr;
             if (pnode != nullptr)
             {
