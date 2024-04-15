@@ -98,11 +98,9 @@ public:
     uint        currentInnerScopeIndex;
     struct OptionalChainInfo {
         Js::ByteCodeLabel skipLabel;
-        Js::RegSlot resultSlot;
 
-        OptionalChainInfo(Js::ByteCodeLabel skipLabel, Js::RegSlot resultSlot) {
+        OptionalChainInfo(Js::ByteCodeLabel skipLabel) {
             this->skipLabel = skipLabel;
-            this->resultSlot = resultSlot;
         }
     } *currentOptionalChain;
 #if DBG

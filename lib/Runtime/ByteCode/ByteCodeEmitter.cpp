@@ -22,7 +22,6 @@ void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator,
 
 /**
  * This function generates the common code for null-propagation / optional-chaining.
- * This works similar to how the c# compiler emits byte-code for optional-chaining.
  */
 static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool isNullPropagating) {
     if (!isNullPropagating)
@@ -30,14 +29,11 @@ static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator 
 
     Assert(funcInfo->currentOptionalChain != 0);
 
-    Js::ByteCodeLabel continueLabel = byteCodeGenerator->Writer()->DefineLabel();
-    byteCodeGenerator->Writer()->BrReg2(Js::OpCode::BrNeq_A, continueLabel, targetObjectSlot, funcInfo->nullConstantRegister);
-    // if (targetObject == null)
-    {
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, funcInfo->currentOptionalChain->resultSlot); // result = undefined
-        byteCodeGenerator->Writer()->Br(funcInfo->currentOptionalChain->skipLabel);
-    }
-    byteCodeGenerator->Writer()->MarkLabel(continueLabel);
+    // if (targetObject == null) goto chainEnd;
+    byteCodeGenerator->Writer()->BrReg2(
+        Js::OpCode::BrEq_A, funcInfo->currentOptionalChain->skipLabel,
+        targetObjectSlot, funcInfo->nullConstantRegister
+    );
 }
 
 bool CallTargetIsArray(ParseNode *pnode)
@@ -11627,18 +11623,21 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
     }
 
     case knopOptChain: {
-        Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
-        Js::RegSlot targetRegSlot = funcInfo->AcquireLoc(pnode);
+        FuncInfo::OptionalChainInfo *previousChain = funcInfo->currentOptionalChain;
 
-        FuncInfo::OptionalChainInfo* previousChain = funcInfo->currentOptionalChain;
-        FuncInfo::OptionalChainInfo currentOptionalChain = FuncInfo::OptionalChainInfo(skipLabel, targetRegSlot);
+        Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
+        FuncInfo::OptionalChainInfo currentOptionalChain = FuncInfo::OptionalChainInfo(skipLabel);
         funcInfo->currentOptionalChain = &currentOptionalChain;
 
+        Js::RegSlot resultSlot = funcInfo->AcquireLoc(pnode);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, resultSlot); // result = undefined
+
+        // emit chain
         ParseNodePtr innerNode = pnode->AsParseNodeUni()->pnode1;
         Emit(innerNode, byteCodeGenerator, funcInfo, false);
 
         // Copy result
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, targetRegSlot, innerNode->location);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, resultSlot, innerNode->location);
         funcInfo->ReleaseLoc(innerNode);
 
         byteCodeGenerator->Writer()->MarkLabel(skipLabel);
