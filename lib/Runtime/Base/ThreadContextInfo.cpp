@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -20,6 +21,10 @@
 #  include <cfguard.h>
 # else
    extern "C" void __fastcall _guard_check_icall(_In_ uintptr_t _Target);
+# endif
+
+# ifndef _GUARD_CHECK_ICALL
+#  define _GUARD_CHECK_ICALL _guard_check_icall
 # endif
 #endif
 
