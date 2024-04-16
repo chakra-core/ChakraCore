@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -178,7 +179,3 @@ uintptr_t ShiftAddr(const ThreadContextInfo*const context, T* address)
 }
 
 uintptr_t ShiftAddr(const ThreadContextInfo*const context, uintptr_t address);
-
-#ifndef _GUARD_CHECK_ICALL
-#define _GUARD_CHECK_ICALL _guard_check_icall
-#endif
