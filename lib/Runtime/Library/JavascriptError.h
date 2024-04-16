@@ -73,19 +73,19 @@ namespace Js
 
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
-        static void __declspec(noreturn) SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
+        static void DECLSPEC_NORETURN MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
+        static void DECLSPEC_NORETURN MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
+        static void DECLSPEC_NORETURN SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
         static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType);
 
         //HELPERCALL needs a non-overloaded function pointer
-        static void __declspec(noreturn) ThrowUnreachable(ScriptContext* scriptContext);
+        static void DECLSPEC_NORETURN ThrowUnreachable(ScriptContext* scriptContext);
 
 #define THROW_ERROR_DECL(err_method) \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName); \
-        static void __declspec(noreturn) err_method##Var(ScriptContext* scriptContext, int32 hCode, ...);
+        static void DECLSPEC_NORETURN err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
+        static void DECLSPEC_NORETURN err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \
+        static void DECLSPEC_NORETURN err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName); \
+        static void DECLSPEC_NORETURN err_method##Var(ScriptContext* scriptContext, int32 hCode, ...);
 
         THROW_ERROR_DECL(ThrowError)
         THROW_ERROR_DECL(ThrowRangeError)
@@ -98,14 +98,14 @@ namespace Js
         THROW_ERROR_DECL(ThrowWebAssemblyLinkError)
 
 #undef THROW_ERROR_DECL
-        static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
-        static void __declspec(noreturn) ThrowOutOfMemoryError(ScriptContext *scriptContext);
-        static void __declspec(noreturn) ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se);
+        static void DECLSPEC_NORETURN ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
+        static void DECLSPEC_NORETURN ThrowOutOfMemoryError(ScriptContext *scriptContext);
+        static void DECLSPEC_NORETURN ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se);
         static ErrorTypeEnum MapParseError(int32 hCode);
         static JavascriptError* MapParseError(ScriptContext* scriptContext, int32 hCode);
         static HRESULT GetRuntimeError(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage);
         static HRESULT GetRuntimeErrorWithScriptEnter(RecyclableObject* errorObject, __out_opt LPCWSTR * pMessage);
-        static void __declspec(noreturn) ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress = nullptr);
+        static void DECLSPEC_NORETURN ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress = nullptr);
         static void SetErrorMessageProperties(JavascriptError *pError, HRESULT errCode, PCWSTR message, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT errCode, PCWSTR varName, ScriptContext* scriptContext);
         static void SetErrorMessage(JavascriptError *pError, HRESULT hr, ScriptContext* scriptContext, va_list argList);

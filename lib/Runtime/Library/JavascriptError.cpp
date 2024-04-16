@@ -241,7 +241,7 @@ namespace Js
         return outputStr;
     }
 
-    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, HRESULT hr)
+    void DECLSPEC_NORETURN JavascriptError::MapAndThrowError(ScriptContext* scriptContext, HRESULT hr)
     {
         ErrorTypeEnum errorType;
         hr = MapHr(hr, &errorType);
@@ -249,13 +249,13 @@ namespace Js
         JavascriptError::MapAndThrowError(scriptContext, hr, errorType, nullptr);
     }
 
-    void __declspec(noreturn) JavascriptError::MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO* pei)
+    void DECLSPEC_NORETURN JavascriptError::MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO* pei)
     {
         JavascriptError* pError = MapError(scriptContext, errorType);
         SetMessageAndThrowError(scriptContext, pError, hr, pei);
     }
 
-    void __declspec(noreturn) JavascriptError::SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei)
+    void DECLSPEC_NORETURN JavascriptError::SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei)
     {
         PCWSTR varName = (pei ? pei->bstrDescription : nullptr);
 
@@ -277,13 +277,13 @@ namespace Js
         return pError; \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* pei) \
+    void DECLSPEC_NORETURN JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* pei) \
     { \
         JavascriptError *pError = create_method(scriptContext); \
         SetMessageAndThrowError(scriptContext, pError, hCode, pei); \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName) \
+    void DECLSPEC_NORETURN JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
@@ -291,7 +291,7 @@ namespace Js
         JavascriptExceptionOperators::Throw(pError, scriptContext); \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName) \
+    void DECLSPEC_NORETURN JavascriptError::err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
@@ -299,7 +299,7 @@ namespace Js
         JavascriptExceptionOperators::Throw(pError, scriptContext); \
     } \
     \
-    void __declspec(noreturn) JavascriptError::err_method##Var(ScriptContext* scriptContext, int32 hCode, ...) \
+    void DECLSPEC_NORETURN JavascriptError::err_method##Var(ScriptContext* scriptContext, int32 hCode, ...) \
     { \
         JavascriptLibrary *library = scriptContext->GetLibrary(); \
         JavascriptError *pError = library->create_method(); \
@@ -321,7 +321,7 @@ namespace Js
     THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
 #undef THROW_ERROR_IMPL
 
-    void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable); }
+    void DECLSPEC_NORETURN JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable); }
     JavascriptError* JavascriptError::MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType)
     {
         switch (errorType)
@@ -350,7 +350,7 @@ namespace Js
         };
     }
 
-    void __declspec(noreturn) JavascriptError::ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message)
+    void DECLSPEC_NORETURN JavascriptError::ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message)
     {
         JavascriptError *pError = scriptContext->GetLibrary()->CreateError();
         JavascriptError::SetErrorMessageProperties(pError, hCode, message, scriptContext);
@@ -605,17 +605,17 @@ namespace Js
         END_JS_RUNTIME_CALL(scriptContext);
     }
 
-    void __declspec(noreturn) JavascriptError::ThrowOutOfMemoryError(ScriptContext *scriptContext)
+    void DECLSPEC_NORETURN JavascriptError::ThrowOutOfMemoryError(ScriptContext *scriptContext)
     {
         JavascriptExceptionOperators::ThrowOutOfMemory(scriptContext);
     }
 
-    void __declspec(noreturn) JavascriptError::ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress)
+    void DECLSPEC_NORETURN JavascriptError::ThrowStackOverflowError(ScriptContext *scriptContext, PVOID returnAddress)
     {
         JavascriptExceptionOperators::ThrowStackOverflow(scriptContext, returnAddress);
     }
 
-    void __declspec(noreturn) JavascriptError::ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se)
+    void DECLSPEC_NORETURN JavascriptError::ThrowParserError(ScriptContext* scriptContext, HRESULT hrParser, CompileScriptException* se)
     {
         Assert(FAILED(hrParser));
 

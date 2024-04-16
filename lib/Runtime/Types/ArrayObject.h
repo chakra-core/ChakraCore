@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -36,7 +37,7 @@ namespace Js
         // For boxing stack instance
         ArrayObject(ArrayObject * instance, bool deepCopy);
 
-        void __declspec(noreturn) ThrowItemNotConfigurableError(PropertyId propId = Constants::NoProperty);
+        void DECLSPEC_NORETURN ThrowItemNotConfigurableError(PropertyId propId = Constants::NoProperty);
         void VerifySetItemAttributes(PropertyId propId, PropertyAttributes attributes);
 
     public:

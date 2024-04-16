@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -425,7 +426,7 @@ bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch)
 #include "HashFunc.cpp"
 
 
-__declspec(noreturn) void HashTbl::OutOfMemory()
+DECLSPEC_NORETURN void HashTbl::OutOfMemory()
 {
     throw ParseExceptionObject(ERRnoMemory);
 }

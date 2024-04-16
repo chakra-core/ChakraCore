@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -774,7 +775,7 @@ private:
         return m_ptoken->tk = tkScanError;
     }
 
-    __declspec(noreturn) void Error(HRESULT hr)
+    DECLSPEC_NORETURN void Error(HRESULT hr)
     {
         m_pchMinTok = m_currentCharacter;
         m_cMinTokMultiUnits = this->m_cMultiUnits;

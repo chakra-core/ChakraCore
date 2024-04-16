@@ -91,7 +91,7 @@ LEAVE:
 }
 
 extern "C"
-errno_t __cdecl rand_s(unsigned int* randomValue) noexcept
+errno_t rand_s(unsigned int* randomValue) noexcept
 {
     if (randomValue == nullptr) return 1;
 
