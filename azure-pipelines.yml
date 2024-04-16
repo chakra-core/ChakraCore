@@ -87,13 +87,12 @@ jobs:
         ninja
       displayName: 'Build'
 
+    - publish: $(System.DefaultWorkingDirectory)/build/bin
+
     - script: |
         cd build
         ninja check
       displayName: 'Test'
-
-    - publish: $(System.DefaultWorkingDirectory)/build/bin
-      artifact: CMake-Bin
 
   - job: MSVC
     timeoutInMinutes: 120
@@ -174,6 +173,8 @@ jobs:
         BUILD: $(build_type)
         SPECIAL: $(special_build)
 
+    - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild/bin
+
     - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
       displayName: 'Test'
       condition: eq(variables['do_test'], true)
@@ -181,6 +182,3 @@ jobs:
         TARGET: $(target)
         BUILD: $(build_type)
         TEST_TAGS: ${test_tags}
-    
-    - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild/bin
-      artifact: MSVC-Bin
