@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------------------------------
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -32,6 +32,11 @@ jobs:
     strategy:
       maxParallel: 6
       matrix:
+        Linux.Debug:
+          image_name: 'ubuntu-22.04'
+          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
+          build_type: 'Debug'
+          libtype_flag: ''
         Linux.NoJit:
           image_name: 'ubuntu-22.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
