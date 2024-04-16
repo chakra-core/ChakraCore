@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------------------------------
 # Copyright (C) Microsoft. All rights reserved.
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -316,11 +316,11 @@ class TestVariant(object):
 
     @staticmethod
     def _has_expansion(flags):
-        return any(re.match('.*\${.*}', f) for f in flags)
+        return any(re.match(r'.*\${.*}', f) for f in flags)
 
     @staticmethod
     def _expand(flag, test):
-        return re.sub('\${id}', str(test.id), flag)
+        return re.sub(r'\${id}', str(test.id), flag)
 
     def _expand_compile_flags(self, test):
         if self._compile_flags_has_expansion:
