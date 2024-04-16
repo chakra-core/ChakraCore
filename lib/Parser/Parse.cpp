@@ -5483,7 +5483,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
             {
                 // Class member methods have optional separators. We need to check whether we are
                 // getting the IchLim of the correct token.
-                Assert(this->GetScanner()->m_tkPrevious == tkRCurly && needScanRCurly);
+                Assert(this->GetScanner()->GetPrevious() == tkRCurly && needScanRCurly);
 
                 this->m_funcInArray += this->GetScanner()->IchMinTok() - /*tkRCurly*/ 1 - ichMin;
             }
@@ -6529,7 +6529,7 @@ bool Parser::FastScanFormalsAndBody()
         {
             int opl;
             OpCode nop;
-            tokens tkPrev = this->GetScanner()->m_tkPrevious;
+            tokens tkPrev = this->GetScanner()->GetPrevious();
             if ((this->GetHashTbl()->TokIsBinop(tkPrev, &opl, &nop) && nop != knopNone) ||
                 (this->GetHashTbl()->TokIsUnop(tkPrev, &opl, &nop) &&
                     nop != knopNone &&
@@ -11267,6 +11267,12 @@ LNeedTerminator:
     default:
         if (!this->GetScanner()->FHadNewLine())
         {
+            Token previous = this->GetScanner()->GetPreviousToken();
+            if (tkID == previous.tk && wellKnownPropertyPids.await == previous.GetIdentifier(this->GetHashTbl()))
+            {
+                Error(ERRBadAwait);
+            }
+
             Error(ERRnoSemic);
         }
         else

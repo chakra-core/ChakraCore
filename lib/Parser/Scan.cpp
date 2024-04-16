@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -1592,7 +1593,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     bool seenDelimitedCommentEnd = false;
 
     // store the last token
-    m_tkPrevious = m_ptoken->tk;
+    m_tokenPrevious = *m_ptoken;
     m_iecpLimTokPrevious = IecpLimTok();    // Introduced for use by lambda parsing to find correct span of expression lambdas
     m_ichLimTokPrevious = IchLimTok();
     size_t savedMultiUnits = this->m_cMultiUnits;
