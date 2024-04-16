@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------------------------------
-# Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+# Copyright (c) ChakraCore Project Contributors. All rights reserved.
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
@@ -92,6 +92,9 @@ jobs:
         ninja check
       displayName: 'Test'
 
+    - publish: $(System.DefaultWorkingDirectory)/build/bin
+      artifact: CMake-Bin
+
   - job: MSVC
     timeoutInMinutes: 120
     strategy:
@@ -178,3 +181,6 @@ jobs:
         TARGET: $(target)
         BUILD: $(build_type)
         TEST_TAGS: ${test_tags}
+    
+    - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild/bin
+      artifact: MSVC-Bin
