@@ -88,6 +88,7 @@ jobs:
       displayName: 'Build'
 
     - publish: $(System.DefaultWorkingDirectory)/build/bin
+      artifact: $(Agent.JobName)
 
     - script: |
         cd build
@@ -174,6 +175,7 @@ jobs:
         SPECIAL: $(special_build)
 
     - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild/bin
+      artifact: $(Agent.JobName)
 
     - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
       displayName: 'Test'
