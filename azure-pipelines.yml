@@ -47,16 +47,6 @@ jobs:
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
           libtype_flag: ''
-        Ubuntu18.ReleaseWithDebug:
-          image_name: 'ubuntu-18.04'
-          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
-          build_type: 'RelWithDebInfo'
-          libtype_flag: ''
-        Ubuntu18.Release:
-          image_name: 'ubuntu-18.04'
-          deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
-          build_type: 'Release'
-          libtype_flag: ''
         OSX.DebugNoICU:
           image_name: 'macOS-latest'
           deps: 'brew install ninja'
