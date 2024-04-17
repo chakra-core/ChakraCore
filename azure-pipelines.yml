@@ -183,7 +183,7 @@ jobs:
         BUILD: $(build_type)
         SPECIAL: $(special_build)
 
-    - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild$(matrix.build_outdir_suffix)/bin
+    - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild$(build_outdir_suffix)/bin
       artifact: $(Agent.JobName)
 
     - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
