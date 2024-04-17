@@ -749,12 +749,16 @@ namespace regex
             return result;
         }
 
-       bool __attribute__((noinline)) CheckNull( void* obj ) { return obj == nullptr; }
+#ifndef _MSC_VER
+       bool __attribute__((noinline)) CheckEq(void* obj1, void *obj2) { return obj1 == obj2; }
+#else
+#define CheckEq(a, b) (a) == (b)
+#endif
 
         // Info:        Return true if the list is empty.
         bool IsEmpty()
         {
-            return CheckNull(this);
+            return CheckEq(this, Empty());
         }
 
         // Info:        Return a list containing the given single value
