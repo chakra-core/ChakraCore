@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -748,10 +749,12 @@ namespace regex
             return result;
         }
 
+       bool __attribute__((noinline)) CheckNull( void* obj ) { return obj == nullptr; }
+
         // Info:        Return true if the list is empty.
         bool IsEmpty()
         {
-            return this==Empty();
+            return CheckNull(this);
         }
 
         // Info:        Return a list containing the given single value
