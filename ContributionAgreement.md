@@ -44,3 +44,4 @@ This agreement has been signed by:
 |Aidan Bickford| BickfordA|
 |Ryoichi Kaida| camcam-lemon|
 |Lukas Kurz| ShortDevelopment|
+|Paul Pluzhnikov|EmployedRussian|
