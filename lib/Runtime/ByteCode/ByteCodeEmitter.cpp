@@ -8592,6 +8592,8 @@ void EmitCall(
         }
     }
 
+    EmitNullPropagation(pnodeCall->pnodeTarget->location, byteCodeGenerator, funcInfo, pnodeCall->isNullPropagating);
+
     // If we are strictly overriding the this location, ignore what the call target set this location to.
     if (overrideThisLocation != Js::Constants::NoRegister)
     {
