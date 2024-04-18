@@ -11,7 +11,7 @@
 #error Include arm64.h in builds of ARM64 targets only.
 #endif
 
-#ifdef __getReg
+#if defined(__getReg) || defined(_WIN64)
 #define arm64_GET_CURRENT_FRAME() ((LPVOID)__getReg(29))
 #else
 extern "C" LPVOID arm64_GET_CURRENT_FRAME(void);
