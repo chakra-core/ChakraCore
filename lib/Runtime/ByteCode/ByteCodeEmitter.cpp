@@ -20,18 +20,23 @@ void EmitUseBeforeDeclaration(Symbol *sym, ByteCodeGenerator *byteCodeGenerator,
 void EmitUseBeforeDeclarationRuntimeError(ByteCodeGenerator *byteCodeGenerator, Js::RegSlot location);
 void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator, FuncInfo * funcInfo);
 
-/**
- * This function generates the common code for null-propagation / optional-chaining.
- */
+/// <summary>
+/// This function generates the common code for null-propagation / optional-chaining.
+/// If the targetObject is nullish this will short-circuit(skip) to the end of the chain-expression.
+/// 
+/// It should be called on every <c>?.</c> location.
+/// A call to this function is only valid from a node-emission inside a `knopOptChain` node.
+/// </summary>
 static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool isNullPropagating) {
     if (!isNullPropagating)
         return;
 
-    Assert(funcInfo->currentOptionalChain != 0);
+    // Ensure we've setup the skipLabel in the emission of a `knopOptChain`
+    Assert(funcInfo->currentOptionalChainSkipLabel >= 0);
 
-    // if (targetObject == null) goto chainEnd;
+    // if (targetObject == null) goto skipLabel;
     byteCodeGenerator->Writer()->BrReg2(
-        Js::OpCode::BrEq_A, funcInfo->currentOptionalChain->skipLabel,
+        Js::OpCode::BrEq_A, funcInfo->currentOptionalChainSkipLabel,
         targetObjectSlot, funcInfo->nullConstantRegister
     );
 }
@@ -11621,31 +11626,35 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         byteCodeGenerator->Writer()->Element(
             Js::OpCode::LdElemI_A, pnode->location, protoLocation, pnode->AsParseNodeBin()->pnode2->location);
 
-
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
-
+    // The whole optional-chain expression will be wrapped in a UniNode with `knopOptChain`.
     case knopOptChain: {
-        FuncInfo::OptionalChainInfo *previousChain = funcInfo->currentOptionalChain;
+        Js::ByteCodeLabel previousSkipLabel = funcInfo->currentOptionalChainSkipLabel;
 
+        // Create a label that can skip the whole chain and store in `funcInfo`
         Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
-        FuncInfo::OptionalChainInfo currentOptionalChain = FuncInfo::OptionalChainInfo(skipLabel);
-        funcInfo->currentOptionalChain = &currentOptionalChain;
+        funcInfo->currentOptionalChainSkipLabel = skipLabel;
 
+        // Acquire slot for the result value
+        // Prefill it with `undefined` (Fallback for short-circuiting)
         Js::RegSlot resultSlot = funcInfo->AcquireLoc(pnode);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, resultSlot); // result = undefined
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, resultSlot);
 
-        // emit chain
+        // emit chain expression
+        // Every `?.` node will call `EmitNullPropagation`
+        // `EmitNullPropagation` short-circuits to `skipLabel` in case of a nullish value
         ParseNodePtr innerNode = pnode->AsParseNodeUni()->pnode1;
         Emit(innerNode, byteCodeGenerator, funcInfo, false);
 
-        // Copy result
+        // Copy the expression result
+        // Only reached if we did not short-circuit
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, resultSlot, innerNode->location);
         funcInfo->ReleaseLoc(innerNode);
 
         byteCodeGenerator->Writer()->MarkLabel(skipLabel);
-        funcInfo->currentOptionalChain = previousChain;
+        funcInfo->currentOptionalChainSkipLabel = previousSkipLabel;
         break;
     }
     // this is MemberExpression as rvalue

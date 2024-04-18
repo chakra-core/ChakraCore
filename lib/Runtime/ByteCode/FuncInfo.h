@@ -96,13 +96,7 @@ public:
     Js::RegSlot outArgsCurrentExpr; // max number of out args accumulated in the current nested expression
     uint        innerScopeCount;
     uint        currentInnerScopeIndex;
-    struct OptionalChainInfo {
-        Js::ByteCodeLabel skipLabel;
-
-        OptionalChainInfo(Js::ByteCodeLabel skipLabel) {
-            this->skipLabel = skipLabel;
-        }
-    } *currentOptionalChain;
+    Js::ByteCodeLabel currentOptionalChainSkipLabel;
 #if DBG
     uint32 outArgsDepth; // number of calls nested in an expression
 #endif

@@ -4192,19 +4192,20 @@ ParseNodePtr Parser::ParsePostfixOperators(
             ParseNodePtr name = nullptr;
             OpCode opCode = knopDot;
 
+            // We don't use separate knops for optional-chains
+            // Instead mark nodes as null-propagating
             bool isNullPropagating = tkOptChain == m_token.tk;
             if (isNullPropagating)
             {
                 isOptionalChain = true;
             }
-            // We don't use a custom token but rather tell that knopDot is null-propagating
-            // opCode = knopOptChain;
 
             this->GetScanner()->Scan();
             if (!m_token.IsIdentifier())
             {
                 if (isNullPropagating)
                 {
+                    // We don't need an identifier for an Index `?.[` or Call `?.(`
                     switch (m_token.tk)
                     {
                     case tkLParen:
@@ -4316,7 +4317,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
         default:
             if (buildAST && isOptionalChain)
             {
-                // Wrap as optional chain
+                // Wrap the whole expression as an optional-chain
                 return CreateUniNode(knopOptChain, pnode);
             }
             return pnode;
