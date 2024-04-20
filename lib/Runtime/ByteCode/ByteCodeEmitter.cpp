@@ -8122,6 +8122,7 @@ void EmitCallTarget(
         else
         {
             *thisLocation = pnodeBinTarget->pnode1->location;
+            EmitNullPropagation(pnodeBinTarget->pnode1->location, byteCodeGenerator, funcInfo, pnodeBinTarget->isNullPropagating);
             EmitMethodFld(pnodeBinTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
         }
 
@@ -8130,22 +8131,24 @@ void EmitCallTarget(
 
     case knopIndex:
     {
-        funcInfo->AcquireLoc(pnodeTarget);
+        ParseNodeBin *pnodeBinTarget = pnodeTarget->AsParseNodeBin();
+        funcInfo->AcquireLoc(pnodeBinTarget);
         // Assign the call target operand(s), putting them into expression temps if necessary to protect
         // them from side-effects.
-        if (fSideEffectArgs || !(ParseNode::Grfnop(pnodeTarget->AsParseNodeBin()->pnode2->nop) & fnopLeaf))
+        if (fSideEffectArgs || !(ParseNode::Grfnop(pnodeBinTarget->pnode2->nop) & fnopLeaf))
         {
             // Though we're done with target evaluation after this point, still protect opnd1 from
             // arg or opnd2 side-effects as it's the "this" pointer.
-            SaveOpndValue(pnodeTarget->AsParseNodeBin()->pnode1, funcInfo);
+            SaveOpndValue(pnodeBinTarget->pnode1, funcInfo);
         }
-        Emit(pnodeTarget->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
-        Emit(pnodeTarget->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo, false);
+        Emit(pnodeBinTarget->pnode1, byteCodeGenerator, funcInfo, false);
+        EmitNullPropagation(pnodeBinTarget->pnode1->location, byteCodeGenerator, funcInfo, pnodeBinTarget->isNullPropagating);
+        Emit(pnodeBinTarget->pnode2, byteCodeGenerator, funcInfo, false);
 
-        Js::RegSlot indexLocation = pnodeTarget->AsParseNodeBin()->pnode2->location;
-        Js::RegSlot protoLocation = pnodeTarget->AsParseNodeBin()->pnode1->location;
+        Js::RegSlot indexLocation = pnodeBinTarget->pnode2->location;
+        Js::RegSlot protoLocation = pnodeBinTarget->pnode1->location;
 
-        if (ByteCodeGenerator::IsSuper(pnodeTarget->AsParseNodeBin()->pnode1))
+        if (ByteCodeGenerator::IsSuper(pnodeBinTarget->pnode1))
         {
             Emit(pnodeTarget->AsParseNodeSuperReference()->pnodeThis, byteCodeGenerator, funcInfo, false);
             protoLocation = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, protoLocation, funcInfo);
@@ -8157,16 +8160,16 @@ void EmitCallTarget(
         }
         else
         {
-            *thisLocation = pnodeTarget->AsParseNodeBin()->pnode1->location;
+            *thisLocation = pnodeBinTarget->pnode1->location;
         }
 
         EmitMethodElem(pnodeTarget, protoLocation, indexLocation, byteCodeGenerator);
 
-        funcInfo->ReleaseLoc(pnodeTarget->AsParseNodeBin()->pnode2); // don't release indexLocation until after we use it.
+        funcInfo->ReleaseLoc(pnodeBinTarget->pnode2); // don't release indexLocation until after we use it.
 
-        if (ByteCodeGenerator::IsSuper(pnodeTarget->AsParseNodeBin()->pnode1))
+        if (ByteCodeGenerator::IsSuper(pnodeBinTarget->pnode1))
         {
-            funcInfo->ReleaseLoc(pnodeTarget->AsParseNodeBin()->pnode1);
+            funcInfo->ReleaseLoc(pnodeBinTarget->pnode1);
         }
         break;
     }
