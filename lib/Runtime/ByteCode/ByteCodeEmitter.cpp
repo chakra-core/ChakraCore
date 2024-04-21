@@ -8,6 +8,7 @@
 #include "Language/AsmJs.h"
 #include "ConfigFlagsList.h"
 
+void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall = false, bool isTopLevel = false);
 void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitAssignment(ParseNode *asgnNode, ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitLoad(ParseNode *rhs, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
@@ -26,6 +27,7 @@ void VisitClearTmpRegs(ParseNode * pnode, ByteCodeGenerator * byteCodeGenerator,
 /// 
 /// It should be called on every <c>?.</c> location.
 /// A call to this function is only valid from a node-emission inside a `knopOptChain` node.
+/// See EmitOptionalChain.
 /// </summary>
 static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool isNullPropagating) {
     if (!isNullPropagating)
@@ -39,6 +41,39 @@ static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator 
         Js::OpCode::BrEq_A, funcInfo->currentOptionalChainSkipLabel,
         targetObjectSlot, funcInfo->nullConstantRegister
     );
+}
+
+/// <summary>
+/// The whole optional-chain expression will be wrapped in a UniNode with `knopOptChain`.
+/// Use this function to emit the whole expression.
+/// </summary>
+template <class TEmitProc>
+static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, TEmitProc emitChainContent) {
+    Assert(knopOptChain == pnodeOptChain->nop);
+
+    Js::ByteCodeLabel previousSkipLabel = funcInfo->currentOptionalChainSkipLabel;
+
+    // Create a label that can skip the whole chain and store it in `funcInfo`
+    Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
+    funcInfo->currentOptionalChainSkipLabel = skipLabel;
+
+    // Acquire slot for the result value
+    // Prefill it with `undefined` (Fallback for short-circuiting)
+    Js::RegSlot resultSlot = funcInfo->AcquireLoc(pnodeOptChain);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, resultSlot);
+
+    // Copy values from wrapper to inner expression
+    ParseNodePtr innerNode = pnodeOptChain->pnode1;
+    innerNode->isUsed = pnodeOptChain->isUsed;
+    innerNode->location = pnodeOptChain->location;
+
+    // emit chain expression
+    // Every `?.` node will call `EmitNullPropagation`
+    // `EmitNullPropagation` short-circuits to `skipLabel` in case of a nullish value
+    emitChainContent(innerNode);
+
+    byteCodeGenerator->Writer()->MarkLabel(skipLabel);
+    funcInfo->currentOptionalChainSkipLabel = previousSkipLabel;
 }
 
 bool CallTargetIsArray(ParseNode *pnode)
@@ -272,7 +307,6 @@ bool IsArguments(ParseNode *pnode)
 }
 
 bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator);
-void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, bool isConstructorCall = false, bool isTopLevel = false);
 void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation = Js::Constants::NoRegister, bool isNullPropagating = false);
 bool IsExpressionStatement(ParseNode* stmt, const Js::ScriptContext *const scriptContext);
 void EmitInvoke(Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo);
@@ -8078,6 +8112,12 @@ void EmitCallTarget(
 
     switch (pnodeTarget->nop)
     {
+    case knopOptChain: {
+        EmitOptionalChainWrapper(pnodeTarget->AsParseNodeUni(), byteCodeGenerator, funcInfo, [&](ParseNodePtr innerNode) {
+            EmitCallTarget(innerNode, fSideEffectArgs, thisLocation, releaseThisLocation, callObjLocation, byteCodeGenerator, funcInfo, callApplyCallSiteId);
+        });
+        break;
+    }
     case knopDot:
     {
         ParseNodeBin * pnodeBinTarget = pnodeTarget->AsParseNodeBin();
@@ -11632,34 +11672,13 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
     }
-    // The whole optional-chain expression will be wrapped in a UniNode with `knopOptChain`.
-    case knopOptChain: {
-        Js::ByteCodeLabel previousSkipLabel = funcInfo->currentOptionalChainSkipLabel;
 
-        // Create a label that can skip the whole chain and store in `funcInfo`
-        Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
-        funcInfo->currentOptionalChainSkipLabel = skipLabel;
-
-        // Acquire slot for the result value
-        // Prefill it with `undefined` (Fallback for short-circuiting)
-        Js::RegSlot resultSlot = funcInfo->AcquireLoc(pnode);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, resultSlot);
-
-        // emit chain expression
-        // Every `?.` node will call `EmitNullPropagation`
-        // `EmitNullPropagation` short-circuits to `skipLabel` in case of a nullish value
-        ParseNodePtr innerNode = pnode->AsParseNodeUni()->pnode1;
-        Emit(innerNode, byteCodeGenerator, funcInfo, false);
-
-        // Copy the expression result
-        // Only reached if we did not short-circuit
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, resultSlot, innerNode->location);
-        funcInfo->ReleaseLoc(innerNode);
-
-        byteCodeGenerator->Writer()->MarkLabel(skipLabel);
-        funcInfo->currentOptionalChainSkipLabel = previousSkipLabel;
+    case knopOptChain:
+        EmitOptionalChainWrapper(pnode->AsParseNodeUni(), byteCodeGenerator, funcInfo, [&](ParseNodePtr innerNode) {
+            Emit(innerNode, byteCodeGenerator, funcInfo, false);
+        });
         break;
-    }
+
     // this is MemberExpression as rvalue
     case knopDot:
     {
