@@ -51,7 +51,7 @@ Buffer size required to be passed to _gcvt, fcvt and other fp conversion routine
 //#include <stddef.h>
 //#include <crtdefs.h>
 //#include <stdio.h>
-//#include <stdarg.h>
+#include <stdarg.h>
 //#include <cvt.h>
 //#include <conio.h>
 //#include <internal.h>
