@@ -1,5 +1,5 @@
 name: Build Issue
-description: Report a failing build
+description: Report a build issue
 title: '[Build]: '
 labels:
   - Build Break
@@ -8,14 +8,14 @@ body:
     attributes:
       label: Operating System
       description: Specify the OS (with version) you are using
-      placeholder: Name Version
+      placeholder: Name + Version
     validations:
       required: true
   - type: input
     attributes:
       label: Compiler
       description: Specify the compiler (with version) you are using
-      placeholder: Name Version
+      placeholder: Name + Version
     validations:
       required: true
   - type: input

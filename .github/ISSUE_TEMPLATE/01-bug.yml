@@ -1,5 +1,5 @@
 name: Bug report
-description: Template for bug reports
+description: Report a general bug in ChakraCore
 title: '[Bug]: '
 labels:
   - Bug
