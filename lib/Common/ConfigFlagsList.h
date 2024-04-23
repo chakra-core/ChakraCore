@@ -675,12 +675,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESNullishCoalescingOperator (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
 
-// Jitting generators has not been tested on ARM
-// enabled only for x86 and x64 for now
+// Jitting generator functions is not functional on ARM
+// Also still contains significant bugs on x86/x64 hence disabled
 #ifdef _M_ARM32_OR_ARM64
     #define DEFAULT_CONFIG_JitES6Generators            (false)
 #else
-    #define DEFAULT_CONFIG_JitES6Generators            (true)
+    #define DEFAULT_CONFIG_JitES6Generators            (false)
 #endif
 
 #ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
