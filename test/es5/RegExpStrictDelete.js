@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -22,7 +23,7 @@ for (var i = 0, len = props.length; i < len; i++)
     }
     catch (err)
     {
-        if (!err instanceof TypeError)
+        if (!(err instanceof TypeError))
             WScript.Echo("Error: strict delete threw a non-TypeError: " + err);
     }
 }
