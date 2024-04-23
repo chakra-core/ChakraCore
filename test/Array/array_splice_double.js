@@ -44,10 +44,10 @@ WScript.Echo(a);
 WScript.Echo(x);
 
 //Test array
-var b = [8.32,9.232];
-var c = [11.232,12.234];
+var b = [8.32, 9.232];
+var c = [11.232, 12.234];
 
-x = a.splice(5,1);
+x = a.splice(5, 1);
 WScript.Echo(x);
 WScript.Echo(a);
 
@@ -73,7 +73,7 @@ f.x = 0;
 f.y = 1;
 f.z = 2;
 
-x = a.splice(1,2, f, "hello");
+x = a.splice(1, 2, f, "hello");
 WScript.Echo(x);
 WScript.Echo(a);
 
@@ -116,37 +116,31 @@ WScript.Echo(x.length);
 x = new String("hello world");
 x.foo = Array.prototype.splice;
 y = undefined;
-try
-{
- y = x.foo(0, 5);
+try {
+    y = x.foo(0, 5);
 }
-catch(e)
-{
- if (!(e instanceof TypeError)) throw(e);
- WScript.Echo(y);
- WScript.Echo(x);
+catch (e) {
+    if (!(e instanceof TypeError)) throw (e);
+    WScript.Echo(y);
+    WScript.Echo(x);
 }
 
-try
-{
- y = x.foo(0, 5);
+try {
+    y = x.foo(0, 5);
 }
-catch(e)
-{
- if (!(e instanceof TypeError)) throw(e);
- WScript.Echo(y);
- WScript.Echo(x);
+catch (e) {
+    if (!(e instanceof TypeError)) throw (e);
+    WScript.Echo(y);
+    WScript.Echo(x);
 }
 
-try
-{
- y = x.foo(0, 13);
+try {
+    y = x.foo(0, 13);
 }
- catch(e)
-{
- if (!(e instanceof TypeError)) throw(e);
- WScript.Echo(y);
- WScript.Echo(x);
+catch (e) {
+    if (!(e instanceof TypeError)) throw (e);
+    WScript.Echo(y);
+    WScript.Echo(x);
 }
 
 WScript.Echo("Test: splice when the item to replace is not writable."); // WOOB: 1139812
@@ -155,22 +149,20 @@ Object.defineProperty(a, "0", { value: 0 });
 Object.defineProperty(a, "1", { value: 1 });
 a.length = 2;
 try {
-  Array.prototype.splice.apply(a, [0, 1, 'z']);
+    Array.prototype.splice.apply(a, [0, 1, 'z']);
 } catch (ex) {
-  WScript.Echo("e instanceOf TypeError = " + (ex instanceof TypeError));
+    WScript.Echo("e instanceOf TypeError = " + (ex instanceof TypeError));
 }
 WScript.Echo("a.length = " + a.length);
 
 a = new Array(1000);
 x = a.splice(1, 17, "a");
 
-function test0()
-{
-    var arr = [0,1.12,2.23,3,4.32,5,6.23,7,8,9];
-    for(var __loopvar4 = 0; __loopvar4 < 2; __loopvar4++)
-    {
-      arr.length --;
-      arr.splice(3,1,31.23,32.32,33.23);
+function test0() {
+    var arr = [0, 1.12, 2.23, 3, 4.32, 5, 6.23, 7, 8, 9];
+    for (var __loopvar4 = 0; __loopvar4 < 2; __loopvar4++) {
+        arr.length--;
+        arr.splice(3, 1, 31.23, 32.32, 33.23);
     }
     return arr.length;
 }
