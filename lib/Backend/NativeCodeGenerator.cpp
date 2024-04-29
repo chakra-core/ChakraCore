@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -246,8 +247,11 @@ NativeCodeGenerator::GenerateAllFunctions(Js::FunctionBody * fn)
             for (uint i = 0; i < fn->GetLoopCount(); i++)
             {
                 Js::LoopHeader * loopHeader = fn->GetLoopHeader(i);
-                Js::EntryPointInfo * entryPointInfo = loopHeader->GetCurrentEntryPointInfo();
-                this->GenerateLoopBody(fn, loopHeader, entryPointInfo);
+                if (loopHeader->hasYield == false)
+                {
+                    Js::EntryPointInfo * entryPointInfo = loopHeader->GetCurrentEntryPointInfo();
+                    this->GenerateLoopBody(fn, loopHeader, entryPointInfo);
+                }
             }
         }
         else
@@ -631,6 +635,7 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
     ASSERT_THREAD();
     Assert(fn->GetScriptContext()->GetNativeCodeGenerator() == this);
     Assert(entryPoint->jsMethod == nullptr);
+    Assert(!loopHeader->hasYield);
 
 #if DBG_DUMP
     if (PHASE_TRACE1(Js::JITLoopBodyPhase))

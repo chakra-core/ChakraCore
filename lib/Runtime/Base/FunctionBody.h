@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -725,6 +726,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         Field(uint) rejitCount;
 #endif
+        Field(bool) hasYield;
         Field(bool) isNested;
         Field(bool) isInTry;
         Field(bool) isInTryFinally;
@@ -1153,8 +1155,9 @@ namespace Js
 
         bool IsJitLoopBodyPhaseEnabled() const
         {
-            // Consider: Allow JitLoopBody in generator functions for loops that do not yield.
-            return !PHASE_OFF(JITLoopBodyPhase, this) && !PHASE_OFF(FullJitPhase, this) && !this->IsCoroutine();
+            return !PHASE_OFF(JITLoopBodyPhase, this) && !PHASE_OFF(FullJitPhase, this) &&
+                (!this->IsCoroutine() || !CONFIG_FLAG(JitES6Generators) || this->IsModule());
+                // Jitting loop bodies is currently disabled when testing the Jitting of whole generator functions
         }
 
         bool IsJitLoopBodyPhaseForced() const
