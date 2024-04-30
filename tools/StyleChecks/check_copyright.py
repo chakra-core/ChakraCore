@@ -48,13 +48,17 @@ else:
         pattern = '^.{1,5}%s$' % line
         regexes.append(re.compile(pattern))
 
-def report_incorrect(file_name, pairs):
+def report_incorrect(file_name, pairs, fail_line):
     # found a problem so report the problem to the caller and exit
     print(file_name, "... does not contain a correct copyright notice.\n")
     # print the relevant lines to help the reader find the problem
     for (_, line) in pairs:
         print("    ", line, end="")
     print()
+    if (fail_line != ""):
+        print("Match failed at line:")
+        print("    ", fail_line, end="")
+        print()
 
 linecount = 0
 pairs = []
@@ -69,12 +73,12 @@ for (regex, line) in pairs:
     line = line.rstrip()
     matches = regex.match(line)
     if not matches:
-        report_incorrect(file_name, pairs)
+        report_incorrect(file_name, pairs, line)
         exit(1)
 
 if linecount == 0:
     # the file was empty (e.g. dummy.js) so no problem
     exit(0)
 elif linecount != len(regexes):
-    report_incorrect(file_name, pairs)
+    report_incorrect(file_name, pairs, "")
     exit(1)
