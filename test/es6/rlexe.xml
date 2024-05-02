@@ -134,48 +134,6 @@
   </test>
   <test>
     <default>
-      <files>generator-jit-bugs.js</files>
-      <compile-flags>-JitES6Generators -args summary -endargs</compile-flags>
-      <tags>exclude_nonative</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>generator-jit-bugs.js</files>
-      <compile-flags>-JitES6Generators -off:simplejit -args summary -endargs</compile-flags>
-      <tags>exclude_nonative</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>generator-jit-bugs.js</files>
-      <compile-flags>-JitES6Generators -off:fulljit -args summary -endargs</compile-flags>
-      <tags>exclude_nonative, exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>async-jit-bugs.js</files>
-      <compile-flags>-JitES6Generators -args summary -endargs</compile-flags>
-      <tags>exclude_nonative</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>async-jit-bugs.js</files>
-      <compile-flags>-JitES6Generators -off:simplejit -args summary -endargs</compile-flags>
-      <tags>exclude_nonative</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>async-jit-bugs.js</files>
-      <compile-flags>-JitES6Generators -off:fulljit -args summary -endargs</compile-flags>
-      <tags>exclude_nonative, exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>proto_basic.js</files>
       <baseline>proto_basic.baseline</baseline>
     </default>
@@ -913,7 +871,6 @@
   <test>
     <default>
       <files>generators-functionality.js</files>
-      <!-- <compile-flags>-ES6Generators -JitES6Generators -args summary -endargs</compile-flags> -->
       <compile-flags>-ES6Generators -args summary -endargs</compile-flags>
       <tags>exclude_arm</tags>
     </default>

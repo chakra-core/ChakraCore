@@ -1,0 +1,11 @@
+Loop 0 a = 40
+Loop 0 a = 80
+Loop 0 a = 120
+Loop 0 a = 160
+Loop 3 completed
+Loop 4 k = 160
+Loop 4 k = 120
+Loop 4 k = 80
+Loop 4 k = 40
+Loop 4 k = 0
+Loop 4 completed
