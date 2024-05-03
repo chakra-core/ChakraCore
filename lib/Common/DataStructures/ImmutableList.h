@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -748,10 +749,16 @@ namespace regex
             return result;
         }
 
+#ifndef _MSC_VER
+       bool __attribute__((noinline)) CheckEq(void* obj1, void *obj2) { return obj1 == obj2; }
+#else
+#define CheckEq(a, b) (a) == (b)
+#endif
+
         // Info:        Return true if the list is empty.
         bool IsEmpty()
         {
-            return this==Empty();
+            return CheckEq(this, Empty());
         }
 
         // Info:        Return a list containing the given single value

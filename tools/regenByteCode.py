@@ -137,6 +137,8 @@ def append_bytecode(header, command, in_path, file_name, error):
     job.wait()
     if job.returncode != 0:
         print(error)
+        print('Command line: ')
+        print(*command_with_file)
         sys.exit(1)
 
 # Load file and ensure line endings are '\n' if on windows
