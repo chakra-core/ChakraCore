@@ -7954,21 +7954,35 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
 
     this->m_irBuilder->AddInstr(functionBegin, this->m_irBuilder->m_functionStartOffset);
 
-    // Save this value for later use
-    this->m_generatorFrameOpnd = genFrameOpnd;
-    this->m_func->SetGeneratorFrameSym(genFrameOpnd->GetStackSym());
-
     return this->m_irBuilder->m_lastInstr;
 }
 
 IR::RegOpnd*
 IRBuilder::GeneratorJumpTable::BuildForInEnumeratorArrayOpnd(uint32 offset)
 {   
-    Assert(this->m_generatorFrameOpnd != nullptr);
+    // s1 = Ld_A prm1
+    StackSym* genParamSym = StackSym::NewParamSlotSym(1, this->m_func);
+    this->m_func->SetArgOffset(genParamSym, LowererMD::GetFormalParamOffset() * MachPtr);
 
+    IR::SymOpnd* genParamOpnd = IR::SymOpnd::New(genParamSym, TyMachPtr, this->m_func);
+    IR::RegOpnd* genRegOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::Ld_A, genRegOpnd, genParamOpnd, this->m_func);
+    this->m_irBuilder->AddInstr(instr, offset);
+
+    // s2 = Ld_A s1[offset of JavascriptGenerator::frame]
+    IR::RegOpnd* genFrameOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    instr = IR::Instr::New(
+        Js::OpCode::Ld_A,
+        genFrameOpnd,
+        POINTER_OFFSET(genRegOpnd, Js::JavascriptGenerator::GetFrameOffset(), GeneratorFrame),
+        this->m_func
+    );
+    this->m_irBuilder->AddInstr(instr, offset);
+
+    // s3 = Ld_A s2[offset of ForInEnumerator]
     IR::RegOpnd* forInEnumeratorArrayOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    IR::Instr* instr = IR::Instr::New(Js::OpCode::Ld_A, forInEnumeratorArrayOpnd,
-        POINTER_OFFSET(this->m_generatorFrameOpnd, Js::InterpreterStackFrame::GetOffsetOfForInEnumerators(), ForInEnumerators),
+    instr = IR::Instr::New(Js::OpCode::Ld_A, forInEnumeratorArrayOpnd,
+        POINTER_OFFSET(genFrameOpnd, Js::InterpreterStackFrame::GetOffsetOfForInEnumerators(), ForInEnumerators),
         this->m_func
     );
     this->m_irBuilder->AddInstr(instr, offset);

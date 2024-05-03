@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -290,18 +291,12 @@ private:
         IR::RegOpnd* const interpreterFrameRegOpnd;
         IR::RegOpnd* const tempRegOpnd;
 
-        bool NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const;
         bool NeedsReloadingSymWhenBailingIn(StackSym* sym) const;
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
         // Insert instructions to restore symbols in the `bailInSymbols` list
-        void InsertRestoreSymbols(
-            const BVSparse<JitArenaAllocator>& bytecodeUpwardExposedUses,
-            const BVSparse<JitArenaAllocator>& upwardExposedUses,
-            const CapturedValues& capturedValues,
-            BailInInsertionPoint& insertionPoint
-        );
+        void InsertRestoreSymbols(BailInInsertionPoint& insertionPoint);
 
         // Fill `bailInSymbols` list with all of the symbols that need to be restored
         void BuildBailInSymbolList(

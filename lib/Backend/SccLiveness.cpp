@@ -260,9 +260,19 @@ SCCLiveness::Build()
             {
                 this->EndOpHelper(labelInstr);
             }
-            if (labelInstr->isOpHelper && !PHASE_OFF(Js::OpHelperRegOptPhase, this->func))
+            if (labelInstr->isOpHelper)
             {
-                this->lastOpHelperLabel = labelInstr;
+                if (!PHASE_OFF(Js::OpHelperRegOptPhase, this->func) &&
+                    !this->func->GetTopFunc()->GetJITFunctionBody()->IsCoroutine())
+                {
+                    this->lastOpHelperLabel = labelInstr;
+                }
+#ifdef DBG
+                else
+                {
+                    labelInstr->AsLabelInstr()->m_noHelperAssert = true;
+                }
+#endif
             }
         }
         else if (instr->IsBranchInstr() && !instr->AsBranchInstr()->IsMultiBranch())
