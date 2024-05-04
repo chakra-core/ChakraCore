@@ -39,7 +39,7 @@ static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator 
     // if (targetObject == null) goto skipLabel;
     byteCodeGenerator->Writer()->BrReg2(
         Js::OpCode::BrEq_A, funcInfo->currentOptionalChainSkipLabel,
-        targetObjectSlot, funcInfo->nullConstantRegister
+        targetObjectSlot, funcInfo->undefinedConstantRegister
     );
 }
 
@@ -57,22 +57,38 @@ static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenera
     Js::ByteCodeLabel skipLabel = byteCodeGenerator->Writer()->DefineLabel();
     funcInfo->currentOptionalChainSkipLabel = skipLabel;
 
-    // Acquire slot for the result value
-    // Prefill it with `undefined` (Fallback for short-circuiting)
-    Js::RegSlot resultSlot = funcInfo->AcquireLoc(pnodeOptChain);
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, resultSlot);
-
     // Copy values from wrapper to inner expression
     ParseNodePtr innerNode = pnodeOptChain->pnode1;
     innerNode->isUsed = pnodeOptChain->isUsed;
-    innerNode->location = pnodeOptChain->location;
+    innerNode->location = funcInfo->AcquireLoc(pnodeOptChain);
 
     // emit chain expression
     // Every `?.` node will call `EmitNullPropagation`
     // `EmitNullPropagation` short-circuits to `skipLabel` in case of a nullish value
     emitChainContent(innerNode);
 
+    Js::ByteCodeLabel doneLabel = Js::Constants::NoRegister;
+    if (pnodeOptChain->isUsed)
+    {
+        Assert(innerNode->isUsed);
+        Assert(Js::Constants::NoRegister != innerNode->location);
+
+        // Skip short-circuiting logic
+        doneLabel = byteCodeGenerator->Writer()->DefineLabel();
+        byteCodeGenerator->Writer()->Br(doneLabel);
+    }
+
     byteCodeGenerator->Writer()->MarkLabel(skipLabel);
+
+    if (pnodeOptChain->isUsed)
+    {
+        Assert(innerNode->isUsed);
+        Assert(Js::Constants::NoRegister != pnodeOptChain->location);
+
+        // Set `undefined` on short-circuiting
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnodeOptChain->location, funcInfo->undefinedConstantRegister);
+        byteCodeGenerator->Writer()->MarkLabel(doneLabel);
+    }
     funcInfo->currentOptionalChainSkipLabel = previousSkipLabel;
 }
 
