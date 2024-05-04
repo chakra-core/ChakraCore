@@ -7925,10 +7925,14 @@ Js::ArgSlot EmitNewObjectOfConstants(
     return actualArgCount;
 }
 
-void EmitMethodFld(bool isRoot, bool isScoped, Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool registerCacheIdForCall = true)
+void EmitMethodFld(bool isRoot, bool isScoped, bool isNullPropagating, Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool registerCacheIdForCall = true)
 {
     Js::OpCode opcode;
-    if (!isRoot)
+    if (isNullPropagating)
+    {
+        opcode = (!isScoped && isRoot) ? Js::OpCode::LdRootFld : Js::OpCode::LdFld;
+    }
+    else if (!isRoot)
     {
         if (callObjLocation == funcInfo->frameObjRegister)
         {
@@ -7968,7 +7972,7 @@ void EmitMethodFld(bool isRoot, bool isScoped, Js::RegSlot location, Js::RegSlot
     }
 }
 
-void EmitMethodFld(ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool registerCacheIdForCall = true)
+void EmitMethodFld(ParseNodeCall *pnodeCall, ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, bool registerCacheIdForCall = true)
 {
     // Load a call target of the form x.y(). (Call target may be a plain knopName if we're getting it from
     // the global object, etc.)
@@ -7976,7 +7980,7 @@ void EmitMethodFld(ParseNode *pnode, Js::RegSlot callObjLocation, Js::PropertyId
     bool isScoped = (byteCodeGenerator->GetFlags() & fscrEval) != 0 ||
         (isRoot && callObjLocation != ByteCodeGenerator::RootObjectRegister);
 
-    EmitMethodFld(isRoot, isScoped, pnode->location, callObjLocation, propertyId, byteCodeGenerator, funcInfo, registerCacheIdForCall);
+    EmitMethodFld(isRoot, isScoped, pnodeCall->isNullPropagating, pnode->location, callObjLocation, propertyId, byteCodeGenerator, funcInfo, registerCacheIdForCall);
 }
 
 // lhs.apply(this, arguments);
@@ -8003,7 +8007,7 @@ void EmitApplyCall(ParseNodeCall* pnodeCall, ByteCodeGenerator* byteCodeGenerato
     // call for apply, we won't remove the entry for "apply" cacheId from
     // ByteCodeWriter::callRegToLdFldCacheIndexMap, which is contrary to our assumption that we would
     // have removed an entry from a map upon seeing its corresponding call.
-    EmitMethodFld(applyNode, funcNode->location, propertyId, byteCodeGenerator, funcInfo, false /*registerCacheIdForCall*/);
+    EmitMethodFld(pnodeCall, applyNode, funcNode->location, propertyId, byteCodeGenerator, funcInfo, false /*registerCacheIdForCall*/);
 
     Symbol *argSym = funcInfo->GetArgumentsSymbol();
     Assert(argSym && argSym->IsArguments());
@@ -8106,6 +8110,7 @@ void EmitCallTargetNoEvalComponents(
 }
 
 void EmitCallTarget(
+    ParseNodeCall *pnodeCall,
     ParseNode *pnodeTarget,
     BOOL fSideEffectArgs,
     Js::RegSlot *thisLocation,
@@ -8130,7 +8135,7 @@ void EmitCallTarget(
     {
     case knopOptChain: {
         EmitOptionalChainWrapper(pnodeTarget->AsParseNodeUni(), byteCodeGenerator, funcInfo, [&](ParseNodePtr innerNode) {
-            EmitCallTarget(innerNode, fSideEffectArgs, thisLocation, releaseThisLocation, callObjLocation, byteCodeGenerator, funcInfo, callApplyCallSiteId);
+            EmitCallTarget(pnodeCall, innerNode, fSideEffectArgs, thisLocation, releaseThisLocation, callObjLocation, byteCodeGenerator, funcInfo, callApplyCallSiteId);
         });
         break;
     }
@@ -8179,7 +8184,7 @@ void EmitCallTarget(
         {
             *thisLocation = pnodeBinTarget->pnode1->location;
             EmitNullPropagation(pnodeBinTarget->pnode1->location, byteCodeGenerator, funcInfo, pnodeBinTarget->isNullPropagating);
-            EmitMethodFld(pnodeBinTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
+            EmitMethodFld(pnodeCall, pnodeBinTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
         }
 
         break;
@@ -8247,7 +8252,7 @@ void EmitCallTarget(
             {
                 // Load the call target as a property of the instance.
                 Js::PropertyId propertyId = pnodeNameTarget->PropertyIdFromNameNode();
-                EmitMethodFld(pnodeNameTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+                EmitMethodFld(pnodeCall, pnodeNameTarget, *callObjLocation, propertyId, byteCodeGenerator, funcInfo);
                 break;
             }
         }
@@ -8403,7 +8408,7 @@ void EmitCallInstrNoEvalComponents(
         Assert(pnodeTarget->AsParseNodeBin()->pnode2->nop == knopName);
         Js::PropertyId propertyId = pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
 
-        EmitMethodFld(pnodeTarget, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+        EmitMethodFld(pnodeCall, pnodeTarget, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
         EmitCallI(pnodeCall, /*fEvaluateComponents*/ FALSE, fIsEval, fHasNewTarget, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
     }
     break;
@@ -8427,7 +8432,7 @@ void EmitCallInstrNoEvalComponents(
             funcInfo->ReleaseTmpRegister(callObjLocation);
 
             Js::PropertyId propertyId = pnodeTarget->AsParseNodeName()->PropertyIdFromNameNode();
-            EmitMethodFld(pnodeTarget, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+            EmitMethodFld(pnodeCall, pnodeTarget, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
             EmitCallI(pnodeCall, /*fEvaluateComponents*/ FALSE, fIsEval, fHasNewTarget, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
             break;
         }
@@ -8652,7 +8657,7 @@ void EmitCall(
         }
         else
         {
-            EmitCallTarget(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation, byteCodeGenerator, funcInfo, &callApplyCallSiteId);
+            EmitCallTarget(pnodeCall, pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation, byteCodeGenerator, funcInfo, &callApplyCallSiteId);
         }
     }
 
@@ -8704,7 +8709,7 @@ void EmitInvoke(
     ByteCodeGenerator* byteCodeGenerator,
     FuncInfo* funcInfo)
 {
-    EmitMethodFld(false, false, location, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+    EmitMethodFld(false, false, false, location, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
 
     funcInfo->StartRecordingOutArgs(1);
 
@@ -8724,7 +8729,7 @@ void EmitInvoke(
     FuncInfo* funcInfo,
     Js::RegSlot arg1Location)
 {
-    EmitMethodFld(false, false, location, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
+    EmitMethodFld(false, false, false, location, callObjLocation, propertyId, byteCodeGenerator, funcInfo);
 
     funcInfo->StartRecordingOutArgs(2);
 
