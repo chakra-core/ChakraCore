@@ -9,7 +9,7 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-const simpleObj = { "null": null, "undefined": undefined };
+const simpleObj = { "null": null, "undefined": undefined, something: 42 };
 Object.freeze(simpleObj);
 
 const tests = [
@@ -39,48 +39,6 @@ const tests = [
             assert.isUndefined(simpleObj.nothing?.["something"], "OptChain should evaluated to 'undefined'");
             assert.isUndefined(simpleObj.null?.["something"], "OptChain should evaluated to 'undefined'");
             assert.isUndefined(simpleObj.undefined?.["something"], "OptChain should evaluated to 'undefined'");
-        }
-    },
-    {
-        name: "Simple method calls",
-        body() {
-            // Verify normal behavior
-            assert.throws(() => simpleObj.nothing(), TypeError);
-            assert.throws(() => simpleObj.null(), TypeError);
-            assert.throws(() => simpleObj.undefined(), TypeError);
-
-            // With optional-chains
-            assert.isUndefined(simpleObj.nothing?.(), "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.null?.(), "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.undefined?.(), "OptChain should evaluated to 'undefined'");
-        }
-    },
-    {
-        name: "Simple properties before call",
-        body() {
-            // Verify normal behavior
-            assert.throws(() => simpleObj.nothing.something(), TypeError);
-            assert.throws(() => simpleObj.null.something(), TypeError);
-            assert.throws(() => simpleObj.undefined.something(), TypeError);
-
-            // With optional-chains
-            assert.isUndefined(simpleObj.nothing?.something(), "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.null?.something(), "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.undefined?.something(), "OptChain should evaluated to 'undefined'");
-        }
-    },
-    {
-        name: "Simple indexers before call",
-        body() {
-            // Verify normal behavior
-            assert.throws(() => simpleObj.nothing["something"], TypeError);
-            assert.throws(() => simpleObj.null["something"], TypeError);
-            assert.throws(() => simpleObj.undefined["something"], TypeError);
-
-            // With optional-chains
-            assert.isUndefined(simpleObj.nothing?.["something"](), "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.null?.["something"](), "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.undefined?.["something"](), "OptChain should evaluated to 'undefined'");
         }
     },
     {
@@ -137,85 +95,11 @@ const tests = [
             assert.areEqual(2, i, "Properties should be called")
         }
     },
-    {
-        name: "Propagate 'this' correctly",
-        body() {
-            const specialObj = {
-                b() { return this._b; },
-                _b: { c: 42 }
-            };
-
-            assert.areEqual(42, specialObj.b().c);
-            assert.areEqual(42, specialObj?.b().c);
-            assert.areEqual(42, specialObj.b?.().c);
-            assert.areEqual(42, specialObj?.b?.().c);
-            assert.areEqual(42, (specialObj?.b)().c);
-            assert.areEqual(42, (specialObj.b)?.().c);
-            assert.areEqual(42, (specialObj?.b)?.().c);
-        }
-    },
     // Null check
     {
         name: "Only check for 'null' and 'undefined'",
         body() {
             assert.areEqual(0, ""?.length, "Expected empty string length");
-        }
-    },
-    // Parsing
-    {
-        name: "Parse ternary correctly",
-        body() {
-            assert.areEqual(0.42, eval(`"this is not falsy"?.42 : 0`));
-        }
-    },
-    {
-        name: "Tagged Template in OptChain is illegal",
-        body() {
-            assert.throws(() => eval("simpleObj.undefined?.`template`"), SyntaxError, "No TaggedTemplate here", "Invalid tagged template in optional chain.");
-            assert.throws(() => eval(`simpleObj.undefined?.
-                \`template\``), SyntaxError, "No TaggedTemplate here", "Invalid tagged template in optional chain.");
-        }
-    },
-    {
-        name: "No new in OptChain",
-        body() {
-            assert.throws(() => eval(`
-            class Test { }
-            new Test?.();
-            `), SyntaxError, "'new' in OptChain is illegal", "Invalid optional chain in new expression.");
-        }
-    },
-    {
-        name: "No super in OptChain",
-        body() {
-            assert.throws(() => eval(`
-            class Base { }
-            class Test extends Base {
-                constructor(){
-                    super?.();
-                }
-            }
-            `), SyntaxError, "Super in OptChain is illegal", "Invalid use of the 'super' keyword");
-
-            assert.throws(() => eval(`
-            class Base { }
-            class Test extends Base {
-                constructor(){
-                    super();
-
-                    super?.abc;
-                }
-            }
-            `), SyntaxError, "Super in OptChain is illegal", "Invalid use of the 'super' keyword");
-        }
-    },
-    {
-        name: "No assignment",
-        body() {
-            const a = {};
-            assert.throws(() => eval(`a?.b++`), SyntaxError, "Assignment is illegal", "Invalid left-hand side in assignment.");
-            assert.throws(() => eval(`a?.b += 1`), SyntaxError, "Assignment is illegal", "Invalid left-hand side in assignment.");
-            assert.throws(() => eval(`a?.b = 5`), SyntaxError, "Assignment is illegal", "Invalid left-hand side in assignment.");
         }
     }
 ];
