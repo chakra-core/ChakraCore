@@ -4001,7 +4001,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     // Note: we used to leave it up to the byte code generator to detect eval calls
                     // at global scope, but now it relies on the flag the parser sets, so set it here.
 
-                    if (count > 0 && this->NodeIsEvalName(pnode->AsParseNodeCall()->pnodeTarget))
+                    if (count > 0 && this->NodeIsEvalName(pnode->AsParseNodeCall()->pnodeTarget) && !isNullPropagating)
                     {
                         this->MarkEvalCaller();
                         fCallIsEval = true;
