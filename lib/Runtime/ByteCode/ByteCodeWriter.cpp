@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -210,7 +210,7 @@ namespace Js
             }
         }
 
-        if (this->DoJitLoopBodies() &&
+        if (this->DoJitLoopBodies() && this->HasLoopWithoutYield() &&
             !(this->m_functionWrite->GetFunctionBody()->GetHasTry() && PHASE_OFF(Js::JITLoopBodyInTryCatchPhase, this->m_functionWrite)) &&
             !(this->m_functionWrite->GetFunctionBody()->GetHasFinally() && PHASE_OFF(Js::JITLoopBodyInTryFinallyPhase, this->m_functionWrite)))
         {
@@ -252,6 +252,7 @@ namespace Js
             loopHeader->startOffset = data.startOffset;
             loopHeader->endOffset = data.endOffset;
             loopHeader->isNested = data.isNested;
+            loopHeader->hasYield = data.hasYield;
         });
     }
 
@@ -3224,7 +3225,7 @@ StoreCommon:
         uint loopId = m_functionWrite->IncrLoopCount();
         Assert((uint)m_loopHeaders->Count() == loopId);
 
-        m_loopHeaders->Add(LoopHeaderData(m_byteCodeData.GetCurrentOffset(), 0, m_loopNest > 0));
+        m_loopHeaders->Add(LoopHeaderData(m_byteCodeData.GetCurrentOffset(), 0, m_loopNest > 0, false));
         m_loopNest++;
         m_functionWrite->SetHasNestedLoop(m_loopNest > 1);
 
@@ -3257,6 +3258,20 @@ StoreCommon:
         Assert(m_loopNest > 0);
         m_loopNest--;
         m_loopHeaders->Item(loopId).endOffset = m_byteCodeData.GetCurrentOffset();
+    }
+
+    void ByteCodeWriter::SetCurrentLoopHasYield()
+    {
+        if (m_loopNest > 0)
+        {
+            for (int i = 0; i < m_loopHeaders->Count(); ++i)
+            {
+                if (m_loopHeaders->Item(i).endOffset == 0) // check for loops we're currently inside
+                {
+                    m_loopHeaders->Item(i).hasYield = true;
+                }
+            }
+        }
     }
 
     void ByteCodeWriter::IncreaseByteCodeCount()

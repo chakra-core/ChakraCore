@@ -5467,7 +5467,7 @@ Lowerer::LowerPrologEpilog()
     instr = m_func->m_exitInstr;
     AssertMsg(instr->IsExitInstr(), "Last instr isn't an ExitInstr...");
 
-    if (m_func->GetJITFunctionBody()->IsCoroutine())
+    if (m_func->GetJITFunctionBody()->IsCoroutine() && !m_func->IsLoopBody())
     {
         IR::LabelInstr* epilogueLabel = this->m_lowerGeneratorHelper.GetEpilogueForReturnStatements();
         this->m_lowerGeneratorHelper.InsertNullOutGeneratorFrameInEpilogue(epilogueLabel);
@@ -11527,6 +11527,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
             if (m_func->GetJITFunctionBody()->IsCoroutine())
             {
+                AssertMsg(!m_func->IsLoopBody(), "LoopBody Jit should not involve Rest params");
                 generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrArgIn);
             }
 
@@ -11544,7 +11545,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     if (argIndex == 1)
     {
         // The "this" argument is not source-dependent and doesn't need to be checked.
-        if (m_func->GetJITFunctionBody()->IsCoroutine())
+        if (m_func->GetJITFunctionBody()->IsCoroutine() && !m_func->IsLoopBody())
         {
             generatorArgsPtrOpnd = LoadGeneratorArgsPtr(instrArgIn);
             ConvertArgOpndIfGeneratorFunction(instrArgIn, generatorArgsPtrOpnd);

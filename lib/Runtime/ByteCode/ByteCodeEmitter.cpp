@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -10476,6 +10476,9 @@ void EmitYieldAndResume(
     // must handle both the throw and return cases.
 
     auto* writer = byteCodeGenerator->Writer();
+
+    // If in a loop mark it as containing Yield and hence not eligible for Jit loop body
+    writer->SetCurrentLoopHasYield();
 
     if (inputReg != funcInfo->yieldRegister)
         writer->Reg2(Js::OpCode::Ld_A, funcInfo->yieldRegister, inputReg);

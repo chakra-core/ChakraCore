@@ -1,0 +1,42 @@
+Beginning basicAsync
+---BeginBackEnd: function: printif---
+---EndBackEnd---
+---BeginBackEnd: function: printif---
+---EndBackEnd---
+---BeginBackEnd: function: basicAsync, loop:1---
+---EndBackEnd---
+basicAsync Loop 0 a = 80
+basicAsync Loop 0 arguments[0] = 80
+---BeginBackEnd: function: basicAsync, loop:0---
+---EndBackEnd---
+basicAsync Loop 0 a = 160
+basicAsync Loop 0 arguments[0] = 160
+Loop 3 completed
+---BeginBackEnd: function: value---
+---EndBackEnd---
+---BeginBackEnd: function: value---
+---EndBackEnd---
+---BeginBackEnd: function: value---
+---EndBackEnd---
+Loop 4 k = 160
+---BeginBackEnd: function: basicAsync, loop:4---
+---EndBackEnd---
+Loop 4 k = 80
+Loop 4 k = 0
+Loop 4 completed
+Beginning basicAsync
+basicAsync Loop 0 a = 80
+basicAsync Loop 0 arguments[0] = 80
+basicAsync Loop 0 a = 160
+basicAsync Loop 0 arguments[0] = 160
+Loop 3 completed
+---BeginBackEnd: function: Array.prototype.values---
+---EndBackEnd---
+---BeginBackEnd: function: Anonymous function---
+---EndBackEnd---
+---BeginBackEnd: function: Anonymous function---
+---EndBackEnd---
+Loop 4 k = 160
+Loop 4 k = 80
+Loop 4 k = 0
+Loop 4 completed
