@@ -1,6 +1,6 @@
-name: JsRT Feature Request
+name: Api Feature Request
 description: Propose a new feature to the embedding api
-title: '[JsRT]: '
+title: '[Api]: '
 labels:
   - APIs
   - Feature Request

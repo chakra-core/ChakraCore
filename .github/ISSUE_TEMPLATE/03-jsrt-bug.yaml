@@ -1,6 +1,6 @@
-name: JsRT Bug
+name: Api Bug
 description: Report a bug with the embedding api
-title: '[JsRT]: '
+title: '[Api]: '
 labels:
   - APIs
   - Bug
