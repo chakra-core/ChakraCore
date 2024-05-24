@@ -45,7 +45,7 @@ struct _SIMDValue
     {
         f64[SIMD_X] = f64[SIMD_Y] = 0;
     }
-    bool operator==(const _SIMDValue& r)
+    bool operator==(const _SIMDValue& r) const
     {
         // don't compare f64/f32 because NaN bit patterns will not be considered equal.
         return (this->i32[SIMD_X] == r.i32[SIMD_X] &&
