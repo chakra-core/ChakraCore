@@ -92,6 +92,8 @@ namespace Js
         ES5ArrayTypeHandler* ConvertToES5ArrayType(DynamicObject* instance);
         SimpleTypeHandler<size>* ConvertToNonSharedSimpleType(DynamicObject * instance);
 
+        bool HasDeletedProperties();
+
         BOOL GetDescriptor(PropertyId propertyId, PropertyIndex * index);
         BOOL SetAttribute(DynamicObject* instance, PropertyIndex index, PropertyAttributes attribute);
         BOOL ClearAttribute(DynamicObject* instance, PropertyIndex index, PropertyAttributes attribute);
