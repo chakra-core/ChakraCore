@@ -60,12 +60,13 @@ static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenera
     // Copy values from wrapper to inner expression
     ParseNodePtr innerNode = pnodeOptChain->pnode1;
     innerNode->isUsed = pnodeOptChain->isUsed;
-    innerNode->location = funcInfo->AcquireLoc(pnodeOptChain);
+    innerNode->location = pnodeOptChain->location;
 
     // emit chain expression
     // Every `?.` node will call `EmitNullPropagation`
     // `EmitNullPropagation` short-circuits to `skipLabel` in case of a nullish value
     emitChainContent(innerNode);
+    pnodeOptChain->location = innerNode->location;
 
     Js::ByteCodeLabel doneLabel = Js::Constants::NoRegister;
     if (pnodeOptChain->isUsed)
@@ -89,6 +90,7 @@ static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenera
         byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnodeOptChain->location, funcInfo->undefinedConstantRegister);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
     }
+    
     funcInfo->currentOptionalChainSkipLabel = previousSkipLabel;
 }
 
@@ -11209,6 +11211,81 @@ void TrackGlobalIntAssignments(ParseNodePtr pnode, ByteCodeGenerator * byteCodeG
     }
 }
 
+static void EmitDelete(ParseNode *pnode, ParseNode *pexpr, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo) {
+    switch (pexpr->nop)
+    {
+    case knopOptChain:
+        EmitOptionalChainWrapper(pexpr->AsParseNodeUni(), byteCodeGenerator, funcInfo, [&](ParseNode *innerNode) {
+            EmitDelete(innerNode, innerNode, byteCodeGenerator, funcInfo);
+        });
+        pnode->location = pexpr->location;
+        break;
+    case knopName:
+    {
+        ParseNodeName *pnodeName = pexpr->AsParseNodeName();
+        if (pnodeName->IsSpecialName())
+        {
+            funcInfo->AcquireLoc(pnode);
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, pnode->location);
+        }
+        else
+        {
+            funcInfo->AcquireLoc(pnode);
+            byteCodeGenerator->EmitPropDelete(pnode->location, pnodeName->sym, pnodeName->pid, funcInfo);
+        }
+        break;
+    }
+    case knopDot:
+    {
+        ParseNodeBin *pnodeDot = pexpr->AsParseNodeBin();
+        ParseNode *pnode1 = pnodeDot->pnode1;
+        ParseNode *pnode2 = pnodeDot->pnode2;
+
+        if (ByteCodeGenerator::IsSuper(pnode1))
+        {
+            byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_DeletePropertyWithSuper));
+
+            funcInfo->AcquireLoc(pnode);
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, pnode->location);
+        }
+        else
+        {
+            Emit(pnode1, byteCodeGenerator, funcInfo, false);
+            EmitNullPropagation(pnode1->location, byteCodeGenerator, funcInfo, pnodeDot->isNullPropagating);
+
+            funcInfo->ReleaseLoc(pnode1);
+            Js::PropertyId propertyId = pnode2->AsParseNodeName()->PropertyIdFromNameNode();
+            funcInfo->AcquireLoc(pnode);
+            byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pnode1->location,
+                funcInfo->FindOrAddReferencedPropertyId(propertyId), byteCodeGenerator->forceStrictModeForClassComputedPropertyName);
+        }
+
+        break;
+    }
+    case knopIndex:
+    {
+        ParseNodeBin *pnodeIndex = pexpr->AsParseNodeBin();
+        ParseNode *pnode1 = pnodeIndex->pnode1;
+        ParseNode *pnode2 = pnodeIndex->pnode2;
+
+        EmitBinaryOpnds(pnode1, pnode2, byteCodeGenerator, funcInfo, Js::Constants::NoRegister, pnodeIndex->isNullPropagating);
+        funcInfo->ReleaseLoc(pnode2);
+        funcInfo->ReleaseLoc(pnode1);
+        funcInfo->AcquireLoc(pnode);
+        byteCodeGenerator->Writer()->Element(Js::OpCode::DeleteElemI_A, pnode->location, pnode1->location, pnode2->location);
+        break;
+    }
+    default:
+    {
+        Emit(pexpr, byteCodeGenerator, funcInfo, false);
+        funcInfo->ReleaseLoc(pexpr);
+        byteCodeGenerator->Writer()->Reg2(
+            Js::OpCode::Delete_A, funcInfo->AcquireLoc(pnode), pexpr->location);
+        break;
+    }
+    }
+}
+
 void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, bool isConstructorCall, bool isTopLevel)
 {
     if (pnode == nullptr)
@@ -11570,63 +11647,7 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
     {
         ParseNode *pexpr = pnode->AsParseNodeUni()->pnode1;
         byteCodeGenerator->StartStatement(pnode);
-        switch (pexpr->nop)
-        {
-        case knopName:
-        {
-            ParseNodeName * pnodeName = pexpr->AsParseNodeName();
-            if (pnodeName->IsSpecialName())
-            {
-                funcInfo->AcquireLoc(pnode);
-                byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, pnode->location);
-            }
-            else
-            {
-                funcInfo->AcquireLoc(pnode);
-                byteCodeGenerator->EmitPropDelete(pnode->location, pnodeName->sym, pnodeName->pid, funcInfo);
-            }
-            break;
-        }
-        case knopDot:
-        {
-            if (ByteCodeGenerator::IsSuper(pexpr->AsParseNodeBin()->pnode1))
-            {
-                byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_DeletePropertyWithSuper));
-
-                funcInfo->AcquireLoc(pnode);
-                byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdUndef, pnode->location);
-            }
-            else
-            {
-                Emit(pexpr->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo, false);
-
-                funcInfo->ReleaseLoc(pexpr->AsParseNodeBin()->pnode1);
-                Js::PropertyId propertyId = pexpr->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
-                funcInfo->AcquireLoc(pnode);
-                byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pexpr->AsParseNodeBin()->pnode1->location,
-                    funcInfo->FindOrAddReferencedPropertyId(propertyId), byteCodeGenerator->forceStrictModeForClassComputedPropertyName);
-            }
-
-            break;
-        }
-        case knopIndex:
-        {
-            EmitBinaryOpnds(pexpr->AsParseNodeBin()->pnode1, pexpr->AsParseNodeBin()->pnode2, byteCodeGenerator, funcInfo);
-            funcInfo->ReleaseLoc(pexpr->AsParseNodeBin()->pnode2);
-            funcInfo->ReleaseLoc(pexpr->AsParseNodeBin()->pnode1);
-            funcInfo->AcquireLoc(pnode);
-            byteCodeGenerator->Writer()->Element(Js::OpCode::DeleteElemI_A, pnode->location, pexpr->AsParseNodeBin()->pnode1->location, pexpr->AsParseNodeBin()->pnode2->location);
-            break;
-        }
-        default:
-        {
-            Emit(pexpr, byteCodeGenerator, funcInfo, false);
-            funcInfo->ReleaseLoc(pexpr);
-            byteCodeGenerator->Writer()->Reg2(
-                Js::OpCode::Delete_A, funcInfo->AcquireLoc(pnode), pexpr->location);
-            break;
-        }
-        }
+        EmitDelete(pnode, pexpr, byteCodeGenerator, funcInfo);
         byteCodeGenerator->EndStatement(pnode);
         break;
     }
