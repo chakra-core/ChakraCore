@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -371,7 +372,7 @@ public:
         return Anew(alloc, typename OpCodeTrait<nop>::ParseNodeType, nop, ichMin, ichLim);        
     }
     
-    static ParseNodeBin * StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, charcount_t ichMin = 0, charcount_t ichLim = 0);
+    static ParseNodeBin * StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, charcount_t ichMin = 0, charcount_t ichLim = 0, bool isNullPropagating = false);
     static ParseNodeBlock * StaticCreateBlockNode(ArenaAllocator* alloc, charcount_t ichMin = 0, charcount_t ichLim = 0, int blockId = -1, PnodeBlockType blockType = PnodeBlockType::Regular);
     static ParseNodeVar * StaticCreateTempNode(ParseNode* initExpr, ArenaAllocator* alloc);
     static ParseNodeUni * StaticCreateTempRef(ParseNode* tempNode, ArenaAllocator* alloc);
@@ -379,8 +380,8 @@ public:
 private:    
     ParseNodeUni * CreateUniNode(OpCode nop, ParseNodePtr pnodeOp);
     ParseNodeUni * CreateUniNode(OpCode nop, ParseNodePtr pnode1, charcount_t ichMin, charcount_t ichLim);
-    ParseNodeBin * CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2);
-    ParseNodeBin * CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim);
+    ParseNodeBin * CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, bool isNullPropagating = false);
+    ParseNodeBin * CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim, bool isNullPropagating = false);
     ParseNodeTri * CreateTriNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ParseNodePtr pnode3);
     ParseNodeTri * CreateTriNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ParseNodePtr pnode3, charcount_t ichMin, charcount_t ichLim);
     ParseNodeBlock * CreateBlockNode(PnodeBlockType blockType = PnodeBlockType::Regular);

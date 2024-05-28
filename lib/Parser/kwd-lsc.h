@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #ifndef KEYWORD
@@ -174,6 +175,7 @@ TOK_DCL(tkEllipsis      , No, knopNone   ,Spr, knopEllipsis ) // ...
 TOK_DCL(tkLParen        , No, knopNone   , No, knopNone   ) // (
 TOK_DCL(tkLBrack        , No, knopNone   , No, knopNone   ) // [
 TOK_DCL(tkDot           , No, knopNone   , No, knopNone   ) // .
+TOK_DCL(tkOptChain      , No, knopNone   , No, knopNone   ) // ?.
 
 // String template tokens
 TOK_DCL(tkStrTmplBasic  , No, knopNone   , No, knopNone   ) // `...`
