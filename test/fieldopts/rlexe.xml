@@ -2,6 +2,11 @@
 <regress-exe>
   <test>
     <default>
+      <files>auxslot_bug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>depolymorph01.js</files>
     </default>
   </test>
