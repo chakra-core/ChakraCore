@@ -176,7 +176,7 @@ extern "C" {
 // Defined in gnu's types.h. For non PAL_IMPLEMENTATION system
 // includes are not included, so we need to define them.
 // Types below are already defined by stdint.h on __APPLE__.
-#if !defined(PAL_IMPLEMENTATION) && !defined(__APPLE__)
+#if !defined(PAL_IMPLEMENTATION) && !defined(__APPLE__) && !defined(__ANDROID__)
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 typedef __int32 int32_t;
