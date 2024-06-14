@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeBasePch.h"
@@ -29,7 +30,7 @@ const char16 Constants::StringMatch[] = _u("String.prototype.match");
 const uint64 Constants::ExponentMask = 0x3FF0000000000000;
 const uint64 Constants::MantissaMask = 0x000FFFFFFFFFFFFF;
 
-#ifdef _M_AMD64
+#ifdef TARGET_64
 const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffffffffffff;
 #else
 const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffff;
