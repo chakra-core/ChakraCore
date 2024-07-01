@@ -346,6 +346,7 @@ public:
     static HRESULT SetConfigFile(__in LPWSTR strConfigFileName) { return CHECKED_CALL(SetConfigFile, strConfigFileName); }
     static HRESULT GetFileNameFlag(BSTR * filename) { return CHECKED_CALL(GetFilenameFlag, filename); }
     static HRESULT PrintConfigFlagsUsageString() { m_usageStringPrinted = true;  return CHECKED_CALL(PrintConfigFlagsUsageString); }
+    static HRESULT SetValidateArrayBoundsFlag(bool flag) { return CHECKED_CALL(SetValidateArrayBoundsFlag, flag); }
 
 #ifdef CHECK_MEMORY_LEAK
     static bool IsEnabledCheckMemoryFlag() { return CHECKED_CALL_RETURN(IsEnabledCheckMemoryLeakFlag, FALSE); }

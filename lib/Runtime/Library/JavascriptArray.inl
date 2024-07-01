@@ -419,6 +419,13 @@ namespace Js
 
         Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
 
+        if (Js::Configuration::Global.flags.ValidateArrayBounds) {
+            if ((itemIndex < 0) || (itemIndex >= this->length)) {
+                // Otherwise the code below could write outside array's bounds
+                JavascriptError::ThrowRangeError(this->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
+            }
+        }
+
         SparseArraySegment<int32> *seg = (SparseArraySegment<int32>*)this->GetLastUsedSegment();
         uint32 offset = itemIndex - seg->left;
         if(itemIndex >= seg->left && offset < seg->size)
@@ -435,6 +442,13 @@ namespace Js
         Assert_FailFast(this->GetTypeId() == TypeIds_NativeFloatArray);
 
         Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
+
+        if (Js::Configuration::Global.flags.ValidateArrayBounds) {
+            if ((itemIndex < 0) || (itemIndex >= this->length)) {
+                // Otherwise the code below could write outside array's bounds
+                JavascriptError::ThrowRangeError(this->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
+            }
+        }
 
         SparseArraySegment<double> *seg = (SparseArraySegment<double>*)this->GetLastUsedSegment();
         uint32 offset = itemIndex - seg->left;
@@ -453,6 +467,13 @@ namespace Js
 
         Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
 
+        if (Js::Configuration::Global.flags.ValidateArrayBounds) {
+            if ((itemIndex < 0) || (itemIndex >= this->length)) {
+                // Otherwise the code below could write outside array's bounds
+                JavascriptError::ThrowRangeError(this->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
+            }
+        }
+
         SparseArraySegment<Var> *seg = (SparseArraySegment<Var>*)this->GetLastUsedSegment();
         uint32 offset = itemIndex - seg->left;
         if (itemIndex >= seg->left && offset < seg->size)
@@ -467,6 +488,13 @@ namespace Js
     inline void JavascriptArray::DirectSetItemAt(uint32 itemIndex, T newValue)
     {
         Assert(itemIndex < InvalidIndex); // Otherwise the code below could overflow and set length = 0
+
+        if (Js::Configuration::Global.flags.ValidateArrayBounds) {
+            if ((itemIndex < 0) || (itemIndex >= this->length)) {
+                // Otherwise the code below could write outside array's bounds
+                JavascriptError::ThrowRangeError(this->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
+            }
+        }
 
         SparseArraySegment<T> *seg = (SparseArraySegment<T>*)this->GetLastUsedSegment();
         uint32 offset = itemIndex - seg->left;
