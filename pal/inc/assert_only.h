@@ -1,25 +1,28 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
 // PAL free Assert definitions
 #ifdef DEBUG
 
-#define _QUOTE_(s) #s
-#define _STRINGIZE_(s) _QUOTE_(s)
+#if !defined(CHAKRACORE_STRINGIZE)
+#define CHAKRACORE_STRINGIZE_IMPL(x) #x
+#define CHAKRACORE_STRINGIZE(x) CHAKRACORE_STRINGIZE_IMPL(x)
+#endif
 
 #ifndef __ANDROID__
 #define _ERR_OUTPUT_(condition, comment) \
     fprintf(stderr, "ASSERTION (%s, line %d) %s %s\n", __FILE__, __LINE__, \
-      _STRINGIZE_(condition), comment); \
+      CHAKRACORE_STRINGIZE(condition), comment); \
     fflush(stderr);
 #else // ANDROID
 #include <android/log.h>
 #define _ERR_OUTPUT_(condition, comment) \
     __android_log_print(ANDROID_LOG_ERROR, "chakracore-log", \
       "ASSERTION (%s, line %d) %s %s\n", __FILE__, __LINE__, \
-      _STRINGIZE_(condition), comment);
+      CHAKRACORE_STRINGIZE(condition), comment);
 #endif
 
 #define _Assert_(condition, comment)   \
