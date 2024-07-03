@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -121,7 +122,7 @@ try
 }
 catch(e)
 {
- if (!e instanceof TypeError) throw(e);
+ if (!(e instanceof TypeError)) throw(e);
  WScript.Echo(y);
  WScript.Echo(x);
 }
@@ -132,7 +133,7 @@ try
 }
 catch(e)
 {
- if (!e instanceof TypeError) throw(e);
+ if (!(e instanceof TypeError)) throw(e);
  WScript.Echo(y);
  WScript.Echo(x);
 }
@@ -143,7 +144,7 @@ try
 }
  catch(e)
 {
- if (!e instanceof TypeError) throw(e);
+ if (!(e instanceof TypeError)) throw(e);
  WScript.Echo(y);
  WScript.Echo(x);
 }

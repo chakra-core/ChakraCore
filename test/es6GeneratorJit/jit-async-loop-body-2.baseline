@@ -1,0 +1,20 @@
+Beginning basicAsync
+basicAsync Loop 0 a = 80
+basicAsync Loop 0 arguments[0] = 80
+basicAsync Loop 0 a = 160
+basicAsync Loop 0 arguments[0] = 160
+Loop 3 completed
+Loop 4 k = 160
+Loop 4 k = 80
+Loop 4 k = 0
+Loop 4 completed
+Beginning basicAsync
+basicAsync Loop 0 a = 80
+basicAsync Loop 0 arguments[0] = 80
+basicAsync Loop 0 a = 160
+basicAsync Loop 0 arguments[0] = 160
+Loop 3 completed
+Loop 4 k = 160
+Loop 4 k = 80
+Loop 4 k = 0
+Loop 4 completed

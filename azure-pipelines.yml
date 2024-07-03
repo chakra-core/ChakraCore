@@ -102,6 +102,9 @@ jobs:
         ninja
       displayName: 'Build'
 
+    - publish: $(System.DefaultWorkingDirectory)/build/bin
+      artifact: $(Agent.JobName)
+
     - script: |
         cd build
         ninja check
@@ -119,6 +122,7 @@ jobs:
           special_build: ''
           do_test: true
           test_tags: ''
+          build_outdir_suffix: ''
         x86.Test:
           image_name: 'windows-2022'
           build_type: 'test'
@@ -126,6 +130,7 @@ jobs:
           special_build: ''
           do_test: true
           test_tags: '--include-slow'
+          build_outdir_suffix: ''
         x86.NoJit:
           image_name: 'windows-2022'
           build_type: 'debug'
@@ -133,6 +138,7 @@ jobs:
           special_build: '"/p:BuildJIT=false"'
           do_test: true
           test_tags: '-disablejit'
+          build_outdir_suffix: '.NoJIT'
         x86.Release:
           image_name: 'windows-2022'
           build_type: 'release'
@@ -140,6 +146,7 @@ jobs:
           special_build: ''
           do_test: false
           test_tags: ''
+          build_outdir_suffix: ''
         x64.Debug:
           image_name: 'windows-2022'
           build_type: 'debug'
@@ -147,6 +154,7 @@ jobs:
           special_build: ''
           do_test: true
           test_tags: ''
+          build_outdir_suffix: ''
         x64.Test:
           image_name: 'windows-2022'
           build_type: 'test'
@@ -154,6 +162,7 @@ jobs:
           special_build: ''
           do_test: true
           test_tags: '--include-slow'
+          build_outdir_suffix: ''
         x64.Release:
           image_name: 'windows-2022'
           build_type: 'release'
@@ -161,6 +170,7 @@ jobs:
           special_build: ''
           do_test: false
           test_tags: ''
+          build_outdir_suffix: ''
         win19.x86.Release:
           image_name: 'windows-2019'
           build_type: 'release'
@@ -168,6 +178,7 @@ jobs:
           special_build: ''
           do_test: false
           test_tags: ''
+          build_outdir_suffix: ''
         win19.x64.Release:
           image_name: 'windows-2019'
           build_type: 'release'
@@ -175,6 +186,7 @@ jobs:
           special_build: ''
           do_test: false
           test_tags: ''
+          build_outdir_suffix: ''
     pool:
       vmImage: $(image_name)
       
@@ -185,6 +197,9 @@ jobs:
         TARGET: $(target)
         BUILD: $(build_type)
         SPECIAL: $(special_build)
+
+    - publish: $(System.DefaultWorkingDirectory)/Build/VcBuild$(build_outdir_suffix)/bin
+      artifact: $(Agent.JobName)
 
     - script: test\ci.testone.cmd %TARGET% %BUILD% %TEST_TAGS%
       displayName: 'Test'

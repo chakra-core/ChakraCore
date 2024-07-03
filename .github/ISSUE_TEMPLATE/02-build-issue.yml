@@ -1,0 +1,36 @@
+name: Build Issue
+description: Report a build issue
+title: '[Build]: '
+labels:
+  - Build Break
+body:
+  - type: input
+    attributes:
+      label: Operating System
+      description: Specify the OS (with version) you are using
+      placeholder: Name + Version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Compiler
+      description: Specify the compiler (with version) you are using
+      placeholder: Name + Version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: ChakraCore Version
+      description: Specify the version of ChakraCore you are using
+      placeholder: Version / Commit id
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Compiler output
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Context

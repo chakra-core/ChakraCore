@@ -1,0 +1,13 @@
+Beginning test of basicGenerator
+basicGenerator Loop 0 a = 40
+basicGenerator Loop 0 arguments[0] = 40
+basicGenerator Loop 0 a = 80
+basicGenerator Loop 0 arguments[0] = 80
+Loop 3 completed
+Loop 4 k = 80
+Loop 4 k = 40
+Loop 4 k = 0
+Loop 4 completed
+yielded value = 80
+yielded value = 40
+yielded value = 0

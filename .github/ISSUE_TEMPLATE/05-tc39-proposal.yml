@@ -1,0 +1,26 @@
+name: Implement tc39 proposal
+description: Request the implementation of a tc39 proposal
+title: '[Proposal]: '
+labels:
+  - ECMAScript Spec
+  - Feature Request
+body:
+  - type: input
+    attributes:
+      label: Link to proposal
+      placeholder: https://github.com/tc39/...
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Proposal stage
+      options:
+        - Stage 4
+        - Stage 3
+        - Stage 2.7
+        - Stage 2
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Context

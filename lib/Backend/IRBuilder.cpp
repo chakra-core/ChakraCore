@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -118,7 +118,7 @@ IRBuilder::DoBailOnNoProfile()
         return false;
     }
 
-    if (m_func->GetTopFunc()->GetJITFunctionBody()->IsCoroutine())
+    if (m_func->GetTopFunc()->GetJITFunctionBody()->IsCoroutine() && !m_func->IsLoopBody())
     {
         return false;
     }
@@ -441,7 +441,7 @@ IRBuilder::Build()
     // Note that for generators, we insert the bailout after the jump table to allow
     // the generator's execution to proceed before bailing out. Otherwise, we would always
     // bail to the beginning of the function in the interpreter, creating an infinite loop.
-    if (m_func->IsJitInDebugMode() && !this->m_func->GetJITFunctionBody()->IsCoroutine())
+    if (m_func->IsJitInDebugMode() && (!this->m_func->GetJITFunctionBody()->IsCoroutine() || this->IsLoopBody()))
     {
         this->InsertBailOutForDebugger(m_functionStartOffset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep, nullptr);
     }
@@ -1880,6 +1880,9 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         break;
 
     case Js::OpCode::Yield:
+        // Jitting Loop Bodies containing Yield is not possible, blocked at callsites of GenerateLoopBody
+        AssertMsg(!this->IsLoopBody(), "Attempting to JIT loop body containing Yield");
+
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
         this->AddInstr(instr, offset);
         IR::Instr* yieldInstr = instr->ConvertToBailOutInstr(instr, IR::BailOutForGeneratorYield);
@@ -7849,6 +7852,7 @@ IRBuilder::GeneratorJumpTable::GeneratorJumpTable(Func* func, IRBuilder* irBuild
 IR::Instr*
 IRBuilder::GeneratorJumpTable::BuildJumpTable()
 {
+    AssertMsg(!this->m_func->IsLoopBody(), "Coroutine Loop Bodies can be jitted but should follow a different path");
     if (!this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
         return this->m_irBuilder->m_lastInstr;
