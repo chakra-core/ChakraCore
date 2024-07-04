@@ -1220,7 +1220,7 @@ namespace Js
             !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction))) &&
             !(this->executeFunction->GetHasFinally() && (PHASE_OFF((Js::JITLoopBodyInTryFinallyPhase), this->executeFunction))) &&
             (this->executeFunction->ForceJITLoopBody() || this->executeFunction->IsJitLoopBodyPhaseEnabled()) &&
-            !this->executeFunction->IsInDebugMode();
+            !this->executeFunction->IsInDebugMode() && this->executeFunction->GetLoopHeaderArray() != nullptr;
 #endif
 
         // Pick a version of the LoopBodyStart OpCode handlers that is hardcoded to do loop body JIT and
@@ -6057,7 +6057,7 @@ skipThunk:
 
         Js::LoopEntryPointInfo * entryPointInfo = loopHeader->GetCurrentEntryPointInfo();
 
-        if (fn->ForceJITLoopBody() && loopHeader->interpretCount == 0 &&
+        if (fn->ForceJITLoopBody() && loopHeader->interpretCount == 0 && loopHeader->hasYield == false &&
             (entryPointInfo != NULL && entryPointInfo->IsNotScheduled()))
         {
 #if ENABLE_PROFILE_INFO
@@ -6250,7 +6250,7 @@ skipThunk:
                 return nullptr;
             }
 
-            if (!fn->DoJITLoopBody())
+            if (!fn->DoJITLoopBody() || loopHeader->hasYield)
             {
                 return nullptr;
             }

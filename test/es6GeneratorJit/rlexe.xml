@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>generator-jit-bugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generator-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators -args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generator-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators -off:simplejit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>generator-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators -off:fulljit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async-jit-bugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators -args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators -off:simplejit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators -off:fulljit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>async-jit-bugs.js</files>
+      <compile-flags>-off:fulljit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+  <default>
+      <files>newTest.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>newTest.js</files>
+      <compile-flags>-off:simplejit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>newTest.js</files>
+      <compile-flags>-off:fulljit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>newTest.js</files>
+      <compile-flags>-off:fulljit -args summary -endargs</compile-flags>
+      <tags>exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jit-gen-loop-body.js</files>
+      <compile-flags>-testtrace:Backend</compile-flags>
+      <baseline>jit-gen-loop-body.baseline</baseline>
+      <tags>exclude_test, exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jit-gen-loop-body.js</files>
+      <baseline>jit-gen-loop-body-2.baseline</baseline>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jit-async-loop-body.js</files>
+      <compile-flags>-testtrace:Backend</compile-flags>
+      <baseline>jit-async-loop-body.baseline</baseline>
+      <tags>exclude_test, exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jit-async-loop-body.js</files>
+      <baseline>jit-async-loop-body-2.baseline</baseline>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jit-module-loop-body.js</files>
+      <compile-flags>-testtrace:Backend -module</compile-flags>
+      <baseline>jit-module-loop-body.baseline</baseline>
+      <tags>exclude_test, exclude_nonative, exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jit-module-loop-body.js</files>
+      <compile-flags>-module</compile-flags>
+      <baseline>jit-module-loop-body-2.baseline</baseline>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+</regress-exe>

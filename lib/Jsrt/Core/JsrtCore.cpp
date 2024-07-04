@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
@@ -267,6 +267,10 @@ CHAKRA_API JsGetModuleNamespace(_In_ JsModuleRecord requestModule, _Outptr_resul
     if (!moduleRecord->WasEvaluated())
     {
         return JsErrorModuleNotEvaluated;
+    }
+    if (moduleRecord->GetErrorObject() != nullptr)
+    {
+        return JsErrorInvalidArgument;
     }
     *moduleNamespace = static_cast<JsValueRef>(moduleRecord->GetNamespace());
     return JsNoError;

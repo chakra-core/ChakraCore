@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a general bug in ChakraCore
+title: '[Bug]: '
+labels:
+  - Bug
+body:
+  - type: input
+    attributes:
+      label: ChakraCore Version
+      description: Specify the version of ChakraCore you are using
+      placeholder: Version / Commit id
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Provide steps to reproduce the problem
+      placeholder: Instructions used to build and execute / Project setup
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proof of concept
+      description: Your POC code
+      render: js
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Exception or Error
+      description: Provide error logs / console output
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Context

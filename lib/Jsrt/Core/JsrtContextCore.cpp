@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Runtime.h"
@@ -105,25 +106,6 @@ void JsrtContextCore::OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::
 
 HRESULT ChakraCoreHostScriptContext::FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord)
 {
-    return FetchImportedModuleHelper(
-        [=](Js::JavascriptString *specifierVar, JsModuleRecord *dependentRecord) -> JsErrorCode
-        {
-            return fetchImportedModuleCallback(referencingModule, specifierVar, dependentRecord);
-        }, specifier, dependentModuleRecord);
-}
-
-HRESULT ChakraCoreHostScriptContext::FetchImportedModuleFromScript(JsSourceContext dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord)
-{
-    return FetchImportedModuleHelper(
-        [=](Js::JavascriptString *specifierVar, JsModuleRecord *dependentRecord) -> JsErrorCode
-    {
-        return fetchImportedModuleFromScriptCallback(dwReferencingSourceContext, specifierVar, dependentRecord);
-    }, specifier, dependentModuleRecord);
-}
-
-template<typename Fn>
-HRESULT ChakraCoreHostScriptContext::FetchImportedModuleHelper(Fn fetch, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord)
-{
     if (fetchImportedModuleCallback == nullptr)
     {
         return E_INVALIDARG;
@@ -132,7 +114,27 @@ HRESULT ChakraCoreHostScriptContext::FetchImportedModuleHelper(Fn fetch, LPCOLES
     JsModuleRecord dependentRecord = JS_INVALID_REFERENCE;
     {
         AUTO_NO_EXCEPTION_REGION;
-        JsErrorCode errorCode = fetch(specifierVar, &dependentRecord);
+        JsErrorCode errorCode = fetchImportedModuleCallback(referencingModule, specifierVar, &dependentRecord);
+        if (errorCode == JsNoError)
+        {
+            *dependentModuleRecord = static_cast<Js::ModuleRecordBase*>(dependentRecord);
+            return NOERROR;
+        }
+    }
+    return E_INVALIDARG;
+}
+
+HRESULT ChakraCoreHostScriptContext::FetchImportedModuleFromScript(JsSourceContext dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord)
+{
+    if (fetchImportedModuleFromScriptCallback == nullptr)
+    {
+        return E_INVALIDARG;
+    }
+    Js::JavascriptString* specifierVar = Js::JavascriptString::NewCopySz(specifier, GetScriptContext());
+    JsModuleRecord dependentRecord = JS_INVALID_REFERENCE;
+    {
+        AUTO_NO_EXCEPTION_REGION;
+        JsErrorCode errorCode = fetchImportedModuleFromScriptCallback(dwReferencingSourceContext, specifierVar, &dependentRecord);
         if (errorCode == JsNoError)
         {
             *dependentModuleRecord = static_cast<Js::ModuleRecordBase*>(dependentRecord);

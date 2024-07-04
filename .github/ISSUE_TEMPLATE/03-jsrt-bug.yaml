@@ -1,0 +1,37 @@
+name: Api Bug
+description: Report a bug with the embedding api
+title: '[Api]: '
+labels:
+  - APIs
+  - Bug
+body:
+  - type: input
+    attributes:
+      label: Operating System
+      description: Specify the OS (with version) you are using
+      placeholder: Name + Version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: ChakraCore Version
+      description: Specify the version of ChakraCore you are using
+      placeholder: Version / Commit id
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Please describe how your project is set-up
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proof of concept
+      description: Add some minimal poc that triggers the bug
+      render: cpp
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context

@@ -10567,6 +10567,9 @@ void EmitYieldAndResume(
 
     auto* writer = byteCodeGenerator->Writer();
 
+    // If in a loop mark it as containing Yield and hence not eligible for Jit loop body
+    writer->SetCurrentLoopHasYield();
+
     if (inputReg != funcInfo->yieldRegister)
         writer->Reg2(Js::OpCode::Ld_A, funcInfo->yieldRegister, inputReg);
 

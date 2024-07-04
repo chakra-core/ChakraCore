@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -114,8 +114,9 @@ namespace Js
             uint startOffset;
             uint endOffset;
             bool isNested;
+            bool hasYield;
             LoopHeaderData() {}
-            LoopHeaderData(uint startOffset, uint endOffset, bool isNested) : startOffset(startOffset), endOffset(endOffset), isNested(isNested){}
+            LoopHeaderData(uint startOffset, uint endOffset, bool isNested, bool hasYield) : startOffset(startOffset), endOffset(endOffset), isNested(isNested), hasYield(hasYield){}
         };
 
         JsUtil::List<uint, ArenaAllocator> * m_labelOffsets;          // Label offsets, once defined
@@ -384,6 +385,18 @@ namespace Js
 
         uint EnterLoop(Js::ByteCodeLabel loopEntrance);
         void ExitLoop(uint loopId);
+        void SetCurrentLoopHasYield();
+        bool HasLoopWithoutYield()
+        {
+            for (int i = 0; i < m_loopHeaders->Count(); ++i)
+            {
+                if(!m_loopHeaders->Item(i).hasYield)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         bool DoJitLoopBodies() const { return m_doJitLoopBodies; }
         bool DoInterruptProbes() const { return m_doInterruptProbe; }
