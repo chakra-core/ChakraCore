@@ -67,6 +67,7 @@ static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenera
     // `EmitNullPropagation` short-circuits to `skipLabel` in case of a nullish value
     emitChainContent(innerNode);
     pnodeOptChain->location = innerNode->location;
+    pnodeOptChain->isUsed = innerNode->isUsed;
 
     Js::ByteCodeLabel doneLabel = Js::Constants::NoRegister;
     if (pnodeOptChain->isUsed)
