@@ -109,6 +109,51 @@ const tests = [
             assert.areEqual(42, (specialObj.b)?.().c);
             assert.areEqual(42, (specialObj?.b)?.().c);
         }
+    },
+    {
+        name: "Optional call in eval (function)",
+        body() {
+            function fn() {
+                return 42;
+            }
+            assert.areEqual(42, eval("fn?.()"));
+        },
+    },
+    {
+        name: "Optional call in eval (lambda)",
+        body() {
+            const fn = () => 42;
+            assert.areEqual(42, eval("fn?.()"));
+        },
+    },
+    {
+        name: "Optional call in eval (object)",
+        body() {
+            const obj = {
+                fn: () => 42,
+            };
+            assert.areEqual(42, eval("obj?.fn?.()"));
+        },
+    },
+    {
+        name: "Optional call in eval (undefined)",
+        body() {
+            assert.areEqual(undefined, eval("doesNotExist?.()"));
+        },
+    },
+    {
+        name: "Optional call in eval respects scope",
+        body() {
+            function fn() {
+                return 42;
+            }
+            assert.areEqual(24, eval(`
+                function fn(){
+                    return 24;
+                }
+                fn?.()
+            `));
+        },
     }
 ];
 
