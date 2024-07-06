@@ -111,6 +111,16 @@ const tests = [
         }
     },
     {
+        name: "Optional call of root function",
+        body(){
+            assert.areEqual(42, eval?.("42"));
+
+            globalThis.doNotUseThisBadGlobalFunction = () => 42;
+            assert.areEqual(42, doNotUseThisBadGlobalFunction?.());
+            assert.areEqual(42, eval("doNotUseThisBadGlobalFunction?.()"));
+        }
+    },
+    {
         name: "Optional call in eval (function)",
         body() {
             function fn() {
