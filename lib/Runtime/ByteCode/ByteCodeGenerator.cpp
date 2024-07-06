@@ -1224,6 +1224,10 @@ ParseNode* VisitBlock(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, Pr
             }
         }
     }
+    if (nullptr != pnodeLastVal)
+    {
+        pnodeLastVal->isUsed = true;
+    }
     return pnodeLastVal;
 }
 
