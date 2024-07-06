@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -1384,6 +1385,14 @@ private:
 #endif
 
 public:
+    template<class Fn>
+    void MapIsInstInlineCaches(Fn fn) const
+    {
+        isInstInlineCacheByFunction.Map([fn](const Js::Var function, Js::IsInstInlineCache* inlineCacheList) {
+            fn(function, inlineCacheList);
+        });
+    }
+
     void InvalidateIsInstInlineCachesForFunction(Js::Var function);
     void InvalidateAllIsInstInlineCaches();
     bool AreAllIsInstInlineCachesInvalidated() const;

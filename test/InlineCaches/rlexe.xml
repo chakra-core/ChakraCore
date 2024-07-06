@@ -137,4 +137,11 @@
       <baseline>bug_vso_os_1206083.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>isinstanceof.js</files>
+      <compile-flags>-trace:IsInstInlineCacheInvalidation</compile-flags>
+      <baseline>isinstanceof.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

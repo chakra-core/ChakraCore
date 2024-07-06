@@ -247,6 +247,43 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
 
     if (isInvalidationOfInlineCacheNeeded)
     {
+        // Invalidate the "instanceof" cache
+        ThreadContext* threadContext = scriptContext->GetThreadContext();
+        threadContext->MapIsInstInlineCaches([threadContext, object](const Js::Var function, Js::IsInstInlineCache* inlineCacheList) {
+            Assert(inlineCacheList != nullptr);
+
+            Js::IsInstInlineCache* curInlineCache;
+            Js::IsInstInlineCache* nextInlineCache;
+            for (curInlineCache = inlineCacheList; curInlineCache != nullptr; curInlineCache = nextInlineCache)
+            {
+                // Stash away the next cache before we potentially zero out current one
+                nextInlineCache = curInlineCache->next;
+
+                // `type` might be null (See https://github.com/chakra-core/ChakraCore/blob/0cfe82d202c0298f4bbde06070f8dbf9099946c8/lib/Runtime/Library/JavascriptFunction.cpp#L3365-L3367)
+                if (curInlineCache->type == nullptr)
+                    continue;
+
+                bool clearCurrentCache = curInlineCache->type == object->GetType();
+                if (!clearCurrentCache) {
+                    // Check if function prototype contains old prototype
+                    JavascriptOperators::MapObjectAndPrototypes<true>(curInlineCache->type->GetPrototype(), [&](RecyclableObject* obj)
+                        {
+                            if (object->GetType() == obj->GetType())
+                                clearCurrentCache = true;
+                        });
+                }
+
+                if (clearCurrentCache)
+                {
+                    // Fix cache list
+                    // Deletes empty entries
+                    threadContext->UnregisterIsInstInlineCache(curInlineCache, function);
+                    // Actually invalidate current cache
+                    memset(curInlineCache, 0, sizeof(Js::IsInstInlineCache));
+                }
+            }
+        });
+
         bool allProtoCachesInvalidated = false;
 
         JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [&](RecyclableObject* obj)
