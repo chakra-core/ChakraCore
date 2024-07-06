@@ -59,11 +59,6 @@ const tests = [
             assert.isUndefined(simpleObj.undefined?.something(i++));
 
             assert.strictEqual(0, i, "Indexer may never be evaluated");
-
-            // ToDo: How can I run async tests?
-            // simpleObj.nothing?.[await Promise.reject()];
-            // simpleObj.null?.[await Promise.reject()];
-            // simpleObj.undefined?.[await Promise.reject()];
         }
     },
     {
