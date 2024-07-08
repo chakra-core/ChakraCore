@@ -602,6 +602,13 @@ namespace Js
         ValidateArray();
 #endif
 
+        if (Js::Configuration::Global.flags.ValidateArrayBounds) {
+            if ((index < 0) || (index >= length)) {
+                // Otherwise the code below could read outside array's bounds
+                JavascriptError::ThrowRangeError(this->GetScriptContext(), WASMERR_ArrayIndexOutOfRange);
+            }
+        }
+
         if (index >= length)
         {
             return false;
