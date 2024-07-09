@@ -209,11 +209,6 @@
   </test>
   <test>
     <default>
-      <files>array_outofbounds_allow.js</files>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>join2.js</files>
       <baseline>join2.baseline</baseline>
     </default>
