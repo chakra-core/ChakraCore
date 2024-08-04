@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
@@ -32,6 +32,7 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
 BOOL doTTReplay = false;
+BOOL doValidateArrayBounds = false;
 const size_t ttUriBufferLength = MAX_PATH * 3;
 char ttUri[ttUriBufferLength];
 size_t ttUriLength = 0;
@@ -1195,6 +1196,10 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
             LPCWSTR startEventStr = argv[i] + wcslen(_u("-TTDStartEvent="));
             startEventCount = (UINT32)_wtoi(startEventStr);
         }
+        else if (wcsstr(argv[i], _u("--ValidateArrayBounds")) == argv[i])
+        {
+            doValidateArrayBounds = true;
+        }
         else
         {
             wchar *temp = argv[cpos];
@@ -1241,6 +1246,10 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         if (HostConfigFlags::flags.CustomConfigFile != NULL) 
         {
             ChakraRTInterface::SetConfigFile(HostConfigFlags::flags.CustomConfigFile);
+        }
+
+        if (doValidateArrayBounds) {
+            ChakraRTInterface::SetValidateArrayBoundsFlag(true);
         }
 
 #ifdef _WIN32
