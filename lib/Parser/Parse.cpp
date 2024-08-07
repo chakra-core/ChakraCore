@@ -1279,6 +1279,11 @@ Symbol* Parser::AddDeclForPid(ParseNodeVar * pnodeVar, IdentPtr pid, SymbolType 
                 !GetCurrentBlockInfo()->pnodeBlock->scope ||
                 GetCurrentBlockInfo()->pnodeBlock->scope->GetScopeType() != ScopeType_GlobalEvalBlock
                 );
+    } 
+    else if(pnodeVar->nop != knopVarDecl) 
+    {
+        fBlockScope = (!GetCurrentBlockInfo()->pnodeBlock->scope ||
+                GetCurrentBlockInfo()->pnodeBlock->scope->GetScopeType() != ScopeType_GlobalEvalBlock);
     }
     if (fBlockScope)
     {
@@ -1315,6 +1320,9 @@ Symbol* Parser::AddDeclForPid(ParseNodeVar * pnodeVar, IdentPtr pid, SymbolType 
     Symbol *sym = refForDecl->GetSym();
     if (sym != nullptr)
     {
+        if(fBlockScope) {
+            Error(ERRsyntax);
+        }
         // Multiple declarations in the same scope. 3 possibilities: error, existing one wins, new one wins.
         switch (pnodeVar->nop)
         {
