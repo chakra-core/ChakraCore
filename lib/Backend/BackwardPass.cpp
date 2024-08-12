@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -4079,7 +4080,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
     IR::Instr * instr = this->currentInstr;
     Func * currFunc = instr->m_func;
 
-    if (this->tag == Js::DeadStorePhase && instr->m_func->IsStackArgsEnabled() && (IsPrePass() || !currentBlock->loop))
+    if (this->tag == Js::DeadStorePhase && instr->m_func->IsStackArgsEnabled() && (!currentBlock->loop))
     {
         switch (instr->m_opcode)
         {
@@ -4099,28 +4100,36 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
                     {
                         AssertMsg(!currFunc->GetJITFunctionBody()->HasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
 
-                        instr->m_opcode = Js::OpCode::Ld_A;
                         PropertySym * propSym = sym->AsPropertySym();
                         Js::ArgSlot    value = (Js::ArgSlot)propSym->m_propertyId;
 
                         Assert(currFunc->HasStackSymForFormal(value));
                         StackSym * paramStackSym = currFunc->GetStackSymForFormal(value);
-                        IR::RegOpnd * srcOpnd = IR::RegOpnd::New(paramStackSym, TyVar, currFunc);
-                        srcOpnd->SetIsJITOptimizedReg(true);
-                        instr->ReplaceSrc1(srcOpnd);
-                        this->ProcessSymUse(paramStackSym, true, true);
 
-                        if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
+                        if (!IsPrePass())
                         {
-                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
-                            Output::Flush();
+                            IR::RegOpnd * srcOpnd = IR::RegOpnd::New(paramStackSym, TyVar, currFunc);
+                            srcOpnd->SetIsJITOptimizedReg(true);
+                            instr->ReplaceSrc1(srcOpnd);
+                            instr->m_opcode = Js::OpCode::Ld_A;
+                            if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
+                            {
+                                Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
+                                Output::Flush();
+                            }
                         }
+
+                        this->ProcessSymUse(paramStackSym, true, true);
                     }
                 }
                 break;
             }
             case Js::OpCode::CommitScope:
             {
+                if (IsPrePass())
+                {
+                    break;
+                }
                 if (instr->GetSrc1()->IsScopeObjOpnd(currFunc))
                 {
                     instr->Remove();
@@ -4131,6 +4140,10 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
             case Js::OpCode::BrFncCachedScopeEq:
             case Js::OpCode::BrFncCachedScopeNeq:
             {
+                if (IsPrePass())
+                {
+                    break;
+                }
                 if (instr->GetSrc2()->IsScopeObjOpnd(currFunc))
                 {
                     instr->Remove();
@@ -4140,6 +4153,10 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
             }
             case Js::OpCode::CallHelper:
             {
+                if (IsPrePass())
+                {
+                    break;
+                }
                 //Remove the CALL and all its Argout instrs.
                 if (instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
                 {
@@ -4178,15 +4195,21 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
 
                 if (instr->GetSrc1()->IsScopeObjOpnd(currFunc))
                 {
-                    instr->m_opcode = Js::OpCode::NewScFunc;
-                    IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
-                    Assert(intConstOpnd->IsIntConstOpnd());
+                    StackSym * frameDisplaySym = currFunc->GetLocalFrameDisplaySym();
+                    if (!IsPrePass())
+                    {
+                        instr->m_opcode = Js::OpCode::NewScFunc;
+                        IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+                        Assert(intConstOpnd->IsIntConstOpnd());
 
-                    uint nestedFuncIndex = instr->m_func->GetJITFunctionBody()->GetNestedFuncIndexForSlotIdInCachedScope(intConstOpnd->AsIntConstOpnd()->AsUint32());
-                    intConstOpnd->Free(instr->m_func);
+                        uint nestedFuncIndex = instr->m_func->GetJITFunctionBody()->GetNestedFuncIndexForSlotIdInCachedScope(intConstOpnd->AsIntConstOpnd()->AsUint32());
+                        intConstOpnd->Free(instr->m_func);
 
-                    instr->ReplaceSrc1(IR::IntConstOpnd::New(nestedFuncIndex, TyUint32, instr->m_func));
-                    instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
+                        instr->ReplaceSrc1(IR::IntConstOpnd::New(nestedFuncIndex, TyUint32, instr->m_func));
+                        instr->SetSrc2(IR::RegOpnd::New(frameDisplaySym, IRType::TyVar, currFunc));
+                    }
+
+                    this->ProcessSymUse(frameDisplaySym, true, true);
                 }
                 break;
             }
