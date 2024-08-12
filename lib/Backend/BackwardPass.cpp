@@ -4080,7 +4080,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
     IR::Instr * instr = this->currentInstr;
     Func * currFunc = instr->m_func;
 
-    if (this->tag == Js::DeadStorePhase && instr->m_func->IsStackArgsEnabled() && (!currentBlock->loop))
+    if (this->tag == Js::DeadStorePhase && instr->m_func->IsStackArgsEnabled())
     {
         switch (instr->m_opcode)
         {
