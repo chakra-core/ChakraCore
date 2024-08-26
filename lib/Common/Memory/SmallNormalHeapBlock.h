@@ -11,7 +11,9 @@ class SmallNormalHeapBlockT : public SmallHeapBlockT<TBlockAttributes>
 {
     typedef SmallHeapBlockT<TBlockAttributes> Base;
     using Base::SmallNormalBlockType;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     using Base::MediumNormalBlockType;
+#endif
     friend class HeapBucketT<SmallNormalHeapBlockT>;
 public:
     typedef typename Base::HeapBlockType HeapBlockType;
@@ -89,10 +91,14 @@ protected:
 #endif
 
 typedef SmallNormalHeapBlockT<SmallAllocationBlockAttributes> SmallNormalHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallNormalHeapBlockT<MediumAllocationBlockAttributes> MediumNormalHeapBlock;
+#endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 typedef SmallNormalWithBarrierHeapBlockT<SmallAllocationBlockAttributes> SmallNormalWithBarrierHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallNormalWithBarrierHeapBlockT<MediumAllocationBlockAttributes> MediumNormalWithBarrierHeapBlock;
+#endif
 #endif
 }

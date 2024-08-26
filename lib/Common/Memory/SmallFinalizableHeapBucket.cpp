@@ -114,10 +114,12 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Sweep(RecyclerSweep& recyclerSweep)
         {
             recyclerSweep.SetupVerifyListConsistencyDataForSmallBlock(nullptr, false, true);
         }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
         {
             recyclerSweep.SetupVerifyListConsistencyDataForMediumBlock(nullptr, false, true);
         }
+#endif
         else
         {
             Assert(false);
@@ -203,10 +205,12 @@ SmallFinalizableHeapBucketBaseT<TBlockType>::Verify()
     {
         recyclerVerifyListConsistencyData.SetupVerifyListConsistencyDataForSmallBlock(nullptr, false, true);
     }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     else if (TBlockType::HeapBlockAttributes::IsMediumBlock)
     {
         recyclerVerifyListConsistencyData.SetupVerifyListConsistencyDataForMediumBlock(nullptr, false, true);
     }
+#endif
     else
     {
         Assert(false);
@@ -241,14 +245,18 @@ namespace Memory
     template class SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlock>;
 #ifdef RECYCLER_VISITED_HOST
     template class SmallFinalizableHeapBucketBaseT<SmallRecyclerVisitedHostHeapBlock>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallFinalizableHeapBucketBaseT<MediumRecyclerVisitedHostHeapBlock>;
+#endif
 #endif
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlock>;
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template class SmallFinalizableHeapBucketBaseT<MediumFinalizableHeapBlock>;
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableHeapBucketBaseT<MediumFinalizableWithBarrierHeapBlock>;
+#endif
 #endif
 }

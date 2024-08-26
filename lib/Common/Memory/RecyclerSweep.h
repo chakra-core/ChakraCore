@@ -77,11 +77,13 @@ private:
         {
             return this->GetData<TBlockType>().bucketData[bucket->GetBucketIndex()];
         }
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
         else
         {
             Assert(TBlockType::HeapBlockAttributes::IsMediumBlock);
             return this->GetData<TBlockType>().bucketData[bucket->GetMediumBucketIndex()];
         }
+#endif
     }
 
     template <typename TBlockType>
@@ -105,6 +107,7 @@ private:
     template <> Data<SmallFinalizableWithBarrierHeapBlock>& GetData<SmallFinalizableWithBarrierHeapBlock>() { return finalizableWithBarrierData; }
 #endif
 
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     template <> Data<MediumLeafHeapBlock>& GetData<MediumLeafHeapBlock>() { return mediumLeafData; }
     template <> Data<MediumNormalHeapBlock>& GetData<MediumNormalHeapBlock>() { return mediumNormalData; }
     template <> Data<MediumFinalizableHeapBlock>& GetData<MediumFinalizableHeapBlock>() { return mediumFinalizableData; }
@@ -114,6 +117,7 @@ private:
 #ifdef RECYCLER_WRITE_BARRIER
     template <> Data<MediumNormalWithBarrierHeapBlock>& GetData<MediumNormalWithBarrierHeapBlock>() { return mediumWithBarrierData; }
     template <> Data<MediumFinalizableWithBarrierHeapBlock>& GetData<MediumFinalizableWithBarrierHeapBlock>() { return mediumFinalizableWithBarrierData; }
+#endif
 #endif
 
 private:
@@ -131,6 +135,7 @@ private:
     Data<SmallNormalWithBarrierHeapBlock> withBarrierData;
     Data<SmallFinalizableWithBarrierHeapBlock> finalizableWithBarrierData;
 #endif
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     Data<MediumLeafHeapBlock> mediumLeafData;
     Data<MediumNormalHeapBlock> mediumNormalData;
     Data<MediumFinalizableHeapBlock> mediumFinalizableData;
@@ -140,6 +145,7 @@ private:
 #ifdef RECYCLER_WRITE_BARRIER
     Data<MediumNormalWithBarrierHeapBlock> mediumWithBarrierData;
     Data<MediumFinalizableWithBarrierHeapBlock> mediumFinalizableWithBarrierData;
+#endif
 #endif
 
     bool hasPendingSweepSmallHeapBlocks;

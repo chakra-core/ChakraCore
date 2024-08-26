@@ -19,7 +19,9 @@ class SmallFinalizableHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes
     typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallFinalizableHeapBlockT>;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     using Base::MediumFinalizableBlockType;
+#endif
 public:
     typedef TBlockAttributes HeapBlockAttributes;
 
@@ -183,7 +185,11 @@ public:
     }
 protected:
     SmallRecyclerVisitedHostHeapBlockT(HeapBucketT<SmallRecyclerVisitedHostHeapBlockT> * bucket, ushort objectSize, ushort objectCount)
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        : SmallFinalizableHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, Base::SmallRecyclerVisitedHostBlockType)
+#else
         : SmallFinalizableHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, TBlockAttributes::IsSmallBlock ? Base::SmallRecyclerVisitedHostBlockType : Base::MediumRecyclerVisitedHostBlockType)
+#endif
     {
     }
 };
@@ -215,22 +221,32 @@ public:
     }
 protected:
     SmallFinalizableWithBarrierHeapBlockT(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT> * bucket, ushort objectSize, ushort objectCount)
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+        : SmallFinalizableHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, Base::SmallFinalizableBlockWithBarrierType)
+#else
         : SmallFinalizableHeapBlockT<TBlockAttributes>(bucket, objectSize, objectCount, TBlockAttributes::IsSmallBlock ? Base::SmallFinalizableBlockWithBarrierType : Base::MediumFinalizableBlockWithBarrierType)
+#endif
     {
     }
 };
 #endif
 
 typedef SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>  SmallFinalizableHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>    MediumFinalizableHeapBlock;
+#endif
 
 #ifdef RECYCLER_VISITED_HOST
 typedef SmallRecyclerVisitedHostHeapBlockT<SmallAllocationBlockAttributes> SmallRecyclerVisitedHostHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallRecyclerVisitedHostHeapBlockT<MediumAllocationBlockAttributes> MediumRecyclerVisitedHostHeapBlock;
+#endif
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
 typedef SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>   SmallFinalizableWithBarrierHeapBlock;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallFinalizableWithBarrierHeapBlockT<MediumAllocationBlockAttributes>     MediumFinalizableWithBarrierHeapBlock;
+#endif
 #endif
 }

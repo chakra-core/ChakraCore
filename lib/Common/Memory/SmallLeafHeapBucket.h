@@ -35,5 +35,7 @@ protected:
 };
 
 typedef SmallLeafHeapBucketT<SmallAllocationBlockAttributes>  SmallLeafHeapBucket;
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 typedef SmallLeafHeapBucketT<MediumAllocationBlockAttributes> MediumLeafHeapBucket;
+#endif
 }

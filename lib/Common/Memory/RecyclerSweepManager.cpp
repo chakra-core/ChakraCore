@@ -321,7 +321,9 @@ RecyclerSweepManager::AddUnaccountedNewObjectAllocBytes(SmallHeapBlockT<TBlockAt
 }
 
 template void RecyclerSweepManager::AddUnaccountedNewObjectAllocBytes<SmallAllocationBlockAttributes>(SmallHeapBlock * heapBlock);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template void RecyclerSweepManager::AddUnaccountedNewObjectAllocBytes<MediumAllocationBlockAttributes>(MediumHeapBlock * heapBlock);
+#endif
 
 #if ENABLE_PARTIAL_GC
 bool
@@ -566,7 +568,9 @@ RecyclerSweepManager::NotifyAllocableObjects(SmallHeapBlockT<TBlockAttributes> *
 }
 
 template void RecyclerSweepManager::NotifyAllocableObjects<SmallAllocationBlockAttributes>(SmallHeapBlock* heapBlock);
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
 template void RecyclerSweepManager::NotifyAllocableObjects<MediumAllocationBlockAttributes>(MediumHeapBlock* heapBlock);
+#endif
 
 void
 RecyclerSweepManager::AddUnusedFreeByteCount(uint expectFreeByteCount)

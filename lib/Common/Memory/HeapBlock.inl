@@ -24,15 +24,19 @@ HeapBlock::GetPageAllocator(HeapInfo * heapInfo)
     switch (this->GetHeapBlockType())
     {
     case SmallLeafBlockType:
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case MediumLeafBlockType:
+#endif
         return heapInfo->GetRecyclerLeafPageAllocator();
     case LargeBlockType:
         return heapInfo->GetRecyclerLargeBlockPageAllocator();
 #ifdef RECYCLER_WRITE_BARRIER
     case SmallNormalBlockWithBarrierType:
     case SmallFinalizableBlockWithBarrierType:
+#if !USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
     case MediumNormalBlockWithBarrierType:
     case MediumFinalizableBlockWithBarrierType:
+#endif
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_THREAD_PAGE
         return heapInfo->GetRecyclerLeafPageAllocator();
 #elif defined(RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE)
@@ -110,7 +114,11 @@ void SmallHeapBlockT<TBlockAttributes>::ScanNewImplicitRootsBase(Fn fn)
 
     uint const localObjectBitDelta = this->GetObjectBitDelta();
     uint const localObjectSize = this->GetObjectSize();
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(localObjectSize <= HeapConstants::MaxSmallObjectSize);
+#else
     Assert(localObjectSize <= HeapConstants::MaxMediumObjectSize);
+#endif
     SmallHeapBlockBitVector * mark = this->GetMarkedBitVector();
     char * address = this->GetAddress();
 
@@ -165,7 +173,11 @@ bool
 HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
 {
 #ifdef RECYCLER_VISITED_HOST
+#if USE_STAGGERED_OBJECT_ALIGNMENT_BUCKETS
+    Assert(GetHeapBlockType() != HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::LargeBlockType);
+#else
     Assert(GetHeapBlockType() != HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType && GetHeapBlockType() != HeapBlock::HeapBlockType::LargeBlockType);
+#endif
 #endif
 
     bool noOOMDuringMark = true;
