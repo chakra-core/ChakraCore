@@ -175,6 +175,23 @@ const tests = [
             assert.areEqual(6, eval("x + y"));
             assert.throws(() => eval?.("x + y"), ReferenceError, "Should not have access to local scope", "'x' is not defined");
         }
+    },
+    {
+        name: "Opt-chain arguments should work in JIT",
+        body() {
+            function passArg(arg1) {
+                return arg1;
+            }
+            assert.areEqual(undefined, passArg(simpleObj.null?.something));
+            assert.areEqual(undefined, passArg(simpleObj.undefined?.something));
+            assert.areEqual(undefined, passArg(simpleObj.something?.something));
+
+            assert.areEqual(null, passArg(simpleObj?.null));
+            assert.areEqual(undefined, passArg(simpleObj?.undefined));
+            assert.areEqual(42, passArg(simpleObj?.something));
+            assert.areEqual("42", passArg(simpleObj?.something.toString()));
+            assert.areEqual("42", passArg(simpleObj?.something?.toString()));
+        }
     }
 ];
 
