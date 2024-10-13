@@ -12852,7 +12852,8 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     case knopIndex:
     case knopList:
         return CreateBinNode(pnode->nop, CopyPnode(pnode->AsParseNodeBin()->pnode1),
-            CopyPnode(pnode->AsParseNodeBin()->pnode2), pnode->ichMin, pnode->ichLim);
+            CopyPnode(pnode->AsParseNodeBin()->pnode2), pnode->ichMin, pnode->ichLim,
+            pnode->AsParseNodeBin()->isNullPropagating);
 
         //PTNODE(knopCall       , "()"        ,None    ,Bin  ,fnopBin)
         //PTNODE(knopNew        , "new"        ,None    ,Bin  ,fnopBin)
