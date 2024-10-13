@@ -96,6 +96,26 @@ const tests = [
         body() {
             assert.areEqual(0, ""?.length, "Expected empty string length");
         }
+    },
+    {
+        name: "Unused opt-chain result should not crash jit",
+        body() {
+            assert.areEqual(undefined, eval(`boo?.();`));
+            assert.areEqual("result", eval(`boo?.(); "result"`));
+        }
+    },
+    {
+        name: "Return register works with opt-chain",
+        body() {
+            function shouldReturnUndefined() {
+                return simpleObj.null?.();
+            }
+            function shouldReturn2() {
+                return "12"?.length;
+            }
+            assert.areEqual(undefined, shouldReturnUndefined());
+            assert.areEqual(2, shouldReturn2());
+        }
     }
 ];
 
