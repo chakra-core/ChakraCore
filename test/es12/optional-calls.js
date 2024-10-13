@@ -164,6 +164,15 @@ const tests = [
                 fn?.()
             `));
         },
+    },
+    {
+        name: "Optional call to eval should be indirect eval",
+        body() {
+            const x = 2;
+            const y = 4;
+            assert.areEqual(6, eval("x + y"));
+            assert.throws(() => eval?.("x + y"), ReferenceError, "Should not have access to local scope", "'x' is not defined");
+        }
     }
 ];
 
