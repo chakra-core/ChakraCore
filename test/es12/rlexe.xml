@@ -17,5 +17,9 @@
       <files>optional-async.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
+    <default>
+      <files>optional-delete.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
   </test>
 </regress-exe>
