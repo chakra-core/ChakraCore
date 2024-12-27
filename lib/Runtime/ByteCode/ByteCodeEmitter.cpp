@@ -48,7 +48,7 @@ static void EmitNullPropagation(Js::RegSlot targetObjectSlot, ByteCodeGenerator 
 /// Use this function to emit the whole expression.
 /// </summary>
 template <class TEmitProc>
-static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, TEmitProc emitChainContent) {
+static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, TEmitProc emitChainContent, bool trueOnShortCircuit = false) {
     Assert(knopOptChain == pnodeOptChain->nop);
 
     Js::ByteCodeLabel previousSkipLabel = funcInfo->currentOptionalChainSkipLabel;
@@ -88,7 +88,11 @@ static void EmitOptionalChainWrapper(ParseNodeUni *pnodeOptChain, ByteCodeGenera
         Assert(Js::Constants::NoRegister != pnodeOptChain->location);
 
         // Set `undefined` on short-circuiting
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnodeOptChain->location, funcInfo->undefinedConstantRegister);
+        // The `delete` operator set `trueOnShortCircuit=true` to return `true` instead of `undefined`
+        if (trueOnShortCircuit)
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, pnodeOptChain->location);
+        else
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnodeOptChain->location, funcInfo->undefinedConstantRegister);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
     }
     
@@ -11221,7 +11225,7 @@ static void EmitDelete(ParseNode *pnode, ParseNode *pexpr, ByteCodeGenerator *by
     case knopOptChain:
         EmitOptionalChainWrapper(pexpr->AsParseNodeUni(), byteCodeGenerator, funcInfo, [&](ParseNode *innerNode) {
             EmitDelete(innerNode, innerNode, byteCodeGenerator, funcInfo);
-        });
+        }, /* trueOnShortCircuit: */ true);
         pnode->location = pexpr->location;
         break;
     case knopName:

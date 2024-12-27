@@ -40,6 +40,11 @@ const tests = [
             assert.isTrue(delete obj.doesNotExist?.something);
             assert.strictEqual(undefined, obj.doesNotExist?.something);
 
+            assert.strictEqual(42, obj?.something);
+            assert.strictEqual(undefined, obj?.something.doesNotExist);
+            assert.isTrue(delete obj?.something.doesNotExist);
+            assert.strictEqual(undefined, obj?.something.doesNotExist);
+
             assert.strictEqual(undefined, obj?.doesNotExist);
             assert.strictEqual(undefined, obj?.doesNotExist?.something);
             assert.isTrue(delete obj?.doesNotExist?.something);
