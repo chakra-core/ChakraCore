@@ -48,7 +48,8 @@ else(NOT CHAKRACORE_BUILD_SH)
 endif(NOT CHAKRACORE_BUILD_SH)
 
 if(CC_USES_SYSTEM_ARCH_SH OR NOT CHAKRACORE_BUILD_SH)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"
+       OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
         set(CC_TARGETS_AMD64_SH 1)
     elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
         set(CC_TARGETS_ARM_SH 1)
@@ -121,6 +122,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(CC_TARGET_OS_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(CC_TARGET_OS_OSX 1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
+    set(CC_TARGET_OS_FREEBSD 1)
 endif()
 
 if (ENABLE_CC_XPLAT_TRACE_SH)
@@ -331,6 +334,11 @@ elseif(CC_TARGET_OS_OSX)
         message(WARNING "-- !! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
       endif()
     endif()
+elseif(CC_TARGET_OS_FREEBSD)
+    add_definitions(
+        -DPLATFORM_UNIX
+    )
+    # TODO
 else()
     message(FATAL_ERROR "Unsupported OS: ${CMAKE_SYSTEM_NAME}")
 endif()
