@@ -10,7 +10,7 @@
 #include <VersionHelpers.h>
 #ifdef __APPLE__
 #include <sys/sysctl.h> // sysctl*
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__)
 #include <unistd.h> // sysconf
 #endif
 // Initialization order
@@ -194,7 +194,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
             countPhysicalProcessor = 1;
         }
     }
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__)
     countPhysicalProcessor = sysconf(_SC_NPROCESSORS_ONLN);
 #else
     // implementation for __linux__ should work for some others.
