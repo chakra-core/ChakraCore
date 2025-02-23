@@ -309,6 +309,7 @@ LPCWSTR Parser::GetTokenString(tokens token)
     case tkLParen: return _u("(");
     case tkLBrack: return _u("[");
     case tkDot: return _u(".");
+    case tkOptChain: return _u("?.");
 
     default:
         return _u("unknown token");
@@ -894,13 +895,13 @@ ParseNodeUni * Parser::CreateUniNode(OpCode nop, ParseNodePtr pnode1, charcount_
 }
 
 // Create ParseNodeBin
-ParseNodeBin * Parser::StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, charcount_t ichMin, charcount_t ichLim)
+ParseNodeBin * Parser::StaticCreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, ArenaAllocator* alloc, charcount_t ichMin, charcount_t ichLim, bool isNullPropagating)
 {
     DebugOnly(VerifyNodeSize(nop, sizeof(ParseNodeBin)));
-    return Anew(alloc, ParseNodeBin, nop, ichMin, ichLim, pnode1, pnode2);
+    return Anew(alloc, ParseNodeBin, nop, ichMin, ichLim, pnode1, pnode2, isNullPropagating);
 }
 
-ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2)
+ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodePtr pnode2, bool isNullPropagating)
 {
     Assert(!this->m_deferringAST);
     charcount_t ichMin;
@@ -937,15 +938,15 @@ ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1, ParseNodeP
         }
     }
 
-    return CreateBinNode(nop, pnode1, pnode2, ichMin, ichLim);
+    return CreateBinNode(nop, pnode1, pnode2, ichMin, ichLim, isNullPropagating);
 }
 
 
 ParseNodeBin * Parser::CreateBinNode(OpCode nop, ParseNodePtr pnode1,
-    ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim)
+    ParseNodePtr pnode2, charcount_t ichMin, charcount_t ichLim, bool isNullPropagating)
 {
     Assert(!this->m_deferringAST);
-    ParseNodeBin * pnode = StaticCreateBinNode(nop, pnode1, pnode2, &m_nodeAllocator, ichMin, ichLim);
+    ParseNodeBin * pnode = StaticCreateBinNode(nop, pnode1, pnode2, &m_nodeAllocator, ichMin, ichLim, isNullPropagating);
     AddAstSize(sizeof(ParseNodeBin));
     return pnode;
 }
@@ -3909,6 +3910,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
         *pfIsDotOrIndex = false;
     }
 
+    bool isOptionalChain = false;
     for (;;)
     {
         uint16 spreadArgCount = 0;
@@ -3918,8 +3920,14 @@ ParseNodePtr Parser::ParsePostfixOperators(
         {
             AutoMarkInParsingArgs autoMarkInParsingArgs(this);
 
+            bool isNullPropagating = tkOptChain == this->GetScanner()->GetPrevious();
             if (fInNew)
             {
+                if (isNullPropagating)
+                {
+                    Error(ERRInvalidOptChainInNew);
+                }
+
                 ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
                 if (buildAST)
                 {
@@ -3972,6 +3980,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     // Detect super()
                     if (this->NodeIsSuperName(pnode))
                     {
+                        if (isNullPropagating)
+                        {
+                            Error(ERRInvalidOptChainInSuper);
+                        }
+
                         pnode = CreateSuperCallNode(pnode->AsParseNodeSpecialName(), pnodeArgs);
                         Assert(pnode);
 
@@ -3988,7 +4001,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     // Note: we used to leave it up to the byte code generator to detect eval calls
                     // at global scope, but now it relies on the flag the parser sets, so set it here.
 
-                    if (count > 0 && this->NodeIsEvalName(pnode->AsParseNodeCall()->pnodeTarget))
+                    if (count > 0 && this->NodeIsEvalName(pnode->AsParseNodeCall()->pnodeTarget) && !isNullPropagating)
                     {
                         this->MarkEvalCaller();
                         fCallIsEval = true;
@@ -4006,6 +4019,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     pnode->AsParseNodeCall()->isApplyCall = false;
                     pnode->AsParseNodeCall()->isEvalCall = fCallIsEval;
                     pnode->AsParseNodeCall()->hasDestructuring = m_hasDestructuringPattern;
+                    pnode->AsParseNodeCall()->isNullPropagating = isNullPropagating;
                     Assert(!m_hasDestructuringPattern || count > 0);
                     pnode->AsParseNodeCall()->argCount = count;
                     pnode->ichLim = this->GetScanner()->IchLimTok();
@@ -4041,7 +4055,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
             if (pfCanAssign)
             {
-                *pfCanAssign = fCanAssignToCallResult && 
+                *pfCanAssign = !isOptionalChain && fCanAssignToCallResult &&
                                (m_sourceContextInfo ?
                                 !PHASE_ON_RAW(Js::EarlyErrorOnAssignToCallPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId) :
                                 !PHASE_ON1(Js::EarlyErrorOnAssignToCallPhase));
@@ -4054,6 +4068,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
         }
         case tkLBrack:
         {
+            bool isNullPropagating = tkOptChain == this->GetScanner()->GetPrevious();
+
             this->GetScanner()->Scan();
             IdentToken tok;
             ParseNodePtr pnodeExpr = ParseExpr<buildAST>(0, FALSE, TRUE, FALSE, nullptr, nullptr, nullptr, &tok);
@@ -4062,12 +4078,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 AnalysisAssert(pnodeExpr);
                 if (pnode && pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper)
                 {
+                    if (isNullPropagating)
+                    {
+                        Error(ERRInvalidOptChainInSuper);
+                    }
+
                     pnode = CreateSuperReferenceNode(knopIndex, pnode->AsParseNodeSpecialName(), pnodeExpr);
                     pnode->AsParseNodeSuperReference()->pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, pnode->ichLim, true);
                 }
                 else
                 {
-                    pnode = CreateBinNode(knopIndex, pnode, pnodeExpr);
+                    pnode = CreateBinNode(knopIndex, pnode, pnodeExpr, isNullPropagating);
                 }
 
                 AnalysisAssert(pnode);
@@ -4081,7 +4102,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
             ChkCurTok(tkRBrack, ERRnoRbrack);
             if (pfCanAssign)
             {
-                *pfCanAssign = TRUE;
+                // optional assignment not permitted
+                *pfCanAssign = !isOptionalChain;
             }
             if (pfIsDotOrIndex)
             {
@@ -4163,17 +4185,41 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
         }
         break;
-
+        
+        case tkOptChain:
         case tkDot:
         {
             ParseNodePtr name = nullptr;
             OpCode opCode = knopDot;
 
+            // We don't use separate knops for optional-chains
+            // Instead mark nodes as null-propagating
+            bool isNullPropagating = tkOptChain == m_token.tk;
+            if (isNullPropagating)
+            {
+                isOptionalChain = true;
+            }
+
             this->GetScanner()->Scan();
             if (!m_token.IsIdentifier())
             {
-                //allow reserved words in ES5 mode
-                if (!(m_token.IsReservedWord()))
+                if (isNullPropagating)
+                {
+                    // We don't need an identifier for an Index `?.[` or Call `?.(`
+                    switch (m_token.tk)
+                    {
+                    case tkLParen:
+                    case tkLBrack:
+                        // Continue to parse function or index (loop)
+                        // Check previous token to check for null-propagation
+                        continue;
+
+                    case tkStrTmplBasic:
+                    case tkStrTmplBegin:
+                        Error(ERRInvalidOptChainWithTaggedTemplate);
+                    }
+                }
+                else if (!(m_token.IsReservedWord())) //allow reserved words in ES5 mode
                 {
                     IdentifierExpectedError(m_token);
                 }
@@ -4200,12 +4246,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 }
                 if (pnode && pnode->nop == knopName && pnode->AsParseNodeName()->IsSpecialName() && pnode->AsParseNodeSpecialName()->isSuper)
                 {
+                    if (isNullPropagating)
+                    {
+                        Error(ERRInvalidOptChainInSuper);
+                    }
+
                     pnode = CreateSuperReferenceNode(opCode, pnode->AsParseNodeSpecialName(), name);
                     pnode->AsParseNodeSuperReference()->pnodeThis = ReferenceSpecialName(wellKnownPropertyPids._this, pnode->ichMin, pnode->ichLim, true);
                 }
                 else
                 {
-                    pnode = CreateBinNode(opCode, pnode, name);
+                    pnode = CreateBinNode(opCode, pnode, name, isNullPropagating);
                 }
             }
             else
@@ -4216,7 +4267,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
 
             if (pfCanAssign)
             {
-                *pfCanAssign = TRUE;
+                // optional assignment not permitted
+                *pfCanAssign = !isOptionalChain;
             }
             if (pfIsDotOrIndex)
             {
@@ -4230,6 +4282,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkStrTmplBasic:
         case tkStrTmplBegin:
         {
+            if (isOptionalChain)
+            {
+                Error(ERRInvalidOptChainWithTaggedTemplate);
+            }
+
             ParseNode* templateNode = nullptr;
             if (pnode != nullptr)
             {
@@ -4258,6 +4315,11 @@ ParseNodePtr Parser::ParsePostfixOperators(
             break;
         }
         default:
+            if (buildAST && isOptionalChain)
+            {
+                // Wrap the whole expression as an optional-chain
+                return CreateUniNode(knopOptChain, pnode);
+            }
             return pnode;
         }
     }
@@ -12790,7 +12852,8 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     case knopIndex:
     case knopList:
         return CreateBinNode(pnode->nop, CopyPnode(pnode->AsParseNodeBin()->pnode1),
-            CopyPnode(pnode->AsParseNodeBin()->pnode2), pnode->ichMin, pnode->ichLim);
+            CopyPnode(pnode->AsParseNodeBin()->pnode2), pnode->ichMin, pnode->ichLim,
+            pnode->AsParseNodeBin()->isNullPropagating);
 
         //PTNODE(knopCall       , "()"        ,None    ,Bin  ,fnopBin)
         //PTNODE(knopNew        , "new"        ,None    ,Bin  ,fnopBin)

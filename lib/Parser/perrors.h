@@ -120,7 +120,11 @@ LSC_ERROR_MSG(1102, ERRInvalidAsgTarget, "Invalid left-hand side in assignment."
 LSC_ERROR_MSG(1103, ERRMissingFrom, "Expected 'from' after import or export clause.")
 
 // 1104 ERRsyntaxEOF
-// 1105-1199 available for future use
+
+LSC_ERROR_MSG(1105, ERRInvalidOptChainInNew, "Invalid optional chain in new expression.")
+LSC_ERROR_MSG(1106, ERRInvalidOptChainInSuper, "Invalid optional chain in call to 'super'.")
+LSC_ERROR_MSG(1107, ERRInvalidOptChainWithTaggedTemplate, "Invalid tagged template in optional chain.")
+// 1108-1199 available for future use
 
 // Generic errors intended to be re-usable
 LSC_ERROR_MSG(1200, ERRKeywordAfter, "Unexpected keyword '%s' after '%s'")

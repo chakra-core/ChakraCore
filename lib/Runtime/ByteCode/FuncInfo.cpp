@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeByteCodePch.h"
@@ -33,6 +34,7 @@ FuncInfo::FuncInfo(
     outArgsCurrentExpr(0),
     innerScopeCount(0),
     currentInnerScopeIndex((uint)-1),
+    currentOptionalChainSkipLabel(-1),
 #if DBG
     outArgsDepth(0),
 #endif
