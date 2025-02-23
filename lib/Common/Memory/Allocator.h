@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -448,6 +449,8 @@ void AssertValue(void * mem, T value, uint byteCount)
 #define NO_EXPORT(x) x
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+
 // For the debugger extension, we don't need the placement news
 #ifndef __PLACEMENT_NEW_INLINE
 #define __PLACEMENT_NEW_INLINE
@@ -470,6 +473,14 @@ void * previousAllocation               // Previously allocated memory
 {
 
 }
+
+#endif
+
+#else
+
+// Use std inline placement new instead of custom
+// See PR #7009
+#include <new>
 
 #endif
 
