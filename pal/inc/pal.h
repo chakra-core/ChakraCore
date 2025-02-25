@@ -230,7 +230,12 @@ extern "C" {
 #endif
 #endif
 
+#ifndef __FreeBSD__
 #define PAL_GLOBAL __attribute__((init_priority(200)))
+#else
+/* TODO above macro expansion fails to compile on FreeBSD */
+#define PAL_GLOBAL
+#endif
 /******************* PAL-Specific Entrypoints *****************************/
 
 #define IsDebuggerPresent PAL_IsDebuggerPresent
