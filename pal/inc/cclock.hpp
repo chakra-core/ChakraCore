@@ -9,7 +9,13 @@
 #ifndef CC_PAL_INC_CCLOCK_H
 #define CC_PAL_INC_CCLOCK_H
 
-class CCLock
+#if defined(__IOS__) || defined(__ANDROID__)
+#define CCLOCK_ALIGN __declspec(align(8))
+#else
+#define CCLOCK_ALIGN
+#endif
+
+class CCLOCK_ALIGN CCLock
 {
     __declspec(align(sizeof(size_t)))
     char           mutexPtr[64]; // keep mutex implementation opaque to consumer (PAL vs non-PAL)

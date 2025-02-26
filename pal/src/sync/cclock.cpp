@@ -82,3 +82,4 @@ bool CCLock::IsLocked() const
                  // if you need to know whether it is locked or not, you may try
                  // TryEnter -> Leave couple. If it's not locked, TryEnter should succeed
 }
+
