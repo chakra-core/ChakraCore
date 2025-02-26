@@ -590,6 +590,12 @@
   </test>
   <test>
     <default>
+      <files>os_23446064.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>Bug19948792.js</files>
       <compile-flags>-maxinterpretcount:1 -bgjit- -oopjit- -loopinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
     </default>
