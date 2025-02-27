@@ -489,6 +489,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * typesNeedingKnownObjectLayout = nullptr;
     BVSparse<JitArenaAllocator> * slotDeadStoreCandidates = nullptr;
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
+    BVSparse<JitArenaAllocator> * auxSlotPtrUpwardExposedUses = nullptr;
     BVSparse<JitArenaAllocator> * couldRemoveNegZeroBailoutForDef = nullptr;
     BVSparse<JitArenaAllocator> * liveFixedFields = nullptr;
 #if DBG
@@ -506,6 +507,11 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         byteCodeRestoreSyms = JitAnewArrayZ(this->tempAlloc, StackSym *, byteCodeLocalsCount);
         excludeByteCodeUpwardExposedTracking = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
 #endif
+    }
+
+    if ((this->tag == Js::DeadStorePhase) && !PHASE_OFF(Js::ReuseAuxSlotPtrPhase, this->func))
+    {
+        auxSlotPtrUpwardExposedUses = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
     }
 
 #if DBG
@@ -1128,6 +1134,29 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         NEXT_DEAD_SUCCESSOR_BLOCK;
     }
 
+    if (auxSlotPtrUpwardExposedUses)
+    {
+        FOREACH_SUCCESSOR_BLOCK(blockSucc, block)
+        {
+            Assert(blockSucc->auxSlotPtrUpwardExposedUses || blockSucc->isLoopHeader);
+            if (blockSucc->auxSlotPtrUpwardExposedUses)
+            {
+                auxSlotPtrUpwardExposedUses->Or(blockSucc->auxSlotPtrUpwardExposedUses);
+            }
+        }
+        NEXT_SUCCESSOR_BLOCK;
+
+        FOREACH_DEAD_SUCCESSOR_BLOCK(deadBlockSucc, block)
+        {
+            Assert(deadBlockSucc->auxSlotPtrUpwardExposedUses || deadBlockSucc->isLoopHeader);
+            if (deadBlockSucc->auxSlotPtrUpwardExposedUses)
+            {
+                auxSlotPtrUpwardExposedUses->Or(deadBlockSucc->auxSlotPtrUpwardExposedUses);
+            }
+        }
+        NEXT_DEAD_SUCCESSOR_BLOCK;
+    }
+
     if (block->isLoopHeader)
     {
         this->DeleteBlockData(block);
@@ -1191,6 +1220,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     block->upwardExposedFields = upwardExposedFields;
     block->typesNeedingKnownObjectLayout = typesNeedingKnownObjectLayout;
     block->byteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
+    block->auxSlotPtrUpwardExposedUses = auxSlotPtrUpwardExposedUses;
 #if DBG
     block->byteCodeRestoreSyms = byteCodeRestoreSyms;
     block->excludeByteCodeUpwardExposedTracking = excludeByteCodeUpwardExposedTracking;
@@ -4315,6 +4345,7 @@ BackwardPass::DumpBlockData(BasicBlock * block, IR::Instr* instr)
         { block->typesNeedingKnownObjectLayout, _u("Needs Known Object Layout") },
         { block->upwardExposedFields, _u("Exposed Fields") },
         { block->byteCodeUpwardExposedUsed, _u("Byte Code Use") },
+        { block->auxSlotPtrUpwardExposedUses, _u("Aux Slot Use")},
         { byteCodeRegisterUpwardExposed, _u("Byte Code Reg Use") },
         { !this->IsCollectionPass() && !block->isDead && this->DoDeadStoreSlots() ? block->slotDeadStoreCandidates : nullptr, _u("Slot deadStore candidates") },
     };
@@ -5673,12 +5704,12 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
         {    
             // This is an upward-exposed use of the aux slot pointer.
             Assert(auxSlotPtrSym);
-            auxSlotPtrUpwardExposed = this->currentBlock->upwardExposedUses->TestAndSet(auxSlotPtrSym->m_id);
+            auxSlotPtrUpwardExposed = this->currentBlock->auxSlotPtrUpwardExposedUses->TestAndSet(auxSlotPtrSym->m_id);
         }
         else if (auxSlotPtrSym != nullptr)
         {
             // The aux slot pointer is not upward-exposed at this point.
-            auxSlotPtrUpwardExposed = this->currentBlock->upwardExposedUses->TestAndClear(auxSlotPtrSym->m_id);
+            auxSlotPtrUpwardExposed = this->currentBlock->auxSlotPtrUpwardExposedUses->TestAndClear(auxSlotPtrSym->m_id);
         }
         if (!this->IsPrePass() && auxSlotPtrUpwardExposed)
         {
