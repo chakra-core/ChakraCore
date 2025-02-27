@@ -331,6 +331,7 @@ PHASE(All)
         PHASE(RegexQc)
         PHASE(RegexOptBT)
         PHASE(InlineCache)
+            PHASE(IsInstInlineCacheInvalidation)
         PHASE(PolymorphicInlineCache)
         PHASE(MissingPropertyCache)
         PHASE(PropertyCache) // Trace caching of property lookups using PropertyString and JavascriptSymbol
