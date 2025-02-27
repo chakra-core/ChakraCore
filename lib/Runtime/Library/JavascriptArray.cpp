@@ -9402,9 +9402,8 @@ Case0:
         }
         else
         {
-            Assert(fromVal < MaxArrayLength);
-            Assert(toVal < MaxArrayLength);
-            Assert(direction == -1 || (fromVal + count < MaxArrayLength && toVal + count < MaxArrayLength));
+            Assert(direction != -1 || (fromVal < MaxArrayLength && toVal < MaxArrayLength));
+            Assert(fromVal + count <= MaxArrayLength && toVal + count <= MaxArrayLength);
 
             uint32 fromIndex = static_cast<uint32>(fromVal);
             uint32 toIndex = static_cast<uint32>(toVal);
