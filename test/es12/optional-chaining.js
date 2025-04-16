@@ -9,7 +9,7 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-const simpleObj = { "null": null, "undefined": undefined, something: 42 };
+const simpleObj = { null: null, undefined: undefined, something: 42 };
 Object.freeze(simpleObj);
 
 const tests = [
@@ -22,9 +22,18 @@ const tests = [
             assert.throws(() => simpleObj.undefined.something, TypeError);
 
             // With optional-chains
-            assert.isUndefined(simpleObj.nothing?.something, "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.null?.something, "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.undefined?.something, "OptChain should evaluated to 'undefined'");
+            assert.isUndefined(
+                simpleObj.nothing?.something,
+                "OptChain should evaluated to 'undefined'"
+            );
+            assert.isUndefined(
+                simpleObj.null?.something,
+                "OptChain should evaluated to 'undefined'"
+            );
+            assert.isUndefined(
+                simpleObj.undefined?.something,
+                "OptChain should evaluated to 'undefined'"
+            );
         }
     },
     {
@@ -36,9 +45,18 @@ const tests = [
             assert.throws(() => simpleObj.undefined["something"], TypeError);
 
             // With optional-chains
-            assert.isUndefined(simpleObj.nothing?.["something"], "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.null?.["something"], "OptChain should evaluated to 'undefined'");
-            assert.isUndefined(simpleObj.undefined?.["something"], "OptChain should evaluated to 'undefined'");
+            assert.isUndefined(
+                simpleObj.nothing?.["something"],
+                "OptChain should evaluated to 'undefined'"
+            );
+            assert.isUndefined(
+                simpleObj.null?.["something"],
+                "OptChain should evaluated to 'undefined'"
+            );
+            assert.isUndefined(
+                simpleObj.undefined?.["something"],
+                "OptChain should evaluated to 'undefined'"
+            );
         }
     },
     {
@@ -81,13 +99,18 @@ const tests = [
                 get undefined() {
                     i++;
                     return undefined;
+                },
+                get something() {
+                    i++;
+                    return { a: 42 };
                 }
             };
 
             assert.isUndefined(specialObj?.null?.a.b.c.d?.e.f.g.h);
             assert.isUndefined(specialObj?.undefined?.a.b.c.d?.e.f.g.h);
+            assert.areEqual(42, specialObj?.something?.a);
 
-            assert.areEqual(2, i, "Properties should be called")
+            assert.areEqual(3, i, "Properties should be called");
         }
     },
     // Null check
