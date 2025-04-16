@@ -280,6 +280,11 @@
 </dir>
 <dir>
   <default>
+    <files>es12</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>switchStatement</files>
   </default>
 </dir>

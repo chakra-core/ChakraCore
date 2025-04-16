@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 struct InlineCacheUnit
@@ -95,6 +96,7 @@ public:
     Js::RegSlot outArgsCurrentExpr; // max number of out args accumulated in the current nested expression
     uint        innerScopeCount;
     uint        currentInnerScopeIndex;
+    Js::ByteCodeLabel currentOptionalChainSkipLabel;
 #if DBG
     uint32 outArgsDepth; // number of calls nested in an expression
 #endif
