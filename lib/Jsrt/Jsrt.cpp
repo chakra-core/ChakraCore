@@ -1234,6 +1234,20 @@ CHAKRA_API JsPointerToString(_In_reads_(stringLength) const WCHAR *stringValue, 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue, stringLength);
 
+        // Special case: allow NULL pointer only if length is 0 → return empty string
+        if (stringValue == nullptr && stringLength == 0)
+        {
+            if (string == nullptr)
+            {
+                return JsErrorInvalidArgument; // output pointer cannot be NULL
+            }
+
+            *string = Js::JavascriptString::NewCopyBuffer(_u(""), 0, scriptContext);
+            PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, string);
+            return JsNoError;
+        }
+
+        // Original null checks for all other cases
         PARAM_NOT_NULL(stringValue);
         PARAM_NOT_NULL(string);
 
@@ -1249,6 +1263,7 @@ CHAKRA_API JsPointerToString(_In_reads_(stringLength) const WCHAR *stringValue, 
         return JsNoError;
     });
 }
+
 
 // TODO: The annotation of stringPtr is wrong.  Need to fix definition in chakrart.h
 // The warning is '*stringPtr' could be '0' : this does not adhere to the specification for the function 'JsStringToPointer'.
