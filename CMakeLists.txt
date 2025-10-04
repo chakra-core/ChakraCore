@@ -379,6 +379,9 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     # prevent the required interface is being exported
     # clang by default sets fvisibility=default
 
+    # Allow ch to export `OnChakraCoreLoadedEntry`
+    set(CMAKE_ENABLE_EXPORTS ON)
+
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
         -Wno-ignored-attributes\
