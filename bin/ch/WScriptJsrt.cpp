@@ -1,10 +1,13 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "PlatformAgnostic/ChakraICU.h"
+#ifdef __valid
+#undef __valid
+#endif
 #if defined(__APPLE__)
 #ifdef ctime
 #undef ctime

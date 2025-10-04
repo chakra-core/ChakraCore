@@ -372,7 +372,8 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -D__STDC_WANT_LIB_EXT1__=1
         )
 
-    set(CMAKE_CXX_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD_REQUIRED On)
 
     # todo: fix general visibility of the interface
     # do not set to `fvisibility=hidden` as it is going to
@@ -393,7 +394,6 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-invalid-offsetof\
         -Wno-undefined-inline\
         -Wno-inconsistent-missing-override\
-        -Wno-c++14-extensions\
         -Wno-macro-redefined\
         -Wno-pragmas\
         -Wno-invalid-token-paste\
