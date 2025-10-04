@@ -19,9 +19,9 @@ Abstract:
 
 --*/
 
+#include <math.h>
 #include "pal/palinternal.h"
 #include "pal/dbgmsg.h"
-#include <math.h>
 
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
