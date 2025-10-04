@@ -44,7 +44,7 @@ This will fetch the testsuite and gtest repos, which are needed for some tests.
 You'll need [CMake](https://cmake.org). If you just run `make`, it will run
 CMake for you, and put the result in `out/clang/Debug/` by default:
 
-> Note: If you are on macOS, you will need to use CMake version 3.2 or higher
+> Note: If you are on macOS, you will need to use CMake version 3.10 or higher
 
 ```console
 $ make
