@@ -130,8 +130,6 @@ typedef GUID UUID;
 #define INIT_PRIORITY(x) __attribute__((init_priority(x)))
 
 #ifdef PAL_STDCPP_COMPAT
-#define __in
-#define __out
 #define FILE PAL_FILE
 #endif
 
