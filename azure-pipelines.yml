@@ -71,12 +71,12 @@ jobs:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'RelWithDebInfo'
-          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
+          libtype_flag: '-DEMBED_ICU=ON'
         OSX.Release:
           image_name: 'macOS-latest'
           deps: 'brew install ninja icu4c'
           build_type: 'Release'
-          libtype_flag: '-DICU_INCLUDE_PATH=/usr/local/opt/icu4c/include'
+          libtype_flag: '-DEMBED_ICU=ON'
 
     pool:
       vmImage: $(image_name)

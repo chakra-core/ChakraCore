@@ -8,7 +8,7 @@ task:
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-xcode
   Dependencies_script:  brew install ninja icu4c && mkdir -p build
-  CMake_script: cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DSTATIC_LIBRARY=ON -DICU_INCLUDE_PATH=/opt/homebrew/opt/icu4c/include -DDISABLE_JIT=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
+  CMake_script: cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DSTATIC_LIBRARY=ON -DEMBED_ICU=ON -DDISABLE_JIT=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
   Build_script: cd build && ninja
   Test_script: cd build && ninja check
 
@@ -17,7 +17,7 @@ task:
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-xcode
   Dependencies_script:  brew install ninja icu4c && mkdir -p build
-  CMake_script: cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DICU_INCLUDE_PATH=/opt/homebrew/opt/icu4c/include -DDISABLE_JIT=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
+  CMake_script: cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEMBED_ICU=ON -DDISABLE_JIT=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
   Build_script: cd build && ninja
   Test_script: cd build && ninja check
 
@@ -26,6 +26,6 @@ task:
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-xcode
   Dependencies_script:  brew install ninja icu4c && mkdir -p build
-  CMake_script: cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DSTATIC_LIBRARY=ON -DICU_INCLUDE_PATH=/opt/homebrew/opt/icu4c/include -DDISABLE_JIT=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
+  CMake_script: cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DSTATIC_LIBRARY=ON -DEMBED_ICU=ON -DDISABLE_JIT=ON -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
   Build_script: cd build && ninja
   Test_script: cd build && ninja check
