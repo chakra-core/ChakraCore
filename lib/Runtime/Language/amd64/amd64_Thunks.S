@@ -64,10 +64,10 @@ NESTED_ENTRY _ZN2Js21InterpreterStackFrame33AsmJsDelayDynamicInterpreterThunkEPN
 
         call C_FUNC(_ZN2Js11WasmLibrary20EnsureWasmEntrypointEPNS_14ScriptFunctionE)
         test rax, rax
-        jne skipThunk
+        jne LOCAL_LABEL(skipThunk)
         mov rdi, [rbp-0x8]
         call C_FUNC(_ZN2Js21InterpreterStackFrame29EnsureDynamicInterpreterThunkEPNS_14ScriptFunctionE)
-skipThunk:
+LOCAL_LABEL(skipThunk):
 
         pop r9
         pop r8
@@ -267,7 +267,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         call C_FUNC(_ZN2Js19BoxAsmJsReturnValueEPNS_14ScriptFunctionEldfDv4_f)
 
         mov rsp, r13 // restore stack pointer
-    Epilogue:
+LOCAL_LABEL(Epilogue):
         mov r12, [rsp + 0x28]
         .cfi_restore r12
         mov r13, [rsp + 0x30]
