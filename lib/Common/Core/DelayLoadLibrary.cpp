@@ -35,7 +35,7 @@ void DelayLoadLibrary::EnsureFromSystemDirOnly()
 }
 
 
-FARPROC DelayLoadLibrary::GetFunction(__in LPCSTR lpFunctionName)
+FARPROC DelayLoadLibrary::GetFunction(_In_ LPCSTR lpFunctionName)
 {
     if (m_hModule)
     {

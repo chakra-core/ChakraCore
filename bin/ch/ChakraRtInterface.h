@@ -342,8 +342,8 @@ public:
     static void UnloadChakraDll(HINSTANCE library);
 
     static HRESULT SetAssertToConsoleFlag(bool flag) { return CHECKED_CALL(SetAssertToConsoleFlag, flag); }
-    static HRESULT SetConfigFlags(__in int argc, __in_ecount(argc) LPWSTR argv[], ICustomConfigFlags* customConfigFlags) { return CHECKED_CALL(SetConfigFlags, argc, argv, customConfigFlags); }
-    static HRESULT SetConfigFile(__in LPWSTR strConfigFileName) { return CHECKED_CALL(SetConfigFile, strConfigFileName); }
+    static HRESULT SetConfigFlags(_In_ int argc, __in_ecount(argc) LPWSTR argv[], ICustomConfigFlags* customConfigFlags) { return CHECKED_CALL(SetConfigFlags, argc, argv, customConfigFlags); }
+    static HRESULT SetConfigFile(_In_ LPWSTR strConfigFileName) { return CHECKED_CALL(SetConfigFile, strConfigFileName); }
     static HRESULT GetFileNameFlag(BSTR * filename) { return CHECKED_CALL(GetFilenameFlag, filename); }
     static HRESULT PrintConfigFlagsUsageString() { m_usageStringPrinted = true;  return CHECKED_CALL(PrintConfigFlagsUsageString); }
 

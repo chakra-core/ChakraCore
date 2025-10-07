@@ -405,11 +405,11 @@ public:
 
     bool DoJitLoopBodies(FuncInfo *funcInfo) const;
 
-    static void Generate(__in ParseNodeProg *pnode, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction ** functionRef);
+    static void Generate(_In_ ParseNodeProg *pnode, uint32 grfscr, _In_ ByteCodeGenerator* byteCodeGenerator, __inout Js::ParseableFunctionInfo ** ppRootFunc, _In_ uint sourceIndex, _In_ bool forceNoNative, _In_ Parser* parser, Js::ScriptFunction ** functionRef);
     void Begin(
-        __in ArenaAllocator *alloc,
-        __in uint32 grfscr,
-        __in Js::ParseableFunctionInfo* pRootFunc);
+        _In_ ArenaAllocator *alloc,
+        _In_ uint32 grfscr,
+        _In_ Js::ParseableFunctionInfo* pRootFunc);
 
     void SetCurrentSourceIndex(uint sourceIndex) { this->sourceIndex = sourceIndex; }
     uint GetCurrentSourceIndex() { return sourceIndex; }

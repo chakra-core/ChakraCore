@@ -151,7 +151,7 @@ public:
         return NOERROR;
     }
 
-    void ReleaseDispatchExCaller(__in void* dispatchExCaller)
+    void ReleaseDispatchExCaller(_In_ void* dispatchExCaller)
     {
         return;
     }
@@ -162,13 +162,13 @@ public:
         return nullptr;
     }
 
-    HRESULT CheckCrossDomainScriptContext(__in Js::ScriptContext* scriptContext) override
+    HRESULT CheckCrossDomainScriptContext(_In_ Js::ScriptContext* scriptContext) override
     {
         // no cross domain for jsrt. Return S_OK
         return S_OK;
     }
 
-    HRESULT GetHostContextUrl(__in DWORD_PTR hostSourceContext, __out BSTR& pUrl) override
+    HRESULT GetHostContextUrl(_In_ DWORD_PTR hostSourceContext, __out BSTR& pUrl) override
     {
         Assert(false);
         return E_NOTIMPL;

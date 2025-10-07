@@ -23,7 +23,7 @@
 *      macros such as __fallthrough (default)
 *  2 - Deprecated some old macros that should not be used
 *  3 - Use VS 2005 Source Annotation to make sure every macro 
-*      is used in the right context. For example placing __in on a return 
+*      is used in the right context. For example placing _In_ on a return 
 *      parameter will result in an error.
 *
 
@@ -150,13 +150,13 @@
 *  Buffer Annotation Examples
 * 
 *  LWSTDAPI_(BOOL) StrToIntExA(
-*      LPCSTR pszString,  //  No annotation required, const implies __in.
+*      LPCSTR pszString,  //  No annotation required, const implies _In_.
 *      DWORD dwFlags,
 *      __out int *piRet   // A pointer whose dereference will be filled in.
 *  );
 * 
 *  void MyPaintingFunction(
-*      __in HWND hwndControl,     //  An initialized read-only parameter.
+*      _In_ HWND hwndControl,     //  An initialized read-only parameter.
 *      __in_opt HDC hdcOptional,  //  An initialized read-only parameter that 
 *                                 //  might be NULL.
 *      __inout IPropertyStore *ppsStore // An initialized parameter that 
@@ -168,7 +168,7 @@
 *                                         //  that will be '\0' terminated 
 *                                         //  on exit.
 *      LPCSTR pszSrc,                     //  No annotation required, 
-*                                         //  const implies __in.
+*                                         //  const implies _In_.
 *      UINT cchMax,                              
 *      DWORD dwFlags
 *  );
@@ -776,10 +776,10 @@
 *        b->buf = calloc(sz,sizeof(char));                       
 *        b->sz = sz;                                             
 *   }                                                            
-*   void WriteBuf(__in FILE *fp,__in struct *buf_s b) {          
+*   void WriteBuf(_In_ FILE *fp,_In_ struct *buf_s b) {          
 *     fwrite(b->buf,b->sz,sizeof(char),fp);                      
 *   }                                                            
-*   void ReadBuf(__in FILE *fp,__inout struct *buf_s b) {        
+*   void ReadBuf(_In_ FILE *fp,__inout struct *buf_s b) {        
 *     fread(b->buf,b->sz,sizeof(char),fp);                       
 *   }                                                            
 *                                                                 
@@ -791,10 +791,10 @@
 *    __field_bcount(sz)                                          
 *    char buf[1];                                                
 *   };                                                           
-*   void WriteBuf(__in FILE *fp,__in struct *buf_s b) {          
+*   void WriteBuf(_In_ FILE *fp,_In_ struct *buf_s b) {          
 *     fwrite(&(b->buf),b->sz,sizeof(char),fp);                   
 *   }                                                            
-*   void ReadBuf(__in FILE *fp,__inout struct *buf_s b) {        
+*   void ReadBuf(_In_ FILE *fp,__inout struct *buf_s b) {        
 *     fread(&(b->buf),b->sz,sizeof(char),fp);                    
 *   }                                                            
 *                                                                 
@@ -805,10 +805,10 @@
 *   struct buf_s {                                               
 *    int sz;                                                     
 *   };                                                           
-*   void WriteBuf(__in FILE *fp,__in struct *buf_s b) {          
+*   void WriteBuf(_In_ FILE *fp,_In_ struct *buf_s b) {          
 *     fwrite(&b,b->sz,sizeof(char),fp);                          
 *   }                                                            
-*   void ReadBuf(__in FILE *fp,__inout struct *buf_s b) {        
+*   void ReadBuf(_In_ FILE *fp,__inout struct *buf_s b) {        
 *     fread(&b,b->sz,sizeof(char),fp);                           
 *   }                                                            
 *

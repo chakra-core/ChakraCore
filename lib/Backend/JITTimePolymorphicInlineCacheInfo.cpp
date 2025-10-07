@@ -13,8 +13,8 @@ JITTimePolymorphicInlineCacheInfo::JITTimePolymorphicInlineCacheInfo()
 /* static */
 void
 JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
-    __in Recycler * recycler,
-    __in Js::EntryPointPolymorphicInlineCacheInfo * runtimeInfo,
+    _In_ Recycler * recycler,
+    _In_ Js::EntryPointPolymorphicInlineCacheInfo * runtimeInfo,
     __out CodeGenWorkItemIDL * jitInfo)
 {
     if (runtimeInfo == nullptr)
@@ -51,8 +51,8 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
 /* static */
 void
 JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
-    __in Recycler * recycler,
-    __in Js::PolymorphicInlineCacheInfo * runtimeInfo,
+    _In_ Recycler * recycler,
+    _In_ Js::PolymorphicInlineCacheInfo * runtimeInfo,
     __out PolymorphicInlineCacheInfoIDL * jitInfo)
 {
 #pragma warning(suppress: 6001)

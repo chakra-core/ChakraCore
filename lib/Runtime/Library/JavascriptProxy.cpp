@@ -1064,7 +1064,7 @@ namespace Js
         return false;
     }
 
-    BOOL JavascriptProxy::Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
+    BOOL JavascriptProxy::Equals(_In_ Var other, __out BOOL* value, ScriptContext* requestContext)
     {
         //RecyclableObject* targetObj;
         if (IsRevoked())
@@ -1084,7 +1084,7 @@ namespace Js
         return true;
     }
 
-    BOOL JavascriptProxy::StrictEquals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
+    BOOL JavascriptProxy::StrictEquals(_In_ Var other, __out BOOL* value, ScriptContext* requestContext)
     {
         *value = FALSE;
         //RecyclableObject* targetObj;

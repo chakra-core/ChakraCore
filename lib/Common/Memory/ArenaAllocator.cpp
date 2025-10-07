@@ -41,7 +41,7 @@ void ArenaData::UpdateCacheBlock() const
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
 ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAlignment, MaxObjectSize>::
-ArenaAllocatorBase(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)(), void(*recoverMemoryFunc)()) :
+ArenaAllocatorBase(_In_ LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)(), void(*recoverMemoryFunc)()) :
     Allocator(outOfMemoryFunc, recoverMemoryFunc),
     ArenaData(pageAllocator),
 #ifdef ARENA_ALLOCATOR_FREE_LIST_SIZE

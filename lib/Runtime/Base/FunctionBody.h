@@ -3329,7 +3329,7 @@ namespace Js
             return sourceSpan->begin == 0 && sourceSpan->end == 0;
         }
 
-        static void GetShortNameFromUrl(__in LPCWSTR pchUrl, _Out_writes_z_(cchBuffer) LPWSTR pchShortName, __in size_t cchBuffer);
+        static void GetShortNameFromUrl(_In_ LPCWSTR pchUrl, _Out_writes_z_(cchBuffer) LPWSTR pchShortName, _In_ size_t cchBuffer);
 
         template<class Fn>
         void MapLoopHeaders(Fn fn) const

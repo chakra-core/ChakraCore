@@ -72,7 +72,7 @@ void Heap<TAlloc, TPreReservedAlloc>::FreeAll()
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-void Heap<TAlloc, TPreReservedAlloc>::Free(__in Allocation* object)
+void Heap<TAlloc, TPreReservedAlloc>::Free(_In_ Allocation* object)
 {
     Assert(object != nullptr);
 
@@ -152,7 +152,7 @@ void Heap<TAlloc, TPreReservedAlloc>::DecommitAll()
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Page> const& bucket, __in void * address)
+bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Page> const& bucket, _In_ void * address)
 {
     DListBase<Page>::Iterator i(&bucket);
     while (i.Next())
@@ -167,7 +167,7 @@ bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Page> const& bucket, __
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void * address)
+bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Page> const buckets[NumBuckets], _In_ void * address)
 {
     for (uint i = 0; i < NumBuckets; i++)
     {
@@ -180,7 +180,7 @@ bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Page> const buckets[Num
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Allocation> const& allocations, __in void *address)
+bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Allocation> const& allocations, _In_ void *address)
 {
     DListBase<Allocation>::Iterator i(&allocations);
     while (i.Next())
@@ -195,7 +195,7 @@ bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(DListBase<Allocation> const& allo
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(__in void* address)
+bool Heap<TAlloc, TPreReservedAlloc>::IsInHeap(_In_ void* address)
 {
     return IsInHeap(buckets, address) || IsInHeap(fullPages, address) || IsInHeap(largeObjectAllocations, address);
 }
@@ -305,7 +305,7 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadWrite(Allo
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(__in Allocation *allocation, __in_opt char* addressInPage)
+BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(_In_ Allocation *allocation, __in_opt char* addressInPage)
 {
     DWORD protectFlags = 0;
     if (GlobalSecurityPolicy::IsCFGEnabled())
@@ -324,7 +324,7 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(__in 
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocation(__in Allocation* allocation, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag, __in_opt char* addressInPage)
+BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocation(_In_ Allocation* allocation, DWORD dwVirtualProtectFlags, DWORD desiredOldProtectFlag, __in_opt char* addressInPage)
 {
     // Allocate at the page level so that our protections don't
     // transcend allocation page boundaries. Here, allocation->address is page
@@ -797,7 +797,7 @@ Page* Heap<TAlloc, TPreReservedAlloc>::FindPageToSplit(BucketId targetBucket, bo
 }
 
 template<typename TAlloc, typename TPreReservedAlloc>
-BVIndex Heap<TAlloc, TPreReservedAlloc>::GetIndexInPage(__in Page* page, __in char* address)
+BVIndex Heap<TAlloc, TPreReservedAlloc>::GetIndexInPage(_In_ Page* page, _In_ char* address)
 {
     Assert(page->address <= address && address < page->address + AutoSystemInfo::PageSize);
 

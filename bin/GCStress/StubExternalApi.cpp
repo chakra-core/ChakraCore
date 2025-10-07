@@ -7,14 +7,14 @@
 
 #include "Core/ConfigParser.h"
 
-bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
+bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, _In_ LPWSTR moduleName)
 {
     swprintf_s(buffer, cchBufferSize, _u("Chakra GC: %lu - %s"), GetCurrentProcessId(), moduleName);
 
     return true;
 }
 
-void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
+void ConfigParserAPI::DisplayInitialOutput(_In_ LPWSTR moduleName)
 {
     Output::Print(_u("Chakra GC\n"));
     Output::Print(_u("INIT: PID        : %d\n"), GetCurrentProcessId());

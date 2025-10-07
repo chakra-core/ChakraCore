@@ -17,7 +17,7 @@ namespace Js
         Assert(false);
     }
 
-    bool Throw::ReportAssert(__in char const *, unsigned int, __in char const *, __in char const *)
+    bool Throw::ReportAssert(_In_ char const *, unsigned int, _In_ char const *, _In_ char const *)
     {
         return false;
     }

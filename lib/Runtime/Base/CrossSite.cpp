@@ -223,7 +223,7 @@ namespace Js
     }
 #endif
 
-    Var CrossSite::MarshalVarInner(ScriptContext* scriptContext, __in Js::RecyclableObject* object, bool fRequestWrapper)
+    Var CrossSite::MarshalVarInner(ScriptContext* scriptContext, _In_ Js::RecyclableObject* object, bool fRequestWrapper)
     {
         if (scriptContext == object->GetScriptContext())
         {

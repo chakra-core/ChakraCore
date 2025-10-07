@@ -26,7 +26,7 @@
 #ifndef _WIN32
 #define DbgRaiseAssertionFailure() __builtin_trap()
 #define __analysis_assume(x)
-#define __in
+#define _In_
 #define __inout
 
 #ifndef USE_ICU

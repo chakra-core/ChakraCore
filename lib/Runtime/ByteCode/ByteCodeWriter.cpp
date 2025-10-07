@@ -3437,7 +3437,7 @@ StoreCommon:
         Write(rawData, byteSize);
     }
 
-    void ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, __in uint byteSize)
+    void ByteCodeWriter::Data::Write(__in_bcount(byteSize) const void* data, _In_ uint byteSize)
     {
         // Simple case where the current chunk has enough space.
         uint bytesFree = current->RemainingBytes();
@@ -3454,7 +3454,7 @@ StoreCommon:
     }
 
     /// Requires buffer extension.
-    _NOINLINE void ByteCodeWriter::Data::SlowWrite(__in_bcount(byteSize) const void* data, __in uint byteSize)
+    _NOINLINE void ByteCodeWriter::Data::SlowWrite(__in_bcount(byteSize) const void* data, _In_ uint byteSize)
     {
         AssertMsg(byteSize > current->RemainingBytes(), "We should not need an extension if there is enough space in the current chunk");
         uint bytesLeftToWrite = byteSize;

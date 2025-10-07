@@ -35,7 +35,7 @@ namespace Js {
         static void XDataRegistrationError(HRESULT hr, ULONG_PTR funcStart);
 #endif
 
-        static bool ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message);
+        static bool ReportAssert(_In_ LPCSTR fileName, uint lineNumber, _In_ LPCSTR error, _In_ LPCSTR message);
         static void LogAssert();
 #ifdef GENERATE_DUMP
         static int GenerateDump(PEXCEPTION_POINTERS exceptInfo, LPCWSTR filePath, int ret = EXCEPTION_CONTINUE_SEARCH, bool needLock = false);
@@ -54,7 +54,7 @@ namespace Js {
 
     // Info:        Verify the result or throw catastrophic
     // Parameters:  HRESULT
-    inline void VerifyOkCatastrophic(__in HRESULT hr)
+    inline void VerifyOkCatastrophic(_In_ HRESULT hr)
     {
         if (hr == E_OUTOFMEMORY)
         {
@@ -69,7 +69,7 @@ namespace Js {
     // Info:        Verify the result or throw catastrophic
     // Parameters:  bool
     template<typename TCheck>
-    inline void VerifyCatastrophic(__in TCheck result)
+    inline void VerifyCatastrophic(_In_ TCheck result)
     {
         if (!result)
         {

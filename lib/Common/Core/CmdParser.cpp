@@ -638,7 +638,7 @@ CmdLineArgsParser::Parse(int argc, __in_ecount(argc) LPWSTR argv[])
     return err;
 }
 
-int CmdLineArgsParser::Parse(__in LPWSTR oneArg) throw()
+int CmdLineArgsParser::Parse(_In_ LPWSTR oneArg) throw()
 {
     int err = 0;
     char16 buffer[MaxTokenSize];

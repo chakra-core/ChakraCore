@@ -12,7 +12,7 @@ public:
     // If the -Console flag is passed in, this method is called with a buffer
     // The implementor will fill in the buffer and return true if a custom Console window title is desired
     // To not change the console title, return false
-    static bool FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName);
+    static bool FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, _In_ LPWSTR moduleName);
 
     // If one of the following flags:
     //  - Console
@@ -21,7 +21,7 @@ public:
     //  - InMemoryTrace
     // is set, then the ConfigParser will call the following method to give the implementor
     // a chance to output any headers at initialization time.
-    static void DisplayInitialOutput(__in LPWSTR moduleName);
+    static void DisplayInitialOutput(_In_ LPWSTR moduleName);
 };
 
 class ConfigParser
@@ -47,7 +47,7 @@ private:
 public:
     static ConfigParser s_moduleConfigParser;
 
-    ConfigParser(Js::ConfigFlagsTable& outputFlags, __in LPCWSTR configFileName = _u("jscript")) :
+    ConfigParser(Js::ConfigFlagsTable& outputFlags, _In_ LPCWSTR configFileName = _u("jscript")) :
         _flags(outputFlags),
         _hasReadConfig(false),
         _configFileName(configFileName)

@@ -93,7 +93,7 @@ namespace Js
         }
         void Ensure(Js::DelayLoadWinRtString *winRTStringLibrary);
 
-        HRESULT DllGetActivationFactory(__in HSTRING activatibleClassId, __out IActivationFactory** factory);
+        HRESULT DllGetActivationFactory(_In_ HSTRING activatibleClassId, __out IActivationFactory** factory);
         bool HasGlobalizationDllLoaded();
 
         HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string) override;
@@ -124,8 +124,8 @@ namespace Js
         LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-winrt-l1-1-0.dll"); }
 
         HRESULT RoGetActivationFactory(
-            __in HSTRING activatibleClassId,
-            __in REFIID iid,
+            _In_ HSTRING activatibleClassId,
+            _In_ REFIID iid,
             __out IActivationFactory** factory);
     };
 
@@ -148,10 +148,10 @@ namespace Js
         LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-processthreads-l1-1-3.dll"); }
 
         BOOL GetProcessInformation(
-            __in HANDLE hProcess,
-            __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+            _In_ HANDLE hProcess,
+            _In_ PROCESS_INFORMATION_CLASS ProcessInformationClass,
             __out_bcount(nLength) PVOID lpBuffer,
-            __in SIZE_T nLength
+            _In_ SIZE_T nLength
         );
     };
  }

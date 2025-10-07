@@ -42,12 +42,12 @@ BOOL JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext()
 }
 #endif
 
-bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
+bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, _In_ LPWSTR moduleName)
 {
     return false;
 }
 
-void ConfigParserAPI::DisplayInitialOutput(__in LPWSTR moduleName)
+void ConfigParserAPI::DisplayInitialOutput(_In_ LPWSTR moduleName)
 {
 }
 

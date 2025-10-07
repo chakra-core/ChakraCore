@@ -13,7 +13,7 @@ const uint Memory::HeapBlockMap32::L2Count;
 #endif
 
 #if defined(TARGET_64)
-HeapBlockMap32::HeapBlockMap32(__in char * startAddress) :
+HeapBlockMap32::HeapBlockMap32(_In_ char * startAddress) :
     startAddress(startAddress),
 #else
 HeapBlockMap32::HeapBlockMap32() :

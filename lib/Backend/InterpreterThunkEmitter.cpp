@@ -583,10 +583,10 @@ void InterpreterThunkEmitter::FillBuffer(
 #if _M_ARM
 void InterpreterThunkEmitter::EncodeInterpreterThunk(
     __in_bcount(InterpreterThunkSize) BYTE* thunkBuffer,
-    __in const intptr_t thunkBufferStartAddress,
-    __in const intptr_t epilogStart,
-    __in const DWORD epilogSize,
-    __in const intptr_t interpreterThunk)
+    _In_ const intptr_t thunkBufferStartAddress,
+    _In_ const intptr_t epilogStart,
+    _In_ const DWORD epilogSize,
+    _In_ const intptr_t interpreterThunk)
 {
     // Encode MOVW
     DWORD lowerThunkBits = (uint32)interpreterThunk & 0x0000FFFF;
@@ -658,10 +658,10 @@ void InterpreterThunkEmitter::GeneratePdata(_In_ const BYTE* entryPoint, _In_ co
 #elif _M_ARM64
 void InterpreterThunkEmitter::EncodeInterpreterThunk(
     __in_bcount(InterpreterThunkSize) BYTE* thunkBuffer,
-    __in const intptr_t thunkBufferStartAddress,
-    __in const intptr_t epilogStart,
-    __in const DWORD epilogSize,
-    __in const intptr_t interpreterThunk)
+    _In_ const intptr_t thunkBufferStartAddress,
+    _In_ const intptr_t epilogStart,
+    _In_ const DWORD epilogSize,
+    _In_ const intptr_t interpreterThunk)
 {
     int addrOffset = ThunkAddressOffset;
 
@@ -742,10 +742,10 @@ void InterpreterThunkEmitter::GeneratePdata(_In_ const BYTE* entryPoint, _In_ co
 #else
 void InterpreterThunkEmitter::EncodeInterpreterThunk(
     __in_bcount(InterpreterThunkSize) BYTE* thunkBuffer,
-    __in const intptr_t thunkBufferStartAddress,
-    __in const intptr_t epilogStart,
-    __in const DWORD epilogSize,
-    __in const intptr_t interpreterThunk)
+    _In_ const intptr_t thunkBufferStartAddress,
+    _In_ const intptr_t epilogStart,
+    _In_ const DWORD epilogSize,
+    _In_ const intptr_t interpreterThunk)
 {
     Emit(thunkBuffer, ThunkAddressOffset, (uintptr_t)interpreterThunk);
     thunkBuffer[DynamicThunkAddressOffset] = Js::FunctionBody::GetOffsetOfDynamicInterpreterThunk();

@@ -1990,9 +1990,9 @@ bool ByteCodeGenerator::DoJitLoopBodies(FuncInfo *funcInfo) const
     return functionBody->ForceJITLoopBody() || funcInfo->byteCodeFunction->IsJitLoopBodyPhaseEnabled();
 }
 
-void ByteCodeGenerator::Generate(__in ParseNodeProg *pnodeProg, uint32 grfscr, __in ByteCodeGenerator* byteCodeGenerator,
-    __inout Js::ParseableFunctionInfo ** ppRootFunc, __in uint sourceIndex,
-    __in bool forceNoNative, __in Parser* parser, Js::ScriptFunction **functionRef)
+void ByteCodeGenerator::Generate(_In_ ParseNodeProg *pnodeProg, uint32 grfscr, _In_ ByteCodeGenerator* byteCodeGenerator,
+    __inout Js::ParseableFunctionInfo ** ppRootFunc, _In_ uint sourceIndex,
+    _In_ bool forceNoNative, _In_ Parser* parser, Js::ScriptFunction **functionRef)
 {
 #if DBG
     struct WalkerPolicyTest : public WalkerPolicyBase<bool, ParseNodeWalker<WalkerPolicyTest>*>
@@ -2178,9 +2178,9 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
 }
 
 void ByteCodeGenerator::Begin(
-    __in ArenaAllocator *alloc,
-    __in uint32 grfscr,
-    __in Js::ParseableFunctionInfo* pRootFunc)
+    _In_ ArenaAllocator *alloc,
+    _In_ uint32 grfscr,
+    _In_ Js::ParseableFunctionInfo* pRootFunc)
 {
     this->alloc = alloc;
     this->flags = grfscr;
@@ -2208,8 +2208,8 @@ void ByteCodeGenerator::Begin(
     this->jumpCleanupList = Anew(alloc, JumpCleanupList, alloc);
 }
 
-HRESULT GenerateByteCode(__in ParseNodeProg *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
-                         __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, __in CompileScriptException *pse, Js::ScopeInfo* parentScopeInfo,
+HRESULT GenerateByteCode(_In_ ParseNodeProg *pnode, _In_ uint32 grfscr, _In_ Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
+                         _In_ uint sourceIndex, _In_ bool forceNoNative, _In_ Parser* parser, _In_ CompileScriptException *pse, Js::ScopeInfo* parentScopeInfo,
                         Js::ScriptFunction ** functionRef)
 {
     HRESULT hr = S_OK;

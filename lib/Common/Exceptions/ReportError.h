@@ -34,24 +34,24 @@ enum ErrorReason
 };
 
 extern "C" void ReportFatalException(
-    __in ULONG_PTR context,
-    __in HRESULT exceptionCode,
-    __in ErrorReason reasonCode,
-    __in ULONG_PTR scenario);
+    _In_ ULONG_PTR context,
+    _In_ HRESULT exceptionCode,
+    _In_ ErrorReason reasonCode,
+    _In_ ULONG_PTR scenario);
 
 // We can have other error handle code path with
 // unique call stack so we can collect data in Dr. Watson.
 void JavascriptDispatch_OOM_fatal_error(
-    __in ULONG_PTR context);
+    _In_ ULONG_PTR context);
 
 void CustomHeap_BadPageState_unrecoverable_error(
-    __in ULONG_PTR context);
+    _In_ ULONG_PTR context);
 
 void Amd64StackWalkerOutOfContexts_unrecoverable_error(
-    __in ULONG_PTR context);
+    _In_ ULONG_PTR context);
 
 void FailedToBox_OOM_unrecoverable_error(
-    __in ULONG_PTR context);
+    _In_ ULONG_PTR context);
 
 #if defined(RECYCLER_WRITE_BARRIER) && defined(TARGET_64)
 void X64WriteBarrier_OOM_unrecoverable_error();
@@ -68,7 +68,7 @@ void UnexpectedExceptionHandling_fatal_error();
 
 #ifdef LARGEHEAPBLOCK_ENCODING
 void LargeHeapBlock_Metadata_Corrupted(
-    __in ULONG_PTR context, __in unsigned char calculatedCheckSum);
+    _In_ ULONG_PTR context, _In_ unsigned char calculatedCheckSum);
 #endif
 
 void FromDOM_NoScriptScope_unrecoverable_error();
@@ -144,8 +144,8 @@ inline void OutOfMemoryAllocationPolicy_unrecoverable_error(BYTE visibility)
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
 // Use UnhandleExceptionFilter to let the default handler handles it.
 inline LONG FatalExceptionFilter(
-    __in LPEXCEPTION_POINTERS lpep, 
-    __in void * addressToBlame = nullptr)
+    _In_ LPEXCEPTION_POINTERS lpep, 
+    _In_ void * addressToBlame = nullptr)
 {
     if (addressToBlame != nullptr)
     {

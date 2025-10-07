@@ -54,7 +54,7 @@ public:
     }
 
     template<typename Func>
-    static uint16 Mul(uint16 lhs, uint16 rhs, __in Func& overflowFn)
+    static uint16 Mul(uint16 lhs, uint16 rhs, _In_ Func& overflowFn)
     {
         // Do the multiplication using 32-bit unsigned math.
         uint32 result = static_cast<uint32>(lhs) * static_cast<uint32>(rhs);

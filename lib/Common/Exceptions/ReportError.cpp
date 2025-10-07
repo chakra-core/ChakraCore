@@ -7,10 +7,10 @@
 // Disable inline so that _ReturnAddress() will get the address of the calling function.
 _NOINLINE
 void ReportFatalException(
-    __in ULONG_PTR context,
-    __in HRESULT exceptionCode,
-    __in ErrorReason reasonCode,
-    __in ULONG_PTR scenario)
+    _In_ ULONG_PTR context,
+    _In_ HRESULT exceptionCode,
+    _In_ ErrorReason reasonCode,
+    _In_ ULONG_PTR scenario)
 {
     // avoid the error text methods to be optimized out.
     UNREFERENCED_PARAMETER(scenario);
@@ -40,14 +40,14 @@ void ReportFatalException(
 // Disable optimization make sure all the frames are still available in Dr. Watson bug reports.
 #pragma optimize("", off)
 _NOINLINE void JavascriptDispatch_OOM_fatal_error(
-    __in ULONG_PTR context)
+    _In_ ULONG_PTR context)
 {
     int scenario = 1;
     ReportFatalException(context, E_OUTOFMEMORY, JavascriptDispatch_OUTOFMEMORY, scenario);
 };
 
 _NOINLINE void CustomHeap_BadPageState_unrecoverable_error(
-    __in ULONG_PTR context)
+    _In_ ULONG_PTR context)
 {
     int scenario = 1;
     ReportFatalException(context, E_UNEXPECTED, CustomHeap_MEMORYCORRUPTION, scenario);
@@ -60,14 +60,14 @@ _NOINLINE void MarkStack_OOM_unrecoverable_error()
 };
 
 _NOINLINE void Amd64StackWalkerOutOfContexts_unrecoverable_error(
-    __in ULONG_PTR context)
+    _In_ ULONG_PTR context)
 {
     int scenario = 1;
     ReportFatalException(context, E_UNEXPECTED, Fatal_Amd64StackWalkerOutOfContexts, scenario);
 }
 
 _NOINLINE void FailedToBox_OOM_unrecoverable_error(
-    __in ULONG_PTR context)
+    _In_ ULONG_PTR context)
 {
     int scenario = 1;
     ReportFatalException(context, E_UNEXPECTED, Fatal_FailedToBox_OUTOFMEMORY, scenario);
@@ -101,7 +101,7 @@ _NOINLINE void Version_Inconsistency_fatal_error()
 
 #ifdef LARGEHEAPBLOCK_ENCODING
 _NOINLINE void LargeHeapBlock_Metadata_Corrupted(
-    __in ULONG_PTR context, __in unsigned char calculatedChecksum)
+    _In_ ULONG_PTR context, _In_ unsigned char calculatedChecksum)
 {
     int scenario = calculatedChecksum; /* For debugging purpose if checksum mismatch happen*/
     ReportFatalException(context, E_UNEXPECTED, LargeHeapBlock_Metadata_Corrupt, scenario);

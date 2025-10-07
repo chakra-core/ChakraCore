@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-HRESULT GenerateByteCode(__in ParseNodeProg *pnode, __in uint32 grfscr, __in Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
-                         __in uint sourceIndex, __in bool forceNoNative, __in Parser* parser, __in CompileScriptException *pse, Js::ScopeInfo* parentScopeInfo = nullptr,
+HRESULT GenerateByteCode(_In_ ParseNodeProg *pnode, _In_ uint32 grfscr, _In_ Js::ScriptContext* scriptContext, __inout Js::ParseableFunctionInfo ** ppRootFunc,
+                         _In_ uint sourceIndex, _In_ bool forceNoNative, _In_ Parser* parser, _In_ CompileScriptException *pse, Js::ScopeInfo* parentScopeInfo = nullptr,
                          Js::ScriptFunction ** functionRef = nullptr);
 
 //

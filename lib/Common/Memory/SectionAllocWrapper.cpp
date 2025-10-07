@@ -128,7 +128,7 @@ PVOID MapView(HANDLE process, HANDLE sectionHandle, size_t size, size_t offset, 
 }
 
 #if defined(TARGET_64)
-SectionMap32::SectionMap32(__in char * startAddress) :
+SectionMap32::SectionMap32(_In_ char * startAddress) :
     startAddress(startAddress),
 #else
 SectionMap32::SectionMap32() :

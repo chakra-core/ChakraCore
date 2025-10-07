@@ -18,6 +18,6 @@ public:
 
     // This needs to be defined only on Windows since this is related to CFG
 #ifdef _WIN32
-    static BOOL GetMitigationPolicyForProcess(__in HANDLE hProcess, __in PROCESS_MITIGATION_POLICY MitigationPolicy, __out_bcount(nLength) PVOID lpBuffer, __in SIZE_T nLength);
+    static BOOL GetMitigationPolicyForProcess(_In_ HANDLE hProcess, _In_ PROCESS_MITIGATION_POLICY MitigationPolicy, __out_bcount(nLength) PVOID lpBuffer, _In_ SIZE_T nLength);
 #endif
 };

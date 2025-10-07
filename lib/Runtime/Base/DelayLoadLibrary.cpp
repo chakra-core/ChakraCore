@@ -163,7 +163,7 @@ namespace Js
     }
 
     HRESULT DelayLoadWindowsGlobalization::DllGetActivationFactory(
-        __in HSTRING activatableClassId,
+        _In_ HSTRING activatableClassId,
         __out IActivationFactory** factory)
     {
         if (m_hModule)
@@ -186,8 +186,8 @@ namespace Js
 #endif
 
     HRESULT DelayLoadWinRtFoundation::RoGetActivationFactory(
-        __in HSTRING activatableClassId,
-        __in REFIID iid,
+        _In_ HSTRING activatableClassId,
+        _In_ REFIID iid,
         __out IActivationFactory** factory)
     {
         if (m_hModule)
@@ -301,10 +301,10 @@ namespace Js
 #endif
 
     BOOL DelayLoadWinCoreProcessThreads::GetProcessInformation(
-        __in HANDLE hProcess,
-        __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+        _In_ HANDLE hProcess,
+        _In_ PROCESS_INFORMATION_CLASS ProcessInformationClass,
         __out_bcount(nLength) PVOID lpBuffer,
-        __in SIZE_T nLength
+        _In_ SIZE_T nLength
     )
     {
 #if defined(DELAYLOAD_SET_CFG_TARGET) || defined(_M_ARM)

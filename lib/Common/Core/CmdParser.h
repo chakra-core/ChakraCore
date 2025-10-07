@@ -35,7 +35,7 @@ private:
 // Methods
 public:
     int                Parse(int argc, __in_ecount(argc) LPWSTR argv[]);
-    int Parse(__in LPWSTR token) throw();
+    int Parse(_In_ LPWSTR token) throw();
     CmdLineArgsParser(ICustomConfigFlags * pCustomConfigFlags = nullptr, Js::ConfigFlagsTable& flagTable = Js::Configuration::Global.flags);
     ~CmdLineArgsParser();
 

@@ -47,15 +47,15 @@ namespace JsUtil
             return *this;
         }
 
-        static bool StaticEquals(__in_z T const * s1, __in_z T const* s2, __in charcount_t length);
+        static bool StaticEquals(__in_z T const * s1, __in_z T const* s2, _In_ charcount_t length);
 
-        static hash_t StaticGetHashCode(__in_z T const * s, __in charcount_t length)
+        static hash_t StaticGetHashCode(__in_z T const * s, _In_ charcount_t length)
         {
             return InternalGetHashCode<false>(s, length);
         }
 
         template <bool fastHash>
-        static hash_t InternalGetHashCode(__in_z T const * s, __in charcount_t length)
+        static hash_t InternalGetHashCode(__in_z T const * s, _In_ charcount_t length)
         {
             hash_t hash = CC_HASH_OFFSET_VALUE;
             charcount_t hashLength = length;
@@ -79,14 +79,14 @@ namespace JsUtil
 
     template<>
     inline bool
-    CharacterBuffer<WCHAR>::StaticEquals(__in_z WCHAR const * s1, __in_z WCHAR const * s2, __in charcount_t length)
+    CharacterBuffer<WCHAR>::StaticEquals(__in_z WCHAR const * s1, __in_z WCHAR const * s2, _In_ charcount_t length)
     {
         return (s1 == s2) || wmemcmp(s1, s2, length) == 0;
     }
 
     template<>
     inline bool
-    CharacterBuffer<unsigned char>::StaticEquals(__in_z unsigned char const * s1, __in_z unsigned char const *s2, __in charcount_t length)
+    CharacterBuffer<unsigned char>::StaticEquals(__in_z unsigned char const * s1, __in_z unsigned char const *s2, _In_ charcount_t length)
     {
         return (s1 == s2) || memcmp(s1, s2, length) == 0;
     }

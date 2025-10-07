@@ -14,10 +14,10 @@ WINBASEAPI
 BOOL
 WINAPI
 GetProcessMitigationPolicy(
-__in HANDLE hProcess,
-__in PROCESS_MITIGATION_POLICY MitigationPolicy,
+_In_ HANDLE hProcess,
+_In_ PROCESS_MITIGATION_POLICY MitigationPolicy,
 __out_bcount(nLength) PVOID lpBuffer,
-__in SIZE_T nLength
+_In_ SIZE_T nLength
 );
 #endif // ENABLE_DEBUG_CONFIG_OPTIONS
 #endif
@@ -34,7 +34,7 @@ BinaryFeatureControl::RecyclerTest()
 
 #ifdef _WIN32
 BOOL
-BinaryFeatureControl::GetMitigationPolicyForProcess(__in HANDLE hProcess, __in PROCESS_MITIGATION_POLICY MitigationPolicy, __out_bcount(nLength) PVOID lpBuffer, __in SIZE_T nLength)
+BinaryFeatureControl::GetMitigationPolicyForProcess(_In_ HANDLE hProcess, _In_ PROCESS_MITIGATION_POLICY MitigationPolicy, __out_bcount(nLength) PVOID lpBuffer, _In_ SIZE_T nLength)
 {
 #if !defined(DELAYLOAD_SET_CFG_TARGET)
     return GetProcessMitigationPolicy(hProcess, MitigationPolicy, lpBuffer, nLength);

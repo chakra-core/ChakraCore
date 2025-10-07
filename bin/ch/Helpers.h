@@ -9,7 +9,7 @@ class Helpers
 public :
     static HRESULT LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut = nullptr, std::string* fullPath = nullptr, bool shouldMute = false);
     static LPCWSTR JsErrorCodeToString(JsErrorCode jsErrorCode);
-    static void LogError(__in __nullterminated const char16 *msg, ...);
+    static void LogError(_In_ __nullterminated const char16 *msg, ...);
     static HRESULT LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthBytes, bool printFileOpenError = true);
 
     static void TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg);

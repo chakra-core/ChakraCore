@@ -2261,13 +2261,13 @@ typedef struct __F_ __F_;
  Buffer Annotation Examples
 
  LWSTDAPI_(BOOL) StrToIntExA(
-     __in LPCSTR pszString,
+     _In_ LPCSTR pszString,
      DWORD dwFlags,
      __out int *piRet                     -- A pointer whose dereference will be filled in.
  );
 
  void MyPaintingFunction(
-     __in HWND hwndControl,               -- An initialized read-only parameter.
+     _In_ HWND hwndControl,               -- An initialized read-only parameter.
      __in_opt HDC hdcOptional,            -- An initialized read-only parameter that might be NULL.
      __inout IPropertyStore *ppsStore     -- An initialized parameter that may be freely used
                                           --   and modified.
@@ -2276,7 +2276,7 @@ typedef struct __F_ __F_;
  LWSTDAPI_(BOOL) PathCompactPathExA(
      __out_ecount(cchMax) LPSTR pszOut,   -- A string buffer with cch elements that will
                                           --   be NULL terminated on exit.
-     __in LPCSTR pszSrc,
+     _In_ LPCSTR pszSrc,
      UINT cchMax,
      DWORD dwFlags
  );
@@ -2661,7 +2661,7 @@ buffer, use the table in the buffer annotations section.
 #define __in_z                                                   _SAL1_Source_(__in_z, (), _In_z_)
 #define __in_ecount_z(size)                                      _SAL1_Source_(__in_ecount_z, (size), _In_reads_z_(size))
 #define __in_bcount_z(size)                                      _SAL1_Source_(__in_bcount_z, (size), __in_bcount(size) __pre __nullterminated)
-#define __in_nz                                                  _SAL1_Source_(__in_nz, (), __in)
+#define __in_nz                                                  _SAL1_Source_(__in_nz, (), _In_)
 #define __in_ecount_nz(size)                                     _SAL1_Source_(__in_ecount_nz, (size), __in_ecount(size))
 #define __in_bcount_nz(size)                                     _SAL1_Source_(__in_bcount_nz, (size), __in_bcount(size))
 #define __out_ecount(size)                                       _SAL1_Source_(__out_ecount, (size), _Out_writes_(size))

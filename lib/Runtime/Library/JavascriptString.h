@@ -131,7 +131,7 @@ namespace Js
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* value, ScriptContext * requestContext) override { AssertMsg(false, "String ToPrimitive should not be called"); *value = this; return true;}
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
-        virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
+        virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, _In_ charcount_t otherLength);
         char16* GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm, ArenaAllocator*, charcount_t&);
 
         static bool Equals(JavascriptString* aLeft, JavascriptString* aRight);
@@ -180,8 +180,8 @@ namespace Js
         static JavascriptString* NewCopySz(__in_z const char16* content, ScriptContext* scriptContext);
         static JavascriptString* NewCopyBuffer(__in_ecount(charLength)  const char16* content, charcount_t charLength, ScriptContext* scriptContext);
 
-        static __ecount(length+1) char16* AllocateLeafAndCopySz(__in Recycler* recycler, __in_ecount(length) const char16* content, charcount_t length);
-        static __ecount(length+1) char16* AllocateAndCopySz(__in ArenaAllocator* arena, __in_ecount(length) const char16* content, charcount_t length);
+        static __ecount(length+1) char16* AllocateLeafAndCopySz(_In_ Recycler* recycler, __in_ecount(length) const char16* content, charcount_t length);
+        static __ecount(length+1) char16* AllocateAndCopySz(_In_ ArenaAllocator* arena, __in_ecount(length) const char16* content, charcount_t length);
         static void CopyHelper(__out_ecount(countNeeded) char16 *dst, __in_ecount(countNeeded) const char16 * str, charcount_t countNeeded);
 
     public:

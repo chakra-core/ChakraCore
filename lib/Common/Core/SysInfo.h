@@ -124,7 +124,7 @@ private:
     DWORD minorVersion;
     DWORD buildDateHash;
     DWORD buildTimeHash;
-    static HRESULT GetVersionInfo(__in LPCWSTR pszPath, DWORD* majorVersion, DWORD* minorVersion);
+    static HRESULT GetVersionInfo(_In_ LPCWSTR pszPath, DWORD* majorVersion, DWORD* minorVersion);
 
     static const DWORD INVALID_VERSION = (DWORD)-1;
 
