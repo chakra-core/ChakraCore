@@ -2102,7 +2102,7 @@ JsErrorCode WScriptJsrt::ReportModuleCompletionCallback(JsModuleRecord module, J
 }
 
 JsErrorCode WScriptJsrt::FetchImportedModuleHelper(JsModuleRecord referencingModule,
-    JsValueRef specifier, __out JsModuleRecord* dependentModuleRecord, LPCSTR refdir)
+    JsValueRef specifier, _Out_ JsModuleRecord* dependentModuleRecord, LPCSTR refdir)
 {
     JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
     AutoString specifierStr;

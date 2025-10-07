@@ -1528,7 +1528,7 @@ namespace Js
         DEFINE_VTABLE_CTOR_NO_REGISTER(ParseableFunctionInfo, FunctionProxy);
         FunctionBody* Parse(ScriptFunction ** functionRef = nullptr, bool isByteCodeDeserialization = false);
 #ifdef ASMJS_PLAT
-        FunctionBody* ParseAsmJs(Parser * p, __out CompileScriptException * se, __out ParseNodeProg ** ptree);
+        FunctionBody* ParseAsmJs(Parser * p, _Out_ CompileScriptException * se, _Out_ ParseNodeProg ** ptree);
 #endif
 
         FunctionBodyFlags GetFlags() const { return flags; }
@@ -3773,7 +3773,7 @@ namespace Js
 
         // Helper methods
         void Insert(RegSlot reg, PropertyId propId);
-        void FetchItemAt(uint index, FunctionBody *pFuncBody, __out PropertyId *pPropId, __out RegSlot *pRegSlot);
+        void FetchItemAt(uint index, FunctionBody *pFuncBody, _Out_ PropertyId *pPropId, _Out_ RegSlot *pRegSlot);
         // Whether reg belongs to non-temp locals
         bool IsRegSlotFormal(RegSlot reg);
     };

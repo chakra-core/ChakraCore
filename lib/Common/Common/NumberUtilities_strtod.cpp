@@ -2762,7 +2762,7 @@ double Js::NumberUtilities::DblFromDecimal(DECIMAL * pdecIn)
     return dblRet;
 }
 
-void Js::NumberUtilities::CodePointAsSurrogatePair(codepoint_t codePointValue, __out char16* first, __out char16* second)
+void Js::NumberUtilities::CodePointAsSurrogatePair(codepoint_t codePointValue, _Out_ char16* first, _Out_ char16* second)
 {
     AssertMsg(first != nullptr && second != nullptr, "Null ptr's passed in for out.");
     AssertMsg(IsInSupplementaryPlane(codePointValue), "Code point is not a surrogate pair.");

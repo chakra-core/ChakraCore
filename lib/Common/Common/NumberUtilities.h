@@ -111,7 +111,7 @@ namespace Js
         // Convert a given UINT16 into its corresponding string.
         // outBufferSize is in WCHAR elements (and used only for ASSERTs)
         // Returns the number of characters written to outBuffer (not including the \0)
-        static charcount_t UInt16ToString(uint16 integer, __out __ecount(outBufferSize) WCHAR* outBuffer, charcount_t outBufferSize, char widthForPaddingZerosInsteadSpaces);
+        static charcount_t UInt16ToString(uint16 integer, _Out_ __ecount(outBufferSize) WCHAR* outBuffer, charcount_t outBufferSize, char widthForPaddingZerosInsteadSpaces);
 
         // Try to parse an integer string to find out if the string contains an index property name.
         static BOOL TryConvertToUInt32(const char16* str, int length, uint32* intVal);
@@ -237,7 +237,7 @@ namespace Js
 
         static double DblFromDecimal(DECIMAL * pdecIn);
 
-        static void CodePointAsSurrogatePair(codepoint_t codePointValue, __out char16* first, __out char16* second);
+        static void CodePointAsSurrogatePair(codepoint_t codePointValue, _Out_ char16* first, _Out_ char16* second);
         static codepoint_t SurrogatePairAsCodePoint(codepoint_t first, codepoint_t second);
 
         static bool IsSurrogateUpperPart(codepoint_t codePointValue);

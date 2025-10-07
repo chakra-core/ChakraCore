@@ -17,7 +17,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     _In_ ArenaAllocator * alloc,
     _In_ Js::DynamicProfileInfo * profileInfo,
     _In_ Js::FunctionBody *functionBody,
-    __out ProfileDataIDL * data,
+    _Out_ ProfileDataIDL * data,
     bool isForegroundJIT)
 {
     if (profileInfo == nullptr)

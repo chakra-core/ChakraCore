@@ -2263,7 +2263,7 @@ typedef struct __F_ __F_;
  LWSTDAPI_(BOOL) StrToIntExA(
      _In_ LPCSTR pszString,
      DWORD dwFlags,
-     __out int *piRet                     -- A pointer whose dereference will be filled in.
+     _Out_ int *piRet                     -- A pointer whose dereference will be filled in.
  );
 
  void MyPaintingFunction(

@@ -166,7 +166,7 @@ public:
     virtual Js::ModuleRoot * GetModuleRoot(int moduleID) = 0;
     virtual HRESULT CheckCrossDomainScriptContext(_In_ Js::ScriptContext* scriptContext) = 0;
 
-    virtual HRESULT GetHostContextUrl(_In_ DWORD_PTR hostSourceContext, __out BSTR& pUrl) = 0;
+    virtual HRESULT GetHostContextUrl(_In_ DWORD_PTR hostSourceContext, _Out_ BSTR& pUrl) = 0;
     virtual BOOL HasCaller() = 0;
     virtual void CleanDynamicCodeCache() = 0;
     virtual HRESULT VerifyDOMSecurity(Js::ScriptContext* targetContext, Js::Var obj) = 0;
@@ -1280,8 +1280,8 @@ private:
             _In_ ULONG grfscr,
             _In_ CompileScriptException *pse,
             __inout charcount_t& cchLength,
-            __out size_t& srcLength,
-            __out uint& sourceIndex,
+            _Out_ size_t& srcLength,
+            _Out_ uint& sourceIndex,
             __deref_out Js::ParseableFunctionInfo ** func,
             __in_opt Js::SimpleDataCacheWrapper* pDataCache);
 

@@ -178,8 +178,8 @@ namespace Js
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         static bool TryGetLengthForOptimizedTypedArray(const Var var, uint32 *const lengthRef, TypeId *const typeIdRef);
-        BOOL ValidateIndexAndDirectSetItem(_In_ Js::Var index, _In_ Js::Var value, __out bool * isNumericIndex);
-        uint32 ValidateAndReturnIndex(_In_ Js::Var index, __out bool * skipOperation, __out bool * isNumericIndex);
+        BOOL ValidateIndexAndDirectSetItem(_In_ Js::Var index, _In_ Js::Var value, _Out_ bool * isNumericIndex);
+        uint32 ValidateAndReturnIndex(_In_ Js::Var index, _Out_ bool * skipOperation, _Out_ bool * isNumericIndex);
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;

@@ -138,7 +138,7 @@ namespace JsUtil
         }
 
         template <typename TLookup>
-        inline TValue Lookup(const TLookup* key, TValue defaultValue, __out TKey const** pKeyOut)
+        inline TValue Lookup(const TLookup* key, TValue defaultValue, _Out_ TKey const** pKeyOut)
         {
             int i = FindEntry(key);
             if (i >= 0)

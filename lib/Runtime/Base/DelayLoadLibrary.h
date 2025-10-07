@@ -93,7 +93,7 @@ namespace Js
         }
         void Ensure(Js::DelayLoadWinRtString *winRTStringLibrary);
 
-        HRESULT DllGetActivationFactory(_In_ HSTRING activatibleClassId, __out IActivationFactory** factory);
+        HRESULT DllGetActivationFactory(_In_ HSTRING activatibleClassId, _Out_ IActivationFactory** factory);
         bool HasGlobalizationDllLoaded();
 
         HRESULT WindowsCreateString(_In_reads_opt_(length) const WCHAR * sourceString, UINT32 length, _Outptr_result_maybenull_ _Result_nullonfailure_ HSTRING * string) override;
@@ -126,7 +126,7 @@ namespace Js
         HRESULT RoGetActivationFactory(
             _In_ HSTRING activatibleClassId,
             _In_ REFIID iid,
-            __out IActivationFactory** factory);
+            _Out_ IActivationFactory** factory);
     };
 
     class DelayLoadWinCoreProcessThreads sealed : public DelayLoadLibrary

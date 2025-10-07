@@ -110,8 +110,8 @@ namespace Js
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache = nullptr) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
-        virtual BOOL Equals(_In_ Var other, __out BOOL* value, ScriptContext* requestContext) override;
-        virtual BOOL StrictEquals(_In_ Var other, __out BOOL* value, ScriptContext* requestContext) override;
+        virtual BOOL Equals(_In_ Var other, _Out_ BOOL* value, ScriptContext* requestContext) override;
+        virtual BOOL StrictEquals(_In_ Var other, _Out_ BOOL* value, ScriptContext* requestContext) override;
         virtual BOOL IsWritable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;

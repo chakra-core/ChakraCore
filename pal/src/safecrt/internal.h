@@ -275,9 +275,9 @@ extern int _nstream;
 extern void **__piob;
 
 FILE * __cdecl _getstream(void);
-FILE * __cdecl _openfile(__in_z const char * _Filename, __in_z const char * _Mode, _In_ int _ShFlag, __out FILE * _File);
-FILE * __cdecl _wopenfile(__in_z const char16_t * _Filename, __in_z const char16_t * _Mode, _In_ int _ShFlag, __out FILE * _File);
-void __cdecl _getbuf(__out FILE * _File);
+FILE * __cdecl _openfile(__in_z const char * _Filename, __in_z const char * _Mode, _In_ int _ShFlag, _Out_ FILE * _File);
+FILE * __cdecl _wopenfile(__in_z const char16_t * _Filename, __in_z const char16_t * _Mode, _In_ int _ShFlag, _Out_ FILE * _File);
+void __cdecl _getbuf(_Out_ FILE * _File);
 int __cdecl _filwbuf (__inout FILE * _File);
 int __cdecl _flswbuf(_In_ int _Ch, __inout FILE * _File);
 void __cdecl _freebuf(__inout FILE * _File);
@@ -339,10 +339,10 @@ void __cdecl _endstdio(void);
 
 errno_t __cdecl _sopen_helper(__in_z const char * _Filename,
     _In_ int _OFlag, _In_ int _ShFlag, _In_ int _PMode,
-    __out int * _PFileHandle, int _BSecure);
+    _Out_ int * _PFileHandle, int _BSecure);
 errno_t __cdecl _wsopen_helper(__in_z const char16_t * _Filename,
     _In_ int _OFlag, _In_ int _ShFlag, _In_ int _PMode,
-    __out int * _PFileHandle, int _BSecure);
+    _Out_ int * _PFileHandle, int _BSecure);
 
 #ifndef CRTDLL
 extern int _cflush;
@@ -506,11 +506,11 @@ typedef struct
 #define _STARTUP_INFO_DEFINED
 #endif  /* _STARTUP_INFO_DEFINED */
 
-_CRTIMP int __cdecl __getmainargs(__out int * _Argc, __deref_out_ecount(*_Argc) char *** _Argv,
+_CRTIMP int __cdecl __getmainargs(_Out_ int * _Argc, __deref_out_ecount(*_Argc) char *** _Argv,
                                   __deref_out_opt char *** _Env, _In_ int _DoWildCard,
                                   _In_ _startupinfo * _StartInfo);
 
-_CRTIMP int __cdecl __wgetmainargs(__out int * _Argc, __deref_out_ecount(*_Argc)char16_t *** _Argv,
+_CRTIMP int __cdecl __wgetmainargs(_Out_ int * _Argc, __deref_out_ecount(*_Argc)char16_t *** _Argv,
                                    __deref_out_opt char16_t *** _Env, _In_ int _DoWildCard,
                                                                    _In_ _startupinfo * _StartInfo);
 

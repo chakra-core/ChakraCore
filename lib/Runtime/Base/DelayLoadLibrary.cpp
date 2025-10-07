@@ -164,7 +164,7 @@ namespace Js
 
     HRESULT DelayLoadWindowsGlobalization::DllGetActivationFactory(
         _In_ HSTRING activatableClassId,
-        __out IActivationFactory** factory)
+        _Out_ IActivationFactory** factory)
     {
         if (m_hModule)
         {
@@ -188,7 +188,7 @@ namespace Js
     HRESULT DelayLoadWinRtFoundation::RoGetActivationFactory(
         _In_ HSTRING activatableClassId,
         _In_ REFIID iid,
-        __out IActivationFactory** factory)
+        _Out_ IActivationFactory** factory)
     {
         if (m_hModule)
         {

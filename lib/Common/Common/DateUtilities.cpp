@@ -75,7 +75,7 @@ namespace Js
     // If we return a failure HRESULT other than E_INVALIDARG, the es5 date can't be expressed
     // in the WinRT scheme
     //
-    HRESULT DateUtilities::ES5DateToWinRTDate(double es5Date, __out INT64* pRet)
+    HRESULT DateUtilities::ES5DateToWinRTDate(double es5Date, _Out_ INT64* pRet)
     {
         Assert(pRet != NULL);
 

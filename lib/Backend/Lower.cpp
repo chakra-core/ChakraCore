@@ -6935,7 +6935,7 @@ Lowerer::LowerScopedLdInst(IR::Instr *instr, IR::JnHelperMethod helperMethod)
     src = instr->UnlinkSrc2();
     AssertMsg(src->IsRegOpnd(), "Expected Reg opnd as src2");
 
-    // __out Var*. The StackSym is allocated in irbuilder, and here we need to insert a lea
+    // _Out_ Var*. The StackSym is allocated in irbuilder, and here we need to insert a lea
     StackSym* dstSym = src->GetStackSym();
     IR::Instr *load = InsertLoadStackAddress(dstSym, instr);
     IR::Opnd* tempOpnd = load->GetDst();

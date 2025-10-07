@@ -152,7 +152,7 @@
 *  LWSTDAPI_(BOOL) StrToIntExA(
 *      LPCSTR pszString,  //  No annotation required, const implies _In_.
 *      DWORD dwFlags,
-*      __out int *piRet   // A pointer whose dereference will be filled in.
+*      _Out_ int *piRet   // A pointer whose dereference will be filled in.
 *  );
 * 
 *  void MyPaintingFunction(
@@ -772,7 +772,7 @@
 *    __field_bcount_full(sz)                                     
 *    char *buf;                                                  
 *   };                                                           
-*   void InitBuf(__out struct *buf_s b,int sz) {                 
+*   void InitBuf(_Out_ struct *buf_s b,int sz) {                 
 *        b->buf = calloc(sz,sizeof(char));                       
 *        b->sz = sz;                                             
 *   }                                                            

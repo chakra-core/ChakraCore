@@ -2620,7 +2620,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //IR::JnHelperMethod helperMethod;
     //if (instrDiv->dstIsTempNumber)
     //{
-    //    // Var JavascriptMath::FinishOddDivByPow2_InPlace(uint32 value, ScriptContext *scriptContext, __out JavascriptNumber* result)
+    //    // Var JavascriptMath::FinishOddDivByPow2_InPlace(uint32 value, ScriptContext *scriptContext, _Out_ JavascriptNumber* result)
     //    helperMethod = IR::HelperOp_FinishOddDivByPow2InPlace;
     //    Assert(dst->IsRegOpnd());
     //    StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);

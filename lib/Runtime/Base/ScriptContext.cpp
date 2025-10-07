@@ -2406,8 +2406,8 @@ ExitTempAllocator:
         _In_ ULONG grfscr,
         _In_ CompileScriptException *pse,
         __inout charcount_t& cchLength,
-        __out size_t& srcLength,
-        __out uint& sourceIndex,
+        _Out_ size_t& srcLength,
+        _Out_ uint& sourceIndex,
         __deref_out Js::ParseableFunctionInfo ** func,
         __in_opt Js::SimpleDataCacheWrapper* pDataCache
     )

@@ -71,7 +71,7 @@ JITManager::CreateBinding(
     _In_ HANDLE serverProcessHandle,
     __in_opt void * serverSecurityDescriptor,
     _In_ UUID * connectionUuid,
-    __out RPC_BINDING_HANDLE * bindingHandle)
+    _Out_ RPC_BINDING_HANDLE * bindingHandle)
 {
     Assert(IsOOPJITEnabled());
 
@@ -358,9 +358,9 @@ JITManager::ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle)
 HRESULT
 JITManager::InitializeThreadContext(
     _In_ ThreadContextDataIDL * data,
-    __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __out intptr_t * prereservedRegionAddr,
-    __out intptr_t * jitThunkAddr)
+    _Out_ PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
+    _Out_ intptr_t * prereservedRegionAddr,
+    _Out_ intptr_t * jitThunkAddr)
 {
     Assert(IsOOPJITEnabled());
 
@@ -448,7 +448,7 @@ HRESULT
 JITManager::NewInterpreterThunkBlock(
     _In_ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     _In_ InterpreterThunkInputIDL * thunkInput,
-    __out InterpreterThunkOutputIDL * thunkOutput)
+    _Out_ InterpreterThunkOutputIDL * thunkOutput)
 {
     Assert(IsOOPJITEnabled());
 
@@ -537,7 +537,7 @@ HRESULT
 JITManager::InitializeScriptContext(
     _In_ ScriptContextDataIDL * data,
     _In_ PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
+    _Out_ PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
 {
     Assert(IsOOPJITEnabled());
 
@@ -620,7 +620,7 @@ HRESULT
 JITManager::IsNativeAddr(
     _In_ PTHREADCONTEXT_HANDLE threadContextInfoAddress,
     _In_ intptr_t address,
-    __out boolean * result)
+    _Out_ boolean * result)
 {
     Assert(IsOOPJITEnabled());
 
@@ -642,7 +642,7 @@ HRESULT
 JITManager::RemoteCodeGenCall(
     _In_ CodeGenWorkItemIDL *workItemData,
     _In_ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __out JITOutputIDL *jitData)
+    _Out_ JITOutputIDL *jitData)
 {
     Assert(IsOOPJITEnabled());
 
@@ -666,7 +666,7 @@ JITManager::IsInterpreterThunkAddr(
     _In_ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     _In_ intptr_t address,
     _In_ boolean asmjsThunk,
-    __out boolean * result)
+    _Out_ boolean * result)
 {
     Assert(IsOOPJITEnabled());
 

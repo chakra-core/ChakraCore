@@ -338,8 +338,8 @@ typedef UTF8EncodingPolicyBase<false> NotNullTerminatedUTF8EncodingPolicy;
 
 interface IScanner
 {
-    virtual void GetErrorLineInfo(__out int32& ichMin, __out int32& ichLim, __out int32& line, __out int32& ichMinLine) = 0;
-    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine) = 0;
+    virtual void GetErrorLineInfo(_Out_ int32& ichMin, _Out_ int32& ichLim, _Out_ int32& line, _Out_ int32& ichMinLine) = 0;
+    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, _Out_ BSTR* pbstrLine) = 0;
 };
 
 // Flags that can be provided to the Scan functions.
@@ -595,7 +595,7 @@ public:
     }
 
     // IScanner methods
-    virtual void GetErrorLineInfo(__out int32& ichMin, __out int32& ichLim, __out int32& line, __out int32& ichMinLine)
+    virtual void GetErrorLineInfo(_Out_ int32& ichMin, _Out_ int32& ichLim, _Out_ int32& line, _Out_ int32& ichMinLine)
     {
         ichMin = this->IchMinError();
         ichLim = this->IchLimError();
@@ -608,7 +608,7 @@ public:
         }
     }
 
-    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine);
+    virtual HRESULT SysAllocErrorLine(int32 ichMinLine, _Out_ BSTR* pbstrLine);
 
     class TemporaryBuffer
     {

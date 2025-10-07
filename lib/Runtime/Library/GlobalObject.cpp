@@ -2249,7 +2249,7 @@ LHexError:
         return TRUE;
     }
 
-    BOOL GlobalObject::StrictEquals(_In_ Js::Var other, __out BOOL* value, ScriptContext * requestContext)
+    BOOL GlobalObject::StrictEquals(_In_ Js::Var other, _Out_ BOOL* value, ScriptContext * requestContext)
     {
         if (this == other)
         {
@@ -2268,7 +2268,7 @@ LHexError:
         return FALSE;
     }
 
-    BOOL GlobalObject::Equals(_In_ Js::Var other, __out BOOL* value, ScriptContext * requestContext)
+    BOOL GlobalObject::Equals(_In_ Js::Var other, _Out_ BOOL* value, ScriptContext * requestContext)
     {
         if (this == other)
         {

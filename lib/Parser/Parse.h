@@ -258,17 +258,17 @@ public:
     // the UTF-16 characters pre-canonicalization. Converting this UTF-16 with invalid sequences to valid UTF-8 and back would cause
     // all invalid UTF-16 sequences to be replaced by one or more Unicode replacement characters (0xFFFD), losing the original
     // invalid sequences.
-    HRESULT ParseCesu8Source(__out ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
+    HRESULT ParseCesu8Source(_Out_ ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
         Js::LocalFunctionId * nextFunctionId, SourceContextInfo * sourceContextInfo);
 
     // Should be called when the source is UTF-8 and invalid UTF-8 sequences should be replaced with the unicode replacement character
     // (0xFFFD). Security concerns require externally produced UTF-8 only allow valid UTF-8 otherwise an attacker could use invalid
     // UTF-8 sequences to fool a filter and cause Javascript to be executed that might otherwise have been rejected.
-    HRESULT ParseUtf8Source(__out ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
+    HRESULT ParseUtf8Source(_Out_ ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t length, ULONG grfsrc, CompileScriptException *pse,
         Js::LocalFunctionId * nextFunctionId, SourceContextInfo * sourceContextInfo);
 
     // Used by deferred parsing to parse a deferred function.
-    HRESULT ParseSourceWithOffset(__out ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
+    HRESULT ParseSourceWithOffset(_Out_ ParseNodeProg ** parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
         bool isCesu8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber,
         SourceContextInfo * sourceContextInfo, Js::ParseableFunctionInfo* functionInfo);
 
@@ -277,7 +277,7 @@ protected:
     void ShiftCurrDeferredStubToChildFunction(ParseNodeFnc* pnodeFnc, ParseNodeFnc* pnodeFncParent);
 
     HRESULT ParseSourceInternal(
-        __out ParseNodeProg ** parseTree, LPCUTF8 pszSrc, size_t offsetInBytes,
+        _Out_ ParseNodeProg ** parseTree, LPCUTF8 pszSrc, size_t offsetInBytes,
         size_t lengthInCodePoints, charcount_t offsetInChars, bool isUtf8,
         ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo);
 

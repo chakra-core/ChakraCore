@@ -3173,9 +3173,9 @@ using namespace Js;
     void JavascriptArray::TryGetArrayAndLength(Var arg,
         ScriptContext *scriptContext,
         PCWSTR methodName,
-        __out JavascriptArray** array,
-        __out RecyclableObject** obj,
-        __out T * length)
+        _Out_ JavascriptArray** array,
+        _Out_ RecyclableObject** obj,
+        _Out_ T * length)
     {
         Assert(array != nullptr);
         Assert(obj != nullptr);

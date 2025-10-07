@@ -13,7 +13,7 @@ public:
         _In_ ArenaAllocator * alloc,
         _In_ const Js::FunctionCodeGenJitTimeData * codeGenData,
         __in_opt const Js::FunctionCodeGenRuntimeData * runtimeData,
-        __out FunctionJITTimeDataIDL * jitData,
+        _Out_ FunctionJITTimeDataIDL * jitData,
         bool isInlinee,
         bool isForegroundJIT);
 

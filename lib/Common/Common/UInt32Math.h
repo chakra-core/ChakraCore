@@ -138,14 +138,14 @@ public:
     }
 
     // Convenience functions which return a bool indicating overflow
-    static bool Add(uint32 lhs, uint32 rhs, __out uint32* result)
+    static bool Add(uint32 lhs, uint32 rhs, _Out_ uint32* result)
     {
         ::Math::RecordOverflowPolicy overflowGuard;
         *result = Add(lhs, rhs, overflowGuard);
         return overflowGuard.HasOverflowed();
     }
 
-    static bool Mul(uint32 lhs, uint32 rhs, __out uint32* result)
+    static bool Mul(uint32 lhs, uint32 rhs, _Out_ uint32* result)
     {
         ::Math::RecordOverflowPolicy overflowGuard;
         *result = Mul(lhs, rhs, overflowGuard);

@@ -2338,7 +2338,7 @@ void Scanner<EncodingPolicy>::SeekTo(const RestorePoint& restorePoint, uint *nex
 
 // Called by CompileScriptException::ProcessError to retrieve a BSTR for the line on which an error occurred.
 template<typename EncodingPolicy>
-HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR* pbstrLine)
+HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, _Out_ BSTR* pbstrLine)
 {
     if( !pbstrLine )
     {

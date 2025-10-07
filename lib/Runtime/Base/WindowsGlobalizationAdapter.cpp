@@ -418,7 +418,7 @@ namespace Js
         return hr;
     }
 
-    HRESULT WindowsGlobalizationAdapter::CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, __out::ITimeZoneOnCalendar**  result)
+    HRESULT WindowsGlobalizationAdapter::CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, _Out_::ITimeZoneOnCalendar**  result)
     {
         AutoCOMPtr<::ICalendar> calendar;
 
