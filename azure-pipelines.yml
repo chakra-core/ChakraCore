@@ -33,32 +33,32 @@ jobs:
       maxParallel: 6
       matrix:
         Linux.Debug:
-          image_name: 'ubuntu-22.04'
+          image_name: 'ubuntu-24.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Debug'
           libtype_flag: ''
         Linux.NoJit:
-          image_name: 'ubuntu-22.04'
+          image_name: 'ubuntu-24.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Debug'
           libtype_flag: '-DDISABLE_JIT=ON'
         Linux.ReleaseWithDebug:
-          image_name: 'ubuntu-22.04'
+          image_name: 'ubuntu-24.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
           libtype_flag: ''
         Linux.Release:
-          image_name: 'ubuntu-22.04'
+          image_name: 'ubuntu-24.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
           libtype_flag: ''
-        Ubuntu20.ReleaseWithDebug:
-          image_name: 'ubuntu-20.04'
+        Ubuntu22.ReleaseWithDebug:
+          image_name: 'ubuntu-22.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'RelWithDebInfo'
           libtype_flag: ''
-        Ubuntu20.Release:
-          image_name: 'ubuntu-20.04'
+        Ubuntu22.Release:
+          image_name: 'ubuntu-22.04'
           deps: 'sudo apt-get install -y ninja-build clang libicu-dev'
           build_type: 'Release'
           libtype_flag: ''
