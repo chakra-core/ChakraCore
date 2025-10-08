@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -292,7 +293,7 @@ namespace JsUtil
             if (count > 0)
             {
                 memset(buckets, -1, bucketCount * sizeof(buckets[0]));
-                memset(entries, 0, sizeof(EntryType) * size);
+                memset((void*)entries, 0, sizeof(EntryType) * size);
                 count = 0;
                 freeCount = 0;
 #if PROFILE_DICTIONARY

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
@@ -17,7 +18,7 @@ namespace Js
     void JavascriptExceptionObject::ClearError()
     {
         Assert(this->isPendingExceptionObject);
-        memset(this, 0, sizeof(JavascriptExceptionObject));
+        memset((void*)this, 0, sizeof(JavascriptExceptionObject));
         this->isPendingExceptionObject = true;
     }
 

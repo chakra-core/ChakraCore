@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -33,7 +34,7 @@ namespace Js
             }
             else
             {
-                memset(&exceptionContext, 0, sizeof(exceptionContext));
+                memset((void*)&exceptionContext, 0, sizeof(exceptionContext));
             }
 #if ENABLE_DEBUG_STACK_BACK_TRACE
             this->stackBackTrace = nullptr;

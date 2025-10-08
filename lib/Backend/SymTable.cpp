@@ -287,7 +287,7 @@ SymTable::ClearStackSymScratch()
     {
         if (sym->IsStackSym())
         {
-            memset(&(sym->AsStackSym()->scratch), 0, sizeof(sym->AsStackSym()->scratch));
+            memset((void*)&(sym->AsStackSym()->scratch), 0, sizeof(sym->AsStackSym()->scratch));
         }
     } NEXT_SYM_IN_TABLE;
 }

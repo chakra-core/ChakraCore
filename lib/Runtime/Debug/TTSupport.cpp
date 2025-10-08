@@ -319,7 +319,7 @@ namespace TTD
         this->m_addrArray = TT_HEAP_ALLOC_ARRAY_ZERO(uint64, this->m_capcity);
         this->m_markArray = TT_HEAP_ALLOC_ARRAY_ZERO(MarkTableTag, this->m_capcity);
 
-        memset(this->m_handlerCounts, 0, ((uint32)MarkTableTag::KindTagCount) * sizeof(uint32));
+        memset((void*)this->m_handlerCounts, 0, ((uint32)MarkTableTag::KindTagCount) * sizeof(uint32));
     }
 
     MarkTable::~MarkTable()
@@ -332,8 +332,8 @@ namespace TTD
     {
         if(this->m_capcity == TTD_MARK_TABLE_INIT_SIZE)
         {
-            memset(this->m_addrArray, 0, TTD_MARK_TABLE_INIT_SIZE * sizeof(uint64));
-            memset(this->m_markArray, 0, TTD_MARK_TABLE_INIT_SIZE * sizeof(MarkTableTag));
+            memset((void*)this->m_addrArray, 0, TTD_MARK_TABLE_INIT_SIZE * sizeof(uint64));
+            memset((void*)this->m_markArray, 0, TTD_MARK_TABLE_INIT_SIZE * sizeof(MarkTableTag));
         }
         else
         {
@@ -349,7 +349,7 @@ namespace TTD
         this->m_count = 0;
         this->m_iterPos = 0;
 
-        memset(this->m_handlerCounts, 0, ((uint32)MarkTableTag::KindTagCount) * sizeof(uint32));
+        memset((void*)this->m_handlerCounts, 0, ((uint32)MarkTableTag::KindTagCount) * sizeof(uint32));
     }
 }
 

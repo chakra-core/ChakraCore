@@ -139,7 +139,7 @@ BVFixed::Length() const
 void
 BVFixed::SetAll()
 {
-    memset(&this->data[0], -1, WordCount() * sizeof(BVUnit));
+    memset((void*)&this->data[0], -1, WordCount() * sizeof(BVUnit));
     ClearEnd();
 }
 

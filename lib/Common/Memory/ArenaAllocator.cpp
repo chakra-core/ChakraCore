@@ -1052,7 +1052,7 @@ void * InlineCacheFreeListPolicy::Allocate(void * policy, size_t size)
 
 #ifdef ARENA_MEMORY_VERIFY
         // Make sure the next pointer bytes are also DbgFreeMemFill-ed, before we give them out.
-        memset(&freeObject->next, DbgFreeMemFill, sizeof(freeObject->next));
+        memset((void*)&freeObject->next, DbgFreeMemFill, sizeof(freeObject->next));
 #endif
     }
 

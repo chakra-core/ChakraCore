@@ -65,7 +65,7 @@ RecyclerSweepManager::BeginSweep(Recycler * recycler)
     Assert(!recycler->IsSweeping());
     Assert(recycler->recyclerSweepManager == nullptr);
 
-    memset(this, 0, sizeof(RecyclerSweepManager));
+    memset((void*)this, 0, sizeof(RecyclerSweepManager));
     this->recycler = recycler;
     recycler->recyclerSweepManager = this;
 

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -22,9 +23,9 @@ LinearScanMD::LinearScanMD(Func *func)
         }
     } NEXT_REG;
 
-    memset(this->xmmSymTable128, 0, sizeof(this->xmmSymTable128));
-    memset(this->xmmSymTable64, 0, sizeof(this->xmmSymTable64));
-    memset(this->xmmSymTable32, 0, sizeof(this->xmmSymTable32));
+    memset((void*)this->xmmSymTable128, 0, sizeof(this->xmmSymTable128));
+    memset((void*)this->xmmSymTable64, 0, sizeof(this->xmmSymTable64));
+    memset((void*)this->xmmSymTable32, 0, sizeof(this->xmmSymTable32));
 }
 
 BitVector

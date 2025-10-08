@@ -926,7 +926,7 @@ namespace TTD
                         this->m_currPos = this->m_headBlock->BlockData;
                         this->m_endPos = this->m_headBlock->BlockData + TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize);
 
-                        memset(this->m_currPos, 0, TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize));
+                        memset((void*)this->m_currPos, 0, TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize));
 
                         this->m_headBlock->RefCounter = 0;
                     }

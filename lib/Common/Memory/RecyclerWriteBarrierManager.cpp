@@ -382,7 +382,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
 
     size_t remainingBytes = endAddress - alignedAddress;
     size_t fullMaskCount = remainingBytes  / g_WriteBarrierPageSize;
-    memset(&cardTable[cardIndex + 1], 0xFFFFFFFF, fullMaskCount * sizeof(DWORD));
+    memset((void*)&cardTable[cardIndex + 1], 0xFFFFFFFF, fullMaskCount * sizeof(DWORD));
 
     uint endAddressShift = (((uint)endAddress) >> s_BitArrayCardTableShift);
     uint endAddressBitMask = 0xFFFFFFFF << endAddressShift;
@@ -524,9 +524,9 @@ RecyclerWriteBarrierManager::ResetWriteBarrier(void * address, size_t pageCount)
     else
     {
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-        memset(&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT, pageCount);
+        memset((void*)&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT, pageCount);
 #else
-        memset(&cardTable[cardIndex], 0, sizeof(DWORD) * pageCount);
+        memset((void*)&cardTable[cardIndex], 0, sizeof(DWORD) * pageCount);
 #endif
     }
 #endif

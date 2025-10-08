@@ -20,9 +20,9 @@ LinearScanMD::LinearScanMD(Func *func)
         }
     } NEXT_REG;
 
-    memset(this->xmmSymTable128, 0, sizeof(this->xmmSymTable128));
-    memset(this->xmmSymTable64, 0, sizeof(this->xmmSymTable64));
-    memset(this->xmmSymTable32, 0, sizeof(this->xmmSymTable32));
+    memset((void*)this->xmmSymTable128, 0, sizeof(this->xmmSymTable128));
+    memset((void*)this->xmmSymTable64, 0, sizeof(this->xmmSymTable64));
+    memset((void*)this->xmmSymTable32, 0, sizeof(this->xmmSymTable32));
 }
 
 BitVector

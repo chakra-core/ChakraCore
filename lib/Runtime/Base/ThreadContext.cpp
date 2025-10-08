@@ -249,7 +249,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
 #endif
 
 #ifdef NTBUILD
-    memset(&localTelemetryBlock, 0, sizeof(localTelemetryBlock));
+    memset((void*)&localTelemetryBlock, 0, sizeof(localTelemetryBlock));
 #endif
 
     AutoCriticalSection autocs(ThreadContext::GetCriticalSection());

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -38,7 +39,7 @@ public:
 
 public:
     ScriptException()
-    { memset(this, 0, sizeof(*this)); }
+    { memset((void*)this, 0, sizeof(*this)); }
     ~ScriptException(void);
 
 public:

@@ -163,7 +163,7 @@ namespace Js
             Field(uint) inlineSlotSize;
             SlotInfo()
             {
-                memset(this, 0, sizeof(SlotInfo));
+                memset((void*)this, 0, sizeof(SlotInfo));
             }
         };
         Field(SlotInfo) u;

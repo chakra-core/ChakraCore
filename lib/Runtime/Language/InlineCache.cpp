@@ -393,7 +393,7 @@ namespace Js
         if (!IsAll((byte*)this, sizeof(InlineCache), 0))
 #endif
         {
-            memset(this, 0, sizeof(InlineCache));
+            memset((void*)this, 0, sizeof(InlineCache));
         }
     }
 
@@ -1166,7 +1166,7 @@ namespace Js
         if (!IsAll((byte*)this, sizeof(IsInstInlineCache), 0))
 #endif
         {
-            memset(this, 0, sizeof(IsInstInlineCache));
+            memset((void*)this, 0, sizeof(IsInstInlineCache));
         }
     }
 

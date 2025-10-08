@@ -38,10 +38,10 @@ namespace Js
             }
         public:
             FaultInjectionTypes(){
-                memset(&faultTypeBitArray, 0, sizeof(faultTypeBitArray));
+                memset((void*)&faultTypeBitArray, 0, sizeof(faultTypeBitArray));
             }
             void EnableAll(){
-                memset(&faultTypeBitArray, ~0, sizeof(faultTypeBitArray));
+                memset((void*)&faultTypeBitArray, ~0, sizeof(faultTypeBitArray));
             }
             void EnableType(FaultType type);
             void EnableType(int type){

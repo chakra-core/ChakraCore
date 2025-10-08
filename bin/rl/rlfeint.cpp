@@ -73,7 +73,7 @@ SpawnRLFE(
     if (NULStdout == INVALID_HANDLE_VALUE)
         goto cleanup;
 
-    memset(&si, 0, sizeof(si));
+    memset((void*)&si, 0, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESTDHANDLES;
     si.hStdOutput = NULStdout;

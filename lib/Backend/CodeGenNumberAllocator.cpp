@@ -396,7 +396,7 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
 
 XProcNumberPageSegmentImpl::XProcNumberPageSegmentImpl()
 {
-    memset(this, 0, sizeof(XProcNumberPageSegment));
+    memset((void*)this, 0, sizeof(XProcNumberPageSegment));
 }
 
 void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint recyclerVerifyPad)

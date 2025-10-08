@@ -666,7 +666,7 @@ HeapInfo::Initialize(Recycler * recycler
     {
         heapBuckets[i].Initialize(this, (i + 1) << HeapConstants::ObjectAllocationShift);
     }
-    RECYCLER_SLOW_CHECK(memset(this->heapBlockCount, 0, sizeof(this->heapBlockCount)));
+    RECYCLER_SLOW_CHECK(memset((void*)this->heapBlockCount, 0, sizeof(this->heapBlockCount)));
 
 #ifdef BUCKETIZE_MEDIUM_ALLOCATIONS
     for (uint i = 0; i < HeapConstants::MediumBucketCount; i++)
@@ -978,7 +978,7 @@ HeapInfo::Finalize(RecyclerSweep& recyclerSweep)
 {
     Recycler * recycler = recyclerSweep.GetRecycler();
 #ifdef RECYCLER_STATS
-    memset(&recycler->collectionStats.numEmptySmallBlocks, 0, sizeof(recycler->collectionStats.numEmptySmallBlocks));
+    memset((void*)&recycler->collectionStats.numEmptySmallBlocks, 0, sizeof(recycler->collectionStats.numEmptySmallBlocks));
     recycler->collectionStats.numZeroedOutSmallBlocks = 0;
 #endif
 #ifdef RECYCLER_FINALIZE_CHECK

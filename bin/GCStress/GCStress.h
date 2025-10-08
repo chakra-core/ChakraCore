@@ -148,7 +148,7 @@ public:
                     VerifyCondition(found);
 
                     // Zero pointers in order to eliminate false-positives
-                    memset(holder, 0, heapObject.GetSize());
+                    memset((void*)holder, 0, heapObject.GetSize());
 
                     bool success = heapObject.ClearImplicitRootBit();
                     VerifyCondition(success);

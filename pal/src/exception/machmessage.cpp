@@ -642,7 +642,7 @@ void MachMessage::ResetMessage()
     }
 
 #ifdef _DEBUG
-    memset(this, 0xcc, sizeof(*this));
+    memset((void*)this, 0xcc, sizeof(*this));
 #endif
 
     m_pMessage = (mach_message_t*)m_rgMessageBuffer;

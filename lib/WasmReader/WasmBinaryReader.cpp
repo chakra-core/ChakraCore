@@ -52,7 +52,7 @@ SectionHeader WasmBinaryReader::ReadNextSection()
     {
         if (EndOfModule())
         {
-            memset(&m_currentSection, 0, sizeof(SectionHeader));
+            memset((void*)&m_currentSection, 0, sizeof(SectionHeader));
             m_currentSection.code = bSectLimit;
             return m_currentSection;
         }

@@ -26,7 +26,7 @@ Peeps::PeepFunc()
     this->peepsMD.Init(this);
 
     // Init regMap
-    memset(this->regMap, 0, sizeof(this->regMap));
+    memset((void*)this->regMap, 0, sizeof(this->regMap));
 
     // Scratch field needs to be cleared.
     this->func->m_symTable->ClearStackSymScratch();

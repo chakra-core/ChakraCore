@@ -472,7 +472,7 @@ public:
         /*
          * Create the semaphores for the work lists
          */
-        memset(&sa, 0, sizeof(sa));
+        memset((void*)&sa, 0, sizeof(sa));
         sa.nLength = sizeof(sa);
         sa.lpSecurityDescriptor = NULL;
         sa.bInheritHandle = TRUE;

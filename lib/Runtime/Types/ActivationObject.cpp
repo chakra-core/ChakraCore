@@ -309,7 +309,7 @@ namespace Js
             // Clearing the cached functions and types isn't strictly necessary for correctness,
             // but we want those objects to be collected even if the scope object is part of someone's
             // closure environment.
-            memset(this->cache, 0, this->cachedFuncCount * sizeof(FuncCacheEntry));
+            memset((void*)this->cache, 0, this->cachedFuncCount * sizeof(FuncCacheEntry));
         }
         this->parentFunc->SetCachedScope(nullptr);
     }

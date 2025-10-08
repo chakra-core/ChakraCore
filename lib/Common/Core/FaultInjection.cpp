@@ -1243,7 +1243,7 @@ namespace Js
         {
             HANDLE hFile = (HANDLE)_get_osfhandle(_fileno(fp));
             OVERLAPPED overlapped;
-            memset(&overlapped, 0, sizeof(overlapped));
+            memset((void*)&overlapped, 0, sizeof(overlapped));
             const int lockSize = 1024 * 64;
             if (!LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, lockSize, 0, &overlapped))
             {

@@ -9,8 +9,8 @@
 ScriptMemoryDumper::ScriptMemoryDumper(Js::ScriptContext* scriptContext)
     :scriptContext(scriptContext)
 {
-    memset(&current, 0, sizeof(current));
-    memset(&total, 0, sizeof(total));
+    memset((void*)&current, 0, sizeof(current));
+    memset((void*)&total, 0, sizeof(total));
     Init();
 }
 
@@ -181,7 +181,7 @@ void ScriptMemoryDumper::DumpLargeHeapBlock(LargeHeapBlock* heapBlock)
 
 inline void ScriptMemoryDumper::ResetCurrentStats()
 {
-    memset(&current, 0, sizeof(current));
+    memset((void*)&current, 0, sizeof(current));
 }
 
 inline void ScriptMemoryDumper::MergeCurrentStats()

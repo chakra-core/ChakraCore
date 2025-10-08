@@ -4345,7 +4345,7 @@ ProcessConfig
       // Get the defaults from the default node.
 
       TestInfo testInfo;
-      memset(&testInfo, 0, sizeof(TestInfo));
+      memset((void*)&testInfo, 0, sizeof(TestInfo));
 
       if (!GetTestInfoFromNode(CfgFile, defaultNode, &testInfo))
       {

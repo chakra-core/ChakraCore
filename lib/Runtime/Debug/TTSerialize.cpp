@@ -1839,8 +1839,8 @@ namespace TTD
         this->m_indentBuffer = (char*)malloc(TRACE_LOGGER_INDENT_BUFFER_SIZE);
         TTDAssert(this->m_indentBuffer != nullptr, "Malloc failure in tracing code.");
 
-        memset(this->m_buffer, 0, TRACE_LOGGER_BUFFER_SIZE);
-        memset(this->m_indentBuffer, 0, TRACE_LOGGER_INDENT_BUFFER_SIZE);
+        memset((void*)this->m_buffer, 0, TRACE_LOGGER_BUFFER_SIZE);
+        memset((void*)this->m_indentBuffer, 0, TRACE_LOGGER_INDENT_BUFFER_SIZE);
     }
 
     TraceLogger::~TraceLogger()

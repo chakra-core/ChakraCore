@@ -314,7 +314,7 @@ public:
     {
         AssertCanHandleOutOfMemory();
         m_prgpidName = nullptr;
-        memset(&m_rpid, 0, sizeof(m_rpid));
+        memset((void*)&m_rpid, 0, sizeof(m_rpid));
         if (!Init(cidHash))
         {
             Js::Throw::OutOfMemory();

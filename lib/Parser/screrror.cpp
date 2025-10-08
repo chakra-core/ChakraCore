@@ -209,7 +209,7 @@ void ScriptException::GetError(HRESULT *phr, EXCEPINFO *pei)
         {
             *phr = HR(DISP_E_EXCEPTION);
             js_memcpy_s(pei, sizeof(*pei), &ei, sizeof(*pei));
-            memset(&ei, 0, sizeof(ei));
+            memset((void*)&ei, 0, sizeof(ei));
             if (nullptr != pei->pfnDeferredFillIn)
             {
                 pei->pfnDeferredFillIn(pei);

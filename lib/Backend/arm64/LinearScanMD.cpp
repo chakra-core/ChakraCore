@@ -25,7 +25,7 @@ LinearScanMD::Init(LinearScan *linearScan)
         func->m_regsUsed.Set(localsReg);
     }
 
-    memset(this->vfpSymTable, 0, sizeof(this->vfpSymTable));
+    memset((void*)this->vfpSymTable, 0, sizeof(this->vfpSymTable));
 }
 
 StackSym *

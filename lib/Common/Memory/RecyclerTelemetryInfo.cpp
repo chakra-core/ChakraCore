@@ -247,10 +247,10 @@ namespace Memory
     void RecyclerTelemetryInfo::Reset()
     {
         FreeGCPassStats();
-        memset(&this->threadPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
-        memset(&this->recyclerLeafPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
-        memset(&this->recyclerLargeBlockPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
-        memset(&this->threadPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
+        memset((void*)&this->threadPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
+        memset((void*)&this->recyclerLeafPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
+        memset((void*)&this->recyclerLargeBlockPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
+        memset((void*)&this->threadPageAllocator_decommitStats, 0, sizeof(AllocatorDecommitStats));
     }
 
     void RecyclerTelemetryInfo::FreeGCPassStats()

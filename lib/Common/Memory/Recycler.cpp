@@ -324,7 +324,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #endif
 
 #ifdef NTBUILD
-    memset(&localTelemetryBlock, 0, sizeof(localTelemetryBlock));
+    memset((void*)&localTelemetryBlock, 0, sizeof(localTelemetryBlock));
 #endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -4005,7 +4005,7 @@ Recycler::DoCollect(CollectionFlags flags)
 #if ENABLE_PARTIAL_GC
         RecyclerCollectionStats oldCollectionStats = collectionStats;
 #endif
-        memset(&collectionStats, 0, sizeof(RecyclerCollectionStats));
+        memset((void*)&collectionStats, 0, sizeof(RecyclerCollectionStats));
         this->collectionStats.startCollectAllocBytes = autoHeap.uncollectedAllocBytes;
 #if ENABLE_PARTIAL_GC
         this->collectionStats.startCollectNewPageCount = autoHeap.uncollectedNewPageCount;
@@ -7954,7 +7954,7 @@ void Recycler::AutoSetupRecyclerForNonCollectingMark::DoCommonSetup()
     m_previousCollectionState = m_recycler.collectionState;
 #ifdef RECYCLER_STATS
     m_previousCollectionStats = m_recycler.collectionStats;
-    memset(&m_recycler.collectionStats, 0, sizeof(RecyclerCollectionStats));
+    memset((void*)&m_recycler.collectionStats, 0, sizeof(RecyclerCollectionStats));
 #endif
     m_setupDone = true;
 }

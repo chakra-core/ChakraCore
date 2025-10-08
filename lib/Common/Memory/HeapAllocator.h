@@ -207,7 +207,7 @@ public:
 
     static void InitializeThread()
     {
-        memset(&nextAllocData, 0, sizeof(nextAllocData));
+        memset((void*)&nextAllocData, 0, sizeof(nextAllocData));
     }
 
     static bool CheckLeaks();

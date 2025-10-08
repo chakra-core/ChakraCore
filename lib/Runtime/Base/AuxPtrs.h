@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -129,7 +130,7 @@ namespace Js
     AuxPtrs<T, FieldsEnum>::AuxPtrs(uint8 capacity, AuxPtrs* ptr)
     {
         ArrayWriteBarrierVerifyBits(&this->ptrs, ptr->count);
-        memcpy(this, ptr, offsetof(AuxPtrs, ptrs) + ptr->count * sizeof(void*));
+        memcpy((void*)this, ptr, offsetof(AuxPtrs, ptrs) + ptr->count * sizeof(void*));
         ArrayWriteBarrier(&this->ptrs, ptr->count);
         this->capacity = capacity;
     }

@@ -246,7 +246,7 @@ namespace Js
             Assert(sourceContextInfo != nullptr);
 
             SRCINFO si;
-            memset(&si, 0, sizeof(si));
+            memset((void*)&si, 0, sizeof(si));
             si.sourceContextInfo = sourceContextInfo;
             sourceInfo = scriptContext->AddHostSrcInfo(&si);
         }

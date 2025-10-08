@@ -396,7 +396,7 @@ static double CPUFreq()
     ULONGLONG start, end;
 
     struct timezone tzone;
-    memset(&tzone, 0, sizeof(tzone));
+    memset((void*)&tzone, 0, sizeof(tzone));
 
     start = rdtsc();
     gettimeofday(&tstart, &tzone);

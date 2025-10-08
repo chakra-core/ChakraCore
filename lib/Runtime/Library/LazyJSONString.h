@@ -46,7 +46,7 @@ struct JSONProperty
 
     JSONProperty()
     {
-        memset(this, 0, sizeof(JSONProperty));
+        memset((void*)this, 0, sizeof(JSONProperty));
     }
     JSONProperty(const JSONProperty& other)
     {
