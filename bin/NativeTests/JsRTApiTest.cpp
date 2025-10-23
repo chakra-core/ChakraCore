@@ -174,6 +174,11 @@ namespace JsRTApiTest
             }
         };
 
+        // Test two patterns to prevent compiler optimizations
+
+        Helper::WritePattern(0x24);
+        REQUIRE(Helper::VerifyPattern(0x24) == true);
+
         Helper::WritePattern(0x42);
         REQUIRE(Helper::VerifyPattern(0x42) == true);
         REQUIRE(JsGarbageCollectionClearStack() == JsNoError);
