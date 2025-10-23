@@ -142,6 +142,44 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::WeakReferenceTest);
     }
 
+    TEST_CASE("ApiTest_GC_ClearStack", "[ApiTest]")
+    {
+        struct Helper
+        {
+            struct Locals {
+                volatile uint8_t buffer[64];
+                volatile uint8_t *p = buffer;
+            };
+
+            // The stack-layout of the following two functions has to be identical
+
+            DECLSPEC_NOINLINE static void WritePattern(uint8_t pattern)
+            {
+                Locals locals = {};
+                while (locals.p < locals.buffer + sizeof(locals.buffer))
+                {
+                    *locals.p++ = pattern;
+                }
+            }
+
+            DECLSPEC_NOINLINE static bool VerifyPattern(uint8_t pattern)
+            {
+                Locals locals; // Value of whatever is on the stack right now
+                while (locals.p < locals.buffer + sizeof(locals.buffer))
+                {
+                    if (*locals.p++ != pattern)
+                        return false;
+                }
+                return true;
+            }
+        };
+
+        Helper::WritePattern(0x42);
+        REQUIRE(Helper::VerifyPattern(0x42) == true);
+        REQUIRE(JsGarbageCollectionClearStack() == JsNoError);
+        REQUIRE(Helper::VerifyPattern(0x00) == true);
+    }
+
     void ObjectsAndPropertiesTest1(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef object = JS_INVALID_REFERENCE;
