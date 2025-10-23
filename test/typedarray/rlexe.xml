@@ -270,14 +270,14 @@ Below test fails with difference in space. Investigate the cause and re-enable t
   <test>
     <default>
       <files>allocation.js</files>
-      <tags>typedarray,exclude_arm,xplatslow,Slow</tags>
+      <tags>typedarray,exclude_arm,xplatslow,Slow,exclude_x86</tags>
       <timeout>300</timeout>
     </default>
   </test>
   <test>
     <default>
       <files>allocation2.js</files>
-      <tags>typedarray,exclude_arm,xplatslow,Slow</tags>
+      <tags>typedarray,exclude_arm,xplatslow,Slow,exclude_x86</tags>
       <timeout>300</timeout>
     </default>
   </test>

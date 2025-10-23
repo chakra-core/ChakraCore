@@ -7,6 +7,15 @@ trigger:
 - master
 - release/*
 
+schedules:
+- cron: "0 0 * * 1" # At 00:00 on Monday
+  displayName: Weekly Monday Midnight
+  branches:
+    include:
+    - master
+    - release/*
+  always: true
+
 jobs:
   - job: Style
     timeoutInMinutes: 10
