@@ -479,9 +479,14 @@ CHAKRA_API JsGarbageCollectionClearStack()
 {
     // https://github.com/bdwgc/bdwgc/blob/e1042aa86d9403f433a2ab38ee2aab081984fca8/misc.c#L260-L285
 
-    const int SMALL_CLEAR_SIZE = 256;
+    constexpr int SMALL_CLEAR_SIZE = 256;
     volatile void *dummy[SMALL_CLEAR_SIZE];
-    memset((void *)dummy, 0, sizeof(dummy));
+
+    // https://news.ycombinator.com/item?id=4711605
+    // Zero memory + prevent compiler optimizations
+    volatile unsigned char *bp = (unsigned char *)dummy;
+    while (bp < (unsigned char *)dummy + sizeof(dummy))
+        *bp++ = 0;
     return JsNoError;
 }
 
