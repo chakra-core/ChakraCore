@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 /// \mainpage Chakra Hosting API Reference
@@ -2016,6 +2017,16 @@ JsGetEmbedderData(_In_ JsValueRef instance, _Out_ JsValueRef* embedderData);
 /// </returns>
 CHAKRA_API
 JsSetEmbedderData(_In_ JsValueRef instance, _In_ JsValueRef embedderData);
+
+/// <summary>
+///     Clear some of the inaccessible part of the stack.
+/// </summary>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code
+///     otherwise.
+/// </returns>
+CHAKRA_API
+JsGarbageCollectionClearStack();
 
 #ifdef _WIN32
 #include "ChakraCoreWindows.h"

@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
-// Copyright (c) 2021 ChakraCore Project Contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
@@ -128,6 +128,7 @@ namespace JsRTApiTest
         valueRef = JS_INVALID_REFERENCE;
         valueRefFromWeakRef = JS_INVALID_REFERENCE;
 
+        CHECK(JsGarbageCollectionClearStack() == JsNoError);
         CHECK(JsCollectGarbage(runtime) == JsNoError);
 
         // JsGetWeakReferenceValue should return an invalid reference after the value was GC'd.

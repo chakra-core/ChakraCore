@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "JsrtPch.h"
@@ -472,6 +473,16 @@ JsErrorCode JsCollectGarbageCommon(JsRuntimeHandle runtimeHandle)
 CHAKRA_API JsCollectGarbage(_In_ JsRuntimeHandle runtimeHandle)
 {
     return JsCollectGarbageCommon<CollectNowExhaustive>(runtimeHandle);
+}
+
+CHAKRA_API JsGarbageCollectionClearStack()
+{
+    // https://github.com/bdwgc/bdwgc/blob/e1042aa86d9403f433a2ab38ee2aab081984fca8/misc.c#L260-L285
+
+    const int SMALL_CLEAR_SIZE = 256;
+    volatile void *dummy[SMALL_CLEAR_SIZE];
+    memset((void *)dummy, 0, sizeof(dummy));
+    return JsNoError;
 }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

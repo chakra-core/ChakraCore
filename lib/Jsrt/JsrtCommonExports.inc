@@ -1,6 +1,7 @@
     JsSetObjectBeforeCollectCallback
     JsCreateRuntime
     JsCollectGarbage
+    JsGarbageCollectionClearStack
     JsDisposeRuntime
     JsAddRef
     JsRelease
