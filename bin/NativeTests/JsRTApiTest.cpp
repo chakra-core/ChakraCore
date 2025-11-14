@@ -148,7 +148,9 @@ namespace JsRTApiTest
         {
             struct Locals {
                 volatile uint8_t buffer[64];
-                volatile uint8_t *p = buffer;
+                volatile uint8_t *p;
+
+                Locals() : p(buffer) {}
             };
 
             // The stack-layout of the following two functions has to be identical
