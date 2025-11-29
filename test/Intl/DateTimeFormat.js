@@ -204,8 +204,11 @@ const tests = [
             test({ hour: "numeric", minute: "numeric", second: "numeric" }, ["hour", "minute", "second"], ["12", "00", "00"]);
             test({ month: "long" }, "month", "January");
 
-            // the "literal" tested here is the first of two literals, the second of which is a space between "12" and "AM"
-            test({ hour: "numeric", weekday: "long" }, ["weekday", "literal", "hour", "dayPeriod"], ["Saturday", ", ", "12", "AM"]);
+            // See https://github.com/chakra-core/ChakraCore/issues/7047
+            if (!isICU || WScript.Platform.ICU_VERSION != 78) {
+                // the "literal" tested here is the first of two literals, the second of which is a space between "12" and "AM"
+                test({ hour: "numeric", weekday: "long" }, ["weekday", "literal", "hour", "dayPeriod"], ["Saturday", ", ", "12", "AM"]);
+            }
         }
     },
     {
