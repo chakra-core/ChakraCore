@@ -110,7 +110,7 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::ReferenceCountingTest);
     }
 
-    [[msvc::noinline]] static void ClearStack()
+    __declspec(noinline) static void ClearStack()
     {
         // https://github.com/bdwgc/bdwgc/blob/e1042aa86d9403f433a2ab38ee2aab081984fca8/misc.c#L260-L285
 
