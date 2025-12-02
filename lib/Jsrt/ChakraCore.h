@@ -2018,16 +2018,6 @@ JsGetEmbedderData(_In_ JsValueRef instance, _Out_ JsValueRef* embedderData);
 CHAKRA_API
 JsSetEmbedderData(_In_ JsValueRef instance, _In_ JsValueRef embedderData);
 
-/// <summary>
-///     Clear some of the inaccessible part of the stack.
-/// </summary>
-/// <returns>
-///     The code <c>JsNoError</c> if the operation succeeded, a failure code
-///     otherwise.
-/// </returns>
-CHAKRA_API
-JsGarbageCollectionClearStack();
-
 #ifdef _WIN32
 #include "ChakraCoreWindows.h"
 #endif // _WIN32

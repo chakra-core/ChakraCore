@@ -475,21 +475,6 @@ CHAKRA_API JsCollectGarbage(_In_ JsRuntimeHandle runtimeHandle)
     return JsCollectGarbageCommon<CollectNowExhaustive>(runtimeHandle);
 }
 
-CHAKRA_API JsGarbageCollectionClearStack()
-{
-    // https://github.com/bdwgc/bdwgc/blob/e1042aa86d9403f433a2ab38ee2aab081984fca8/misc.c#L260-L285
-
-    constexpr int SMALL_CLEAR_SIZE = 256;
-    volatile void *dummy[SMALL_CLEAR_SIZE];
-
-    // https://news.ycombinator.com/item?id=4711605
-    // Zero memory + prevent compiler optimizations
-    volatile unsigned char *bp = (unsigned char *)dummy;
-    while (bp < (unsigned char *)dummy + sizeof(dummy))
-        *bp++ = 0;
-    return JsNoError;
-}
-
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 CHAKRA_API JsPrivateCollectGarbageSkipStack(_In_ JsRuntimeHandle runtimeHandle)
 {
