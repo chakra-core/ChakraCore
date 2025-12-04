@@ -1,8 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 //
 /***
@@ -2409,34 +2411,11 @@ unsigned char * __cdecl _mbstok_s(unsigned char *_String, const unsigned char *_
 #endif /* _SAFECRT_DEFINE_MBS_FUNCTIONS */
 
 #ifndef PAL_STDCPP_COMPAT
-/* strnlen */
 /*
- * strnlen, wcsnlen ;
+ *  wcsnlen ;
  * returns inMaxSize if the null character is not found.
  */
-_SAFECRT__EXTERN_C
-size_t __cdecl strnlen(const char* inString, size_t inMaxSize);
 
-#if _SAFECRT_USE_INLINES || _SAFECRT_IMPL
-
-_SAFECRT__INLINE
-size_t __cdecl strnlen(const char* inString, size_t inMaxSize)
-{
-    size_t n;
-
-    /* Note that we do not check if s == nullptr, because we do not
-     * return errno_t...
-     */
-
-    for (n = 0; n < inMaxSize && *inString; n++, inString++)
-        ;
-
-    return n;
-}
-
-#endif
-
-/* wcsnlen */
 _SAFECRT__EXTERN_C
 size_t __cdecl wcsnlen(const WCHAR *inString, size_t inMaxSize);
 

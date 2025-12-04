@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -113,23 +116,4 @@ CorUnix::InternalMalloc(
 
     pvMem = (void*)malloc(szSize);
     return pvMem;
-}
-
-char *
-__cdecl
-PAL__strdup(
-    const char *c_szStr
-    )
-{
-    return InternalStrdup(c_szStr);
-}
-
-char *
-CorUnix::InternalStrdup(
-    const char *c_szStr
-    )
-{
-    char *pszStrCopy;
-    pszStrCopy = strdup(c_szStr);
-    return pszStrCopy;
 }

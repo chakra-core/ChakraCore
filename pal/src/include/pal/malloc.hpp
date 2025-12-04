@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -50,12 +53,6 @@ extern "C"
     PAL_free(
         void *pvMem
         );
-
-    char *
-    __cdecl
-    PAL__strdup(
-        const char *c_szStr
-        );
 }
 
 inline void* operator new(size_t, void* p) throw () { return p; }
@@ -78,11 +75,6 @@ namespace CorUnix{
     InternalFree(
         void *pvMem
         );
-
-    char *
-    InternalStrdup(
-        const char *c_szStr
-        );  
 
     // Define common code for "new" style allocators below.
 #define INTERNAL_NEW_COMMON()                    \

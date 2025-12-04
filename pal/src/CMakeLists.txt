@@ -99,7 +99,6 @@ set(SOURCES
   cruntime/printf.cpp
   cruntime/printfcpp.cpp
   cruntime/silent_printf.cpp
-  cruntime/string.cpp
   cruntime/stringtls.cpp
   cruntime/thread.cpp
   cruntime/wchar.cpp

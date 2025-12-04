@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -179,9 +182,11 @@ function_name() to call the system's implementation
 #define memcmp DUMMY_memcmp
 #define memset DUMMY_memset
 #define memchr DUMMY_memchr
+#define strdup DUMMY_strdup
 #define strlen DUMMY_strlen
-#define strnlen DUMMY_strnlen
+#define strtoul DUMMY_strtoul
 #define stricmp DUMMY_stricmp
+#define strcasecmp DUMMY_strcasecmp
 #define strstr DUMMY_strstr
 #define strcmp DUMMY_strcmp
 #define strcat DUMMY_strcat
@@ -351,8 +356,8 @@ function_name() to call the system's implementation
 #undef memset
 #undef memmove
 #undef memchr
+#undef strdup
 #undef strlen
-#undef strnlen
 #undef stricmp
 #undef strstr
 #undef strcmp
@@ -361,6 +366,7 @@ function_name() to call the system's implementation
 #undef strncat
 #undef strcpy
 #undef strncmp
+#undef strcasecmp
 #undef strncpy
 #undef strchr
 #undef strrchr

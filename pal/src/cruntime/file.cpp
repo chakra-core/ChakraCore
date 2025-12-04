@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /*++
 
@@ -283,10 +286,10 @@ PAL_fopen(const char * fileName, const char * mode)
             goto done;
         }
 
-        UnixFileName = PAL__strdup(fileName);
+        UnixFileName = strdup(fileName);
         if (UnixFileName == NULL )
         {
-            ERROR("PAL__strdup() failed\n");
+            ERROR("strdup() failed\n");
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
             goto done;
         }

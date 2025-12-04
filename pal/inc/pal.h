@@ -45,6 +45,7 @@ Abstract:
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <ctype.h>
 #endif
@@ -6103,7 +6104,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define vswprintf     PAL_vswprintf
 #define fopen         PAL_fopen
 #define strtok        PAL_strtok
-#define strtoul       PAL_strtoul
 #define fprintf       PAL_fprintf
 #define fwprintf      PAL_fwprintf
 #define vfprintf      PAL_vfprintf
@@ -6137,7 +6137,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
 #define unlink        PAL_unlink
-#define _strdup       PAL__strdup
 #define _getcwd       PAL__getcwd
 #define _open         PAL__open
 #define _close        PAL__close
@@ -6180,7 +6179,6 @@ PALIMPORT void * __cdecl memchr(const void *, int, size_t);
 PALIMPORT size_t __cdecl strlen(const char *);
 PALIMPORT int __cdecl strcmp(const char*, const char *);
 PALIMPORT int __cdecl strncmp(const char*, const char *, size_t);
-PALIMPORT int __cdecl _strnicmp(const char *, const char *, size_t);
 PALIMPORT char * __cdecl strcat(char *, const char *);
 PALIMPORT char * __cdecl strncat(char *, const char *, size_t);
 PALIMPORT char * __cdecl strcpy(char *, const char *);
@@ -6198,7 +6196,7 @@ PALIMPORT int __cdecl sscanf(const char *, const char *, ...);
 PALIMPORT int __cdecl atoi(const char *);
 PALIMPORT LONG __cdecl atol(const char *);
 //PALIMPORT long long int __cdecl atoll(const char *) __THROW;
-PALIMPORT ULONG __cdecl strtoul(const char *, char **, int);
+PALIMPORT unsigned long __cdecl strtoul(const char *, char **, int);
 PALIMPORT double __cdecl atof(const char *);
 PALIMPORT double __cdecl strtod(const char *, char **);
 PALIMPORT int __cdecl isprint(int);
@@ -6218,7 +6216,7 @@ PALIMPORT errno_t __cdecl memcpy_s(void *, size_t, const void *, size_t);
 PALIMPORT errno_t __cdecl memmove_s(void *, size_t, const void *, size_t);
 PALIMPORT void * __cdecl memmove_xplat(void *, const void *, size_t);
 PALIMPORT char * __cdecl _strlwr(char *);
-PALIMPORT int __cdecl _stricmp(const char *, const char *);
+PALIMPORT int __cdecl strcasecmp(const char *, const char *);
 PALIMPORT int __cdecl _snprintf(char *, size_t, const char *, ...);
 PALIMPORT char * __cdecl _gcvt_s(char *, int, double, int);
 PALIMPORT char * __cdecl _ecvt(double, int, int *, int *);

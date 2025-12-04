@@ -942,7 +942,7 @@ static LPWSTR INIT_FindEXEPath(LPCSTR exe_name)
     }
 
     /* get our own copy of env_path so we can modify it */
-    env_path=InternalStrdup(env_path);
+    env_path=strdup(env_path);
     if(!env_path)
     {
         ERROR("Not enough memory to copy $PATH!\n");

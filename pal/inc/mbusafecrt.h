@@ -1,7 +1,10 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
-//
+//-------------------------------------------------------------------------------------------------------
+// ChakraCore/Pal
+// Contains portions (c) copyright Microsoft, portions copyright (c) the .NET Foundation and Contributors
+// and edits (c) copyright the ChakraCore Contributors.
+// See THIRD-PARTY-NOTICES.txt in the project root for .NET Foundation license
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
 
 /***
 *   mbusafecrt.h - public declarations for SafeCRT lib
@@ -64,11 +67,7 @@ extern errno_t wcsncpy_s( WCHAR* outDest, size_t inDestBufferSize, const WCHAR* 
 extern char* strtok_s( char* inString, const char* inControl, char** ioContext );
 extern WCHAR* wcstok_s( WCHAR* inString, const WCHAR* inControl, WCHAR** ioContext );
 
-// strnlen is not required unless the source string is completely untrusted (e.g. anonymous input on a website)
-#ifndef SUPPRESS_STRNLEN
-    extern size_t strnlen( const char* inString, size_t inMaxSize );
-    extern size_t wcsnlen( const WCHAR* inString, size_t inMaxSize );
-#endif
+extern size_t wcsnlen( const WCHAR* inString, size_t inMaxSize );
 
 extern errno_t _itoa_s( int inValue, char* outBuffer, size_t inDestBufferSize, int inRadix );
 extern errno_t _itow_s( int inValue, WCHAR* outBuffer, size_t inDestBufferSize, int inRadix );
