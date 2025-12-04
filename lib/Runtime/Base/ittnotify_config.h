@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #ifndef _ITTNOTIFY_CONFIG_H_
@@ -73,9 +74,6 @@
 #include <tchar.h>
 #else  /* ITT_PLATFORM==ITT_PLATFORM_WIN */
 #include <stdint.h>
-#if defined(UNICODE) || defined(_UNICODE)
-#include <wchar.h>
-#endif /* UNICODE || _UNICODE */
 #endif /* ITT_PLATFORM==ITT_PLATFORM_WIN */
 
 #ifndef ITTAPI_CDECL
@@ -201,9 +199,6 @@ typedef CRITICAL_SECTION  mutex_t;
 #define strong_alias(name, aliasname) /* empty for Windows */
 #else  /* ITT_PLATFORM==ITT_PLATFORM_WIN */
 #include <dlfcn.h>
-#if defined(UNICODE) || defined(_UNICODE)
-#include <wchar.h>
-#endif /* UNICODE */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1 /* need for PTHREAD_MUTEX_RECURSIVE */
 #endif /* _GNU_SOURCE */

@@ -8,7 +8,7 @@
 #if ENABLE_NATIVE_CODEGEN || DYNAMIC_INTERPRETER_THUNK
 
 #include "Memory/XDataAllocator.h"
-#if defined(_M_ARM)
+#if defined(_M_ARM) && defined(_WIN32)
 #include <wchar.h>
 #endif
 #include "CustomHeap.h"
