@@ -206,6 +206,9 @@ function_name() to call the system's implementation
 #if HAVE__SNWPRINTF
 #define _snwprintf DUMMY__snwprintf
 #endif  /* HAVE__SNWPRINTF */
+#if HAVE_WSCNLEN
+#define wcsnlen DUMMY_wcsnlen
+#endif 
 #define tolower DUMMY_tolower
 #define toupper DUMMY_toupper
 #define islower DUMMY_islower
@@ -486,6 +489,9 @@ function_name() to call the system's implementation
 #undef _snwprintf
 #endif  /* HAVE__SNWPRINTF */
 #undef sscanf
+#if HAVE_WSCNLEN
+#undef wcsnlen
+#endif 
 #undef wcstod
 #undef wcstol
 #undef wcstoul
