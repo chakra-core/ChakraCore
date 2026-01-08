@@ -323,11 +323,12 @@ while [[ $# -gt 0 ]]; do
                 # override CXX and CC
                 _CXX="${TOOLCHAIN}/bin/${CXX}"
                 _CC="${TOOLCHAIN}/bin/${CC}"
+            else
+                # inherit CXX and CC
+                _CXX="${CXX}"
+                _CC="${CC}"
             fi
             TARGET_OS="-DCC_TARGET_OS_ANDROID_SH=1 -DANDROID_TOOLCHAIN_DIR=${TOOLCHAIN}/arm-linux-androideabi"
-            # inherit CXX and CC
-            _CXX="${CXX}"
-            _CC="${CC}"
         fi
         ;;
 

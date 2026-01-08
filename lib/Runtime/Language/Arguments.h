@@ -13,6 +13,17 @@
     va_list _vl;                                                    \
     va_start(_vl, callInfo);                                        \
     Js::Var* va = (Js::Var*)_vl
+#elif defined(__ANDROID__)
+// Just iterate and copy the values into a temp stack array
+#define DECLARE_ARGS_VARARRAY(va, ...)                              \
+    Js::Var* va = (Js::Var*)alloca(sizeof(Js::Var)*(callInfo.Count + (callInfo.Count & 1))); \
+    va_list _vl;                                                    \
+    va_start(_vl, callInfo);                                        \
+    for (int _i = 0; _i < callInfo.Count; ++_i)                     \
+    {                                                               \
+        va[_i] = va_arg(_vl, Js::Var);                              \
+    }                                                               \
+    va_end(_vl);
 #else
 // We use a custom calling convention to invoke JavascriptMethod based on
 // System ABI. At entry of JavascriptMethod the stack layout is:
