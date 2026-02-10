@@ -32,7 +32,17 @@
     <ChakraICU Condition="'$(ChakraICU)'==''">windows</ChakraICU>
 
     <BuildChakraICUData Condition="'$(BuildChakraICUData)'=='' AND ('$(ChakraICU)'=='static' OR '$(ChakraICU)'=='shared')">true</BuildChakraICUData>
-
-    <IcuLibraryDependencies Condition="'$(ChakraICU)'=='windows'">icu.lib</IcuLibraryDependencies>
   </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(ChakraICU)' == 'windows' ">
+    <_UseModernWindowsIcu Condition=" Exists('$(SYSTEMROOT)\System32\icu.dll') ">true</_UseModernWindowsIcu>
+
+    <IcuLibraryDependencies Condition=" '$(_UseModernWindowsIcu)' == 'true' ">icu.lib</IcuLibraryDependencies>
+    <IcuLibraryDependencies Condition=" '$(_UseModernWindowsIcu)' != 'true' ">icuuc.lib;icuin.lib</IcuLibraryDependencies>
+  </PropertyGroup>
+
+  <Target Name="CheckIcuDependency" Condition=" '$(ChakraICU)' == 'windows' " BeforeTargets="Build">
+    <Warning Condition=" '$(_UseModernWindowsIcu)' != 'true' " Code="CCICU001" Text="You are compiling against an old version of libicu." />
+  </Target>
+
 </Project>
