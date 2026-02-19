@@ -13,7 +13,7 @@
 #include <pthread.h>
 #endif
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/sysinfo.h>
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
@@ -543,7 +543,7 @@ static HRESULT CreateRuntime(JsRuntimeHandle *runtime)
     // Additionally, we can probably do better than just limit to the physical memory
     // size
 
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
     size_t memoryLimit;
 #ifdef __APPLE__
     int totalRamHW[] = { CTL_HW, HW_MEMSIZE };

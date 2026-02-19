@@ -68,7 +68,14 @@ RtlUlonglongByteSwap(
 #define RtlUlongByteSwap(_x)     __bswap_32((_x))
 #define RtlUlonglongByteSwap(_x) __bswap_64((_x))
 
+#elif defined(__FreeBSD__)
+#include <byteswap.h>
+/* FreeBSD 13+, also above definitions would work
+ * TODO replace with "has byteswap.h" check? */
+#define RtlUshortByteSwap(_x)    bswap_16((_x))
+#define RtlUlongByteSwap(_x)     bswap_32((_x))
+#define RtlUlonglongByteSwap(_x) bswap_64((_x))
+
 #else
-// TODO: include endian.h for BSD?
 #error "ByteSwap.h: Not implemented for this platform"
 #endif

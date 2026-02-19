@@ -28,6 +28,9 @@ extern "C"
  * platforms and another type elsewhere. */
 #if HAVE_UCONTEXT_T
 #include <ucontext.h>
+#ifdef __FreeBSD__
+#include <machine/fpu.h>
+#endif
 
 typedef ucontext_t native_context_t;
 #else   // HAVE_UCONTEXT_T

@@ -5,7 +5,7 @@
 
 #include "Common.h"
 #include "ChakraPlatform.h"
-#include <sys/sysctl.h>
+#include <sys/resource.h>
 
 namespace PlatformAgnostic
 {

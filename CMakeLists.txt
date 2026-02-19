@@ -53,7 +53,8 @@ else(NOT CHAKRACORE_BUILD_SH)
 endif(NOT CHAKRACORE_BUILD_SH)
 
 if(CC_USES_SYSTEM_ARCH_SH OR NOT CHAKRACORE_BUILD_SH)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"
+       OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
         set(CC_TARGETS_AMD64_SH 1)
     elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
         set(CC_TARGETS_ARM_SH 1)
@@ -136,6 +137,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(CC_TARGET_OS_LINUX 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(CC_TARGET_OS_OSX 1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
+    set(CC_TARGET_OS_FREEBSD 1)
 endif()
 
 if (ENABLE_CC_XPLAT_TRACE_SH)
@@ -193,6 +196,12 @@ if(EMBED_ICU)
     # Keep consistent with what ICU download script used to print
     message("Note: ICU installation and use is subject to it's publisher's licensing terms")
 
+    if (CC_TARGET_OS_FREEBSD)
+        # FreeBSD calls GNU make 'gmake'
+        find_program(MAKE_PROGRAM "gmake" REQUIRED)
+    else()
+        set(MAKE_PROGRAM "make")
+    endif()
     set(ICU_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/deps/thirdparty/icu)
     set(ICU_DOWNLOAD_DIR ${ICU_PREFIX}/download)
     set(ICU_SOURCE_DIR ${ICU_PREFIX}/stage)
@@ -216,8 +225,8 @@ if(EMBED_ICU)
         URL https://github.com/unicode-org/icu/releases/download/release-63-2/icu4c-63_2-src.tgz
         URL_HASH SHA512=5fa9092efd8d6da6dfc8d498e4026167fda43423eaafc754d1789cf8fd4f6e76377878ebcaa32e14f314836136b764873511a93bfbcc5419b758841cc6df8f32
         CONFIGURE_COMMAND ${ICU_SOURCE_DIR}/source/configure --prefix=${ICU_PREFIX} --with-data-packaging=static --enable-static --disable-shared --with-library-bits=64 --disable-icuio --disable-layout --disable-tests --disable-samples
-        BUILD_COMMAND make STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC"
-        INSTALL_COMMAND make install
+        BUILD_COMMAND ${MAKE_PROGRAM} STATICCFLAGS="-fPIC" STATICCXXFLAGS="-fPIC" STATICCPPFLAGS="-DPIC"
+        INSTALL_COMMAND ${MAKE_PROGRAM} install
         BYPRODUCTS ${ICU_LIBRARIES}
     )
 elseif(ICU_INCLUDE_PATH)
@@ -354,6 +363,11 @@ elseif(CC_TARGET_OS_OSX)
         message(WARNING "-- !! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
       endif()
     endif()
+elseif(CC_TARGET_OS_FREEBSD)
+    add_definitions(
+        -DPLATFORM_UNIX
+    )
+    # TODO?
 else()
     message(FATAL_ERROR "Unsupported OS: ${CMAKE_SYSTEM_NAME}")
 endif()

@@ -34,6 +34,10 @@ elseif(CC_TARGET_OS_OSX)
     Unix/SystemInfo.cpp
     # Linux/PerfTrace.cpp # TODO : implement for OSX?
     )
+elseif(CC_TARGET_OS_FREEBSD)
+  set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
+    Unix/SystemInfo.cpp
+    )
 endif()
 
 add_library (Chakra.Runtime.PlatformAgnostic OBJECT

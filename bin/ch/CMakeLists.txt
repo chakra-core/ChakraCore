@@ -119,6 +119,14 @@ elseif(CC_TARGET_OS_OSX)
   endif()
 endif()
 
+if(CC_TARGET_OS_FREEBSD)
+  set(lib_target "${lib_target}"
+    "-L/usr/local/lib"
+    "-lintl"
+    "-lsysinfo"
+    )
+endif()
+
 target_link_libraries (ch
   ${lib_target}
   ${CC_LTO_ENABLED}
