@@ -1711,6 +1711,100 @@ case_2:
         }
     }
 
+    Var JavascriptString::EntryReplaceAll(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        PCWSTR const varName = _u("String.prototype.replaceAll");
+
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, varName);
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        auto fallback = [&](JavascriptString* stringObj)
+        {
+            return DoStringReplaceAll(args, callInfo, stringObj, scriptContext);
+        };
+        return DelegateToRegExSymbolFunction<2>(args, PropertyIds::_symbolReplace, fallback, varName, scriptContext);
+    }
+
+    Var JavascriptString::DoStringReplaceAll(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext)
+    {
+        //
+        // TODO: Move argument processing into DirectCall with proper handling.
+        //
+
+        // ECMAScript 2021: String.prototype.replaceAll
+        // Step 1: If searchValue is undefined, throw TypeError
+        if (args.Info.Count <= 1 || args[1] == scriptContext->GetLibrary()->GetUndefined())
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_ReplaceNeedsSearchValue);
+            return nullptr;
+        }
+
+        Var searchValue = args[1];
+        Var replaceValue = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
+
+        // Check if searchValue is a RegExp
+        if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
+            && VarIs<JavascriptRegExp>(searchValue))
+        {
+            JavascriptRegExp* regex = VarTo<JavascriptRegExp>(searchValue);
+            JavascriptString* flags = regex->GetFlags(scriptContext);
+            
+            // Check if 'g' flag is present
+            if (flags->IndexOf(_u('g'), 0) == -1)
+            {
+                // ECMAScript 2021: If searchValue is a RegExp without 'g' flag, throw TypeError
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_ReplaceAllRequiresGlobalRegExp);
+                return nullptr;
+            }
+        }
+
+        // For RegExp, use the existing replace logic which handles 'g' flag
+        // For strings, we need to do iterative replacement
+        JavascriptRegExp* pRegEx = nullptr;
+        JavascriptString* pMatch = nullptr;
+        RecyclableObject* replacefn = nullptr;
+        JavascriptString* pReplace = nullptr;
+
+        SearchValueHelper(scriptContext, searchValue, &pRegEx, &pMatch);
+        ReplaceValueHelper(scriptContext, replaceValue, &replacefn, &pReplace);
+
+        if (pRegEx != nullptr)
+        {
+            // RegExp path - uses existing replace which handles 'g' flag
+            if (replacefn != nullptr)
+            {
+                return RegexHelper::RegexReplaceFunction(scriptContext, pRegEx, input, replacefn);
+            }
+            else
+            {
+                return RegexHelper::RegexReplace(scriptContext, pRegEx, input, pReplace, RegexHelper::IsResultNotUsed(callInfo.Flags));
+            }
+        }
+
+        // String path - need to implement iterative replacement
+        AssertMsg(pMatch != nullptr, "Match string shouldn't be null");
+
+        if (replacefn != nullptr)
+        {
+            // Function replacement
+            return RegexHelper::StringReplaceAll(scriptContext, pMatch, input, replacefn);
+        }
+        else
+        {
+            if (callInfo.Flags & CallFlags_NotUsed)
+            {
+                return scriptContext->GetLibrary()->GetEmptyString();
+            }
+            return RegexHelper::StringReplaceAll(pMatch, input, pReplace);
+        }
+    }
+
     void JavascriptString::SearchValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptRegExp ** ppSearchRegEx, JavascriptString ** ppSearchString)
     {
         *ppSearchRegEx = nullptr;

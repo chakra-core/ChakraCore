@@ -7820,6 +7820,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(indexOf, JavascriptString::EntryIndexOf);
         REG_OBJECTS_LIB_FUNC(lastIndexOf, JavascriptString::EntryLastIndexOf);
         REG_OBJECTS_LIB_FUNC(replace, JavascriptString::EntryReplace);
+        REG_OBJECTS_LIB_FUNC(replaceAll, JavascriptString::EntryReplaceAll);
         REG_OBJECTS_LIB_FUNC(search, JavascriptString::EntrySearch);
         REG_OBJECTS_LIB_FUNC(slice, JavascriptString::EntrySlice);
         REG_OBJECTS_LIB_FUNC(charAt, JavascriptString::EntryCharAt);

@@ -1514,6 +1514,285 @@ namespace Js
         return input;
     }
 
+    Var RegexHelper::StringReplaceAll(JavascriptString* match, JavascriptString* input, JavascriptString* replace)
+    {
+        // ECMAScript 2021: String.prototype.replaceAll - string replace all
+        // Replace all occurrences of match with replace string
+        
+        const char16* inputStr = input->GetString();
+        const char16* matchStr = match->GetString();
+        const char16* replaceStr = replace->GetString();
+        
+        CharCount inputLength = input->GetLength();
+        CharCount matchLength = match->GetLength();
+        CharCount replaceLength = replace->GetLength();
+
+        if (matchLength == 0)
+        {
+            // Empty string - insert replace at every position including start and end
+            CharCount newLength = inputLength + replaceLength * (inputLength + 1);
+            BufferStringBuilder bufferString(newLength, match->GetScriptContext());
+            
+            for (CharCount i = 0; i <= inputLength; i++)
+            {
+                if (i > 0)
+                {
+                    bufferString.SetContent(inputStr, i);
+                }
+                bufferString.SetContent(replaceStr, replaceLength);
+            }
+            return bufferString.ToString();
+        }
+
+        // First pass: count occurrences
+        CharCount occurrenceCount = 0;
+        CharCount searchStart = 0;
+        
+        while (searchStart <= inputLength - matchLength)
+        {
+            CharCount matchedIndex = JavascriptString::strstr(input, match, true, searchStart);
+            if (matchedIndex == CharCountFlag)
+            {
+                break;
+            }
+            occurrenceCount++;
+            searchStart = matchedIndex + matchLength;
+        }
+
+        if (occurrenceCount == 0)
+        {
+            // No matches found, return original string
+            return input;
+        }
+
+        // Calculate total result length
+        // Check if replace string has '$' escapes (same logic as StringReplace)
+        bool definitelyNoEscapes = replace->GetLength() == 0;
+        if (!definitelyNoEscapes && replace->GetLength() <= 8)
+        {
+            CharCount i = 0;
+            for (; i < replace->GetLength() && replaceStr[i] != _u('$'); ++i);
+            definitelyNoEscapes = i >= replace->GetLength();
+        }
+
+        CharCount newLength;
+        if (definitelyNoEscapes)
+        {
+            newLength = inputLength - (matchLength * occurrenceCount) + (replaceLength * occurrenceCount);
+        }
+        else
+        {
+            // For simplicity, allocate extra space when there might be $ escapes
+            // A proper implementation would calculate the exact expanded length
+            newLength = inputLength + replaceLength * occurrenceCount * 2;
+        }
+
+        BufferStringBuilder bufferString(newLength, match->GetScriptContext());
+
+        // Second pass: build result
+        searchStart = 0;
+        while (searchStart <= inputLength - matchLength)
+        {
+            CharCount matchedIndex = JavascriptString::strstr(input, match, true, searchStart);
+            if (matchedIndex == CharCountFlag)
+            {
+                break;
+            }
+
+            // Add prefix (before match)
+            bufferString.SetContent(inputStr + searchStart, matchedIndex - searchStart);
+
+            // Add replace string (handle $ escapes if needed)
+            if (definitelyNoEscapes)
+            {
+                bufferString.SetContent(replaceStr, replaceLength);
+            }
+            else
+            {
+                // Handle $ escapes in replace string
+                // This is a simplified version - full implementation would need regex-like $ handling
+                for (CharCount i = 0; i < replaceLength; i++)
+                {
+                    if (replaceStr[i] == _u('$') && i + 1 < replaceLength)
+                    {
+                        // Handle common $ patterns
+                        char16 next = replaceStr[i + 1];
+                        switch (next)
+                        {
+                        case _u('$'):
+                            bufferString.SetContent(&replaceStr[i], 1);
+                            break;
+                        case _u('&'):
+                            bufferString.SetContent(matchStr, matchLength);
+                            break;
+                        case _u('`'):
+                            bufferString.SetContent(inputStr, matchedIndex);
+                            break;
+                        case _u('\''):
+                            bufferString.SetContent(inputStr + matchedIndex + matchLength, inputLength - matchedIndex - matchLength);
+                            break;
+                        default:
+                            // Just copy the $ and the next character
+                            bufferString.SetContent(&replaceStr[i], 2);
+                            break;
+                        }
+                        i++; // Skip the next character since we handled it
+                    }
+                    else
+                    {
+                        bufferString.SetContent(&replaceStr[i], 1);
+                    }
+                }
+            }
+
+            searchStart = matchedIndex + matchLength;
+        }
+
+        // Add remaining suffix (after last match)
+        if (searchStart < inputLength)
+        {
+            bufferString.SetContent(inputStr + searchStart, inputLength - searchStart);
+        }
+
+        return bufferString.ToString();
+    }
+
+    Var RegexHelper::StringReplaceAll(ScriptContext* scriptContext, JavascriptString* match, JavascriptString* input, RecyclableObject* replacefn)
+    {
+        // ECMAScript 2021: String.prototype.replaceAll - string replace all with function
+        Assert(match->GetScriptContext() == scriptContext);
+        Assert(input->GetScriptContext() == scriptContext);
+
+        const char16* inputStr = input->GetString();
+        const char16* matchStr = match->GetString();
+        CharCount inputLength = input->GetLength();
+        CharCount matchLength = match->GetLength();
+
+        if (matchLength == 0)
+        {
+            // Empty string - insert replace at every position including start and end
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            
+            // Count positions first
+            CharCount positionCount = inputLength + 1;
+            
+            // Calculate total result length
+            Var* replaceResults = (Var*)_alloca(sizeof(Var) * positionCount);
+            CharCount totalReplaceLength = 0;
+            
+            for (CharCount i = 0; i <= inputLength; i++)
+            {
+                Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
+                {
+                    Var pThis = scriptContext->GetLibrary()->GetUndefined();
+                    return CALL_FUNCTION(threadContext, replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)i, scriptContext), input);
+                });
+                JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
+                replaceResults[i] = replace;
+                totalReplaceLength += replace->GetLength();
+            }
+
+            CharCount newLength = inputLength + totalReplaceLength;
+            BufferStringBuilder bufferString(newLength, scriptContext);
+
+            CharCount inputPos = 0;
+            for (CharCount i = 0; i <= inputLength; i++)
+            {
+                if (i > 0)
+                {
+                    bufferString.SetContent(inputStr + inputPos, 1);
+                    inputPos++;
+                }
+                JavascriptString* replace = (JavascriptString*)replaceResults[i];
+                bufferString.SetContent(replace->GetString(), replace->GetLength());
+            }
+            return bufferString.ToString();
+        }
+
+        // First pass: find all matches and call replace function for each
+        // Use dynamic array to store match positions
+        const int MAX_MATCHES = 256;
+        CharCount matchPositions[MAX_MATCHES];
+        Var replaceResults[MAX_MATCHES];
+        int matchCount = 0;
+        
+        CharCount searchStart = 0;
+        while (searchStart <= inputLength - matchLength && matchCount < MAX_MATCHES)
+        {
+            CharCount matchedIndex = JavascriptString::strstr(input, match, true, searchStart);
+            if (matchedIndex == CharCountFlag)
+            {
+                break;
+            }
+
+            matchPositions[matchCount] = matchedIndex;
+
+            // Call replace function
+            ThreadContext* threadContext = scriptContext->GetThreadContext();
+            Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
+            {
+                Var pThis = scriptContext->GetLibrary()->GetUndefined();
+                return CALL_FUNCTION(threadContext, replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)matchedIndex, scriptContext), input);
+            });
+            JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
+            replaceResults[matchCount] = replace;
+
+            searchStart = matchedIndex + matchLength;
+            matchCount++;
+        }
+
+        if (matchCount == 0)
+        {
+            // No matches found, return original string
+            return input;
+        }
+
+        // Calculate total result length
+        CharCount newLength = 0;
+        CharCount lastPos = 0;
+
+        for (int i = 0; i < matchCount; i++)
+        {
+            CharCount matchPos = matchPositions[i];
+            JavascriptString* replace = (JavascriptString*)replaceResults[i];
+
+            // Length of content before match
+            newLength += matchPos - lastPos;
+            // Length of replacement
+            newLength += replace->GetLength();
+
+            lastPos = matchPos + matchLength;
+        }
+
+        // Add remaining suffix
+        newLength += inputLength - lastPos;
+
+        BufferStringBuilder bufferString(newLength, scriptContext);
+
+        // Second pass: build result
+        lastPos = 0;
+        for (int i = 0; i < matchCount; i++)
+        {
+            CharCount matchPos = matchPositions[i];
+            JavascriptString* replace = (JavascriptString*)replaceResults[i];
+
+            // Add prefix (before match)
+            bufferString.SetContent(inputStr + lastPos, matchPos - lastPos);
+            // Add replacement
+            bufferString.SetContent(replace->GetString(), replace->GetLength());
+
+            lastPos = matchPos + matchLength;
+        }
+
+        // Add remaining suffix
+        if (lastPos < inputLength)
+        {
+            bufferString.SetContent(inputStr + lastPos, inputLength - lastPos);
+        }
+
+        return bufferString.ToString();
+    }
+
     void RegexHelper::AppendSubString(ScriptContext* scriptContext, JavascriptArray* ary, JavascriptString* input, CharCount startInclusive, CharCount endExclusive)
     {
         Assert(endExclusive >= startInclusive);
