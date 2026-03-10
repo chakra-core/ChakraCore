@@ -108,6 +108,8 @@ namespace Js
         static Var RegexReplaceFunction(ScriptContext* scriptContext, RecyclableObject* thisObj, JavascriptString* input, RecyclableObject* replacefn);
         static Var StringReplace(JavascriptString* regularExpression, JavascriptString* input, JavascriptString* replace);
         static Var StringReplace(ScriptContext* scriptContext, JavascriptString* regularExpression, JavascriptString* input, RecyclableObject* replacefn);
+        static Var StringReplaceAll(JavascriptString* match, JavascriptString* input, JavascriptString* replace);
+        static Var StringReplaceAll(ScriptContext* scriptContext, JavascriptString* match, JavascriptString* input, RecyclableObject* replacefn);
         static Var RegexSplitResultUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
         static Var RegexSplitResultUsedAndMayBeTemp(void *const stackAllocationPointer, ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);
         static Var RegexSplitResultNotUsed(ScriptContext* scriptContext, JavascriptRegExp* regularExpression, JavascriptString* input, CharCount limit);

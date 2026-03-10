@@ -278,6 +278,7 @@ namespace Js
         static Var EntryNormalize(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryRaw(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryReplace(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryReplaceAll(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySearch(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySlice(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySplit(RecyclableObject* function, CallInfo callInfo, ...);
@@ -348,6 +349,7 @@ namespace Js
         static Var TrimLeftRightHelper(JavascriptString* arg, ScriptContext* scriptContext);
 
         static Var DoStringReplace(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
+        static Var DoStringReplaceAll(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
         static Var DoStringSplit(Arguments& args, CallInfo& callInfo, JavascriptString* input, ScriptContext* scriptContext);
         template<int argCount, typename FallbackFn>
         static Var DelegateToRegExSymbolFunction(ArgumentReader &args, PropertyId symbolPropertyId, FallbackFn fallback, PCWSTR varName, ScriptContext* scriptContext);
