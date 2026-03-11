@@ -468,6 +468,13 @@
   </test>
   <test>
     <default>
+      <files>ES6ArrayAPI_slow.js</files>
+      <compile-flags>-ES6ObjectLiterals -args summary -endargs</compile-flags>
+      <tags>Slow</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ES6ArrayUseConstructor.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
