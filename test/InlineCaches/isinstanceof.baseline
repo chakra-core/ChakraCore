@@ -1,0 +1,15 @@
+NoCacheHit:Box:Component: false
+NoCacheHit:Component:ComponentBase: true
+NoCacheHit:Health:Component: true
+NoCacheHit:Shape:ShapeBase: true
+NoCacheHit:ShapeBase:ShapeBaseBase: true
+ -> Change prototype
+NoCacheHitNoCacheHit:Box:Component: true true
+CacheHitNoCacheHit:Component:ComponentBase: true true
+CacheHitNoCacheHit:Health:Component: true true
+NoCacheHitNoCacheHit:Shape:ShapeBase: false false
+CacheHitNoCacheHit:ShapeBase:ShapeBaseBase: true true
+====================
+NoCacheHit:Box:Circle false
+ -> Change prototype
+CacheHitNoCacheHit:Box:Circle false false

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
@@ -3389,8 +3390,16 @@ LABEL1:
             Assert(function != nullptr);
             if (inlineCache->TryGetResult(instance, function, &javascriptResult))
             {
+#ifdef ENABLE_TEST_HOOKS
+                if (PHASE_TRACE1(Js::IsInstInlineCacheInvalidationPhase))
+                    Output::Print(_u("CacheHit"));
+#endif
                 return javascriptResult == scriptContext->GetLibrary()->GetTrue();
             }
+#ifdef ENABLE_TEST_HOOKS
+            if (PHASE_TRACE1(Js::IsInstInlineCacheInvalidationPhase))
+                Output::Print(_u("NoCacheHit"));
+#endif
         }
 
         // If we are here, then me must have missed the cache.  This may be because:
