@@ -14684,6 +14684,7 @@ GlobOpt::OptIsInvariant(IR::Opnd *src, BasicBlock *block, Loop *loop, Value *src
         sym = src->AsSymOpnd()->m_sym;
         if (src->AsSymOpnd()->IsPropertySymOpnd())
         {
+#if 0
             if (src->AsSymOpnd()->AsPropertySymOpnd()->IsTypeChecked())
             {
                 // We do not handle hoisting these yet.  We might be hoisting this across the instr with the type check protecting this one.
@@ -14691,6 +14692,7 @@ GlobOpt::OptIsInvariant(IR::Opnd *src, BasicBlock *block, Loop *loop, Value *src
                 // For CheckFixedFld, there is no benefit hoisting these if they don't have a type check as they won't generate code.
                 return false;
             }
+#endif
         }
 
         break;
@@ -14703,6 +14705,7 @@ GlobOpt::OptIsInvariant(IR::Opnd *src, BasicBlock *block, Loop *loop, Value *src
     default:
         return false;
     }
+
     return OptIsInvariant(sym, block, loop, srcVal, isNotTypeSpecConv, allowNonPrimitives);
 }
 
@@ -14917,15 +14920,23 @@ GlobOpt::OptIsInvariant(
         }
         break;
     case Js::OpCode::CheckObjType:
+    case Js::OpCode::CheckFixedFld:
         // Bug 11712101: If the operand is a field, ensure that its containing object type is invariant
         // before hoisting -- that is, don't hoist a CheckObjType over a DeleteFld on that object.
         // (CheckObjType only checks the operand and its immediate parent, so we don't need to go
         // any farther up the object graph.)
         Assert(instr->GetSrc1());
-        PropertySym *propertySym = instr->GetSrc1()->AsPropertySymOpnd()->GetPropertySym();
-        if (propertySym->HasObjectTypeSym()) {
-            StackSym *objectTypeSym = propertySym->GetObjectTypeSym();
+        IR::PropertySymOpnd *propertySymOpnd = instr->GetSrc1()->AsPropertySymOpnd();
+        if (propertySymOpnd->IsTypeCheckSeqCandidate() && !propertySymOpnd->IsTypeChecked()) {
+            StackSym *objectTypeSym = propertySymOpnd->GetObjectTypeSym();
             if (!this->OptIsInvariant(objectTypeSym, block, loop, this->CurrentBlockData()->FindValue(objectTypeSym), true, true)) {
+                return false;
+            }
+        }
+        if (propertySymOpnd->IsAuxSlotPtrSymAvailable())
+        {
+            StackSym* auxSlotPtrSym = propertySymOpnd->GetAuxSlotPtrSym();
+            if (!this->OptIsInvariant(auxSlotPtrSym, block, loop, this->CurrentBlockData()->FindValue(auxSlotPtrSym), true, true)) {
                 return false;
             }
         }
@@ -15082,6 +15093,22 @@ GlobOpt::OptHoistInvariant(
         if (src1->IsRegOpnd())
         {
             src1->AsRegOpnd()->m_isTempLastUse = false;
+        }
+
+        if (src1->IsSymOpnd() && src1->AsSymOpnd()->IsPropertySymOpnd())
+        {
+            IR::PropertySymOpnd* opnd = src1->AsSymOpnd()->AsPropertySymOpnd();
+            FinishOptPropOp(instr, opnd, loop->landingPad);
+
+            if (opnd->IsAuxSlotPtrSymAvailable())
+            {
+                block->globOptData.liveFields->Clear(opnd->GetAuxSlotPtrSym()->m_id);
+            }
+
+            if (opnd->IsTypeCheckSeqCandidate() && !opnd->IsTypeChecked())
+            {
+                block->globOptData.liveFields->Clear(opnd->GetObjectTypeSym()->m_id);
+            }
         }
 
         IR::Opnd* src2 = instr->GetSrc2();
