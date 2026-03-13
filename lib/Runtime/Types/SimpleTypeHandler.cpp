@@ -95,6 +95,11 @@ namespace Js
             }
         }
 
+        if (HasDeletedProperties())
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -171,6 +176,21 @@ namespace Js
 
         return newTypeHandler;
     }
+
+    template<size_t size>
+    bool SimpleTypeHandler<size>::HasDeletedProperties()
+    {
+        for (PropertyIndex i = 0; i < propertyCount; i++)
+        {
+            if (descriptors[i].Attributes & PropertyDeleted)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     template<size_t size>
     PathTypeHandlerBase* SimpleTypeHandler<size>::ConvertToPathType(DynamicObject* instance)

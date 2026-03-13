@@ -1196,6 +1196,8 @@ namespace Js
                     }
                 }
 
+                Assert((attr & ObjectSlotAttr_Deleted) != ObjectSlotAttr_Deleted);
+
                 SetAttributesHelper(instance, propertyId, propertyIndex, attributes, (ObjectSlotAttributes)(attr | ObjectSlotAttr_Accessor));
                 // SetAttributesHelper can convert to dictionary in corner cases, e.g., if we haven't got a full path from the root. Remove this check when that's fixed.
                 if (!instance->GetTypeHandler()->IsPathTypeHandler())
