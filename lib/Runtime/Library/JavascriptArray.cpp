@@ -5626,8 +5626,14 @@ Case0:
         Var lowerValue = nullptr, upperValue = nullptr;
         T lowerExists, upperExists;
         const char16* methodName;
-        bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
 
+        // If we came from Array.prototype.map and source object is not a JavascriptArray, source could be a TypedArray
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
+        {
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
+        }
+
+        bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
         if (isTypedArrayEntryPoint)
         {
             methodName = _u("[TypedArray].prototype.reverse");
@@ -5635,12 +5641,6 @@ Case0:
         else
         {
             methodName = _u("Array.prototype.reverse");
-        }
-
-        // If we came from Array.prototype.map and source object is not a JavascriptArray, source could be a TypedArray
-        if (!isTypedArrayEntryPoint && pArr == nullptr && VarIs<TypedArrayBase>(obj))
-        {
-            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         ThrowTypeErrorOnFailureHelper h(scriptContext, methodName);
