@@ -7998,12 +7998,6 @@ void EmitMethodFld(ParseNodeCall *pnodeCall, ParseNode *pnode, Js::RegSlot callO
 // lhs.apply(this, arguments);
 void EmitApplyCall(ParseNodeCall* pnodeCall, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue)
 {
-    printf("Nope");
-    std::abort();
-}
-
-void EmitApplyCall2(ParseNodeCall *pnodeCall, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue)
-{
     ParseNode* applyNode = pnodeCall->pnodeTarget;
     ParseNode* thisNode = pnodeCall->pnodeArgs->AsParseNodeBin()->pnode1;
     Assert(applyNode->nop == knopDot);
