@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
@@ -301,7 +302,7 @@ ParseNodeUni::ParseNodeUni(OpCode nop, charcount_t ichMin, charcount_t ichLim, P
     this->pnode1 = pnode1;
 }
 
-ParseNodeBin::ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2)
+ParseNodeBin::ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2, bool isNullPropagating)
     : ParseNode(nop, ichMin, ichLim)
 {
     // Member name is either a string or a computed name
@@ -313,6 +314,7 @@ ParseNodeBin::ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, P
 
     this->pnode1 = pnode1;
     this->pnode2 = pnode2;
+    this->isNullPropagating = isNullPropagating;
 
     // Statically detect if the add is a concat
     if (!PHASE_OFF1(Js::ByteCodeConcatExprOptPhase))
@@ -495,6 +497,7 @@ ParseNodeCall::ParseNodeCall(OpCode nop, charcount_t ichMin, charcount_t ichLim,
     this->isEvalCall = false;
     this->isSuperCall = false;
     this->hasDestructuring = false;
+    this->isNullPropagating = false;
 }
 
 ParseNodeStmt::ParseNodeStmt(OpCode nop, charcount_t ichMin, charcount_t ichLim)

@@ -1,5 +1,6 @@
 //-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
+// Copyright (c) ChakraCore Project Contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -277,10 +278,11 @@ public:
 class ParseNodeBin : public ParseNode
 {
 public:
-    ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2);
+    ParseNodeBin(OpCode nop, charcount_t ichMin, charcount_t ichLim, ParseNode * pnode1, ParseNode * pnode2, bool isNullPropagating = false);
 
     ParseNodePtr pnode1;
     ParseNodePtr pnode2;
+    bool isNullPropagating;
 
     DISABLE_SELF_CAST(ParseNodeBin);
 };
@@ -791,6 +793,7 @@ public:
     BYTE isEvalCall : 1;
     BYTE isSuperCall : 1;
     BYTE hasDestructuring : 1;
+    bool isNullPropagating;
 
     DISABLE_SELF_CAST(ParseNodeCall);
 };

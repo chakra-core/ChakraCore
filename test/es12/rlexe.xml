@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>optional-chaining.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+    <default>
+      <files>optional-parsing.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+    <default>
+      <files>optional-calls.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+    <default>
+      <files>optional-async.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+    <default>
+      <files>optional-delete.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+</regress-exe>

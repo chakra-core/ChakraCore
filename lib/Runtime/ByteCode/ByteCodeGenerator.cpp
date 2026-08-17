@@ -1284,6 +1284,10 @@ ParseNode* VisitBlock(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, Pr
             }
         }
     }
+    if (nullptr != pnodeLastVal)
+    {
+        pnodeLastVal->isUsed = true;
+    }
     return pnodeLastVal;
 }
 
@@ -5026,6 +5030,9 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     case knopCoalesce:
     case knopObject:
         byteCodeGenerator->AssignNullConstRegister();
+        break;
+    case knopOptChain:
+        byteCodeGenerator->AssignUndefinedConstRegister();
         break;
     case knopClassDecl:
         {
