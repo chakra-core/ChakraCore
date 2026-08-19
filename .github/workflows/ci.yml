@@ -1,0 +1,57 @@
+name: "CI"
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1" # At 00:00 on Monday
+
+jobs:
+  macOS:
+    name: CMake macOS.ARM64.${{ matrix.build_type }} (noJit)
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build_type: Debug
+            static_library: -DSTATIC_LIBRARY=ON
+          - build_type: RelWithDebInfo
+            static_library: ""
+          - build_type: Release
+            static_library: -DSTATIC_LIBRARY=ON
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: brew install ninja icu4c
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build
+          cmake -GNinja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            ${{ matrix.static_library }} \
+            -DICU_INCLUDE_PATH=/opt/homebrew/opt/icu4c/include \
+            -DDISABLE_JIT=ON \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER=clang \
+            ..
+
+      - name: Build
+        working-directory: build
+        run: ninja
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-arm64-${{ matrix.build_type }}-nojit
+          path: build/bin/
+          if-no-files-found: error
+
+      - name: Test
+        working-directory: build
+        run: ninja check
