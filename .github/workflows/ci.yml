@@ -8,35 +8,77 @@ on:
     - cron: "0 0 * * 1" # At 00:00 on Monday
 
 jobs:
-  macOS:
-    name: CMake macOS.ARM64.${{ matrix.build_type }} (noJit)
-    runs-on: macos-14
+  cmake:
+    name: ${{ matrix.artifact_name }}
+    runs-on: ${{ matrix.image_name }}
+
     strategy:
       fail-fast: false
       matrix:
         include:
-          - build_type: Debug
-            static_library: -DSTATIC_LIBRARY=ON
-          - build_type: RelWithDebInfo
-            static_library: ""
-          - build_type: Release
-            static_library: -DSTATIC_LIBRARY=ON
+          # region Linux Arm64
+          - artifact_name: linux-arm64-debug-nojit
+            image_name: ubuntu-24.04-arm
+            build_type: Debug
+            static_library: false
+            disable_jit: true
+            
+          - artifact_name: linux-arm64-test-nojit
+            image_name: ubuntu-24.04-arm
+            build_type: RelWithDebInfo
+            static_library: false
+            disable_jit: true
+
+          - artifact_name: linux-arm64-release-nojit
+            image_name: ubuntu-24.04-arm
+            build_type: Release
+            static_library: false
+            disable_jit: true
+          # endregion
+
+          # region MacOS Arm64
+          - artifact_name: macos-arm64-debug-nojit
+            image_name: macos-14
+            build_type: Debug
+            static_library: true
+            disable_jit: true
+
+          - artifact_name: macos-arm64-test-nojit
+            image_name: macos-14
+            build_type: RelWithDebInfo
+            static_library: false
+            disable_jit: true
+
+          - artifact_name: macos-arm64-release-nojit
+            image_name: macos-14
+            build_type: Release
+            static_library: true
+            disable_jit: true
+          # endregion
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Install dependencies
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y ninja-build clang libicu-dev
+
+      - name: Install macOS Dependencies
+        if: runner.os == 'macOS'
         run: brew install ninja icu4c
 
-      - name: Configure
+      - name: Create build directories
+        run: mkdir -p build
+
+      - name: CMake
+        working-directory: build
         run: |
-          mkdir -p build
-          cd build
           cmake -GNinja \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            ${{ matrix.static_library }} \
-            -DICU_INCLUDE_PATH=/opt/homebrew/opt/icu4c/include \
-            -DDISABLE_JIT=ON \
+            ${{ case(matrix.static_library, '-DSTATIC_LIBRARY=ON', '') }} \
+            ${{ case(matrix.disable_jit, '-DDISABLE_JIT=ON', '') }} \
+            ${{ case(runner.os == 'macOS', '-DICU_INCLUDE_PATH=/opt/homebrew/opt/icu4c/include', '') }} \
             -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_C_COMPILER=clang \
             ..
@@ -48,7 +90,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: macos-arm64-${{ matrix.build_type }}-nojit
+          name: ${{ matrix.artifact_name }}
           path: build/bin/
           if-no-files-found: error
 
