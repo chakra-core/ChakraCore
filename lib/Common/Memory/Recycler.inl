@@ -617,8 +617,8 @@ SmallHeapBlockT<TBlockAttributes>::GetRealAddressFromInterior(void * interiorAdd
     const ValidPointers<TBlockAttributes> validPointers = HeapInfo::GetValidPointersMapForBucket<TBlockAttributes>(bucketIndex);
     size_t rawInteriorAddress = reinterpret_cast<size_t>(interiorAddress);
     size_t baseAddress = rawInteriorAddress & ~(TBlockAttributes::PageCount * AutoSystemInfo::PageSize - 1);
-    ushort offset = (ushort)(rawInteriorAddress - baseAddress);
-    offset = validPointers.GetInteriorAddressIndex(offset >> HeapConstants::ObjectAllocationShift);
+    uint byteOffset = (uint)(rawInteriorAddress - baseAddress);
+    ushort offset = validPointers.GetInteriorAddressIndex(byteOffset >> HeapConstants::ObjectAllocationShift);
 
     if (offset == SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit)
     {
